@@ -2,11 +2,11 @@ SSHash
 ======
 
 This is a compressed dictionary data structure for k-mers
-(strings of k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
+(strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
 **A (pre-print) paper describing the data structure will appear soon.**
 
-For a dictionary of n k-mers ,
+For a dictionary of n k-mers,
 two basic queries are supported:
 
 - i = Lookup(g), where i is in [0,n) if the k-mer g is found in the dictionary or i = -1 otherwise;
