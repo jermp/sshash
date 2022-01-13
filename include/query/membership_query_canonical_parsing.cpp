@@ -1,0 +1,244 @@
+#include "../dictionary.hpp"
+#include "../minimizer_enumerator.hpp"
+#include "../util.hpp"
+
+namespace sshash {
+
+struct membership_query_canonical_parsing {
+    membership_query_canonical_parsing(dictionary const* dict)
+
+        : num_searches(0)
+        , num_extensions(0)
+
+        , m_dict(dict)
+
+        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
+        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
+        , m_minimizer_not_found(false)
+        , m_start(true)
+        , m_curr_minimizer(constants::invalid)
+        , m_prev_minimizer(constants::invalid)
+        , m_kmer(constants::invalid)
+
+        , m_shift(2 * (dict->m_k - 1))
+        , m_k(dict->m_k)
+        , m_m(dict->m_m)
+        , m_seed(dict->m_seed)
+
+        , m_string_iterator(dict->m_buckets.strings, 0)
+        , m_begin(0)
+        , m_end(0)
+        , m_pos_in_window(0)
+        , m_window_size(0)
+
+        , m_reverse(false)
+
+    {
+        assert(m_dict->m_canonical_parsing);
+    }
+
+    inline void start() { m_start = true; }
+
+    struct query_result {
+        bool is_valid;
+        bool is_member;
+    };
+
+    query_result is_member(const char* kmer) {
+        /* validation */
+        bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
+        if (!is_valid) {
+            m_start = true;
+            return {false, false};
+        }
+        /*************/
+
+        /* compute kmer and minimizer */
+        if (!m_start) {
+            m_kmer >>= 2;
+            m_kmer += (util::char_to_uint64(kmer[m_k - 1])) << m_shift;
+            assert(m_kmer == util::string_to_uint64_no_reverse(kmer, m_k));
+        } else {
+            m_kmer = util::string_to_uint64_no_reverse(kmer, m_k);
+        }
+        m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
+        assert(m_curr_minimizer == util::compute_minimizer(m_kmer, m_k, m_m, m_seed));
+        m_kmer_rc = util::compute_reverse_complement(m_kmer, m_k);
+        constexpr bool reverse = true;
+        uint64_t minimizer_rc = m_minimizer_enum_rc.next<reverse>(m_kmer_rc, m_start);
+        assert(minimizer_rc == util::compute_minimizer(m_kmer_rc, m_k, m_m, m_seed));
+        m_curr_minimizer = std::min<uint64_t>(m_curr_minimizer, minimizer_rc);
+        /******************************/
+
+        /* compute answer */
+        bool answer = false;
+        if (same_minimizer()) {
+            if (m_minimizer_not_found) {
+                answer = false;
+            } else if (extends()) {
+                extend();
+                answer = true;
+            } else {
+                int ret = is_member();
+                answer = (ret == return_value::KMER_FOUND);
+            }
+        } else {
+            m_minimizer_not_found = false;
+            locate_bucket();
+
+            /* Try to extend matching even when we change minimizer. */
+            if (extends()) {
+                extend();
+                answer = true;
+            } else {
+                int ret = is_member();
+                if (ret == return_value::MINIMIZER_NOT_FOUND) {
+                    m_minimizer_not_found = true;
+                    answer = false;
+                } else {
+                    answer = (ret == return_value::KMER_FOUND);
+                }
+            }
+        }
+        /******************/
+
+        /* update state */
+        m_prev_minimizer = m_curr_minimizer;
+        m_start = false;
+        /****************/
+
+        assert(m_dict->is_member(kmer) == answer);
+        return {true, answer};
+    }
+
+    /* counts */
+    uint64_t num_searches, num_extensions;
+
+private:
+    dictionary const* m_dict;
+
+    /* (kmer,minimizer) state */
+    minimizer_enumerator<> m_minimizer_enum;
+    minimizer_enumerator<> m_minimizer_enum_rc;
+    bool m_minimizer_not_found;
+    bool m_start;
+    uint64_t m_curr_minimizer, m_prev_minimizer;
+    uint64_t m_kmer, m_kmer_rc;
+
+    /* constants */
+    uint64_t m_shift, m_k, m_m, m_seed;
+
+    /* string state */
+    bit_vector_iterator m_string_iterator;
+    uint64_t m_begin, m_end;
+    uint64_t m_pos_in_window, m_window_size;
+    bool m_reverse;
+
+    enum return_value { MINIMIZER_NOT_FOUND = 0, KMER_FOUND = 1, KMER_NOT_FOUND = 2 };
+
+    inline bool same_minimizer() const { return m_curr_minimizer == m_prev_minimizer; }
+
+    void locate_bucket() {
+        uint64_t bucket_id = (m_dict->m_minimizers).lookup(m_curr_minimizer);
+        std::tie(m_begin, m_end) = (m_dict->m_buckets).locate_bucket(bucket_id);
+    }
+
+    int is_member() {
+        bool check_minimizer = !same_minimizer();
+        if (!m_dict->m_skew_index.empty()) {
+            uint64_t num_strings_in_bucket = m_end - m_begin;
+            uint64_t log2_num_strings_in_bucket = util::ceil_log2_uint32(num_strings_in_bucket);
+            if (log2_num_strings_in_bucket > (m_dict->m_skew_index).min_log2) {
+                uint64_t p = m_dict->m_skew_index.lookup(m_kmer, log2_num_strings_in_bucket);
+                if (p < num_strings_in_bucket) {
+                    int ret = is_member(m_begin + p, m_begin + p + 1, check_minimizer);
+                    if (ret != return_value::KMER_NOT_FOUND) return ret;
+                    check_minimizer = false;
+                }
+                uint64_t p_rc = m_dict->m_skew_index.lookup(m_kmer_rc, log2_num_strings_in_bucket);
+                if (p_rc < num_strings_in_bucket) {
+                    int ret = is_member(m_begin + p_rc, m_begin + p_rc + 1, check_minimizer);
+                    if (ret != return_value::KMER_NOT_FOUND) return ret;
+                }
+                return return_value::KMER_NOT_FOUND;
+            }
+        }
+        return is_member(m_begin, m_end, check_minimizer);
+    }
+
+    int is_member(uint64_t begin, uint64_t end, bool check_minimizer) {
+        for (uint64_t string_id = begin; string_id != end; ++string_id) {
+            uint64_t offset = (m_dict->m_buckets).offsets.access(string_id);
+            uint64_t pos_in_string = 2 * offset;
+            m_reverse = false;
+            m_string_iterator.at(pos_in_string);
+            auto [kmer_id, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
+            (void)kmer_id;
+            m_pos_in_window = 0;
+            m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
+
+            while (m_pos_in_window != m_window_size) {
+                uint64_t val = m_string_iterator.read(2 * m_k);
+
+                if (check_minimizer and string_id == begin and m_pos_in_window == 0) {
+                    uint64_t val_rc = util::compute_reverse_complement(val, m_k);
+                    uint64_t minimizer =
+                        std::min<uint64_t>(util::compute_minimizer(val, m_k, m_m, m_seed),
+                                           util::compute_minimizer(val_rc, m_k, m_m, m_seed));
+                    if (minimizer != m_curr_minimizer) return return_value::MINIMIZER_NOT_FOUND;
+                }
+
+                m_string_iterator.eat(2);
+                m_pos_in_window += 1;
+                pos_in_string += 2;
+                assert(m_pos_in_window <= m_window_size);
+
+                if (m_kmer == val) {
+                    num_searches += 1;
+                    return return_value::KMER_FOUND;
+                }
+
+                if (m_kmer_rc == val) {
+                    m_reverse = true;
+                    pos_in_string -= 2;
+                    num_searches += 1;
+                    m_string_iterator.at(pos_in_string + 2 * (m_k - 1));
+                    return return_value::KMER_FOUND;
+                }
+            }
+        }
+
+        return return_value::KMER_NOT_FOUND;
+    }
+
+    inline void extend() {
+        if (m_reverse) {
+            m_string_iterator.eat_reverse(2);
+            m_pos_in_window -= 1;
+            assert(m_pos_in_window >= 1);
+        } else {
+            m_string_iterator.eat(2);
+            m_pos_in_window += 1;
+            assert(m_pos_in_window <= m_window_size);
+        }
+    }
+
+    inline bool extends() {
+        if (m_reverse) {
+            if (m_pos_in_window == 1) return false;
+            if (m_kmer_rc == m_string_iterator.read_reverse(2 * m_k)) {
+                ++num_extensions;
+                return true;
+            }
+            return false;
+        }
+        if (m_pos_in_window == m_window_size) return false;
+        if (m_kmer == m_string_iterator.read(2 * m_k)) {
+            ++num_extensions;
+            return true;
+        }
+        return false;
+    }
+};
+
+}  // namespace sshash
