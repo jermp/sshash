@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 namespace sshash {
 
 template <typename T>

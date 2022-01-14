@@ -1,12 +1,8 @@
 #pragma once
 
-#include "../external/pthash/external/essentials/include/essentials.hpp"
-#include "../external/pthash/include/pthash.hpp"
-
 #include "util.hpp"
 #include "bit_vector_iterator.hpp"
 #include "ef_sequence.hpp"
-#include "util.hpp"
 
 namespace sshash {
 

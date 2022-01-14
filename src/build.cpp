@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../external/cmd_line_parser/include/parser.hpp"
+#include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/dictionary.hpp"
 #include "../include/builder/build.cpp"
 #include "bench_utils.hpp"

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "util.hpp"
 #include "minimizers.hpp"
 #include "buckets.hpp"
 #include "skew_index.hpp"

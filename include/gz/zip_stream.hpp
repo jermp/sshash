@@ -96,9 +96,8 @@ public:
      * Construct a zip stream More info on the following parameters can be found
      * in the zlib documentation.
      */
-    basic_zip_streambuf(ostream_reference ostream, int level,
-                        ZipStrategy strategy, int window_size, int memory_level,
-                        size_t buffer_size);
+    basic_zip_streambuf(ostream_reference ostream, int level, ZipStrategy strategy, int window_size,
+                        int memory_level, size_t buffer_size);
 
     ~basic_zip_streambuf();
 
@@ -161,8 +160,8 @@ public:
     /** Construct a unzip stream. More info on the following parameters can be
      * found in the zlib documentation.
      */
-    basic_unzip_streambuf(istream_reference istream, int window_size,
-                          size_t read_buffer_size, size_t input_buffer_size);
+    basic_unzip_streambuf(istream_reference istream, int window_size, size_t read_buffer_size,
+                          size_t input_buffer_size);
 
     ~basic_unzip_streambuf();
 
@@ -189,8 +188,7 @@ public:
 private:
     void put_back_from_zip_stream();
 
-    std::streamsize unzip_from_stream(char_type* buffer,
-                                      std::streamsize buffer_size);
+    std::streamsize unzip_from_stream(char_type* buffer, std::streamsize buffer_size);
 
     size_t fill_input_buffer();
 
@@ -214,13 +212,12 @@ public:
     typedef std::basic_ostream<CharT, Traits>& ostream_reference;
     typedef std::basic_ostream<CharT, Traits> ostream_type;
 
-    explicit basic_zip_ostream(
-        ostream_reference ostream, ZipFormat format = ZipFormat::Default,
-        int level = Z_BEST_COMPRESSION,
-        ZipStrategy strategy = ZipStrategy::Default,
-        /* windowBits is passed < 0 to suppress zlib header */
-        int window_size = -15, int memory_level = 8,
-        size_t buffer_size = zstream_default_buffer_size);
+    explicit basic_zip_ostream(ostream_reference ostream, ZipFormat format = ZipFormat::Default,
+                               int level = Z_BEST_COMPRESSION,
+                               ZipStrategy strategy = ZipStrategy::Default,
+                               /* windowBits is passed < 0 to suppress zlib header */
+                               int window_size = -15, int memory_level = 8,
+                               size_t buffer_size = zstream_default_buffer_size);
 
     ~basic_zip_ostream();
 
@@ -252,12 +249,11 @@ public:
     typedef std::basic_istream<CharT, Traits>& istream_reference;
     typedef std::basic_istream<CharT, Traits> istream_type;
 
-    explicit basic_zip_istream(
-        istream_reference istream,
-        /* windowBits is passed < 0 to suppress zlib header */
-        int window_size = -15,
-        size_t read_buffer_size = zstream_default_buffer_size,
-        size_t input_buffer_size = zstream_default_buffer_size);
+    explicit basic_zip_istream(istream_reference istream,
+                               /* windowBits is passed < 0 to suppress zlib header */
+                               int window_size = -15,
+                               size_t read_buffer_size = zstream_default_buffer_size,
+                               size_t input_buffer_size = zstream_default_buffer_size);
 
     //! returns true if it is a gzip file
     bool is_gzip() const;
@@ -289,10 +285,5 @@ protected:
     uint32_t gzip_crc_;
     uint32_t gzip_data_size_;
 };
-
-/******************************************************************************/
-
-//! Helper function to check whether stream is compressed or not.
-bool isGZip(std::istream& is);
 
 /******************************************************************************/

@@ -16,8 +16,11 @@ A membership query (determine if a given k-mer is present in the dictionary or n
 The dictionary can also stream through all k-mers of a given DNA file
 (.fasta or .fastq formats) to determine their membership to the dictionary.
 
-##### Table of contents
+**NOTE**: The Lookup query assumes that two k-mers being the *reverse complement* of each other are the same.
+
+#### Table of contents
 * [Compiling the Code](#compiling-the-code)
+* [Dependencies](#dependencies)
 * [Build a Dictionary](#build-a-dictionary)
 * [Build and Query Examples](#build-and-query-examples)
 * [Input Files](#input-files)
@@ -52,18 +55,36 @@ For a testing environment, use the following instead:
     cmake .. -D CMAKE_BUILD_TYPE=Debug -D SSHASH_USE_SANITIZERS=On
     make
 
+Dependencies
+------------
+
+The repository has minimal dependencies: it only uses the [PTHash](https://github.com/jermp/pthash) library (for minimal perfect hashing), and `zlib` to read gzip-compressed streams.
+
+To automatically pull the PTHash dependency, just clone the repo with
+`--recursive` as explained in [Compiling the Code](#compiling-the-code).
+
+If you do not have `zlib` installed, you can do
+
+	sudo apt-get install zlib1g
+
+if you are on Linux/Ubuntu, or
+
+	brew install zlib
+
+if you have a Mac.
+
 Build a Dictionary
 ------------------
 
-All the examples below must be run from within the directory
-where the code was compiled (see the section [Compiling the Code](#compiling-the-code)), using the driver program
-called `build`.
+The driver program
+called `build` can be used to build a dictionary.
 
-Running the command
+From within the directory
+where the code was compiled (see the section [Compiling the Code](#compiling-the-code)), run the command:
 
 	./build --help
 
-shows the usage of the driver program, as reported below.
+to show the usage of the driver program (reported below for convenience).
 
 	Usage: ./build [-h,--help] input_filename k m [-s seed] [-n max_num_kmers] [-l l] [-c c] [--canonical-parsing] [-o output_filename] [--check] [--bench] [--verbose]
 	
@@ -113,7 +134,7 @@ shows the usage of the driver program, as reported below.
 Build and Query Examples
 ------------------------
 
-For the examples we are going to use some collections
+For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
 These collections were built for k = 31, so dictionaries should be built with k = 31 as well to ensure correctness.
 

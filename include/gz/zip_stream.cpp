@@ -20,25 +20,21 @@ static constexpr bool debug = false;
 static const int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 
 /* gzip flag byte */
-static const int gz_ascii_flag = 0x01; /* bit 0 set: file probably ascii text */
-static const int gz_head_crc = 0x02;   /* bit 1 set: header CRC present */
+static const int gz_ascii_flag = 0x01;  /* bit 0 set: file probably ascii text */
+static const int gz_head_crc = 0x02;    /* bit 1 set: header CRC present */
 static const int gz_extra_field = 0x04; /* bit 2 set: extra field present */
-static const int gz_orig_name =
-    0x08;                            /* bit 3 set: original file name present */
-static const int gz_comment = 0x10;  /* bit 4 set: file comment present */
-static const int gz_reserved = 0xE0; /* bits 5..7: reserved */
+static const int gz_orig_name = 0x08;   /* bit 3 set: original file name present */
+static const int gz_comment = 0x10;     /* bit 4 set: file comment present */
+static const int gz_reserved = 0xE0;    /* bits 5..7: reserved */
 
 /******************************************************************************/
 // basic_zip_streambuf
 
 template <typename CharT, typename Traits>
-basic_zip_streambuf<CharT, Traits>::basic_zip_streambuf(
-    ostream_reference ostream, int level, ZipStrategy strategy, int window_size,
-    int memory_level, size_t buffer_size)
-    : ostream_(ostream)
-    , output_buffer_(buffer_size, 0)
-    , buffer_(buffer_size, 0)
-    , crc_(0) {
+basic_zip_streambuf<CharT, Traits>::basic_zip_streambuf(ostream_reference ostream, int level,
+                                                        ZipStrategy strategy, int window_size,
+                                                        int memory_level, size_t buffer_size)
+    : ostream_(ostream), output_buffer_(buffer_size, 0), buffer_(buffer_size, 0), crc_(0) {
     zip_stream_.zalloc = (alloc_func)0;
     zip_stream_.zfree = (free_func)0;
 
@@ -50,8 +46,8 @@ basic_zip_streambuf<CharT, Traits>::basic_zip_streambuf(
     if (level > 9) level = 9;
     if (memory_level > 9) memory_level = 9;
 
-    err_ = deflateInit2(&zip_stream_, level, Z_DEFLATED, window_size,
-                        memory_level, static_cast<int>(strategy));
+    err_ = deflateInit2(&zip_stream_, level, Z_DEFLATED, window_size, memory_level,
+                        static_cast<int>(strategy));
 
     // assign buffer
     this->setp(buffer_.data(), buffer_.data() + buffer_.size() - 1);
@@ -78,8 +74,8 @@ int basic_zip_streambuf<CharT, Traits>::sync() {
 }
 
 template <typename CharT, typename Traits>
-typename basic_zip_streambuf<CharT, Traits>::int_type
-basic_zip_streambuf<CharT, Traits>::overflow(int_type c) {
+typename basic_zip_streambuf<CharT, Traits>::int_type basic_zip_streambuf<CharT, Traits>::overflow(
+    int_type c) {
     // LOG << "basic_zip_streambuf::overflow() c=" << c;
 
     size_t size = static_cast<size_t>(this->pptr() - this->pbase());
@@ -102,15 +98,13 @@ std::streamsize basic_zip_streambuf<CharT, Traits>::flush() {
     std::streamsize written_byte_size = 0, total_written_byte_size = 0;
 
     // updating crc
-    crc_ = static_cast<uint32_t>(
-        crc32(crc_, zip_stream_.next_in, zip_stream_.avail_in));
+    crc_ = static_cast<uint32_t>(crc32(crc_, zip_stream_.next_in, zip_stream_.avail_in));
 
     do {
         err_ = deflate(&zip_stream_, Z_FINISH);
         if (err_ == Z_OK || err_ == Z_STREAM_END) {
             written_byte_size =
-                static_cast<std::streamsize>(output_buffer_.size()) -
-                zip_stream_.avail_out;
+                static_cast<std::streamsize>(output_buffer_.size()) - zip_stream_.avail_out;
 
             total_written_byte_size += written_byte_size;
             // ouput buffer is full, dumping to ostream
@@ -154,8 +148,7 @@ unsigned long basic_zip_streambuf<CharT, Traits>::get_out_size() const {
 }
 
 template <typename CharT, typename Traits>
-bool basic_zip_streambuf<CharT, Traits>::zip_to_stream(
-    char* buffer, std::streamsize buffer_size) {
+bool basic_zip_streambuf<CharT, Traits>::zip_to_stream(char* buffer, std::streamsize buffer_size) {
     // LOG << "basic_zip_streambuf::zip_to_stream()"
     //     << " buffer_size=" << buffer_size;
 
@@ -167,16 +160,14 @@ bool basic_zip_streambuf<CharT, Traits>::zip_to_stream(
     zip_stream_.avail_out = static_cast<uInt>(output_buffer_.size());
 
     // update crc
-    crc_ = static_cast<uint32_t>(
-        crc32(crc_, zip_stream_.next_in, zip_stream_.avail_in));
+    crc_ = static_cast<uint32_t>(crc32(crc_, zip_stream_.next_in, zip_stream_.avail_in));
 
     do {
         err_ = deflate(&zip_stream_, Z_NO_FLUSH);
 
         if (err_ == Z_OK || err_ == Z_STREAM_END) {
             written_byte_size =
-                static_cast<std::streamsize>(output_buffer_.size()) -
-                zip_stream_.avail_out;
+                static_cast<std::streamsize>(output_buffer_.size()) - zip_stream_.avail_out;
             total_written_byte_size += written_byte_size;
 
             // output buffer is full, dumping to ostream
@@ -195,13 +186,11 @@ bool basic_zip_streambuf<CharT, Traits>::zip_to_stream(
 // basic_unzip_streambuf
 
 template <typename CharT, typename Traits>
-basic_unzip_streambuf<CharT, Traits>::basic_unzip_streambuf(
-    istream_reference istream, int window_size, size_t read_buffer_size,
-    size_t input_buffer_size)
-    : istream_(istream)
-    , input_buffer_(input_buffer_size)
-    , buffer_(read_buffer_size)
-    , crc_(0) {
+basic_unzip_streambuf<CharT, Traits>::basic_unzip_streambuf(istream_reference istream,
+                                                            int window_size,
+                                                            size_t read_buffer_size,
+                                                            size_t input_buffer_size)
+    : istream_(istream), input_buffer_(input_buffer_size), buffer_(read_buffer_size), crc_(0) {
     // setting zalloc, zfree and opaque
     zip_stream_.zalloc = (alloc_func) nullptr;
     zip_stream_.zfree = (free_func) nullptr;
@@ -236,8 +225,7 @@ basic_unzip_streambuf<CharT, Traits>::underflow() {
            n_putback * sizeof(char_type));
 
     std::streamsize num = unzip_from_stream(
-        buffer_.data() + 4,
-        static_cast<std::streamsize>((buffer_.size() - 4) * sizeof(char_type)));
+        buffer_.data() + 4, static_cast<std::streamsize>((buffer_.size() - 4) * sizeof(char_type)));
 
     if (num <= 0)  // ERROR or EOF
         return Traits::eof();
@@ -306,20 +294,16 @@ std::streamsize basic_unzip_streambuf<CharT, Traits>::unzip_from_stream(
         if (zip_stream_.avail_in == 0) count = fill_input_buffer();
 
         err_ = inflate(&zip_stream_, Z_SYNC_FLUSH);
-    } while (err_ == Z_OK && zip_stream_.avail_out != 0 &&
-             count != 0);  // NOLINT
+    } while (err_ == Z_OK && zip_stream_.avail_out != 0 && count != 0);  // NOLINT
 
     std::streamsize theSize =
-        buffer_size -
-        ((std::streamsize)zip_stream_.avail_out) / sizeof(char_type);
+        buffer_size - ((std::streamsize)zip_stream_.avail_out) / sizeof(char_type);
     // assert (theSize >= 0 && theSize < std::numeric_limits<uInt>::max());
 
     // updating crc
-    crc_ = static_cast<uint32_t>(
-        crc32(crc_, reinterpret_cast<byte_type*>(buffer), (uInt)theSize));
+    crc_ = static_cast<uint32_t>(crc32(crc_, reinterpret_cast<byte_type*>(buffer), (uInt)theSize));
 
-    std::streamsize n_read =
-        buffer_size - zip_stream_.avail_out / sizeof(char_type);
+    std::streamsize n_read = buffer_size - zip_stream_.avail_out / sizeof(char_type);
 
     // check if it is the end
     if (err_ == Z_STREAM_END) put_back_from_zip_stream();
@@ -330,9 +314,8 @@ std::streamsize basic_unzip_streambuf<CharT, Traits>::unzip_from_stream(
 template <typename CharT, typename Traits>
 size_t basic_unzip_streambuf<CharT, Traits>::fill_input_buffer() {
     zip_stream_.next_in = input_buffer_.data();
-    istream_.read(
-        reinterpret_cast<char_type*>(input_buffer_.data()),
-        static_cast<std::streamsize>(input_buffer_.size() / sizeof(char_type)));
+    istream_.read(reinterpret_cast<char_type*>(input_buffer_.data()),
+                  static_cast<std::streamsize>(input_buffer_.size() / sizeof(char_type)));
 
     std::streamsize nbytesread = istream_.gcount() * sizeof(char_type);
     // LOG << "basic_unzip_streambuf::fill_input_buffer()"
@@ -345,11 +328,12 @@ size_t basic_unzip_streambuf<CharT, Traits>::fill_input_buffer() {
 // basic_zip_ostream
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>::basic_zip_ostream(
-    ostream_reference ostream, ZipFormat format, int level,
-    ZipStrategy strategy, int window_size, int memory_level, size_t buffer_size)
-    : basic_zip_streambuf<CharT, Traits>(ostream, level, strategy, window_size,
-                                         memory_level, buffer_size)
+basic_zip_ostream<CharT, Traits>::basic_zip_ostream(ostream_reference ostream, ZipFormat format,
+                                                    int level, ZipStrategy strategy,
+                                                    int window_size, int memory_level,
+                                                    size_t buffer_size)
+    : basic_zip_streambuf<CharT, Traits>(ostream, level, strategy, window_size, memory_level,
+                                         buffer_size)
     , std::basic_ostream<CharT, Traits>(this)
     , format_(format)
     , added_footer_(false) {
@@ -382,23 +366,21 @@ void basic_zip_ostream<CharT, Traits>::finished() {
 }
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>&
-basic_zip_ostream<CharT, Traits>::add_header() {
+basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_header() {
     char_type zero = 0;
 
     this->get_ostream() << static_cast<char_type>(gz_magic[0])
-                        << static_cast<char_type>(gz_magic[1])
-                        << static_cast<char_type>(Z_DEFLATED) << zero  // flags
-                        << zero << zero << zero << zero                // time
-                        << zero                                        // xflags
+                        << static_cast<char_type>(gz_magic[1]) << static_cast<char_type>(Z_DEFLATED)
+                        << zero                          // flags
+                        << zero << zero << zero << zero  // time
+                        << zero                          // xflags
                         << static_cast<char_type>(OS_CODE);
 
     return *this;
 }
 
 template <typename CharT, typename Traits>
-basic_zip_ostream<CharT, Traits>&
-basic_zip_ostream<CharT, Traits>::add_footer() {
+basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_footer() {
     if (added_footer_) return *this;
 
     zflush();
@@ -425,12 +407,11 @@ basic_zip_ostream<CharT, Traits>::add_footer() {
 // basic_zip_istream
 
 template <typename CharT, typename Traits>
-basic_zip_istream<CharT, Traits>::basic_zip_istream(istream_reference istream,
-                                                    int window_size,
+basic_zip_istream<CharT, Traits>::basic_zip_istream(istream_reference istream, int window_size,
                                                     size_t read_buffer_size,
                                                     size_t input_buffer_size)
-    : basic_unzip_streambuf<CharT, Traits>(istream, window_size,
-                                           read_buffer_size, input_buffer_size)
+    : basic_unzip_streambuf<CharT, Traits>(istream, window_size, read_buffer_size,
+                                           input_buffer_size)
     , std::basic_istream<CharT, Traits>(this)
     , is_gzip_(false)
     , gzip_crc_(0)
@@ -529,40 +510,12 @@ void basic_zip_istream<CharT, Traits>::read_footer() {
     if (is_gzip_ || /* compressor always adds footer? -tb */ 1) {
         gzip_crc_ = 0;
         for (int n = 0; n < 4; ++n)
-            gzip_crc_ +=
-                (static_cast<uint32_t>(this->get_istream().get()) & 0xff)
-                << (8 * n);
+            gzip_crc_ += (static_cast<uint32_t>(this->get_istream().get()) & 0xff) << (8 * n);
 
         gzip_data_size_ = 0;
         for (int n = 0; n < 4; ++n)
-            gzip_data_size_ +=
-                (static_cast<uint32_t>(this->get_istream().get()) & 0xff)
-                << (8 * n);
+            gzip_data_size_ += (static_cast<uint32_t>(this->get_istream().get()) & 0xff) << (8 * n);
     }
-}
-
-/******************************************************************************/
-
-//! Helper function to check whether stream is compressed or not.
-bool isGZip(std::istream& is) {
-    const int gz_magic[2] = {0x1f, 0x8b};
-
-    int c1 = is.get();
-    if (c1 != gz_magic[0]) {
-        is.putback(static_cast<char>(c1));
-        return false;
-    }
-
-    int c2 = is.get();
-    if (c2 != gz_magic[1]) {
-        is.putback(static_cast<char>(c2));
-        is.putback(static_cast<char>(c1));
-        return false;
-    }
-
-    is.putback(static_cast<char>(c2));
-    is.putback(static_cast<char>(c1));
-    return true;
 }
 
 /******************************************************************************/
