@@ -1,3 +1,6 @@
+[![Language grade: C/C++](https://img.shields.io/lgtm/grade/cpp/g/jermp/sshash.svg?logo=lgtm&logoWidth=18)](https://lgtm.com/projects/g/jermp/sshash/context:cpp)
+
+
 SSHash
 ======
 
@@ -22,7 +25,7 @@ The dictionary can also stream through all k-mers of a given DNA file
 * [Compiling the Code](#compiling-the-code)
 * [Dependencies](#dependencies)
 * [Build a Dictionary](#build-a-dictionary)
-* [Build and Query Examples](#build-and-query-examples)
+* [Examples](#Examples)
 * [Input Files](#input-files)
 
 Compiling the Code
@@ -131,8 +134,8 @@ to show the usage of the driver program (reported below for convenience).
 		Print this help text and silently exits.
 		
 
-Build and Query Examples
-------------------------
+Examples
+--------
 
 For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
