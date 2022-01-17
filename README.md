@@ -172,6 +172,46 @@ if your queries are meant to be read from a FASTQ file, or
 	
 if your queries are to be read from a (multi-line) FASTA file.
 
+### Example 3
+
+	./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 13 -l 4 -s 347692 --canonical-parsing -o salmonella_100.canon.index
+
+This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, l = 4, using a seed 347692 for construction (`-s 347692`), and with the canonical parsing modality (option `--canonical-parsing`). The dictionary is serialized on disk to the file `salmonella_100.canon.index`.
+
+The	 "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
+	
+Below a comparison between the dictionary built in Example 2 (not canonical)
+and the one just built (Example 3, canonical).
+
+	./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
+	2022-01-17 14:45:17: loading index from file 'salmonella_100.index'...
+	index size: 10.3981 [MB] (6.36232 [bits/kmer])
+	2022-01-17 14:45:17: performing queries from file '../data/queries/SRR5833294.10K.fastq.gz'...
+	2022-01-17 14:45:17: DONE
+	==== query report:
+	num_kmers = 460000
+	num_valid_kmers = 459143 (99.8137% of kmers)
+	num_positive_kmers = 46 (0.0100187% of valid kmers)
+	num_searches = 42/46 (91.3043%)
+	num_extensions = 4/46 (8.69565%)
+	elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
+	
+	./query salmonella_100.canon.index ../data/queries/SRR5833294.10K.fastq.gz
+	2022-01-17 14:45:19: loading index from file 'salmonella_100.canon.index'...
+	index size: 11.0657 [MB] (6.77083 [bits/kmer])
+	2022-01-17 14:45:19: performing queries from file '../data/queries/SRR5833294.10K.fastq.gz'...
+	2022-01-17 14:45:19: DONE
+	==== query report:
+	num_kmers = 460000
+	num_valid_kmers = 459143 (99.8137% of kmers)
+	num_positive_kmers = 46 (0.0100187% of valid kmers)
+	num_searches = 42/46 (91.3043%)
+	num_extensions = 4/46 (8.69565%)
+	elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer
+
+We see that the canonical dictionary is twice as fast as the regular dictionary
+for low-hit workloads,
+even on this tiny example, for only +0.4 bits/k-mer.
 
 Input Files
 -----------
