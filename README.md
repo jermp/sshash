@@ -27,6 +27,8 @@ The dictionary can also stream through all k-mers of a given DNA file
 * [Build a Dictionary](#build-a-dictionary)
 * [Examples](#Examples)
 * [Input Files](#input-files)
+* [Large-scale Benchmark](#large-scale-benchmark)
+* [Author](#author)
 
 Compiling the Code
 ------------------
@@ -184,10 +186,7 @@ Below a comparison between the dictionary built in Example 2 (not canonical)
 and the one just built (Example 3, canonical).
 
 	./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
-	2022-01-17 14:45:17: loading index from file 'salmonella_100.index'...
 	index size: 10.3981 [MB] (6.36232 [bits/kmer])
-	2022-01-17 14:45:17: performing queries from file '../data/queries/SRR5833294.10K.fastq.gz'...
-	2022-01-17 14:45:17: DONE
 	==== query report:
 	num_kmers = 460000
 	num_valid_kmers = 459143 (99.8137% of kmers)
@@ -197,10 +196,7 @@ and the one just built (Example 3, canonical).
 	elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
 	
 	./query salmonella_100.canon.index ../data/queries/SRR5833294.10K.fastq.gz
-	2022-01-17 14:45:19: loading index from file 'salmonella_100.canon.index'...
 	index size: 11.0657 [MB] (6.77083 [bits/kmer])
-	2022-01-17 14:45:19: performing queries from file '../data/queries/SRR5833294.10K.fastq.gz'...
-	2022-01-17 14:45:19: DONE
 	==== query report:
 	num_kmers = 460000
 	num_valid_kmers = 459143 (99.8137% of kmers)
@@ -235,3 +231,84 @@ Below we provide a complete example (assuming both BCALM2 and UST are installed 
 
 See also the script `scripts/download_and_preprocess_datasets.sh`
 for precise arguments.
+
+Large-scale Benchmark
+---------------------
+
+*Pinus Taeda* ("pine", [GCA_000404065.3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/404/065/GCA_000404065.3_Ptaeda2.0/GCA_000404065.3_Ptaeda2.0_genomic.fna.gz)) and *Ambystoma Mexicanum* ("axolotl", [GCA_002915635.2](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/915/635/GCA_002915635.3_AmbMex60DD/GCA_002915635.3_AmbMex60DD_genomic.fna.gz))
+are some of the largest genome assemblies, respectively counting
+10,508,232,575 and 17,987,935,180 distinct k-mers for k = 31.
+
+After running BCALM2 and UST, we build the indexes as follows.
+
+    ./build ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz 31 20 -l 6 -c 7 -o pinus.m20.index
+    ./build ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz 31 19 -l 6 -c 7 --canonical-parsing -o pinus.m19.canon.index
+    ./build ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz 31 21 -l 6 -c 7 -o axolotl.m21.index
+    ./build ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz 31 20 -l 6 -c 7 --canonical-parsing -o axolotl.m20.canon.index
+    
+The following table summarizes the space of the dictionaries.
+
+| Dictionary        |Pine       || Axolotl  ||
+|:------------------|:---:|:----:|:---:|:---:|
+|                   | GB     | bits/k-mer  | GB    | bits/k-mer |
+| SSHash, regular   | 13.21  | 10.06       | 22.28 | 9.91       |
+| SSHash, canonical | 14.94  | 11.37       | 25.03 | 11.13      |
+
+    
+
+To query the dictionaries, we use [SRR17023415](https://www.ebi.ac.uk/ena/browser/view/SRR17023415) fastq reads
+(23,891,117 reads, each of 150 bases) for the pine,
+and [GSM5747680](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM5747680) multi-line fasta (15,548,160 lines) for the axolotl.
+
+Timings have been collected on an Intel Xeon Platinum 8276L CPU @ 2.20GHz,
+using a single thread.
+
+| Dictionary        |Pine       || Axolotl  ||
+|:------------------|:---:|:----:|:---:|:---:|
+|                   |(>75% hits)||(>86% hits)|
+|                   | tot (min) | avg (ns/k-mer) | tot (min) | avg (ns/k-mer) |
+| SSHash, regular   | 19.2      | 400            | 4.2       | 269            |
+| SSHash, canonical | 14.8      | 310            | 3.2       | 208            |
+
+Below the complete query reports.
+
+    ./query pinus.m20.index ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
+    ==== query report:
+    num_kmers = 2866934040
+    num_valid_kmers = 2866783488 (99.9947% of kmers)
+    num_positive_kmers = 2151937575 (75.0645% of valid kmers)
+    num_searches = 418897117/2151937575 (19.466%)
+    num_extensions = 1733040458/2151937575 (80.534%)
+    elapsed = 1146.58 sec / 19.1097 min / 399.933 ns/kmer
+
+    ./query pinus.m19.canon.index ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
+    ==== query report:
+    num_kmers = 2866934040
+    num_valid_kmers = 2866783488 (99.9947% of kmers)
+    num_positive_kmers = 2151937575 (75.0645% of valid kmers)
+    num_searches = 359426304/2151937575 (16.7025%)
+    num_extensions = 1792511271/2151937575 (83.2975%)
+    elapsed = 889.779 sec / 14.8297 min / 310.359 ns/kmer
+
+    ./query axolotl.m21.index ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
+    ==== query report:
+    num_kmers = 931366757
+    num_valid_kmers = 748445346 (80.3599% of kmers)
+    num_positive_kmers = 650467884 (86.9092% of valid kmers)
+    num_searches = 124008258/650467884 (19.0645%)
+    num_extensions = 526459626/650467884 (80.9355%)
+    elapsed = 250.173 sec / 4.16955 min / 268.608 ns/kmer
+
+    ./query axolotl.m20.canon.index ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
+    ==== query report:
+    num_kmers = 931366757
+    num_valid_kmers = 748445346 (80.3599% of kmers)
+    num_positive_kmers = 650467884 (86.9092% of valid kmers)
+    num_searches = 106220473/650467884 (16.3299%)
+    num_extensions = 544247411/650467884 (83.6701%)
+    elapsed = 193.871 sec / 3.23119 min / 208.158 ns/kmer
+    
+Author
+------
+
+Giulio Ermanno Pibiri - <giulio.ermanno.pibiri@isti.cnr.it>
