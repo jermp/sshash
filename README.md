@@ -7,7 +7,7 @@ SSHash
 This is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
-**A (pre-print) paper describing the data structure will appear soon.**
+**A (pre-print) paper describing the data structure can be found [here](https://www.biorxiv.org/content/10.1101/2022.01.15.476199).**
 
 For a dictionary of n k-mers,
 two basic queries are supported:
