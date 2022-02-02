@@ -443,6 +443,10 @@ void print_time(double time, uint64_t num_kmers, std::string const& message) {
 void dictionary::build(std::string const& filename, build_configuration const& build_config) {
     /* Validate build configuration */
     if (build_config.k == 0) throw std::runtime_error("k must be > 0");
+    if (build_config.k > constants::max_k) {
+        throw std::runtime_error("k must be less <= " + std::to_string(constants::max_k) +
+                                 " but got k = " + std::to_string(build_config.k));
+    }
     if (build_config.m == 0) throw std::runtime_error("m must be > 0");
     if (build_config.m > build_config.k) throw std::runtime_error("m must be <= k");
     if (build_config.l > constants::max_l) {

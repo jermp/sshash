@@ -17,7 +17,7 @@ int main(int argc, char** argv) {
                "\t- without duplicate nor invalid kmers\n"
                "\t- one DNA sequence per line.\n"
                "\tFor example, it could be the de Bruijn graph topology output by BCALM.");
-    parser.add("k", "K-mer length.");
+    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").");
     parser.add("m", "Minimizer length (must be <= k).");
 
     /* optional arguments */

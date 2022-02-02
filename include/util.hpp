@@ -10,6 +10,7 @@
 namespace sshash {
 
 namespace constants {
+constexpr uint64_t max_k = 32;
 constexpr uint64_t invalid = uint64_t(-1);
 constexpr uint64_t seed = 1;
 constexpr uint64_t hashcode_bits = 64;
@@ -27,6 +28,7 @@ typedef pthash::single_phf<base_hasher_type,               // base hasher
     pthash_mphf_type;
 
 namespace util {
+
 void check_hash_collision_probability(uint64_t size) {
     /*
         From: https://preshing.com/20110504/hash-collision-probabilities/
@@ -50,6 +52,7 @@ void check_hash_collision_probability(uint64_t size) {
             "collisions: use 128-bit hash codes instead.");
     }
 }
+
 }  // namespace util
 
 struct build_configuration {
