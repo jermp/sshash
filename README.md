@@ -100,10 +100,10 @@ to show the usage of the driver program (reported below for convenience).
 		For example, it could be the de Bruijn graph topology output by BCALM.
 	
 	 k
-		K-mer length (must be <= 32).
+		K-mer length (must be <= 31).
 	
 	 m
-		Minimizer length (must be <= k).
+		Minimizer length (must be < k).
 	
 	 [-s seed]
 		Seed for construction (default is 1).

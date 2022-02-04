@@ -10,7 +10,7 @@
 namespace sshash {
 
 namespace constants {
-constexpr uint64_t max_k = 32;
+constexpr uint64_t max_k = 31;  // max *odd* size that can be packed into 64 bits
 constexpr uint64_t invalid = uint64_t(-1);
 constexpr uint64_t seed = 1;
 constexpr uint64_t hashcode_bits = 64;
