@@ -160,8 +160,7 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     uint64_t num_buckets = m_minimizers.size();
     uint64_t num_kmers = data.num_kmers;
     uint64_t num_strings = data.strings.size();
-    std::vector<uint64_t> num_strings_before_bucket(num_buckets + 1, -1);
-    num_strings_before_bucket[0] = 0;
+    std::vector<uint64_t> num_strings_before_bucket(num_buckets + 1, 0);
     pthash::compact_vector::builder offsets;
     offsets.resize(num_strings, std::ceil(std::log2(data.strings.num_bits() / 2)));
 
@@ -170,8 +169,12 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
 
     for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
-        uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
-        num_strings_before_bucket[bucket_id + 1] += it.list().size();
+        assert(it.list().size() > 0);
+        if (it.list().size() != 1) {
+            uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
+            num_strings_before_bucket[bucket_id + 1] = it.list().size() - 1;
+        }
+        // else: it.list().size() = 1 and num_strings_before_bucket[bucket_id + 1] is already 0
     }
     std::partial_sum(num_strings_before_bucket.begin(), num_strings_before_bucket.end(),
                      num_strings_before_bucket.begin());
