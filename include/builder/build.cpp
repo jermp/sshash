@@ -328,75 +328,49 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         mphf_config.verbose_output = false;
         mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
 
-        std::cout << "building PTHash mphfs with " << mphf_config.num_threads << " threads..."
-                  << std::endl;
+        std::cout << "building PTHash mphfs (with " << mphf_config.num_threads
+                  << " threads) and positions..." << std::endl;
 
         uint64_t partition_id = 0;
-        uint64_t lower = 1ULL << min_log2_size;
-        uint64_t upper = 2 * lower;
-
-        std::vector<uint64_t> keys_in_partition;
-        keys_in_partition.reserve(num_kmers_in_partition.front());
-
-        for (uint64_t i = 0; i != lists.size() + 1; ++i) {
-            if (i == lists.size() or lists[i].size() > upper) {
-                auto& mphf = m_skew_index.mphfs[partition_id];
-                mphf.build_in_internal_memory(keys_in_partition.begin(), keys_in_partition.size(),
-                                              mphf_config);
-
-                std::cout << "lower " << lower << "; upper " << upper << "; ";
-                std::cout << "built mphs[" << partition_id << "] for " << keys_in_partition.size()
-                          << " keys; ";
-                std::cout << "bits/key = " << static_cast<double>(mphf.num_bits()) / mphf.num_keys()
-                          << std::endl;
-
-                partition_id += 1;
-
-                if (i == lists.size()) break;
-
-                lower = upper;
-                upper = 2 * lower;
-                if (partition_id == num_partitions - 1) {
-                    upper = m_skew_index.max_num_strings_in_bucket;
-                }
-                keys_in_partition.clear();
-            }
-
-            assert(lists[i].size() > lower and lists[i].size() <= upper);
-            for (auto [offset, num_kmers_in_string] : lists[i]) {
-                bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
-                for (uint64_t i = 0; i != num_kmers_in_string; ++i) {
-                    uint64_t read_kmer = bv_it.read(2 * build_config.k);
-                    keys_in_partition.push_back(read_kmer);
-                    bv_it.eat(2);
-                }
-            }
-        }
-        assert(partition_id == num_partitions);
-    }
-
-    {
-        std::cout << "building positions..." << std::endl;
-
-        pthash::compact_vector::builder cvb_positions;
         uint64_t lower = 1ULL << min_log2_size;
         uint64_t upper = 2 * lower;
         uint64_t num_bits_per_pos = min_log2_size + 1;
-        uint64_t partition_id = 0;
 
+        /* tmp storage for keys and string_ids ******/
+        std::vector<uint64_t> keys_in_partition;
+        std::vector<uint32_t> string_ids_in_partition;
+        keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
+        string_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
+        pthash::compact_vector::builder cvb_positions;
         cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
-        auto const* mphf = &(m_skew_index.mphfs[partition_id]);
+        /*******/
 
         for (uint64_t i = 0; i != lists.size() + 1; ++i) {
             if (i == lists.size() or lists[i].size() > upper) {
+                std::cout << "lower " << lower << "; upper " << upper << "; num_bits_per_pos "
+                          << num_bits_per_pos << std::endl;
+
+                auto& mphf = m_skew_index.mphfs[partition_id];
+                assert(num_kmers_in_partition[partition_id] == keys_in_partition.size());
+                assert(num_kmers_in_partition[partition_id] == string_ids_in_partition.size());
+                mphf.build_in_internal_memory(keys_in_partition.begin(), keys_in_partition.size(),
+                                              mphf_config);
+
+                std::cout << "  built mphs[" << partition_id << "] for " << keys_in_partition.size()
+                          << " keys; bits/key = "
+                          << static_cast<double>(mphf.num_bits()) / mphf.num_keys() << std::endl;
+
+                for (uint64_t i = 0; i != keys_in_partition.size(); ++i) {
+                    uint64_t kmer = keys_in_partition[i];
+                    uint64_t pos = mphf(kmer);
+                    uint32_t string_id = string_ids_in_partition[i];
+                    cvb_positions.set(pos, string_id);
+                }
                 auto& positions = m_skew_index.positions[partition_id];
                 cvb_positions.build(positions);
 
-                std::cout << "lower " << lower << "; upper " << upper << "; num_bits_per_pos "
-                          << num_bits_per_pos << "; ";
-                std::cout << "built positions[" << partition_id << "] for " << positions.size()
-                          << " keys; ";
-                std::cout << "bits/key = " << (positions.bytes() * 8.0) / positions.size()
+                std::cout << "  built positions[" << partition_id << "] for " << positions.size()
+                          << " keys; bits/key = " << (positions.bytes() * 8.0) / positions.size()
                           << std::endl;
 
                 partition_id += 1;
@@ -411,8 +385,11 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                     num_bits_per_pos = m_skew_index.log2_max_num_strings_in_bucket;
                 }
 
+                keys_in_partition.clear();
+                string_ids_in_partition.clear();
+                keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
+                string_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
                 cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
-                mphf = &(m_skew_index.mphfs[partition_id]);
             }
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
@@ -420,13 +397,12 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
             for (auto [offset, num_kmers_in_string] : lists[i]) {
                 bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
                 for (uint64_t i = 0; i != num_kmers_in_string; ++i) {
-                    uint64_t read_kmer = bv_it.read(2 * build_config.k);
-                    uint64_t pos = mphf->operator()(read_kmer);
-                    assert(pos < cvb_positions.size());
-                    assert(string_id < (1ULL << cvb_positions.width()));
-                    cvb_positions.set(pos, string_id);
+                    uint64_t kmer = bv_it.read(2 * build_config.k);
+                    keys_in_partition.push_back(kmer);
+                    string_ids_in_partition.push_back(string_id);
                     bv_it.eat(2);
                 }
+                assert(string_id < (1ULL << cvb_positions.width()));
                 ++string_id;
             }
         }
@@ -444,7 +420,7 @@ void print_time(double time, uint64_t num_kmers, std::string const& message) {
 }
 
 void dictionary::build(std::string const& filename, build_configuration const& build_config) {
-    /* Validate build configuration */
+    /* Validate the build configuration. */
     if (build_config.k == 0) throw std::runtime_error("k must be > 0");
     if (build_config.k > constants::max_k) {
         throw std::runtime_error("k must be less <= " + std::to_string(constants::max_k) +
@@ -465,16 +441,17 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     std::vector<double> timings;
     essentials::timer_type timer;
 
-    // step 1: parse the input file and build compact string pool
+    /* step 1: parse the input file and build compact string pool ***/
     timer.start();
     auto data = parse_file(filename, build_config);
     m_size = data.num_kmers;
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "parse_file");
+    print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
     timer.reset();
+    /******/
 
-    // step 2: sort minimizers and build MPHF
+    /* step 2: sort minimizers and build MPHF ***/
     timer.start();
     data.minimizers.sort();
     uint64_t num_buckets = 0;
@@ -482,24 +459,27 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     m_minimizers.build(data.minimizers.begin(), num_buckets);
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "build_minimizers");
+    print_time(timings.back(), data.num_kmers, "step 2: 'build_minimizers'");
     timer.reset();
+    /******/
 
-    // step 3: build index
+    /* step 3: build index ***/
     timer.start();
     auto buckets_stats = build_index(data, m_minimizers, m_buckets);
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "build_index");
+    print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");
     timer.reset();
+    /******/
 
-    // step 4: build skew index
+    /* step 4: build skew index ***/
     timer.start();
     build_skew_index(m_skew_index, data, m_buckets, build_config, buckets_stats);
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "build_skew_index");
+    print_time(timings.back(), data.num_kmers, "step 4: 'build_skew_index'");
     timer.reset();
+    /******/
 
     double total_time = std::accumulate(timings.begin(), timings.end(), 0.0);
     print_time(total_time, data.num_kmers, "total_time");
