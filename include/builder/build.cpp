@@ -416,18 +416,18 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
             }
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
-            uint64_t list_id = 0;
+            uint64_t string_id = 0;
             for (auto [offset, num_kmers_in_string] : lists[i]) {
                 bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
                 for (uint64_t i = 0; i != num_kmers_in_string; ++i) {
                     uint64_t read_kmer = bv_it.read(2 * build_config.k);
                     uint64_t pos = mphf->operator()(read_kmer);
                     assert(pos < cvb_positions.size());
-                    assert(list_id < (1ULL << cvb_positions.width()));
-                    cvb_positions.set(pos, list_id);
+                    assert(string_id < (1ULL << cvb_positions.width()));
+                    cvb_positions.set(pos, string_id);
                     bv_it.eat(2);
                 }
-                ++list_id;
+                ++string_id;
             }
         }
         assert(partition_id == num_partitions);
