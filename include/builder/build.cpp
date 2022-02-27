@@ -9,12 +9,68 @@
 
 #include <numeric>  // for std::partial_sum
 #include <vector>
+#include <unordered_map>  // count the distinct abundances
 
 #include "../../external/pthash/include/pthash.hpp"
 #include "../../external/pthash/external/essentials/include/essentials.hpp"
 #include "../print_info.cpp"
 
 namespace sshash {
+
+void expect(char got, char expected) {
+    if (got != expected) {
+        std::cout << "got '" << got << "' but expected '" << expected << "'" << std::endl;
+        throw std::runtime_error("parse error");
+    }
+}
+
+void print_abundances_info(std::unordered_map<uint64_t, uint64_t> const& abundances_freq,
+                           uint64_t num_kmers) {
+    uint64_t num_distinct_abundances = abundances_freq.size();
+    std::cout << "found " << num_distinct_abundances << " distint abundances (ceil(log2("
+              << num_distinct_abundances << ")) = " << std::ceil(std::log2(num_distinct_abundances))
+              << ")" << std::endl;
+
+    std::vector<std::pair<uint64_t, uint64_t>> abundances_freq_vec;
+    abundances_freq_vec.reserve(num_distinct_abundances);
+    uint64_t n = 0;
+    uint64_t largest_ab = 0;
+    for (auto p : abundances_freq) {
+        if (p.first > largest_ab) largest_ab = p.first;
+        n += p.second;
+        abundances_freq_vec.push_back(p);
+    }
+    std::cout << "largest_ab " << largest_ab << " (ceil(log2(" << largest_ab
+              << ")) = " << std::ceil(std::log2(largest_ab)) << ")" << std::endl;
+
+    if (n != num_kmers) {
+        std::cout << "ERROR: expected " << num_kmers << " kmers but got " << n << std::endl;
+        throw std::runtime_error("file is malformed");
+    }
+
+    std::sort(abundances_freq_vec.begin(), abundances_freq_vec.end(),
+              [](auto const& x, auto const& y) {
+                  if (x.second != y.second) return x.second > y.second;
+                  return x.first < y.first;
+              });
+
+    double expected_ab_value = 0.0;
+    double entropy_ab = 0.0;
+    uint64_t print = 0;
+    for (auto p : abundances_freq_vec) {
+        double prob = static_cast<double>(p.second) / num_kmers;
+        expected_ab_value += p.first * prob;
+        entropy_ab += prob * std::log2(1.0 / prob);
+        print += 1;
+        if (print <= 10) {
+            std::cout << "ab:" << p.first << " freq:" << p.second << " ("
+                      << (p.second * 100.0) / num_kmers << "%)" << std::endl;
+        }
+    }
+
+    std::cout << "expected_ab_value " << expected_ab_value << std::endl;
+    std::cout << "entropy_ab " << entropy_ab << " [bits/kmer]" << std::endl;
+}
 
 struct parse_data {
     parse_data() : num_kmers(0) {}
@@ -50,6 +106,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     uint64_t end = 0;             // end of parsed string in line
     uint64_t num_read_lines = 0;  // total read lines
     uint64_t num_read_bases = 0;
+    uint64_t seq_len = 0;
     bool glue = false;
 
     auto append_string = [&]() {
@@ -82,10 +139,66 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         return true;
     };
 
-    while (!is.eof() and data.num_kmers != max_num_kmers) {
-        std::getline(is, line);  // skip header line
-        std::getline(is, line);
+    // std::vector<uint64_t> abundances;
+    std::unordered_map<uint64_t, uint64_t> abundances_freq;
 
+    auto parse_header = [&]() {
+        if (line.empty()) return;
+
+        /*
+            Heder format:
+            >[seq_id] LN:i:[seq_len] ab:Z:[ab_seq]
+            where [ab_seq] is a space-separated sequence of integer counters (the abundances),
+            whose length is equal to [seq_len]-k+1
+        */
+
+        // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
+
+        expect(line[0], '>');
+        uint64_t i = 0;
+        i = line.find_first_of(' ', i);
+        assert(i != std::string::npos);
+
+        i += 1;
+        expect(line[i + 0], 'L');
+        expect(line[i + 1], 'N');
+        expect(line[i + 2], ':');
+        expect(line[i + 3], 'i');
+        expect(line[i + 4], ':');
+        i += 5;
+        uint64_t j = line.find_first_of(' ', i);
+        assert(j != std::string::npos);
+
+        char* end;
+        seq_len = std::strtoull(line.data() + i, &end, 10);
+        i = j + 1;
+        expect(line[i + 0], 'a');
+        expect(line[i + 1], 'b');
+        expect(line[i + 2], ':');
+        expect(line[i + 3], 'Z');
+        expect(line[i + 4], ':');
+        i += 5;
+
+        // abundances.clear()
+        // abundances.reserve(seq_len);
+        for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
+            uint64_t ab = std::strtoull(line.data() + i, &end, 10);
+            // abundances.push_back(ab);
+            i = line.find_first_of(' ', i) + 1;
+            auto it = abundances_freq.find(ab);
+            if (it != abundances_freq.cend()) {  // found
+                (*it).second += 1;
+            } else {
+                abundances_freq[ab] = 1;
+            }
+        }
+    };
+
+    while (!is.eof() and data.num_kmers != max_num_kmers) {
+        std::getline(is, line);  // header line
+        parse_header();
+
+        std::getline(is, line);  // DNA sequence
         if (line.size() < k) continue;
 
         if (++num_read_lines % 100000 == 0) {
@@ -98,6 +211,12 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         glue = false;
         prev_minimizer = constants::invalid;
         num_read_bases += line.size();
+
+        if (seq_len != line.size()) {
+            std::cout << "ERROR: expected a sequence of length " << seq_len
+                      << " but got one of length " << line.size() << std::endl;
+            throw std::runtime_error("file is malformed");
+        }
 
         while (end != line.size() - k + 1) {
             char const* kmer = line.data() + end;
@@ -138,6 +257,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
               << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
               << std::endl;
+
+    print_abundances_info(abundances_freq, data.num_kmers);
 }
 
 parse_data parse_file(std::string const& filename, build_configuration const& build_config) {
