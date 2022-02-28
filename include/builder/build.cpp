@@ -181,7 +181,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         // abundances.clear()
         // abundances.reserve(seq_len);
-        for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
+        for (uint64_t j = 0, num_kmers = data.num_kmers; j != seq_len - k + 1; ++j, ++num_kmers) {
+            if (num_kmers == max_num_kmers) break;
             uint64_t ab = std::strtoull(line.data() + i, &end, 10);
             // abundances.push_back(ab);
             i = line.find_first_of(' ', i) + 1;
@@ -552,6 +553,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     if (build_config.l > constants::max_l) {
         throw std::runtime_error("l must be <= " + std::to_string(constants::max_l));
     }
+    if (build_config.max_num_kmers == 0) throw std::runtime_error("max_num_kmers > 0 ");
 
     m_k = build_config.k;
     m_m = build_config.m;
