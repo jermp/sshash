@@ -70,6 +70,19 @@ void print_abundances_info(std::unordered_map<uint64_t, uint64_t> const& abundan
 
     std::cout << "expected_ab_value " << expected_ab_value << std::endl;
     std::cout << "entropy_ab " << entropy_ab << " [bits/kmer]" << std::endl;
+
+    uint64_t rest = num_kmers - abundances_freq_vec.front().second;
+    uint64_t ef_bits = util::elias_fano_bitsize(rest, num_kmers);
+    uint64_t packed_ab_bits = rest * std::ceil(std::log2(num_distinct_abundances));
+    std::cout << "  kmers that do not have the most frequent ab: " << rest << " ("
+              << (rest * 100.0) / num_kmers << "%)" << std::endl;
+    std::cout << "  Elias-Fano would take " << ef_bits << " bits ("
+              << static_cast<double>(ef_bits) / num_kmers << " [bits/kmer])" << std::endl;
+    std::cout << "  packed abundances would take " << packed_ab_bits << " bits ("
+              << static_cast<double>(packed_ab_bits) / num_kmers << " [bits/kmer])" << std::endl;
+    std::cout << "  total bits " << (ef_bits + packed_ab_bits) << " ("
+              << static_cast<double>(ef_bits + packed_ab_bits) / num_kmers << " [bits/kmer])"
+              << std::endl;
 }
 
 struct parse_data {
