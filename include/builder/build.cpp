@@ -91,6 +91,8 @@ void print_abundances_info(std::unordered_map<uint64_t, uint64_t> const& abundan
     {
         std::cout << "=====\n";
         /* We encode the non-consecutive ids and the lengths of the intervals.
+           We have a sequence of pairs <id_value,length> to represent the
+           kmer_ids = id_value, id_value+1, id_value+2, ..., id_value+length-1.
            The lengths of the intervals are represented as a prefix-summed sequence,
            whose length is the same as the non-consecutive ids and its universe is the number of
            kmer that do not have the most frequent abundance (the "rest"). */
@@ -101,7 +103,11 @@ void print_abundances_info(std::unordered_map<uint64_t, uint64_t> const& abundan
                   << static_cast<double>(ef_bits_ids_values + ef_bits_ids_lengths) / num_kmers
                   << " [bits/kmer])" << std::endl;
 
-        /* We do the same for the abundances. */
+        /* We do the same for the abundances.
+           An abundance pair is represented as <abundance_value,length>
+           to indicate that the same abundance_value repeats for [length] times.
+           The sequence of abundance values are bit-packed for faster access.
+           The sequence of lengths is prefix-summed and represented with Elias-Fano. */
         uint64_t packed_bits_abs_values = num_abs * std::ceil(std::log2(num_distinct_abundances));
         uint64_t ef_bits_abs_lengths = util::elias_fano_bitsize(num_abs, rest);
         std::cout << "  abundances intervals would take " << packed_bits_abs_values << "+"
