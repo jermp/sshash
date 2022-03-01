@@ -4,12 +4,12 @@
 
 #include "../dictionary.hpp"
 #include "../buckets.hpp"
+#include "../abundances.hpp"
 #include "../util.hpp"
 #include "build_util_types.hpp"
 
 #include <numeric>  // for std::partial_sum
 #include <vector>
-#include <unordered_map>  // count the distinct abundances
 
 #include "../../external/pthash/include/pthash.hpp"
 #include "../../external/pthash/external/essentials/include/essentials.hpp"
@@ -21,105 +21,6 @@ void expect(char got, char expected) {
     if (got != expected) {
         std::cout << "got '" << got << "' but expected '" << expected << "'" << std::endl;
         throw std::runtime_error("parse error");
-    }
-}
-
-void print_abundances_info(std::unordered_map<uint64_t, uint64_t> const& abundances_freq,
-                           uint64_t num_kmers, uint64_t num_ids, uint64_t num_abs) {
-    uint64_t num_distinct_abundances = abundances_freq.size();
-    std::cout << "found " << num_distinct_abundances << " distint abundances (ceil(log2("
-              << num_distinct_abundances << ")) = " << std::ceil(std::log2(num_distinct_abundances))
-              << ")" << std::endl;
-
-    std::vector<std::pair<uint64_t, uint64_t>> abundances_freq_vec;
-    abundances_freq_vec.reserve(num_distinct_abundances);
-    uint64_t n = 0;
-    uint64_t largest_ab = 0;
-    for (auto p : abundances_freq) {
-        if (p.first > largest_ab) largest_ab = p.first;
-        n += p.second;
-        abundances_freq_vec.push_back(p);
-    }
-    std::cout << "largest_ab " << largest_ab << " (ceil(log2(" << largest_ab
-              << ")) = " << std::ceil(std::log2(largest_ab)) << ")" << std::endl;
-
-    if (n != num_kmers) {
-        std::cout << "ERROR: expected " << num_kmers << " kmers but got " << n << std::endl;
-        throw std::runtime_error("file is malformed");
-    }
-
-    std::sort(abundances_freq_vec.begin(), abundances_freq_vec.end(),
-              [](auto const& x, auto const& y) {
-                  if (x.second != y.second) return x.second > y.second;
-                  return x.first < y.first;
-              });
-
-    double expected_ab_value = 0.0;
-    double entropy_ab = 0.0;
-    uint64_t print = 0;
-    for (auto p : abundances_freq_vec) {
-        double prob = static_cast<double>(p.second) / num_kmers;
-        expected_ab_value += p.first * prob;
-        entropy_ab += prob * std::log2(1.0 / prob);
-        print += 1;
-        if (print <= 10) {
-            std::cout << "ab:" << p.first << " freq:" << p.second << " ("
-                      << (p.second * 100.0) / num_kmers << "%)" << std::endl;
-        }
-    }
-
-    std::cout << "expected_ab_value " << expected_ab_value << std::endl;
-    std::cout << "entropy_ab " << entropy_ab << " [bits/kmer]" << std::endl;
-
-    uint64_t rest = num_kmers - abundances_freq_vec.front().second;
-    uint64_t packed_ab_bits = rest * std::ceil(std::log2(num_distinct_abundances));
-    {
-        std::cout << "=====\n";
-        uint64_t ef_bits = util::elias_fano_bitsize(rest, num_kmers);
-
-        std::cout << "  kmers that do not have the most frequent ab: " << rest << " ("
-                  << (rest * 100.0) / num_kmers << "%)" << std::endl;
-        std::cout << "  Elias-Fano on all the rest of ids would take " << ef_bits << " bits ("
-                  << static_cast<double>(ef_bits) / num_kmers << " [bits/kmer])" << std::endl;
-        std::cout << "  packed abundances would take " << packed_ab_bits << " bits ("
-                  << static_cast<double>(packed_ab_bits) / num_kmers << " [bits/kmer])"
-                  << std::endl;
-        std::cout << "  total bits " << (ef_bits + packed_ab_bits) << " ("
-                  << static_cast<double>(ef_bits + packed_ab_bits) / num_kmers << " [bits/kmer])"
-                  << std::endl;
-    }
-    {
-        std::cout << "=====\n";
-        /* We encode the non-consecutive ids and the lengths of the intervals.
-           We have a sequence of pairs <id_value,length> to represent the
-           kmer_ids = id_value, id_value+1, id_value+2, ..., id_value+length-1.
-           The lengths of the intervals are represented as a prefix-summed sequence,
-           whose length is the same as the non-consecutive ids and its universe is the number of
-           kmer that do not have the most frequent abundance (the "rest"). */
-        uint64_t ef_bits_ids_values = util::elias_fano_bitsize(num_ids, num_kmers);
-        uint64_t ef_bits_ids_lengths = util::elias_fano_bitsize(num_ids, rest);
-        std::cout << "  Elias-Fano on the intervals would take " << ef_bits_ids_values << "+"
-                  << ef_bits_ids_lengths << " bits ("
-                  << static_cast<double>(ef_bits_ids_values + ef_bits_ids_lengths) / num_kmers
-                  << " [bits/kmer])" << std::endl;
-
-        /* We do the same for the abundances.
-           An abundance pair is represented as <abundance_value,length>
-           to indicate that the same abundance_value repeats for [length] times.
-           The sequence of abundance values are bit-packed for faster access.
-           The sequence of lengths is prefix-summed and represented with Elias-Fano. */
-        uint64_t packed_bits_abs_values = num_abs * std::ceil(std::log2(num_distinct_abundances));
-        uint64_t ef_bits_abs_lengths = util::elias_fano_bitsize(num_abs, rest);
-        std::cout << "  abundances intervals would take " << packed_bits_abs_values << "+"
-                  << ef_bits_abs_lengths << " bits ("
-                  << static_cast<double>(packed_bits_abs_values + ef_bits_abs_lengths) / num_kmers
-                  << " [bits/kmer])" << std::endl;
-
-        uint64_t total_bits =
-            ef_bits_ids_values + ef_bits_ids_lengths + packed_bits_abs_values + ef_bits_abs_lengths;
-
-        std::cout << "  total bits " << total_bits << " ("
-                  << static_cast<double>(total_bits) / num_kmers << " [bits/kmer])" << std::endl;
     }
 }
 
@@ -190,20 +91,16 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         return true;
     };
 
-    // std::vector<uint64_t> abundances;
-    std::unordered_map<uint64_t, uint64_t> abundances_freq;
+    constexpr uint64_t most_frequent_abundance = 1;
+    abundances::builder abundances_builder(most_frequent_abundance);
 
     /* intervals of kmer_ids */
     uint64_t kmer_id_value = constants::invalid;
     uint64_t kmer_id_length = 1;
-    uint64_t num_ids = 0;
-    uint64_t kmer_id_cumulative_length = 0;
 
     /* intervals of abundances */
     uint64_t ab_value = constants::invalid;
     uint64_t ab_length = 1;
-    uint64_t num_abs = 0;
-    uint64_t ab_cumulative_length = 0;
 
     auto parse_header = [&]() {
         if (line.empty()) return;
@@ -242,31 +139,29 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         expect(line[i + 4], ':');
         i += 5;
 
-        // abundances.clear()
-        // abundances.reserve(seq_len);
-        constexpr uint64_t most_frequent_ab = 1;  // mfab
         kmer_id_value = constants::invalid;
         kmer_id_length = 1;
         uint64_t ab = 0;
         for (uint64_t j = 0, num_kmers = data.num_kmers; j != seq_len - k + 1; ++j, ++num_kmers) {
             if (num_kmers == max_num_kmers) break;
             ab = std::strtoull(line.data() + i, &end, 10);
-            if (ab != most_frequent_ab) {
+            i = line.find_first_of(' ', i) + 1;
+
+            abundances_builder.eat(ab);
+
+            if (ab != most_frequent_abundance) {
                 if (kmer_id_value == constants::invalid) {
                     kmer_id_value = num_kmers;
                     kmer_id_length = 1;
                 } else {
                     if (num_kmers == kmer_id_value + kmer_id_length) kmer_id_length += 1;
                 }
-                // std::cerr << ab << ' ';
 
                 if (ab == ab_value) {
                     ab_length += 1;
                 } else {
                     if (ab_value != constants::invalid) {
-                        // std::cerr << ab_value << ' ' << ab_length << '\n';
-                        ++num_abs;
-                        ab_cumulative_length += ab_length;
+                        abundances_builder.push_abundance_interval(ab_value, ab_length);
                     }
                     ab_value = ab;
                     ab_length = 1;
@@ -274,27 +169,14 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
             } else {
                 if (kmer_id_value != constants::invalid) {
-                    ++num_ids;
-                    kmer_id_cumulative_length += kmer_id_length;
-                    // std::cerr << kmer_id_value << ' ' << kmer_id_length << '\n';
-                    // std::cerr << '\n';
+                    abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
                 }
                 kmer_id_value = constants::invalid;
-            }
-            // abundances.push_back(ab);
-            i = line.find_first_of(' ', i) + 1;
-            auto it = abundances_freq.find(ab);
-            if (it != abundances_freq.cend()) {  // found
-                (*it).second += 1;
-            } else {
-                abundances_freq[ab] = 1;
             }
         }
 
         if (kmer_id_value != constants::invalid) {
-            ++num_ids;
-            kmer_id_cumulative_length += kmer_id_length;
-            // std::cerr << kmer_id_value << ' ' << kmer_id_length << '\n';
+            abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
         }
     };
 
@@ -362,16 +244,17 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
               << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
               << std::endl;
 
-    ++num_abs;
-    ab_cumulative_length += ab_length;
-    // std::cerr << ab_value << ' ' << ab_length << '\n';
+    abundances_builder.push_abundance_interval(ab_value, ab_length);
 
-    std::cout << "num_ids " << num_ids << std::endl;
-    std::cout << "kmer_id_cumulative_length " << kmer_id_cumulative_length << std::endl;
-    std::cout << "num_abs " << num_abs << std::endl;
-    std::cout << "ab_cumulative_length " << ab_cumulative_length << std::endl;
+    abundances_builder.finalize(data.num_kmers);
+    abundances_builder.print_info(data.num_kmers);
 
-    print_abundances_info(abundances_freq, data.num_kmers, num_ids, num_abs);
+    {
+        abundances index;
+        abundances_builder.build(index);
+        std::cout << "abundances: " << static_cast<double>(index.num_bits()) / data.num_kmers
+                  << " [bits/kmer]" << std::endl;
+    }
 }
 
 parse_data parse_file(std::string const& filename, build_configuration const& build_config) {
