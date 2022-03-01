@@ -89,8 +89,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     };
 
     uint64_t seq_len = 0;
-    constexpr uint64_t most_frequent_abundance = 1;
-    data.abundances_builder.init(most_frequent_abundance);
+    data.abundances_builder.init(constants::most_frequent_abundance);
 
     /* intervals of kmer_ids */
     uint64_t kmer_id_value = constants::invalid;
@@ -145,7 +144,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
             data.abundances_builder.eat(ab);
 
-            if (ab != most_frequent_abundance) {
+            if (ab != constants::most_frequent_abundance) {
                 if (kmer_id_value == constants::invalid) {
                     kmer_id_value = num_kmers;
                     kmer_id_length = 1;
