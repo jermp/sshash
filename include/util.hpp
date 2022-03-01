@@ -66,6 +66,7 @@ struct build_configuration {
         , c(constants::c)
 
         , canonical_parsing(false)
+        , store_abundances(false)
         , verbose(true) {}
 
     uint64_t k;  // kmer size
@@ -77,13 +78,14 @@ struct build_configuration {
     double c;    // drive PTHash trade-off
 
     bool canonical_parsing;
+    bool store_abundances;
     bool verbose;
 
     void print() const {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
                   << ", c = " << c
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << std::endl;
+                  << ", store_abundances = " << (store_abundances ? "true" : "false") << std::endl;
     }
 };
 

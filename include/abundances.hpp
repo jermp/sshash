@@ -8,13 +8,16 @@ namespace sshash {
 
 struct abundances {
     struct builder {
-        builder(uint64_t most_frequent_abundance = 1)
-            : m_most_frequent_abundance(most_frequent_abundance) {
+        builder() : m_most_frequent_abundance(0) {}
+
+        void init(uint64_t most_frequent_abundance) {
+            m_most_frequent_abundance = most_frequent_abundance;
             m_kmer_id_interval_lengths.push_back(0);
             m_abundance_interval_lengths.push_back(0);
         }
 
         void eat(uint64_t abundance) {
+            assert(abundance > 0);
             auto it = m_abundances_map.find(abundance);
             if (it != m_abundances_map.cend()) {  // found
                 (*it).second += 1;
@@ -155,6 +158,8 @@ struct abundances {
 
         pthash::compact_vector::builder m_abundance_dictionary_builder;
     };
+
+    bool empty() const { return m_abundance_dictionary.size() == 0; }
 
     uint64_t abundance(uint64_t kmer_id) const {
         bool is_present = false;
