@@ -17,6 +17,7 @@ constexpr uint64_t hashcode_bits = 64;
 constexpr double c = 3.0;  // for PThash
 constexpr uint64_t min_l = 6;
 constexpr uint64_t max_l = 12;
+constexpr uint64_t most_frequent_abundance = 1;  // usual value
 }  // namespace constants
 
 typedef pthash::murmurhash2_64 base_hasher_type;
@@ -65,6 +66,7 @@ struct build_configuration {
         , c(constants::c)
 
         , canonical_parsing(false)
+        , store_abundances(false)
         , verbose(true) {}
 
     uint64_t k;  // kmer size
@@ -75,13 +77,14 @@ struct build_configuration {
     double c;    // drive PTHash trade-off
 
     bool canonical_parsing;
+    bool store_abundances;
     bool verbose;
 
     void print() const {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
                   << ", c = " << c
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << std::endl;
+                  << ", store_abundances = " << (store_abundances ? "true" : "false") << std::endl;
     }
 };
 

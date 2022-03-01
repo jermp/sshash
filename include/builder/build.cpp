@@ -3,7 +3,6 @@
 #include "../util.hpp"
 
 #include "../dictionary.hpp"
-#include "../buckets.hpp"
 #include "../util.hpp"
 #include "build_util_types.hpp"
 
@@ -16,11 +15,19 @@
 
 namespace sshash {
 
+void expect(char got, char expected) {
+    if (got != expected) {
+        std::cout << "got '" << got << "' but expected '" << expected << "'" << std::endl;
+        throw parse_runtime_error();
+    }
+}
+
 struct parse_data {
     parse_data() : num_kmers(0) {}
     uint64_t num_kmers;
     minimizers_tuples minimizers;
     compact_string_pool strings;
+    abundances::builder abundances_builder;
 };
 
 void parse_file(std::istream& is, parse_data& data, build_configuration const& build_config) {
@@ -81,10 +88,98 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         return true;
     };
 
-    while (!is.eof()) {
-        std::getline(is, line);  // skip header line
-        std::getline(is, line);
+    uint64_t seq_len = 0;
+    data.abundances_builder.init(constants::most_frequent_abundance);
 
+    /* intervals of kmer_ids */
+    uint64_t kmer_id_value = constants::invalid;
+    uint64_t kmer_id_length = 1;
+
+    /* intervals of abundances */
+    uint64_t ab_value = constants::invalid;
+    uint64_t ab_length = 1;
+
+    auto parse_header = [&]() {
+        if (line.empty()) return;
+
+        /*
+            Heder format:
+            >[seq_id] LN:i:[seq_len] ab:Z:[ab_seq]
+            where [ab_seq] is a space-separated sequence of integer counters (the abundances),
+            whose length is equal to [seq_len]-k+1
+        */
+
+        // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
+
+        expect(line[0], '>');
+        uint64_t i = 0;
+        i = line.find_first_of(' ', i);
+        if (i == std::string::npos) throw parse_runtime_error();
+
+        i += 1;
+        expect(line[i + 0], 'L');
+        expect(line[i + 1], 'N');
+        expect(line[i + 2], ':');
+        expect(line[i + 3], 'i');
+        expect(line[i + 4], ':');
+        i += 5;
+        uint64_t j = line.find_first_of(' ', i);
+        if (j == std::string::npos) throw parse_runtime_error();
+
+        char* end;
+        seq_len = std::strtoull(line.data() + i, &end, 10);
+        i = j + 1;
+        expect(line[i + 0], 'a');
+        expect(line[i + 1], 'b');
+        expect(line[i + 2], ':');
+        expect(line[i + 3], 'Z');
+        expect(line[i + 4], ':');
+        i += 5;
+
+        kmer_id_value = constants::invalid;
+        kmer_id_length = 1;
+        for (uint64_t j = 0, num_kmers = data.num_kmers; j != seq_len - k + 1; ++j, ++num_kmers) {
+            uint64_t ab = std::strtoull(line.data() + i, &end, 10);
+            i = line.find_first_of(' ', i) + 1;
+
+            data.abundances_builder.eat(ab);
+
+            if (ab != constants::most_frequent_abundance) {
+                if (kmer_id_value == constants::invalid) {
+                    kmer_id_value = num_kmers;
+                    kmer_id_length = 1;
+                } else {
+                    if (num_kmers == kmer_id_value + kmer_id_length) kmer_id_length += 1;
+                }
+
+                if (ab == ab_value) {
+                    ab_length += 1;
+                } else {
+                    if (ab_value != constants::invalid) {
+                        data.abundances_builder.push_abundance_interval(ab_value, ab_length);
+                    }
+                    ab_value = ab;
+                    ab_length = 1;
+                }
+
+            } else {
+                if (kmer_id_value != constants::invalid) {
+                    data.abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
+                }
+                kmer_id_value = constants::invalid;
+            }
+        }
+
+        if (kmer_id_value != constants::invalid) {
+            data.abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
+        }
+    };
+
+    while (!is.eof()) {
+        std::getline(is, line);  // header line
+        if (build_config.store_abundances) parse_header();
+
+        std::getline(is, line);  // DNA sequence
         if (line.size() < k) continue;
 
         if (++num_read_lines % 100000 == 0) {
@@ -97,6 +192,12 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         glue = false;
         prev_minimizer = constants::invalid;
         num_read_bases += line.size();
+
+        if (build_config.store_abundances and seq_len != line.size()) {
+            std::cout << "ERROR: expected a sequence of length " << seq_len
+                      << " but got one of length " << line.size() << std::endl;
+            throw std::runtime_error("file is malformed");
+        }
 
         while (end != line.size() - k + 1) {
             char const* kmer = line.data() + end;
@@ -128,6 +229,11 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
     builder.finalize();
     builder.build(data.strings);
+
+    if (build_config.store_abundances) {
+        data.abundances_builder.push_abundance_interval(ab_value, ab_length);
+        data.abundances_builder.finalize(data.num_kmers);
+    }
 
     std::cout << "read " << num_read_lines << " lines, " << num_read_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
@@ -208,11 +314,6 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
 
     return buckets_stats;
 }
-
-struct empty_bucket_runtime_error : public std::runtime_error {
-    empty_bucket_runtime_error()
-        : std::runtime_error("try a different choice of l or change seed") {}
-};
 
 void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const& m_buckets,
                       build_configuration const& build_config,
@@ -448,6 +549,24 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
     timer.reset();
     /******/
+
+    if (build_config.store_abundances) {
+        /* step 1.1: compress abundances ***/
+        timer.start();
+        data.abundances_builder.build(m_abundances);
+        timer.stop();
+        timings.push_back(timer.elapsed());
+        print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_abundances'");
+        timer.reset();
+        /******/
+        if (build_config.verbose) {
+            double entropy_ab = data.abundances_builder.print_info(data.num_kmers);
+            double avg_bits_per_ab = static_cast<double>(m_abundances.num_bits()) / data.num_kmers;
+            std::cout << "abundances: " << avg_bits_per_ab << " [bits/kmer]" << std::endl;
+            std::cout << "  (" << entropy_ab / avg_bits_per_ab
+                      << "x smaller than the empirical entropy)" << std::endl;
+        }
+    }
 
     /* step 2: sort minimizers and build MPHF ***/
     timer.start();

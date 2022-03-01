@@ -2,6 +2,16 @@
 
 namespace sshash {
 
+struct empty_bucket_runtime_error : public std::runtime_error {
+    empty_bucket_runtime_error()
+        : std::runtime_error("try a different choice of l or change seed") {}
+};
+
+struct parse_runtime_error : public std::runtime_error {
+    parse_runtime_error()
+        : std::runtime_error("did you provide an input file with abundance counts?") {}
+};
+
 struct compact_string_pool {
     compact_string_pool() {}
 

@@ -39,6 +39,8 @@ int main(int argc, char** argv) {
                "Canonical parsing of k-mers. This option changes the parsing and results in a "
                "trade-off between index space and lookup time.",
                "--canonical-parsing", true);
+    parser.add("store_abundances", "Also store the abundances in compressed format.",
+               "--abundances", true);
     parser.add("output_filename", "Output file name where the data structure will be serialized.",
                "-o", false);
     parser.add("check", "Check correctness after construction.", "--check", true);
@@ -61,6 +63,7 @@ int main(int argc, char** argv) {
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
+    build_config.store_abundances = parser.get<bool>("store_abundances");
     build_config.verbose = parser.get<bool>("verbose");
     build_config.print();
 
@@ -70,6 +73,7 @@ int main(int argc, char** argv) {
     bool check = parser.get<bool>("check");
     if (check) {
         check_correctness_lookup_access(dict, input_filename);
+        if (build_config.store_abundances) check_correctness_abundances(dict, input_filename);
         check_correctness_iterator(dict);
     }
     bool bench = parser.get<bool>("bench");

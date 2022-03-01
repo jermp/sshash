@@ -150,9 +150,7 @@ struct ef_sequence {
     }
 
     inline bool contains(uint64_t x) const { return next_geq(x).second == x; }
-
     inline uint64_t back() const { return m_universe; }
-
     inline uint64_t size() const { return m_low_bits.size(); }
 
     uint64_t num_bits() const {

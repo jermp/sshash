@@ -16,8 +16,6 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     std::string expected_kmer_str(k, 0);
 
     std::cout << "checking correctness of access and positive lookup..." << std::endl;
-    pthash::bit_vector_builder got(n, 0);
-    __uint128_t sum = 0;
 
     while (appendline(is, line)) {
         if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
@@ -38,22 +36,17 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
             }
             util::uint64_to_string_no_reverse(uint64_kmer, expected_kmer_str.data(), k);
             uint64_t id = dict.lookup(expected_kmer_str.c_str());
+
+            /*
+                Since we assume that we stream through the file from which the index was built,
+                ids are assigned sequentially to kmers, so it must be id == num_kmers.
+            */
+            if (id != num_kmers) std::cout << "wrong id assigned" << std::endl;
+
             if (id == constants::invalid) {
                 std::cout << "kmer '" << expected_kmer_str << "' not found!" << std::endl;
             }
             assert(id != constants::invalid);
-            if (id >= n) {
-                std::cout << "ERROR: id out of range " << id << "/" << n << std::endl;
-                return false;
-            }
-
-            if (got.get(id) == true) {
-                std::cout << "id " << id << " was already assigned!" << std::endl;
-                return false;
-            }
-
-            got.set(id);
-            sum += id;
 
             // check access
             dict.access(id, got_kmer_str.data());
@@ -76,16 +69,6 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     }
     std::cout << "checked " << num_kmers << " kmers" << std::endl;
 
-    if (n != num_kmers) {
-        std::cout << "expected " << n << " kmers but checked " << num_kmers << std::endl;
-        return false;
-    }
-
-    if (sum != (n * (n - 1)) / 2) {
-        std::cout << "ERROR: index contains duplicates" << std::endl;
-        return false;
-    }
-
     std::cout << "EVERYTHING OK!" << std::endl;
 
     std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
@@ -106,6 +89,57 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     return true;
 }
 
+bool check_correctness_abundances(std::istream& is, dictionary const& dict) {
+    uint64_t k = dict.k();
+    std::string line;
+    uint64_t kmer_id = 0;
+
+    if (!dict.weighted()) {
+        std::cerr << "ERROR: the dictionary does not store any abundance" << std::endl;
+        return false;
+    }
+
+    std::cout << "checking correctness of abundances..." << std::endl;
+
+    while (!is.eof()) {
+        std::getline(is, line);  // header line
+        if (line.empty()) break;
+
+        uint64_t i = 0;
+        i = line.find_first_of(' ', i);
+        assert(i != std::string::npos);
+
+        i += 1;
+        i += 5;  // skip "LN:i:"
+        uint64_t j = line.find_first_of(' ', i);
+        assert(j != std::string::npos);
+
+        char* end;
+        uint64_t seq_len = std::strtoull(line.data() + i, &end, 10);
+        i = j + 1;
+        i += 5;  // skip "ab:Z:"
+
+        for (uint64_t j = 0; j != seq_len - k + 1; ++j, ++kmer_id) {
+            uint64_t expected_ab = std::strtoull(line.data() + i, &end, 10);
+            i = line.find_first_of(' ', i) + 1;
+            uint64_t got_ab = dict.abundance(kmer_id);
+            if (expected_ab != got_ab) {
+                std::cout << "ERROR for kmer_id " << kmer_id << ": expected_ab " << expected_ab
+                          << " but got_ab " << got_ab << std::endl;
+            }
+            if (kmer_id != 0 and kmer_id % 5000000 == 0) {
+                std::cout << "checked " << kmer_id << " abundances" << std::endl;
+            }
+        }
+
+        std::getline(is, line);  // skip DNA sequence
+    }
+
+    std::cout << "checked " << kmer_id << " abundances" << std::endl;
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
+
 /*
    The input file must be the one the index was built from.
    Throughout the code, we assume the input does not contain any duplicate.
@@ -119,6 +153,23 @@ bool check_correctness_lookup_access(dictionary const& dict, std::string const& 
         good = check_correctness_lookup_access(zis, dict);
     } else {
         good = check_correctness_lookup_access(is, dict);
+    }
+    is.close();
+    return good;
+}
+
+/*
+   The input file must be the one the index was built from.
+*/
+bool check_correctness_abundances(dictionary const& dict, std::string const& filename) {
+    std::ifstream is(filename.c_str());
+    if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
+    bool good = true;
+    if (util::ends_with(filename, ".gz")) {
+        zip_istream zis(is);
+        good = check_correctness_abundances(zis, dict);
+    } else {
+        good = check_correctness_abundances(is, dict);
     }
     is.close();
     return good;

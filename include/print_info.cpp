@@ -41,6 +41,8 @@ void dictionary::print_space_breakdown() const {
               << " [bits/kmer]\n";
     std::cout << "  skew_index: " << static_cast<double>(m_skew_index.num_bits()) / size()
               << " [bits/kmer]\n";
+    std::cout << "  abundances: " << static_cast<double>(m_abundances.num_bits()) / size()
+              << " [bits/kmer]\n";
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
               << std::endl;
@@ -52,7 +54,8 @@ void dictionary::print_info() const {
     std::cout << "k = " << k() << '\n';
     std::cout << "num_minimizers = " << m_minimizers.size() << std::endl;
     std::cout << "m = " << m() << '\n';
-    std::cout << "canonical_parsing = " << (canonicalized() ? "true" : "false") << '\n';
+    std::cout << "canonicalized = " << (canonicalized() ? "true" : "false") << '\n';
+    std::cout << "weighted = " << (weighted() ? "true" : "false") << '\n';
 
     std::cout << "num_strings = " << m_buckets.offsets.size() << '\n';
     std::cout << "num_pieces = " << m_buckets.pieces.size() << " (+"

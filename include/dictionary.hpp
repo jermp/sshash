@@ -4,6 +4,7 @@
 #include "minimizers.hpp"
 #include "buckets.hpp"
 #include "skew_index.hpp"
+#include "abundances.hpp"
 
 namespace sshash {
 
@@ -17,6 +18,7 @@ struct dictionary {
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
     bool canonicalized() const { return m_canonical_parsing; }
+    bool weighted() const { return !m_abundances.empty(); }
 
     uint64_t lookup_uint64(uint64_t uint64_kmer) const {
         uint64_t minimizer = util::compute_minimizer(uint64_kmer, m_k, m_m, m_seed);
@@ -87,6 +89,11 @@ struct dictionary {
         m_buckets.access(kmer_id, string_kmer, m_k);
     }
 
+    uint64_t abundance(uint64_t kmer_id) const {
+        assert(kmer_id < size());
+        return m_abundances.abundance(kmer_id);
+    }
+
     bool is_member(char const* string_kmer, bool check_reverse_complement_too = true) const {
         return lookup(string_kmer, check_reverse_complement_too) != constants::invalid;
     }
@@ -128,7 +135,8 @@ struct dictionary {
     uint64_t num_bits() const {
         return 8 * (sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
                     sizeof(m_canonical_parsing)) +
-               m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits();
+               m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits() +
+               m_abundances.num_bits();
     }
 
     void print_info() const;
@@ -144,6 +152,7 @@ struct dictionary {
         visitor.visit(m_minimizers);
         visitor.visit(m_buckets);
         visitor.visit(m_skew_index);
+        visitor.visit(m_abundances);
     }
 
 private:
@@ -155,6 +164,7 @@ private:
     minimizers m_minimizers;
     buckets m_buckets;
     skew_index m_skew_index;
+    abundances m_abundances;
 };
 
 }  // namespace sshash
