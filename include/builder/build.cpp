@@ -27,7 +27,7 @@ struct parse_data {
     uint64_t num_kmers;
     minimizers_tuples minimizers;
     compact_string_pool strings;
-    abundances::builder abundances;
+    abundances::builder abundances_builder;
 };
 
 void parse_file(std::istream& is, parse_data& data, build_configuration const& build_config) {
@@ -90,7 +90,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
     uint64_t seq_len = 0;
     constexpr uint64_t most_frequent_abundance = 1;
-    data.abundances.init(most_frequent_abundance);
+    data.abundances_builder.init(most_frequent_abundance);
 
     /* intervals of kmer_ids */
     uint64_t kmer_id_value = constants::invalid;
@@ -143,7 +143,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             uint64_t ab = std::strtoull(line.data() + i, &end, 10);
             i = line.find_first_of(' ', i) + 1;
 
-            data.abundances.eat(ab);
+            data.abundances_builder.eat(ab);
 
             if (ab != most_frequent_abundance) {
                 if (kmer_id_value == constants::invalid) {
@@ -157,7 +157,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
                     ab_length += 1;
                 } else {
                     if (ab_value != constants::invalid) {
-                        data.abundances.push_abundance_interval(ab_value, ab_length);
+                        data.abundances_builder.push_abundance_interval(ab_value, ab_length);
                     }
                     ab_value = ab;
                     ab_length = 1;
@@ -165,14 +165,14 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
             } else {
                 if (kmer_id_value != constants::invalid) {
-                    data.abundances.push_kmer_id_interval(kmer_id_value, kmer_id_length);
+                    data.abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
                 }
                 kmer_id_value = constants::invalid;
             }
         }
 
         if (kmer_id_value != constants::invalid) {
-            data.abundances.push_kmer_id_interval(kmer_id_value, kmer_id_length);
+            data.abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
         }
     };
 
@@ -232,8 +232,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     builder.build(data.strings);
 
     if (build_config.store_abundances) {
-        data.abundances.push_abundance_interval(ab_value, ab_length);
-        data.abundances.finalize(data.num_kmers);
+        data.abundances_builder.push_abundance_interval(ab_value, ab_length);
+        data.abundances_builder.finalize(data.num_kmers);
     }
 
     std::cout << "read " << num_read_lines << " lines, " << num_read_bases << " bases, "
@@ -554,14 +554,14 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     if (build_config.store_abundances) {
         /* step 1.1: compress abundances ***/
         timer.start();
-        data.abundances.build(m_abundances);
+        data.abundances_builder.build(m_abundances);
         timer.stop();
         timings.push_back(timer.elapsed());
         print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_abundances'");
         timer.reset();
         /******/
         if (build_config.verbose) {
-            double entropy_ab = data.abundances.print_info(data.num_kmers);
+            double entropy_ab = data.abundances_builder.print_info(data.num_kmers);
             double avg_bits_per_ab = static_cast<double>(m_abundances.num_bits()) / data.num_kmers;
             std::cout << "abundances: " << avg_bits_per_ab << " [bits/kmer]" << std::endl;
             std::cout << "  (" << entropy_ab / avg_bits_per_ab
