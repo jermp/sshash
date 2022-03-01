@@ -60,7 +60,6 @@ struct build_configuration {
         : k(31)
         , m(17)
         , seed(constants::seed)
-        , max_num_kmers(-1)
 
         , l(constants::min_l)
         , c(constants::c)
@@ -71,7 +70,6 @@ struct build_configuration {
     uint64_t k;  // kmer size
     uint64_t m;  // minimizer size
     uint64_t seed;
-    uint64_t max_num_kmers;
 
     uint64_t l;  // drive dictionary trade-off
     double c;    // drive PTHash trade-off

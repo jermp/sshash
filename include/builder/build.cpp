@@ -27,7 +27,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
-    uint64_t max_num_kmers = build_config.max_num_kmers;
     uint64_t max_num_kmers_in_string = k - m + 1;
     uint64_t block_size = 2 * k - m;  // max_num_kmers_in_string + k - 1
 
@@ -82,7 +81,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         return true;
     };
 
-    while (!is.eof() and data.num_kmers != max_num_kmers) {
+    while (!is.eof()) {
         std::getline(is, line);  // skip header line
         std::getline(is, line);
 
@@ -120,7 +119,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             }
 
             ++data.num_kmers;
-            if (data.num_kmers == max_num_kmers) break;
 
             ++end;
         }

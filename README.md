@@ -91,7 +91,7 @@ where the code was compiled (see the section [Compiling the Code](#compiling-the
 
 to show the usage of the driver program (reported below for convenience).
 
-	Usage: ./build [-h,--help] input_filename k m [-s seed] [-n max_num_kmers] [-l l] [-c c] [--canonical-parsing] [-o output_filename] [--check] [--bench] [--verbose]
+	Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [-o output_filename] [--check] [--bench] [--verbose]
 	
 	 input_filename
 		Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
@@ -107,9 +107,6 @@ to show the usage of the driver program (reported below for convenience).
 	
 	 [-s seed]
 		Seed for construction (default is 1).
-	
-	 [-n max_num_kmers]
-		Build the dictionary from at most this number of k-mers.
 	
 	 [-l l]
 		A (integer) constant that controls the space/time trade-off of the dictionary. A reasonable values lies between 2 and 12 (default is 6).

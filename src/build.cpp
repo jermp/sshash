@@ -24,8 +24,6 @@ int main(int argc, char** argv) {
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
-    parser.add("max_num_kmers", "Build the dictionary from at most this number of k-mers.", "-n",
-               false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
                "A reasonable values lies between 2 and 12 (default is " +
@@ -60,9 +58,6 @@ int main(int argc, char** argv) {
     build_config.m = m;
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
-    if (parser.parsed("max_num_kmers")) {
-        build_config.max_num_kmers = parser.get<uint64_t>("max_num_kmers");
-    }
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
