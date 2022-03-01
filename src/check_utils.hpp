@@ -127,6 +127,9 @@ bool check_correctness_abundances(std::istream& is, dictionary const& dict) {
                 std::cout << "ERROR for kmer_id " << kmer_id << ": expected_ab " << expected_ab
                           << " but got_ab " << got_ab << std::endl;
             }
+            if (kmer_id != 0 and kmer_id % 5000000 == 0) {
+                std::cout << "checked " << kmer_id << " abundances" << std::endl;
+            }
         }
 
         std::getline(is, line);  // skip DNA sequence
