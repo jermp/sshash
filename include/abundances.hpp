@@ -107,8 +107,9 @@ struct abundances {
 
             uint64_t num_distinct_abundances = m_abundance_dictionary_builder.size();
             pthash::compact_vector::builder abundance_interval_values;
-            abundance_interval_values.resize(m_abundance_interval_values.size(),
-                                             std::ceil(std::log2(num_distinct_abundances)));
+            abundance_interval_values.resize(
+                m_abundance_interval_values.size(),
+                num_distinct_abundances == 1 ? 1 : std::ceil(std::log2(num_distinct_abundances)));
             for (uint64_t i = 0; i != m_abundance_interval_values.size(); ++i) {
                 uint64_t abundance = m_abundance_interval_values[i];
                 uint64_t id = m_abundances_map[abundance];

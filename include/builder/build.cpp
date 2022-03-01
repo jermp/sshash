@@ -34,7 +34,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
-    uint64_t max_num_kmers = build_config.max_num_kmers;
     uint64_t max_num_kmers_in_string = k - m + 1;
     uint64_t block_size = 2 * k - m;  // max_num_kmers_in_string + k - 1
 
@@ -140,10 +139,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         kmer_id_value = constants::invalid;
         kmer_id_length = 1;
-        for (uint64_t j = 0, ab = 0, num_kmers = data.num_kmers; j != seq_len - k + 1;
-             ++j, ++num_kmers) {
-            if (num_kmers == max_num_kmers) break;
-            ab = std::strtoull(line.data() + i, &end, 10);
+        for (uint64_t j = 0, num_kmers = data.num_kmers; j != seq_len - k + 1; ++j, ++num_kmers) {
+            uint64_t ab = std::strtoull(line.data() + i, &end, 10);
             i = line.find_first_of(' ', i) + 1;
 
             data.abundances.eat(ab);
@@ -179,7 +176,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         }
     };
 
-    while (!is.eof() and data.num_kmers != max_num_kmers) {
+    while (!is.eof()) {
         std::getline(is, line);  // header line
         if (build_config.store_abundances) parse_header();
 
@@ -224,7 +221,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             }
 
             ++data.num_kmers;
-            if (data.num_kmers == max_num_kmers) break;
 
             ++end;
         }
@@ -535,7 +531,6 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     if (build_config.l > constants::max_l) {
         throw std::runtime_error("l must be <= " + std::to_string(constants::max_l));
     }
-    if (build_config.max_num_kmers == 0) throw std::runtime_error("max_num_kmers > 0 ");
 
     m_k = build_config.k;
     m_m = build_config.m;
@@ -565,7 +560,6 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_abundances'");
         timer.reset();
         /******/
-
         if (build_config.verbose) {
             double entropy_ab = data.abundances.print_info(data.num_kmers);
             double avg_bits_per_ab = static_cast<double>(m_abundances.num_bits()) / data.num_kmers;
@@ -573,20 +567,6 @@ void dictionary::build(std::string const& filename, build_configuration const& b
             std::cout << "  (" << entropy_ab / avg_bits_per_ab
                       << "x smaller than the empirical entropy)" << std::endl;
         }
-
-        // std::cout << "checking correctness of compressed abundances..." << std::endl;
-        // assert(abundances_vector.size() == data.num_kmers);
-        // for (uint64_t kmer_id = 0; kmer_id != data.num_kmers; ++kmer_id) {
-        //     uint64_t expected_ab = abundances_vector[kmer_id];
-        //     uint64_t got_ab = index.abundance(kmer_id);
-        //     if (expected_ab != got_ab) {
-        //         std::cout << "ERROR for kmer_id " << kmer_id << ": expected_ab " << expected_ab
-        //                   << " but got_ab " << got_ab << std::endl;
-        //     }
-        //     // else {
-        //     //     std::cout << "kmer_id " << kmer_id << " OK" << std::endl;
-        //     // }
-        // }
     }
 
     /* step 2: sort minimizers and build MPHF ***/
