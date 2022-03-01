@@ -119,7 +119,8 @@ struct abundances {
             m_abundance_dictionary_builder.build(index.m_abundance_dictionary);
         }
 
-        void print_info(uint64_t num_kmers) {
+        // return the average empirical entropy per abundance
+        double print_info(uint64_t num_kmers) {
             assert(!m_abundances.empty());
             double expected_ab_value = 0.0;
             double entropy_ab = 0.0;
@@ -136,6 +137,7 @@ struct abundances {
             }
             std::cout << "expected_ab_value " << expected_ab_value << std::endl;
             std::cout << "entropy_ab " << entropy_ab << " [bits/kmer]" << std::endl;
+            return entropy_ab;
         }
 
     private:
@@ -153,6 +155,37 @@ struct abundances {
 
         pthash::compact_vector::builder m_abundance_dictionary_builder;
     };
+
+    uint64_t abundance(uint64_t kmer_id) const {
+        bool is_present = false;
+        uint64_t rank = 0;
+
+        auto [pos, val] = m_kmer_id_interval_values.next_geq(kmer_id);
+        if (val == kmer_id) {
+            is_present = true;
+            rank = m_kmer_id_interval_lengths.access(pos);
+        } else {
+            if (pos > 0) {
+                --pos;
+                val = m_kmer_id_interval_values.access(pos);
+                rank = m_kmer_id_interval_lengths.access(pos);
+                uint64_t length = m_kmer_id_interval_lengths.access(pos + 1) - rank;
+                if (kmer_id < val + length) {
+                    is_present = true;
+                    assert(kmer_id >= val);
+                    rank += kmer_id - val;
+                }
+            }
+        }
+
+        if (!is_present) return m_most_frequent_abundance;
+
+        uint64_t i = m_abundance_interval_lengths.prev_leq(rank);
+        uint64_t id = m_abundance_interval_values.access(i);
+        uint64_t abundance = m_abundance_dictionary.access(id);
+
+        return abundance;
+    }
 
     uint64_t num_bits() const {
         return sizeof(m_most_frequent_abundance) * 8 + m_kmer_id_interval_values.num_bits() +

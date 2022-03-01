@@ -94,6 +94,9 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     constexpr uint64_t most_frequent_abundance = 1;
     abundances::builder abundances_builder(most_frequent_abundance);
 
+    /* just for debug: abundances_vector[i] = c means that kmer of id i has abundance c */
+    std::vector<uint32_t> abundances_vector;
+
     /* intervals of kmer_ids */
     uint64_t kmer_id_value = constants::invalid;
     uint64_t kmer_id_length = 1;
@@ -148,6 +151,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             i = line.find_first_of(' ', i) + 1;
 
             abundances_builder.eat(ab);
+            abundances_vector.push_back(ab);
 
             if (ab != most_frequent_abundance) {
                 if (kmer_id_value == constants::invalid) {
@@ -247,13 +251,29 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     abundances_builder.push_abundance_interval(ab_value, ab_length);
 
     abundances_builder.finalize(data.num_kmers);
-    abundances_builder.print_info(data.num_kmers);
+    double entropy_ab = abundances_builder.print_info(data.num_kmers);
 
     {
         abundances index;
         abundances_builder.build(index);
-        std::cout << "abundances: " << static_cast<double>(index.num_bits()) / data.num_kmers
-                  << " [bits/kmer]" << std::endl;
+        double avg_bits_per_ab = static_cast<double>(index.num_bits()) / data.num_kmers;
+        std::cout << "abundances: " << avg_bits_per_ab << " [bits/kmer]" << std::endl;
+        std::cout << "  (" << entropy_ab / avg_bits_per_ab
+                  << "x smaller than the empirical entropy)" << std::endl;
+
+        std::cout << "checking correctness of compressed abundances..." << std::endl;
+        assert(abundances_vector.size() == data.num_kmers);
+        for (uint64_t kmer_id = 0; kmer_id != data.num_kmers; ++kmer_id) {
+            uint64_t expected_ab = abundances_vector[kmer_id];
+            uint64_t got_ab = index.abundance(kmer_id);
+            if (expected_ab != got_ab) {
+                std::cout << "ERROR for kmer_id " << kmer_id << ": expected_ab " << expected_ab
+                          << " but got_ab " << got_ab << std::endl;
+            }
+            // else {
+            //     std::cout << "kmer_id " << kmer_id << " OK" << std::endl;
+            // }
+        }
     }
 }
 
