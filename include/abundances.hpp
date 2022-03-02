@@ -206,6 +206,24 @@ struct abundances {
                m_abundance_interval_lengths.num_bits() + m_abundance_dictionary.bytes() * 8;
     }
 
+    void print_space_breakdown(uint64_t num_kmers) const {
+        std::cout << "    kmer_id_interval_values: "
+                  << static_cast<double>(m_kmer_id_interval_values.num_bits()) / num_kmers
+                  << " [bits/kmer]\n";
+        std::cout << "    kmer_id_interval_lengths: "
+                  << static_cast<double>(m_kmer_id_interval_lengths.num_bits()) / num_kmers
+                  << " [bits/kmer]\n";
+        std::cout << "    abundance_interval_values: "
+                  << static_cast<double>(m_abundance_interval_values.bytes() * 8) / num_kmers
+                  << " [bits/kmer]\n";
+        std::cout << "    abundance_interval_lengths: "
+                  << static_cast<double>(m_abundance_interval_lengths.num_bits()) / num_kmers
+                  << " [bits/kmer]\n";
+        std::cout << "    abundance_dictionary: "
+                  << static_cast<double>(m_abundance_dictionary.bytes() * 8) / num_kmers
+                  << " [bits/kmer]\n";
+    }
+
     template <typename Visitor>
     void visit(Visitor& visitor) {
         visitor.visit(m_most_frequent_abundance);

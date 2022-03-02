@@ -42,6 +42,7 @@ void dictionary::print_space_breakdown() const {
               << " [bits/kmer]\n";
     std::cout << "  abundances: " << static_cast<double>(m_abundances.num_bits()) / size()
               << " [bits/kmer]\n";
+    m_abundances.print_space_breakdown(size());
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
               << std::endl;
