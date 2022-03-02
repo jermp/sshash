@@ -1,3 +1,5 @@
+#pragma once
+
 #include "zip_stream.hpp"
 
 #include <cassert>

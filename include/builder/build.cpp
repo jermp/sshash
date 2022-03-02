@@ -1,17 +1,16 @@
-#include "../util.hpp"
+#pragma once
+
 #include "../gz/zip_stream.cpp"
 #include "../util.hpp"
-
 #include "../dictionary.hpp"
-#include "../util.hpp"
+#include "../info.cpp"
+#include "../../external/pthash/include/pthash.hpp"
+#include "../../external/pthash/external/essentials/include/essentials.hpp"
+
 #include "build_util_types.hpp"
 
 #include <numeric>  // for std::partial_sum
 #include <vector>
-
-#include "../../external/pthash/include/pthash.hpp"
-#include "../../external/pthash/external/essentials/include/essentials.hpp"
-#include "../print_info.cpp"
 
 namespace sshash {
 

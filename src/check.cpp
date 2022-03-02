@@ -1,9 +1,9 @@
 #include <iostream>
 
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
-#include "../include/gz/zip_stream.cpp"
 #include "../include/dictionary.hpp"
-#include "../include/print_info.cpp"
+#include "../include/lookup.cpp"
+#include "../include/info.cpp"
 #include "check_utils.hpp"
 
 using namespace sshash;

@@ -1,5 +1,4 @@
-#include "dictionary.hpp"
-#include "skew_index.hpp"
+#pragma once
 
 namespace sshash {
 

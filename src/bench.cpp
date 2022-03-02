@@ -2,7 +2,8 @@
 
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/dictionary.hpp"
-#include "../include/print_info.cpp"
+#include "../include/lookup.cpp"
+#include "../include/info.cpp"
 #include "bench_utils.hpp"
 
 using namespace sshash;
@@ -21,7 +22,7 @@ int main(int argc, char** argv) {
     dict.print_info();
 
     perf_test_lookup_access(dict);
-    // perf_test_iterator(dict);
+    perf_test_iterator(dict);
 
     return 0;
 }
