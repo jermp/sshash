@@ -30,6 +30,7 @@ struct buckets {
                     uint64_t val = pieces.access(lo) - lo * (k - 1);
                     if (val > id) break;
                 }
+                break;
             }
             uint64_t mid = lo + (hi - lo) / 2;
             uint64_t val = pieces.access(mid);
