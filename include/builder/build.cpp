@@ -59,7 +59,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     bool glue = false;
 
     auto append_string = [&]() {
-        if (line.empty() or prev_minimizer == constants::invalid or begin == end) return false;
+        if (line.empty() or prev_minimizer == constants::invalid or begin == end) return;
 
         assert(end > begin);
         char const* string = line.data() + begin;
@@ -84,8 +84,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             }
             size -= max_num_kmers_in_string;
         }
-
-        return true;
     };
 
     uint64_t seq_len = 0;
@@ -176,7 +174,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     };
 
     while (!is.eof()) {
-        std::getline(is, line);  // header line
+        std::getline(is, line);  // header sequence
         if (build_config.store_abundances) parse_header();
 
         std::getline(is, line);  // DNA sequence
@@ -189,7 +187,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         begin = 0;
         end = 0;
-        glue = false;
+        glue = false;  // start a new piece
         prev_minimizer = constants::invalid;
         num_read_bases += line.size();
 
@@ -220,7 +218,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             }
 
             ++data.num_kmers;
-
             ++end;
         }
 
