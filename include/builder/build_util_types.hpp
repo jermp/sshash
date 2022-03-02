@@ -42,8 +42,11 @@ struct compact_string_pool {
         }
 
         void finalize() {
+            /* So pieces will be of size p+1, where p is the number of DNA strings
+               in the input file. */
             pieces.push_back(bvb_strings.size() / 2);
             assert(pieces.front() == 0);
+
             /* Push a final sentinel (dummy) symbol to avoid bounds' checking. */
             bvb_strings.append_bits(0, 2);
         }

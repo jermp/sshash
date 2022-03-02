@@ -83,6 +83,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
                 data.minimizers.back().offset -= k - 1;
             }
             size -= max_num_kmers_in_string;
+            glue = true;
         }
     };
 
@@ -239,6 +240,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
               << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
               << std::endl;
+    assert(data.strings.pieces.size() == num_read_lines + 1);
 }
 
 parse_data parse_file(std::string const& filename, build_configuration const& build_config) {
