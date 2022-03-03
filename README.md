@@ -147,6 +147,8 @@ For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
 These collections were built for k = 31, so dictionaries should be built with k = 31 as well to ensure correctness.
 
+(The subdirectory `../data/unitigs_stitched/with_abundances` contains some files with k-mers' abundances too.)
+
 In the section [Input Files](#input-files), we explain how
 such collections of stitched unitigs can be obtained from raw FASTA files.
 
@@ -224,9 +226,9 @@ SSHash is meant to index k-mers from collections that do not contain duplicates
 nor invalid k-mers (strings containing symbols different from {A,C,G,T}).
 These collections can be obtained, for example, by extracting the maximal unitigs of a de Bruijn graph.
 
-Doing so is easy to do using the tool [BCALM2](https://github.com/GATB/bcalm).
+To do so, we can use the tool [BCALM2](https://github.com/GATB/bcalm).
 This tool builds a compacted de Bruijn graph and outputs its maximal unitigs.
-From the output of BCALM2, we can then *stitch* (i.e., glue) some unitigs to reduce the number of nucleotides. The stitiching process is carried out using the [UST](https://github.com/medvedevgroup/UST) tool.
+From the output of BCALM2, we can then *stitch* (i.e., glue) some unitigs to reduce the number of nucleotides. The stitiching process is carried out using the [UST](https://github.com/jermp/UST) tool.
 
 Below we provide a complete example (assuming both BCALM2 and UST are installed correctly) that downloads the Human (GRCh38) Chromosome 13 and extracts the maximal stitiched unitigs for k = 31.
 
@@ -239,6 +241,10 @@ Below we provide a complete example (assuming both BCALM2 and UST are installed 
 
 See also the script `scripts/download_and_preprocess_datasets.sh`
 for precise arguments.
+
+#### Abundances
+Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
+
 
 Large-scale Benchmark
 ---------------------
