@@ -44,11 +44,10 @@ Clone the repository with
 
 	git clone --recursive https://github.com/jermp/sshash.git
 
-If you have cloned the repository without `--recursive`, you will need to perform the following commands before
+If you have cloned the repository **without** `--recursive`, be sure you pull the dependencies with the following command before
 compiling:
 
-    git submodule init
-    git submodule update
+	git submodule update --init --recursive
 
 To compile the code for a release environment (see file `CMakeLists.txt` for the used compilation flags), it is sufficient to do the following:
 
