@@ -80,11 +80,12 @@ struct abundances {
                 return x.first < y.first;
             });
 
-            /* If this tests fails, then we need to change the value of
-                constants::most_frequent_abundance */
+            /* If this test fails, then we need to change the value of
+                constants::most_frequent_abundance. */
             if (m_most_frequent_abundance != m_abundances.front().first) {
                 throw std::runtime_error("the most frequent abundance is not " +
-                                         std::to_string(constants::most_frequent_abundance));
+                                         std::to_string(constants::most_frequent_abundance) +
+                                         " but " + std::to_string(m_abundances.front().first));
             }
 
             uint64_t rest = num_kmers - m_abundances.front().second;
@@ -244,7 +245,7 @@ private:
        represents all kmer_ids = value, value+1, value+2, ..., value+length-1.
        - Second list: abundance list. In this case, a pair (value,length)
        represents that the abundance [value] repeats for [length] times.
-       */
+    */
 
     ef_sequence<true> m_kmer_id_interval_values;
     ef_sequence<false> m_kmer_id_interval_lengths;

@@ -94,4 +94,46 @@ void perf_test_lookup_access(dictionary const& dict) {
     }
 }
 
+void perf_test_lookup_abundance(dictionary const& dict) {
+    if (!dict.weighted()) {
+        std::cerr << "ERROR: the dictionary does not store abundances" << std::endl;
+        return;
+    }
+
+    constexpr uint64_t num_queries = 1000000;
+    constexpr uint64_t runs = 5;
+    essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
+    uint64_t k = dict.k();
+    std::string kmer(k, 0);
+    std::string kmer_rc(k, 0);
+
+    std::vector<std::string> lookup_queries;
+    lookup_queries.reserve(num_queries);
+    for (uint64_t i = 0; i != num_queries; ++i) {
+        uint64_t id = distr.gen();
+        dict.access(id, kmer.data());
+        if ((i & 1) == 0) {
+            /* transform 50% of the kmers into their reverse complements */
+            util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+            lookup_queries.push_back(kmer_rc);
+        } else {
+            lookup_queries.push_back(kmer);
+        }
+    }
+
+    essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    t.start();
+    for (uint64_t r = 0; r != runs; ++r) {
+        for (auto const& string : lookup_queries) {
+            auto id = dict.lookup(string.c_str());
+            auto ab = dict.abundance(id);
+            essentials::do_not_optimize_away(ab);
+        }
+    }
+    t.stop();
+    double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
+    std::cout << "avg_nanosec_per_positive_lookup_with_abundance " << nanosec_per_lookup
+              << std::endl;
+}
+
 }  // namespace sshash

@@ -96,7 +96,7 @@ bool check_correctness_abundances(std::istream& is, dictionary const& dict) {
     uint64_t kmer_id = 0;
 
     if (!dict.weighted()) {
-        std::cerr << "ERROR: the dictionary does not store any abundance" << std::endl;
+        std::cerr << "ERROR: the dictionary does not store abundances" << std::endl;
         return false;
     }
 

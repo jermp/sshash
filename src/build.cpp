@@ -81,6 +81,7 @@ int main(int argc, char** argv) {
     bool bench = parser.get<bool>("bench");
     if (bench) {
         perf_test_lookup_access(dict);
+        if (dict.weighted()) perf_test_lookup_abundance(dict);
         perf_test_iterator(dict);
     }
     if (parser.parsed("output_filename")) {

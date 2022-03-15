@@ -22,6 +22,7 @@ int main(int argc, char** argv) {
     dict.print_info();
 
     perf_test_lookup_access(dict);
+    if (dict.weighted()) perf_test_lookup_abundance(dict);
     perf_test_iterator(dict);
 
     return 0;
