@@ -87,6 +87,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     };
 
     uint64_t seq_len = 0;
+    uint64_t sum_of_abundances = 0;
     data.abundances_builder.init(constants::most_frequent_abundance);
 
     /* intervals of kmer_ids */
@@ -153,6 +154,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             i = line.find_first_of(' ', i) + 1;
 
             data.abundances_builder.eat(ab);
+            sum_of_abundances += ab;
 
             if (build_config.optimize_mfa) {
                 if (ab != constants::most_frequent_abundance) {
@@ -241,6 +243,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
               << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
               << std::endl;
+    std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
     assert(data.strings.pieces.size() == num_read_lines + 1);
 
     if (build_config.store_abundances) {
