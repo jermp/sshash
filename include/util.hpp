@@ -67,6 +67,7 @@ struct build_configuration {
 
         , canonical_parsing(false)
         , store_abundances(false)
+        , optimize_mfa(false)
         , verbose(true) {}
 
     uint64_t k;  // kmer size
@@ -78,13 +79,15 @@ struct build_configuration {
 
     bool canonical_parsing;
     bool store_abundances;
+    bool optimize_mfa;  // fma: "most frequent abundance"
     bool verbose;
 
     void print() const {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
                   << ", c = " << c
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", store_abundances = " << (store_abundances ? "true" : "false") << std::endl;
+                  << ", store_abundances = " << (store_abundances ? "true" : "false")
+                  << ", optimize_mfa = " << (optimize_mfa ? "true" : "false") << std::endl;
     }
 };
 

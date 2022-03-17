@@ -91,10 +91,12 @@ struct abundances {
             uint64_t rest = num_kmers - m_abundances.front().second;
             std::cout << "kmers that do not have the most frequent ab: " << rest << " ("
                       << (rest * 100.0) / num_kmers << "%)" << std::endl;
-            std::cout << "cumulative_kmer_id_interval_lengths " << m_kmer_id_interval_lengths.back()
-                      << '/' << rest << std::endl;
-            std::cout << "cumulative_abundance_interval_lengths "
-                      << m_abundance_interval_lengths.back() << '/' << rest << std::endl;
+            if (m_kmer_id_interval_values.size() != 0) {  // optimize_mfa
+                std::cout << "cumulative_kmer_id_interval_lengths "
+                          << m_kmer_id_interval_lengths.back() << '/' << rest << std::endl;
+                std::cout << "cumulative_abundance_interval_lengths "
+                          << m_abundance_interval_lengths.back() << '/' << rest << std::endl;
+            }
 
             m_abundance_dictionary_builder.resize(num_distinct_abundances,
                                                   std::ceil(std::log2(largest_ab + 1)));
@@ -171,28 +173,27 @@ struct abundances {
     bool empty() const { return m_abundance_dictionary.size() == 0; }
 
     uint64_t abundance(uint64_t kmer_id) const {
-        bool is_present = false;
-        uint64_t rank = 0;
+        uint64_t rank = kmer_id;
 
-        auto [pos, val] = m_kmer_id_interval_values.next_geq(kmer_id);
-        if (val == kmer_id) {
-            is_present = true;
-            rank = m_kmer_id_interval_lengths.access(pos);
-        } else {
-            if (pos > 0) {
-                --pos;
-                val = m_kmer_id_interval_values.access(pos);
+        if (m_kmer_id_interval_values.size() != 0) {  // optimize_mfa
+            bool is_present = false;
+            auto [pos, val, prev] = m_kmer_id_interval_values.next_geq_neighbourhood(kmer_id);
+            if (val == kmer_id) {
+                is_present = true;
                 rank = m_kmer_id_interval_lengths.access(pos);
-                uint64_t length = m_kmer_id_interval_lengths.access(pos + 1) - rank;
-                if (kmer_id < val + length) {
-                    is_present = true;
-                    assert(kmer_id >= val);
-                    rank += kmer_id - val;
+            } else {
+                if (pos > 0) {
+                    rank = m_kmer_id_interval_lengths.access(pos - 1);
+                    uint64_t length = m_kmer_id_interval_lengths.access(pos) - rank;
+                    if (kmer_id < prev + length) {
+                        is_present = true;
+                        assert(kmer_id >= prev);
+                        rank += kmer_id - prev;
+                    }
                 }
             }
+            if (!is_present) return m_most_frequent_abundance;
         }
-
-        if (!is_present) return m_most_frequent_abundance;
 
         uint64_t i = m_abundance_interval_lengths.prev_leq(rank);
         uint64_t id = m_abundance_interval_values.access(i);

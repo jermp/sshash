@@ -61,7 +61,7 @@ For a testing environment, use the following instead:
     mkdir debug_build
     cd debug_build
     cmake .. -D CMAKE_BUILD_TYPE=Debug -D SSHASH_USE_SANITIZERS=On
-    make
+    make -j
 
 Dependencies
 ------------
