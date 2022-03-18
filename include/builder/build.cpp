@@ -48,20 +48,20 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
     compact_string_pool::builder builder(k);
 
-    std::string line;
+    std::string sequence;
     uint64_t prev_minimizer = constants::invalid;
 
-    uint64_t begin = 0;           // begin of parsed string in line
-    uint64_t end = 0;             // end of parsed string in line
-    uint64_t num_read_lines = 0;  // total read lines
-    uint64_t num_read_bases = 0;
+    uint64_t begin = 0;  // begin of parsed string in sequence
+    uint64_t end = 0;    // end of parsed string in sequence
+    uint64_t num_sequences = 0;
+    uint64_t num_bases = 0;
     bool glue = false;
 
     auto append_string = [&]() {
-        if (line.empty() or prev_minimizer == constants::invalid or begin == end) return;
+        if (sequence.empty() or prev_minimizer == constants::invalid or begin == end) return;
 
         assert(end > begin);
-        char const* string = line.data() + begin;
+        char const* string = sequence.data() + begin;
         uint64_t size = (end - begin) + k - 1;
         assert(util::is_valid(string, size));
 
@@ -98,6 +98,9 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     uint64_t ab_value = constants::invalid;
     uint64_t ab_length = 1;
 
+    uint64_t num_sequences_diff_abs = 0;  // num sequences whose kmers have different abundances
+    uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
+
     auto process_abundance = [&](uint64_t ab) {
         if (ab == ab_value) {
             ab_length += 1;
@@ -111,7 +114,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     };
 
     auto parse_header = [&]() {
-        if (line.empty()) return;
+        if (sequence.empty()) return;
 
         /*
             Heder format:
@@ -122,36 +125,47 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
 
-        expect(line[0], '>');
+        expect(sequence[0], '>');
         uint64_t i = 0;
-        i = line.find_first_of(' ', i);
+        i = sequence.find_first_of(' ', i);
         if (i == std::string::npos) throw parse_runtime_error();
 
         i += 1;
-        expect(line[i + 0], 'L');
-        expect(line[i + 1], 'N');
-        expect(line[i + 2], ':');
-        expect(line[i + 3], 'i');
-        expect(line[i + 4], ':');
+        expect(sequence[i + 0], 'L');
+        expect(sequence[i + 1], 'N');
+        expect(sequence[i + 2], ':');
+        expect(sequence[i + 3], 'i');
+        expect(sequence[i + 4], ':');
         i += 5;
-        uint64_t j = line.find_first_of(' ', i);
+        uint64_t j = sequence.find_first_of(' ', i);
         if (j == std::string::npos) throw parse_runtime_error();
 
         char* end;
-        seq_len = std::strtoull(line.data() + i, &end, 10);
+        seq_len = std::strtoull(sequence.data() + i, &end, 10);
         i = j + 1;
-        expect(line[i + 0], 'a');
-        expect(line[i + 1], 'b');
-        expect(line[i + 2], ':');
-        expect(line[i + 3], 'Z');
-        expect(line[i + 4], ':');
+        expect(sequence[i + 0], 'a');
+        expect(sequence[i + 1], 'b');
+        expect(sequence[i + 2], ':');
+        expect(sequence[i + 3], 'Z');
+        expect(sequence[i + 4], ':');
         i += 5;
 
         kmer_id_value = constants::invalid;
         kmer_id_length = 1;
-        for (uint64_t j = 0, num_kmers = data.num_kmers; j != seq_len - k + 1; ++j, ++num_kmers) {
-            uint64_t ab = std::strtoull(line.data() + i, &end, 10);
-            i = line.find_first_of(' ', i) + 1;
+
+        bool kmers_have_all_mfa = true;
+        bool kmers_have_different_abundances = false;
+
+        for (uint64_t j = 0, num_kmers = data.num_kmers, prev_ab = constants::invalid;
+             j != seq_len - k + 1; ++j, ++num_kmers) {
+            uint64_t ab = std::strtoull(sequence.data() + i, &end, 10);
+            i = sequence.find_first_of(' ', i) + 1;
+
+            if (ab != constants::most_frequent_abundance) kmers_have_all_mfa = false;
+            if (j > 0) {
+                if (ab != prev_ab) { kmers_have_different_abundances = true; }
+            }
+            prev_ab = ab;
 
             data.abundances_builder.eat(ab);
             sum_of_abundances += ab;
@@ -180,17 +194,20 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         if (kmer_id_value != constants::invalid) {
             data.abundances_builder.push_kmer_id_interval(kmer_id_value, kmer_id_length);
         }
+
+        num_sequences_diff_abs += kmers_have_different_abundances;
+        num_sequences_all_mfa += kmers_have_all_mfa;
     };
 
     while (!is.eof()) {
-        std::getline(is, line);  // header sequence
+        std::getline(is, sequence);  // header sequence
         if (build_config.store_abundances) parse_header();
 
-        std::getline(is, line);  // DNA sequence
-        if (line.size() < k) continue;
+        std::getline(is, sequence);  // DNA sequence
+        if (sequence.size() < k) continue;
 
-        if (++num_read_lines % 100000 == 0) {
-            std::cout << "read " << num_read_lines << " lines, " << num_read_bases << " bases, "
+        if (++num_sequences % 100000 == 0) {
+            std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
                       << data.num_kmers << " kmers" << std::endl;
         }
 
@@ -198,16 +215,16 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         end = 0;
         glue = false;  // start a new piece
         prev_minimizer = constants::invalid;
-        num_read_bases += line.size();
+        num_bases += sequence.size();
 
-        if (build_config.store_abundances and seq_len != line.size()) {
+        if (build_config.store_abundances and seq_len != sequence.size()) {
             std::cout << "ERROR: expected a sequence of length " << seq_len
-                      << " but got one of length " << line.size() << std::endl;
+                      << " but got one of length " << sequence.size() << std::endl;
             throw std::runtime_error("file is malformed");
         }
 
-        while (end != line.size() - k + 1) {
-            char const* kmer = line.data() + end;
+        while (end != sequence.size() - k + 1) {
+            char const* kmer = sequence.data() + end;
             assert(util::is_valid(kmer, k));
             uint64_t uint64_kmer = util::string_to_uint64_no_reverse(kmer, k);
             uint64_t minimizer = util::compute_minimizer(uint64_kmer, k, m, seed);
@@ -236,17 +253,29 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     builder.finalize();
     builder.build(data.strings);
 
-    std::cout << "read " << num_read_lines << " lines, " << num_read_bases << " bases, "
+    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
     std::cout << "num_kmers " << data.num_kmers << std::endl;
     std::cout << "num_strings " << data.strings.size() << std::endl;
     std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
               << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
               << std::endl;
-    std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
-    assert(data.strings.pieces.size() == num_read_lines + 1);
+    assert(data.strings.pieces.size() == num_sequences + 1);
 
     if (build_config.store_abundances) {
+        std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
+        std::cout << "num_sequences whose kmers have different abundances: "
+                  << num_sequences_diff_abs << "/" << num_sequences << " ("
+                  << (num_sequences_diff_abs * 100.0) / num_sequences << "%)" << std::endl;
+        std::cout << "num_sequences whose kmers all have the same abundance != mfa: "
+                  << (num_sequences - num_sequences_diff_abs) << "/" << num_sequences << " ("
+                  << ((num_sequences - num_sequences_diff_abs) * 100.0) / num_sequences << "%)"
+                  << std::endl;
+        std::cout << "num_sequences whose kmers all have the same abundance == mfa: "
+                  << num_sequences_all_mfa << "/" << (num_sequences - num_sequences_diff_abs)
+                  << " ("
+                  << (num_sequences_all_mfa * 100.0) / (num_sequences - num_sequences_diff_abs)
+                  << "%)" << std::endl;
         data.abundances_builder.push_abundance_interval(ab_value, ab_length);
         data.abundances_builder.finalize(data.num_kmers);
     }

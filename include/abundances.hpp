@@ -120,8 +120,19 @@ struct abundances {
             abundance_interval_values.resize(
                 m_abundance_interval_values.size(),
                 num_distinct_abundances == 1 ? 1 : std::ceil(std::log2(num_distinct_abundances)));
+            uint64_t prev_abundance = constants::invalid;
             for (uint64_t i = 0; i != m_abundance_interval_values.size(); ++i) {
                 uint64_t abundance = m_abundance_interval_values[i];
+                if (i != 0) {
+                    if (abundance == prev_abundance) {
+                        std::cerr << "Error at " << i << "/" << m_abundance_interval_values.size()
+                                  << ": cannot have two consecutive intervals with the same "
+                                     "abundance value"
+                                  << std::endl;
+                        throw std::runtime_error("abundance intervals are malformed");
+                    }
+                }
+                prev_abundance = abundance;
                 uint64_t id = m_abundances_map[abundance];
                 assert(id < num_distinct_abundances);
                 abundance_interval_values.set(i, id);
