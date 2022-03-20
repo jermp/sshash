@@ -8,6 +8,7 @@
 #include "../../external/pthash/external/essentials/include/essentials.hpp"
 
 #include "build_util_types.hpp"
+#include "cover.hpp"
 
 #include <numeric>  // for std::partial_sum
 #include <vector>
@@ -113,13 +114,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         }
     };
 
-    struct seq_abundance_endpoints {
-        seq_abundance_endpoints(uint32_t seq_id_, uint32_t first_ab_, uint32_t last_ab_)
-            : seq_id(seq_id_), first_ab(first_ab_), last_ab(last_ab_) {}
-        uint32_t seq_id, first_ab, last_ab;
-    };
-
-    std::vector<seq_abundance_endpoints> seq_abundance_endpoints_vec;
+    std::vector<vertex> vertices;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -212,7 +207,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         num_sequences_diff_abs += kmers_have_different_abundances;
         num_sequences_all_mfa += kmers_have_all_mfa;
 
-        seq_abundance_endpoints_vec.emplace_back(num_sequences, first_ab, last_ab);
+        vertices.emplace_back(num_sequences, first_ab, last_ab);
         // std::cerr << "seq:" << num_sequences << "[" << first_ab << "," << last_ab << "]\n";
     };
 
@@ -296,17 +291,15 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         data.abundances_builder.push_abundance_interval(ab_value, ab_length);
         data.abundances_builder.finalize(data.num_kmers);
 
-        /* sort on first component */
-        std::sort(seq_abundance_endpoints_vec.begin(), seq_abundance_endpoints_vec.end(),
-                  [](auto const& x, auto const& y) {
-                      if (x.first_ab != y.first_ab) return x.first_ab < y.first_ab;
-                      if (x.last_ab != y.last_ab) return x.last_ab < y.last_ab;
-                      return x.seq_id < y.seq_id;
-                  });
+        std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
+            if (x.first_ab != y.first_ab) return x.first_ab < y.first_ab;
+            if (x.last_ab != y.last_ab) return x.last_ab < y.last_ab;
+            return x.seq_id < y.seq_id;
+        });
 
         /* (abundance, num_seqs_with_front_abundance=abundance) */
         std::unordered_map<uint64_t, uint64_t> abundance_map;
-        for (auto const& x : seq_abundance_endpoints_vec) {
+        for (auto const& x : vertices) {
             // std::cerr << "seq:" << x.seq_id << "[" << x.first_ab << "," << x.last_ab << "]\n";
             auto it = abundance_map.find(x.first_ab);
             if (it != abundance_map.cend()) {  // found
@@ -317,9 +310,10 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         }
 
         std::cout << "calculating lower bound..." << std::endl;
-        uint64_t R = data.abundances_builder.num_abundance_intervals();
+        uint64_t num_runs_abundances = data.abundances_builder.num_abundance_intervals();
 
-        for (auto const& x : seq_abundance_endpoints_vec) {
+        uint64_t R = num_runs_abundances;
+        for (auto const& x : vertices) {
             uint64_t back = x.last_ab;
             auto it = abundance_map.find(back);
             if (it != abundance_map.cend()) {  // found
@@ -338,112 +332,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         }
         std::cout << "R = " << R << std::endl;
 
-        assert(num_sequences == seq_abundance_endpoints_vec.size());
-
-        // visited array
-        std::vector<bool> visited(num_sequences, false);
-
-        // edges: a map from abundance "x" to offset "t", where offset "t" is the position into
-        // seq_abundance_endpoints_vec of the next egde having first abundance equal to "x"
-        for (auto& p : abundance_map) { p.second = 0; }
-        for (auto const& x : seq_abundance_endpoints_vec) {
-            uint64_t front = x.first_ab;
-            assert(abundance_map.find(front) != abundance_map.cend());  // found
-            abundance_map[front] += 1;
-        }
-        {
-            std::vector<std::pair<uint64_t, uint64_t>> offsets;  // (abundance,offset)
-            offsets.reserve(abundance_map.size());
-            for (auto const& p : abundance_map) { offsets.emplace_back(p.first, p.second); }
-            assert(offsets.size() > 0);
-            std::sort(offsets.begin(), offsets.end(),
-                      [](auto const& x, auto const& y) { return x.first < y.first; });
-            uint64_t offset = 0;
-            for (auto const& p : offsets) {
-                uint64_t ab = p.first;
-                abundance_map[ab] = offset;
-                offset += p.second;
-            }
-        }
-
-        typedef std::vector<seq_abundance_endpoints> walk_t;
-        walk_t walk;
-        std::vector<walk_t> walks;
-
-        while (true) {
-            walk.clear();
-
-            // take an unvisited vertex
-            uint64_t i = 0;
-            for (; i != num_sequences; ++i) {
-                uint64_t seq_id = seq_abundance_endpoints_vec[i].seq_id;
-                if (visited[seq_id] == false) break;
-            }
-
-            if (i == num_sequences) break;  // all visited
-
-            // std::cout << " i = " << i << std::endl;
-
-            while (true) {
-                uint64_t seq_id = seq_abundance_endpoints_vec[i].seq_id;
-                if (visited[seq_id] == true) break;
-
-                visited[seq_id] = true;
-                uint64_t front = seq_abundance_endpoints_vec[i].first_ab;
-                uint64_t back = seq_abundance_endpoints_vec[i].last_ab;
-                walk.emplace_back(seq_id, front, back);
-                // std::cout << "added " << seq_id << " to walk-" << walks.size() << std::endl;
-
-                uint64_t next_offset = abundance_map[back];
-
-                while (visited[seq_id] == true) {
-                    next_offset += 1;
-                    if (next_offset == num_sequences) break;
-                    auto ab_endpoint = seq_abundance_endpoints_vec[next_offset];
-                    if (ab_endpoint.first_ab != back) break;
-                    seq_id = ab_endpoint.seq_id;
-                }
-
-                if (next_offset == num_sequences) {
-                    abundance_map[back] = next_offset - 1;
-                    break;
-                }
-
-                if (seq_abundance_endpoints_vec[next_offset].first_ab != back) {
-                    abundance_map[back] = next_offset - 1;
-                    i = next_offset - 1;
-                } else {
-                    abundance_map[back] = next_offset;
-                    i = next_offset;
-                }
-            }
-
-            if (!walk.empty()) {
-                // add walk to walks
-                walks.push_back(walk);
-                std::cout << "walks.size() = " << walks.size() << std::endl;
-            }
-        }
-
-        uint64_t num_runs = data.abundances_builder.num_abundance_intervals();
-        std::cout << "computed " << walks.size() << " walks" << std::endl;
-        std::fill(visited.begin(), visited.end(), false);
-        for (auto const& walk : walks) {
-            num_runs -= walk.size() - 1;
-            uint64_t prev_back = walk.front().first_ab;
-            for (auto const& w : walk) {
-                if (visited[w.seq_id] == true) {
-                    std::cout << "ERROR: duplicate vertex." << std::endl;
-                }
-                if (w.first_ab != prev_back) { std::cout << "ERROR: path is broken." << std::endl; }
-                prev_back = w.last_ab;
-                visited[w.seq_id] = true;
-                std::cout << w.seq_id << ":[" << w.first_ab << "," << w.last_ab << "] ";
-            }
-            std::cout << std::endl;
-        }
-
-        std::cout << "num_runs " << num_runs << std::endl;
+        cover c;
+        c.compute(vertices, num_runs_abundances);
     }
 }
 
