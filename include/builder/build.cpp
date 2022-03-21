@@ -121,7 +121,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         /*
             Heder format:
-            >[seq_id] LN:i:[seq_len] ab:Z:[ab_seq]
+            >[id] LN:i:[seq_len] ab:Z:[ab_seq]
             where [ab_seq] is a space-separated sequence of integer counters (the abundances),
             whose length is equal to [seq_len]-k+1
         */
@@ -159,16 +159,16 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         bool kmers_have_all_mfa = true;
         bool kmers_have_different_abundances = false;
 
-        uint64_t first_ab = constants::invalid;
-        uint64_t last_ab = constants::invalid;
+        uint64_t front = constants::invalid;
+        uint64_t back = constants::invalid;
 
         for (uint64_t j = 0, num_kmers = data.num_kmers, prev_ab = constants::invalid;
              j != seq_len - k + 1; ++j, ++num_kmers) {
             uint64_t ab = std::strtoull(sequence.data() + i, &end, 10);
             i = sequence.find_first_of(' ', i) + 1;
 
-            if (j == 0) { first_ab = ab; }
-            if (j == seq_len - k) { last_ab = ab; }
+            if (j == 0) { front = ab; }
+            if (j == seq_len - k) { back = ab; }
 
             if (ab != constants::most_frequent_abundance) kmers_have_all_mfa = false;
             if (j > 0) {
@@ -207,8 +207,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         num_sequences_diff_abs += kmers_have_different_abundances;
         num_sequences_all_mfa += kmers_have_all_mfa;
 
-        vertices.emplace_back(num_sequences, first_ab, last_ab);
-        // std::cerr << "seq:" << num_sequences << "[" << first_ab << "," << last_ab << "]\n";
+        vertices.emplace_back(num_sequences, front, back);
+        // std::cerr << "seq:" << num_sequences << "[" << front << "," << back << "]\n";
     };
 
     while (!is.eof()) {
@@ -292,20 +292,20 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         data.abundances_builder.finalize(data.num_kmers);
 
         std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
-            if (x.first_ab != y.first_ab) return x.first_ab < y.first_ab;
-            if (x.last_ab != y.last_ab) return x.last_ab < y.last_ab;
-            return x.seq_id < y.seq_id;
+            if (x.front != y.front) return x.front < y.front;
+            if (x.back != y.back) return x.back < y.back;
+            return x.id < y.id;
         });
 
         /* (abundance, num_seqs_with_front_abundance=abundance) */
         std::unordered_map<uint64_t, uint64_t> abundance_map;
         for (auto const& x : vertices) {
-            // std::cerr << "seq:" << x.seq_id << "[" << x.first_ab << "," << x.last_ab << "]\n";
-            auto it = abundance_map.find(x.first_ab);
+            // std::cerr << "seq:" << x.id << "[" << x.front << "," << x.back << "]\n";
+            auto it = abundance_map.find(x.front);
             if (it != abundance_map.cend()) {  // found
                 (*it).second += 1;
             } else {
-                abundance_map[x.first_ab] = 1;
+                abundance_map[x.front] = 1;
             }
         }
 
@@ -314,18 +314,18 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         uint64_t R = num_runs_abundances;
         for (auto const& x : vertices) {
-            uint64_t back = x.last_ab;
+            uint64_t back = x.back;
             auto it = abundance_map.find(back);
             if (it != abundance_map.cend()) {  // found
                 if ((*it).second > 0) {        // if it is 0, we cannot find a match
                     (*it).second -= 1;
-                    // std::cerr << "seq:" << x.seq_id << "[" << x.first_ab << "," << x.last_ab
+                    // std::cerr << "seq:" << x.id << "[" << x.front << "," << x.back
                     //           << "] got paired";
                     // std::cerr << " (remaining " << (*it).second << ")\n";
                     R -= 1;
                 }
                 // else {
-                //     std::cerr << "seq:" << x.seq_id << "[" << x.first_ab << "," << x.last_ab
+                //     std::cerr << "seq:" << x.id << "[" << x.front << "," << x.back
                 //               << "] NOT paired!\n";
                 // }
             }
