@@ -46,7 +46,7 @@ struct cover {
             std::cout << "round " << rounds.size() << std::endl;
 
             uint64_t num_vertices = vertices.size();
-            std::cout << "num_vertices " << num_vertices << std::endl;
+            std::cout << "  num_vertices " << num_vertices << std::endl;
             tmp_vertices.clear();
             abundance_map.clear();
 
@@ -129,7 +129,7 @@ struct cover {
                         no_match_found = true;
                         break;
                     }
-                    offset = (*it).second.begin;
+                    offset = (*it).second.begin + (*it).second.position;  // skip to position
 
                     /* search for a match */
                     while (true) {
@@ -194,16 +194,18 @@ struct cover {
                 }
             }
 
-            std::cout << "num_walks_in_round " << rounds.size() << ": " << walks_in_round.size()
-                      << std::endl;
+            std::cout << "  num_walks = " << walks_in_round.size() << std::endl;
 
             bool all_singletons = true;
             {
-                uint64_t num_mergings_in_round = 0;
+#ifndef NDEBUG
                 std::fill(colors.begin(), colors.end(), color::white);
+#endif
+                uint64_t num_mergings_in_round = 0;
                 for (auto const& walk : walks_in_round) {
                     if (walk.size() > 1) all_singletons = false;
                     num_mergings_in_round += walk.size() - 1;
+#ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
                     // std::cout << "=>";
                     for (auto const& w : walk) {
@@ -218,10 +220,11 @@ struct cover {
                         // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
                     // std::cout << std::endl;
+#endif
                 }
                 num_runs -= num_mergings_in_round;
-                std::cout << "num_mergings_in_round = " << num_mergings_in_round << std::endl;
-                std::cout << "num_runs " << num_runs << std::endl;
+                std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
+                std::cout << "  num_runs " << num_runs << std::endl;
 
                 // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
                 // for (auto const& v : tmp_vertices) {
@@ -230,7 +233,8 @@ struct cover {
             }
 
             if (all_singletons) {
-                std::cout << "all walks are singletons: no new mergings were found" << std::endl;
+                std::cout << "STOP: all walks are singletons --> no new mergings were found"
+                          << std::endl;
                 break;
             }
 

@@ -309,7 +309,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             }
         }
 
-        std::cout << "calculating lower bound..." << std::endl;
         uint64_t num_runs_abundances = data.abundances_builder.num_abundance_intervals();
 
         uint64_t R = num_runs_abundances;
@@ -330,7 +329,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
                 // }
             }
         }
-        std::cout << "R = " << R << std::endl;
+        std::cout << "computed lower bound: R = " << R << std::endl;
 
         cover c;
         c.compute(vertices, num_runs_abundances);
