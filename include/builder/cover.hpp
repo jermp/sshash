@@ -89,12 +89,11 @@ struct cover {
                 /* create a new walk */
                 while (true) {
                     uint64_t id = vertices[i].id;
+                    assert(colors[id] != color_t::black);
 
                     // std::cout << "visiting vertex " << id << ":[" << vertices[i].front << ","
                     //           << vertices[i].back << "]" << std::endl;
                     // std::cout << "at offset " << i << std::endl;
-
-                    if (colors[id] == color_t::black) break;
 
                     colors[id] = color_t::gray;
                     uint64_t front = vertices[i].front;
