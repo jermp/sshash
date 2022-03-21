@@ -11,10 +11,18 @@ struct cover {
     typedef std::vector<vertex> walk_t;
     typedef std::vector<walk_t> walks_t;
 
-    enum color_t {
+    enum color {
         white = 0,  // unvisited
         gray = 1,   // visited by not merged
         black = 2   // visited and merged
+    };
+
+    struct range {
+        range() {}
+        range(uint64_t b, uint64_t e, uint64_t p) : begin(b), end(e), position(p) {}
+        uint64_t begin;
+        uint64_t end;
+        uint64_t position;
     };
 
     cover() : num_sequences(0) {}
@@ -23,8 +31,8 @@ struct cover {
                  uint64_t num_runs_abundances  // TODO: remove from here
     ) {
         /* (abundance, num_seqs_with_front_abundance=abundance) */
-        std::unordered_map<uint64_t, uint64_t> abundance_map;
-        std::vector<color_t> colors;
+        std::unordered_map<uint64_t, range> abundance_map;
+        std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
         uint64_t num_runs = num_runs_abundances;
         num_sequences = vertices.size();
@@ -39,7 +47,7 @@ struct cover {
 
             /* all unvisited */
             colors.resize(num_vertices);
-            std::fill(colors.begin(), colors.end(), color_t::white);
+            std::fill(colors.begin(), colors.end(), color::white);
 
             std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front < y.front;
@@ -50,23 +58,28 @@ struct cover {
             for (auto const& x : vertices) {
                 auto it = abundance_map.find(x.front);
                 if (it != abundance_map.cend()) {  // found
-                    (*it).second += 1;
+                    (*it).second.begin += 1;
                 } else {
-                    abundance_map[x.front] = 1;
+                    abundance_map[x.front] = {1, 0, 0};
                 }
             }
 
             {
                 std::vector<std::pair<uint64_t, uint64_t>> offsets;  // (abundance,offset)
                 offsets.reserve(abundance_map.size());
-                for (auto const& p : abundance_map) { offsets.emplace_back(p.first, p.second); }
+                for (auto const& p : abundance_map) {
+                    offsets.emplace_back(p.first, p.second.begin);
+                }
                 assert(offsets.size() > 0);
                 std::sort(offsets.begin(), offsets.end(),
                           [](auto const& x, auto const& y) { return x.first < y.first; });
                 uint64_t offset = 0;
                 for (auto const& p : offsets) {
                     uint64_t ab = p.first;
-                    abundance_map[ab] = offset;
+                    auto& r = abundance_map[ab];
+                    r.end = r.begin;
+                    r.begin = offset;
+                    r.position = 0;
                     offset += p.second;
                 }
             }
@@ -81,7 +94,7 @@ struct cover {
                 uint64_t i = 0;
                 for (; i != num_vertices; ++i) {
                     uint64_t id = vertices[i].id;
-                    if (colors[id] == color_t::white) break;
+                    if (colors[id] == color::white) break;
                 }
 
                 if (i == num_vertices) break;  // all visited
@@ -89,32 +102,35 @@ struct cover {
                 /* create a new walk */
                 while (true) {
                     uint64_t id = vertices[i].id;
-                    assert(colors[id] != color_t::black);
+                    assert(colors[id] != color::black);
 
-                    // std::cout << "visiting vertex " << id << ":[" << vertices[i].front << ","
-                    //           << vertices[i].back << "]" << std::endl;
-                    // std::cout << "at offset " << i << std::endl;
-
-                    colors[id] = color_t::gray;
+                    colors[id] = color::gray;
                     uint64_t front = vertices[i].front;
                     uint64_t back = vertices[i].back;
                     if (walk.size() > 0) {
                         assert(walk.back().id != id);
-                        colors[walk.back().id] = color_t::black;
-                        colors[id] = color_t::black;
+                        colors[walk.back().id] = color::black;
+                        colors[id] = color::black;
                     }
                     walk.emplace_back(id, front, back);
-                    // std::cout << "added " << id << " to walk-" << walks.size() << std::endl;
 
-                    uint64_t offset = abundance_map[back];
+                    uint64_t offset = 0;
+                    bool no_match_found = false;
+
+                    auto it = abundance_map.find(back);
+
+                    /* abundance back is not found, so no match is possible */
+                    if (it == abundance_map.cend()) {
+                        no_match_found = true;
+                        break;
+                    }
+                    offset = (*it).second.begin;
 
                     /* search for a match */
-                    bool no_match_found = false;
                     while (true) {
+                        // std::cout << "offset " << offset << "/" << num_vertices << std::endl;
                         if (offset == num_vertices) break;
                         auto vertex = vertices[offset];
-                        // std::cout << "  vertex " << vertex.id << ":[" << vertex.front << ","
-                        //           << vertex.back << "]" << std::endl;
 
                         /* skip */
                         if (vertex.id == id) {
@@ -124,21 +140,18 @@ struct cover {
 
                         /* checked all candidate matches */
                         if (vertex.front != back) {
-                            // std::cout << "  MISfound match " << vertex.id << ":[" << vertex.front
-                            //           << "," << vertex.back << "]" << std::endl;
-                            // std::cout << "  at offset " << offset << std::endl;
-                            // std::cout << "NO MATCHES FOUND" << std::endl;
                             no_match_found = true;
                             break;
                         }
 
                         /* match found */
-                        if (colors[vertex.id] != color_t::black) {
-                            // std::cout << "  found match " << vertex.id << ":[" << vertex.front
-                            //           << "," << vertex.back << "]" << std::endl;
-                            // std::cout << "  at offset " << offset << std::endl;
+                        if (colors[vertex.id] != color::black) {
+                            uint64_t& position = (*it).second.position;
+                            assert((*it).second.begin + position <= offset);
+                            position += 1;
                             break;
                         }
+
                         offset += 1;
                     }
 
@@ -152,14 +165,13 @@ struct cover {
                 assert(!walk.empty());
 
                 if (walk.size() == 1) {
-                    assert(colors[walk.front().id] == color_t::gray);  // visited but not merged
+                    assert(colors[walk.front().id] == color::gray);  // visited but not merged
                     continue;
                 }
 
                 /* invariant: all vertices belonging to a walk are all black */
-                assert(std::all_of(walk.begin(), walk.end(), [&](vertex const& v) {
-                    return colors[v.id] == color_t::black;
-                }));
+                assert(std::all_of(walk.begin(), walk.end(),
+                                   [&](vertex const& v) { return colors[v.id] == color::black; }));
 
                 /* create a new vertex for next round */
                 tmp_vertices.emplace_back(walks_in_round.size(), walk.front().front,
@@ -169,7 +181,7 @@ struct cover {
 
             /* add all gray vertices (singleton walks) */
             for (auto const& v : vertices) {
-                if (colors[v.id] == color_t::gray) {
+                if (colors[v.id] == color::gray) {
                     tmp_vertices.emplace_back(walks_in_round.size(), v.front, v.back);
                     walk_t walk;
                     walk.push_back(v);
@@ -182,21 +194,21 @@ struct cover {
 
             bool all_singletons = true;
             {
-                std::fill(colors.begin(), colors.end(), color_t::white);
+                std::fill(colors.begin(), colors.end(), color::white);
                 for (auto const& walk : walks_in_round) {
                     if (walk.size() > 1) all_singletons = false;
                     num_runs -= walk.size() - 1;
                     uint64_t prev_back = walk.front().front;
                     std::cout << "=>";
                     for (auto const& w : walk) {
-                        if (colors[w.id] == color_t::black) {
+                        if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
                         }
                         if (w.front != prev_back) {
                             std::cout << "ERROR: path is broken." << std::endl;
                         }
                         prev_back = w.back;
-                        colors[w.id] = color_t::black;
+                        colors[w.id] = color::black;
                         std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
                     std::cout << std::endl;
