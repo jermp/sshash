@@ -30,11 +30,16 @@ struct cover {
     void compute(std::vector<vertex>& vertices,
                  uint64_t num_runs_abundances  // TODO: remove from here
     ) {
+        essentials::timer_type timer;
+
+        timer.start();
+
         /* (abundance, num_seqs_with_front_abundance=abundance) */
         std::unordered_map<uint64_t, range> abundance_map;
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
         uint64_t num_runs = num_runs_abundances;
+        std::cout << "initial number of runs = " << num_runs << std::endl;
         num_sequences = vertices.size();
 
         while (true) {
@@ -194,12 +199,13 @@ struct cover {
 
             bool all_singletons = true;
             {
+                uint64_t num_mergings_in_round = 0;
                 std::fill(colors.begin(), colors.end(), color::white);
                 for (auto const& walk : walks_in_round) {
                     if (walk.size() > 1) all_singletons = false;
-                    num_runs -= walk.size() - 1;
+                    num_mergings_in_round += walk.size() - 1;
                     uint64_t prev_back = walk.front().front;
-                    std::cout << "=>";
+                    // std::cout << "=>";
                     for (auto const& w : walk) {
                         if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
@@ -209,16 +215,18 @@ struct cover {
                         }
                         prev_back = w.back;
                         colors[w.id] = color::black;
-                        std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
+                        // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
-                    std::cout << std::endl;
+                    // std::cout << std::endl;
                 }
+                num_runs -= num_mergings_in_round;
+                std::cout << "num_mergings_in_round = " << num_mergings_in_round << std::endl;
                 std::cout << "num_runs " << num_runs << std::endl;
 
-                std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
-                for (auto const& v : tmp_vertices) {
-                    std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
-                }
+                // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
+                // for (auto const& v : tmp_vertices) {
+                //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
+                // }
             }
 
             if (all_singletons) {
@@ -229,6 +237,10 @@ struct cover {
             rounds.push_back(walks_in_round);
             vertices.swap(tmp_vertices);
         }
+
+        timer.stop();
+
+        std::cout << "cover computed in: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
         // TODO: form final walks and check that all vertex id are present
 
