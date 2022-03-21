@@ -14,7 +14,8 @@ struct cover {
     enum color {
         white = 0,  // unvisited
         gray = 1,   // visited by not merged
-        black = 2   // visited and merged
+        black = 2,  // visited and merged
+        invalid = -1
     };
 
     struct range {
@@ -42,17 +43,64 @@ struct cover {
         std::cout << "initial number of runs = " << num_runs << std::endl;
         num_sequences = vertices.size();
 
+        walk_t walk;
+        walks_t walks_in_round;
+
+        {
+            /*
+                optimize for the most frequent case:
+                push vertices of the form v:[mfa,mfa] to the bottom, and remove them
+                forming a single (usually, long) walk.
+                Warning: here we are assuming the mfa is also the smallest abundance.
+            */
+
+            std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
+                if (x.front != y.front) return x.front > y.front;
+                if (x.back != y.back) return x.back > y.back;
+                return x.id > y.id;
+            });
+
+            uint64_t count = 0;
+            uint64_t total = vertices.size();
+            while (!vertices.empty()) {
+                auto v = vertices.back();
+                if (v.front == constants::most_frequent_abundance and
+                    v.back == constants::most_frequent_abundance) {
+                    walk.push_back(v);
+                    vertices.pop_back();
+                    count += 1;
+                } else {
+                    break;
+                }
+            }
+            std::cout << "num vertices of the form v:[" << constants::most_frequent_abundance << ","
+                      << constants::most_frequent_abundance << "] = " << count << "/" << total
+                      << "(" << (count * 100.0) / total << "%)" << std::endl;
+
+            /* create a new vertex for next round */
+            tmp_vertices.emplace_back(walks_in_round.size(), walk.front().front, walk.back().back);
+            walks_in_round.push_back(walk);
+
+            walk.clear();
+        }
+
         while (true) {
             std::cout << "round " << rounds.size() << std::endl;
 
             uint64_t num_vertices = vertices.size();
             std::cout << "  num_vertices " << num_vertices << std::endl;
-            tmp_vertices.clear();
-            abundance_map.clear();
 
             /* all unvisited */
-            colors.resize(num_vertices);
-            std::fill(colors.begin(), colors.end(), color::white);
+            if (rounds.size() == 0) {
+                /* remember: we removed some vertices but the id-space still spans
+                   [0..num_sequences-1] */
+                colors.resize(num_sequences);
+                std::fill(colors.begin(), colors.end(), color::invalid);
+                for (auto const& v : vertices) colors[v.id] = color::white;
+            } else {
+                colors.resize(num_vertices);
+                std::fill(colors.begin(), colors.end(), color::white);
+            }
 
             std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front < y.front;
@@ -89,9 +137,6 @@ struct cover {
                 }
             }
 
-            walk_t walk;
-            walks_t walks_in_round;
-
             while (true) {
                 walk.clear();
 
@@ -106,18 +151,18 @@ struct cover {
 
                 /* create a new walk */
                 while (true) {
-                    uint64_t id = vertices[i].id;
+                    auto vertex = vertices[i];
+                    uint64_t id = vertex.id;
                     assert(colors[id] != color::black);
 
                     colors[id] = color::gray;
-                    uint64_t front = vertices[i].front;
-                    uint64_t back = vertices[i].back;
+                    uint64_t back = vertex.back;
                     if (walk.size() > 0) {
                         assert(walk.back().id != id);
                         colors[walk.back().id] = color::black;
                         colors[id] = color::black;
                     }
-                    walk.emplace_back(id, front, back);
+                    walk.push_back(vertex);
 
                     uint64_t offset = 0;
                     bool no_match_found = false;
@@ -135,22 +180,22 @@ struct cover {
                     while (true) {
                         // std::cout << "offset " << offset << "/" << num_vertices << std::endl;
                         if (offset == num_vertices) break;
-                        auto vertex = vertices[offset];
+                        auto candidate = vertices[offset];
 
                         /* skip */
-                        if (vertex.id == id) {
+                        if (candidate.id == id) {
                             offset += 1;
                             continue;
                         }
 
                         /* checked all candidate matches */
-                        if (vertex.front != back) {
+                        if (candidate.front != back) {
                             no_match_found = true;
                             break;
                         }
 
                         /* match found */
-                        if (colors[vertex.id] != color::black) {
+                        if (colors[candidate.id] != color::black) {
                             uint64_t& position = (*it).second.position;
                             assert((*it).second.begin + position <= offset);
                             position += 1;
@@ -239,7 +284,11 @@ struct cover {
             }
 
             rounds.push_back(walks_in_round);
+
             vertices.swap(tmp_vertices);
+            tmp_vertices.clear();
+            walks_in_round.clear();
+            abundance_map.clear();
         }
 
         timer.stop();
