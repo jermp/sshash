@@ -17,15 +17,17 @@ struct cover {
         black = 2   // visited and merged
     };
 
+    cover() : num_sequences(0) {}
+
     void compute(std::vector<vertex>& vertices,
                  uint64_t num_runs_abundances  // TODO: remove from here
     ) {
         /* (abundance, num_seqs_with_front_abundance=abundance) */
         std::unordered_map<uint64_t, uint64_t> abundance_map;
-
         std::vector<color_t> colors;
         std::vector<vertex> tmp_vertices;
         uint64_t num_runs = num_runs_abundances;
+        num_sequences = vertices.size();
 
         while (true) {
             std::cout << "round " << rounds.size() << std::endl;
@@ -148,10 +150,10 @@ struct cover {
                     i = offset;
                 }
 
-                if (walk.empty()) { continue; }
+                assert(!walk.empty());
 
                 if (walk.size() == 1) {
-                    colors[walk.front().id] = color_t::gray;  // visited but not merged
+                    assert(colors[walk.front().id] == color_t::gray);  // visited but not merged
                     continue;
                 }
 
@@ -237,6 +239,7 @@ struct cover {
     }
 
 private:
+    uint64_t num_sequences;
     std::vector<walks_t> rounds;
 };
 
