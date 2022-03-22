@@ -108,34 +108,19 @@ struct cover {
                 return x.id < y.id;
             });
 
+            uint64_t prev_front = vertices.front().front;
+            uint64_t prev_offset = 0;
+            uint64_t offset = 0;
             for (auto const& x : vertices) {
-                auto it = abundance_map.find(x.front);
-                if (it != abundance_map.cend()) {  // found
-                    (*it).second.begin += 1;
-                } else {
-                    abundance_map[x.front] = {1, 0, 0};
+                if (x.front != prev_front) {
+                    abundance_map[prev_front] = {prev_offset, offset, 0};
+                    prev_offset = offset;
                 }
+                offset += 1;
+                prev_front = x.front;
             }
-
-            {
-                std::vector<std::pair<uint64_t, uint64_t>> offsets;  // (abundance,offset)
-                offsets.reserve(abundance_map.size());
-                for (auto const& p : abundance_map) {
-                    offsets.emplace_back(p.first, p.second.begin);
-                }
-                assert(offsets.size() > 0);
-                std::sort(offsets.begin(), offsets.end(),
-                          [](auto const& x, auto const& y) { return x.first < y.first; });
-                uint64_t offset = 0;
-                for (auto const& p : offsets) {
-                    uint64_t ab = p.first;
-                    auto& r = abundance_map[ab];
-                    r.end = r.begin;
-                    r.begin = offset;
-                    r.position = 0;
-                    offset += p.second;
-                }
-            }
+            abundance_map[prev_front] = {prev_offset, offset, 0};
+            assert(offset == vertices.size());
 
             while (true) {
                 walk.clear();
@@ -178,7 +163,6 @@ struct cover {
 
                     /* search for a match */
                     while (true) {
-                        // std::cout << "offset " << offset << "/" << num_vertices << std::endl;
                         if (offset == num_vertices) break;
                         auto candidate = vertices[offset];
 
