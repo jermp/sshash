@@ -42,3 +42,6 @@ target_link_libraries(check z)
 
 add_executable(query src/query.cpp)
 target_link_libraries(query z)
+
+add_executable(permute src/permute.cpp)
+target_link_libraries(permute z)

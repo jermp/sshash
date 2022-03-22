@@ -6,21 +6,12 @@
 #include "../info.cpp"
 #include "../../external/pthash/include/pthash.hpp"
 #include "../../external/pthash/external/essentials/include/essentials.hpp"
-
-#include "build_util_types.hpp"
-#include "cover.hpp"
+#include "util.hpp"
 
 #include <numeric>  // for std::partial_sum
 #include <vector>
 
 namespace sshash {
-
-void expect(char got, char expected) {
-    if (got != expected) {
-        std::cout << "got '" << got << "' but expected '" << expected << "'" << std::endl;
-        throw parse_runtime_error();
-    }
-}
 
 struct parse_data {
     parse_data() : num_kmers(0) {}
@@ -114,8 +105,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         }
     };
 
-    std::vector<vertex> vertices;
-
     auto parse_header = [&]() {
         if (sequence.empty()) return;
 
@@ -159,16 +148,10 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         bool kmers_have_all_mfa = true;
         bool kmers_have_different_abundances = false;
 
-        uint64_t front = constants::invalid;
-        uint64_t back = constants::invalid;
-
         for (uint64_t j = 0, num_kmers = data.num_kmers, prev_ab = constants::invalid;
              j != seq_len - k + 1; ++j, ++num_kmers) {
             uint64_t ab = std::strtoull(sequence.data() + i, &end, 10);
             i = sequence.find_first_of(' ', i) + 1;
-
-            if (j == 0) { front = ab; }
-            if (j == seq_len - k) { back = ab; }
 
             if (ab != constants::most_frequent_abundance) kmers_have_all_mfa = false;
             if (j > 0) {
@@ -206,9 +189,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         num_sequences_diff_abs += kmers_have_different_abundances;
         num_sequences_all_mfa += kmers_have_all_mfa;
-
-        vertices.emplace_back(num_sequences, front, back);
-        // std::cerr << "seq:" << num_sequences << "[" << front << "," << back << "]\n";
     };
 
     while (!is.eof()) {
@@ -290,51 +270,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
                   << "%)" << std::endl;
         data.abundances_builder.push_abundance_interval(ab_value, ab_length);
         data.abundances_builder.finalize(data.num_kmers);
-
-        std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
-            if (x.front != y.front) return x.front < y.front;
-            if (x.back != y.back) return x.back < y.back;
-            return x.id < y.id;
-        });
-
-        /* (abundance, num_seqs_with_front_abundance=abundance) */
-        std::unordered_map<uint64_t, uint64_t> abundance_map;
-        for (auto const& x : vertices) {
-            // std::cerr << "seq:" << x.id << "[" << x.front << "," << x.back << "]\n";
-            auto it = abundance_map.find(x.front);
-            if (it != abundance_map.cend()) {  // found
-                (*it).second += 1;
-            } else {
-                abundance_map[x.front] = 1;
-            }
-        }
-
-        uint64_t num_runs_abundances = data.abundances_builder.num_abundance_intervals();
-
-        uint64_t R = num_runs_abundances;
-        for (auto const& x : vertices) {
-            uint64_t back = x.back;
-            auto it = abundance_map.find(back);
-            if (it != abundance_map.cend()) {  // found
-                if ((*it).second > 0) {        // if it is 0, we cannot find a match
-                    (*it).second -= 1;
-                    // std::cerr << "seq:" << x.id << "[" << x.front << "," << x.back
-                    //           << "] got paired";
-                    // std::cerr << " (remaining " << (*it).second << ")\n";
-                    R -= 1;
-                }
-                // else {
-                //     std::cerr << "seq:" << x.id << "[" << x.front << "," << x.back
-                //               << "] NOT paired!\n";
-                // }
-            }
-        }
-        std::cout << "computed lower bound: R = " << R << std::endl;
-
-        cover c;
-        c.compute(vertices, num_runs_abundances);
-        std::string output_cover_filename("test_cover.txt");
-        c.save(output_cover_filename);
     }
 }
 

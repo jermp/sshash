@@ -1,8 +1,15 @@
 #pragma once
 
+#include <unordered_map>
+#include <vector>
+
+#include "../util.hpp"
+
 namespace sshash {
 
 struct vertex {
+    // We assume there are less than 2^32 sequences and that
+    // the largest abundance fits into a 32-bit uint.
     vertex(uint32_t s, uint32_t f, uint32_t b) : id(s), front(f), back(b) {}
     uint32_t id, front, back;
 };
@@ -47,6 +54,8 @@ struct cover {
 
         walk_t walk;
         walks_t walks_in_round;
+        walk.reserve(vertices.size());            // at most
+        walks_in_round.reserve(vertices.size());  // at most
 
         {
             /*
@@ -113,13 +122,13 @@ struct cover {
             uint64_t prev_front = vertices.front().front;
             uint64_t prev_offset = 0;
             uint64_t offset = 0;
-            for (auto const& x : vertices) {
-                if (x.front != prev_front) {
+            for (auto const& vertex : vertices) {
+                if (vertex.front != prev_front) {
                     abundance_map[prev_front] = {prev_offset, offset, 0};
                     prev_offset = offset;
                 }
                 offset += 1;
-                prev_front = x.front;
+                prev_front = vertex.front;
             }
             abundance_map[prev_front] = {prev_offset, offset, 0};
             assert(offset == vertices.size());
@@ -238,7 +247,7 @@ struct cover {
                     num_mergings_in_round += walk.size() - 1;
 #ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
-                    std::cout << "=>";
+                    // std::cout << "=>";
                     for (auto const& w : walk) {
                         if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
@@ -248,9 +257,9 @@ struct cover {
                         }
                         prev_back = w.back;
                         colors[w.id] = color::black;
-                        std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
+                        // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
-                    std::cout << std::endl;
+                    // std::cout << std::endl;
 #endif
                 }
                 num_runs -= num_mergings_in_round;

@@ -12,6 +12,13 @@ struct parse_runtime_error : public std::runtime_error {
         : std::runtime_error("did you provide an input file with abundance counts?") {}
 };
 
+void expect(char got, char expected) {
+    if (got != expected) {
+        std::cout << "got '" << got << "' but expected '" << expected << "'" << std::endl;
+        throw parse_runtime_error();
+    }
+}
+
 struct compact_string_pool {
     compact_string_pool() {}
 
