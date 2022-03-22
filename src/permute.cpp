@@ -5,7 +5,6 @@
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/builder/cover.hpp"
 #include "../include/builder/util.hpp"
-#include "../include/abundances.hpp"
 
 using namespace sshash;
 
@@ -21,30 +20,13 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t num_sequences = 0;
     uint64_t num_bases = 0;
     uint64_t num_kmers = 0;
-
     uint64_t seq_len = 0;
+
+    uint64_t prev_abundance = constants::invalid;
     uint64_t sum_of_abundances = 0;
-    abundances::builder abundances_builder;
-    abundances_builder.init(constants::most_frequent_abundance);
-
-    /* intervals of abundances */
-    uint64_t ab_value = constants::invalid;
-    uint64_t ab_length = 1;
-
     uint64_t num_sequences_diff_abs = 0;  // num sequences whose kmers have different abundances
     uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
-
-    auto process_abundance = [&](uint64_t ab) {
-        if (ab == ab_value) {
-            ab_length += 1;
-        } else {
-            if (ab_value != constants::invalid) {
-                abundances_builder.push_abundance_interval(ab_value, ab_length);
-            }
-            ab_value = ab;
-            ab_length = 1;
-        }
-    };
+    data.num_runs_abundances = 0;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -88,24 +70,25 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         uint64_t front = constants::invalid;
         uint64_t back = constants::invalid;
 
-        for (uint64_t j = 0, kmer_id = num_kmers, prev_ab = constants::invalid;
-             j != seq_len - k + 1; ++j, ++kmer_id) {
-            uint64_t ab = std::strtoull(sequence.data() + i, &end, 10);
+        for (uint64_t j = 0, kmer_id = num_kmers; j != seq_len - k + 1; ++j, ++kmer_id) {
+            uint64_t abundance = std::strtoull(sequence.data() + i, &end, 10);
+            sum_of_abundances += abundance;
             i = sequence.find_first_of(' ', i) + 1;
 
-            if (j == 0) front = ab;
-            if (j == seq_len - k) back = ab;
+            /* set front and back */
+            if (j == 0) front = abundance;
+            if (j == seq_len - k) back = abundance;
 
-            if (ab != constants::most_frequent_abundance) kmers_have_all_mfa = false;
-            if (j > 0) {
-                if (ab != prev_ab) kmers_have_different_abundances = true;
+            /* accumulate statistics */
+            if (abundance != constants::most_frequent_abundance) kmers_have_all_mfa = false;
+            if (j > 0 and abundance != prev_abundance) kmers_have_different_abundances = true;
+
+            /* count the number of runs */
+            if (prev_abundance != constants::invalid and abundance != prev_abundance) {
+                data.num_runs_abundances += 1;
             }
-            prev_ab = ab;
 
-            abundances_builder.eat(ab);
-            sum_of_abundances += ab;
-
-            process_abundance(ab);
+            prev_abundance = abundance;
         }
 
         num_sequences_diff_abs += kmers_have_different_abundances;
@@ -136,10 +119,11 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         }
     }
 
+    data.num_runs_abundances += 1;
+
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, " << num_kmers
               << " kmers" << std::endl;
     std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
-
     std::cout << "num_sequences whose kmers have different abundances: " << num_sequences_diff_abs
               << "/" << num_sequences << " (" << (num_sequences_diff_abs * 100.0) / num_sequences
               << "%)" << std::endl;
@@ -151,11 +135,6 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
               << num_sequences_all_mfa << "/" << (num_sequences - num_sequences_diff_abs) << " ("
               << (num_sequences_all_mfa * 100.0) / (num_sequences - num_sequences_diff_abs) << "%)"
               << std::endl;
-
-    abundances_builder.push_abundance_interval(ab_value, ab_length);
-    abundances_builder.finalize(num_kmers);
-
-    data.num_runs_abundances = abundances_builder.num_abundance_intervals();
 }
 
 permute_data parse_file(std::string const& filename, build_configuration const& build_config) {
