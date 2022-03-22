@@ -28,6 +28,8 @@ struct cover {
 
     cover() : num_sequences(0) {}
 
+    uint64_t num_vertices() const { return num_sequences; }
+
     void compute(std::vector<vertex>& vertices,
                  uint64_t num_runs_abundances  // TODO: remove from here
     ) {
@@ -236,7 +238,7 @@ struct cover {
                     num_mergings_in_round += walk.size() - 1;
 #ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
-                    // std::cout << "=>";
+                    std::cout << "=>";
                     for (auto const& w : walk) {
                         if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
@@ -246,9 +248,9 @@ struct cover {
                         }
                         prev_back = w.back;
                         colors[w.id] = color::black;
-                        // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
+                        std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
-                    // std::cout << std::endl;
+                    std::cout << std::endl;
 #endif
                 }
                 num_runs -= num_mergings_in_round;
@@ -261,46 +263,55 @@ struct cover {
                 // }
             }
 
-            if (all_singletons) {
-                std::cout << "STOP: all walks are singletons --> no new mergings were found"
-                          << std::endl;
-                break;
-            }
-
             rounds.push_back(walks_in_round);
 
             vertices.swap(tmp_vertices);
             tmp_vertices.clear();
             walks_in_round.clear();
             abundance_map.clear();
+
+            if (all_singletons) {
+                std::cout << "STOP: all walks are singletons --> no new mergings were found"
+                          << std::endl;
+                break;
+            }
         }
 
         timer.stop();
 
         std::cout << "cover computed in: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+    }
 
-        // TODO: form final walks and check that all vertex id are present
-
-        // uint64_t num_runs = num_runs_abundances;
-        // std::cout << "computed " << walks.size() << " walks" << std::endl;
-        // std::fill(colors.begin(), colors.end(), false);
-        // for (auto const& walk : walks) {
-        //     num_runs -= walk.size() - 1;
-        //     uint64_t prev_back = walk.front().front;
-        //     for (auto const& w : walk) {
-        //         if (colors[w.id] == true) { std::cout << "ERROR: duplicate vertex." <<
-        //         std::endl; } if (w.front != prev_back) { std::cout << "ERROR: path is broken." <<
-        //         std::endl; } prev_back = w.back; colors[w.id] = true; std::cout << w.id << ":["
-        //         << w.front << "," << w.back << "] ";
-        //     }
-        //     std::cout << std::endl;
-        // }
-        // std::cout << "num_runs " << num_runs << std::endl;
+    void save(std::string const& filename) {
+        std::ofstream out(filename.c_str());
+        int r = rounds.size() - 1;
+        const auto& walks = rounds[r];
+        for (auto const& walk : walks) {
+            for (auto const& vertex : walk) visit(vertex.id, r, out);
+        }
+        out.close();
     }
 
 private:
     uint64_t num_sequences;
     std::vector<walks_t> rounds;
+
+    /* visit walk of index w in round of index r */
+    void visit(int w, int r, std::ofstream& out) const {
+        if (r > 0) {
+            assert(size_t(w) < rounds[r].size());
+            auto const& walk = rounds[r][w];
+            for (auto const& vertex : walk) { visit(vertex.id, r - 1, out); }
+        } else {  // print
+            assert(size_t(w) < rounds[0].size());
+            auto const& walk = rounds[0][w];
+            for (auto const& vertex : walk) {
+                // out << vertex.id << ":[" << vertex.front << "," << vertex.back << "] ";
+                out << vertex.id << '\n';
+            }
+            // out << '\n';
+        }
+    }
 };
 
 }  // namespace sshash

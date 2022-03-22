@@ -333,6 +333,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         cover c;
         c.compute(vertices, num_runs_abundances);
+        std::string output_cover_filename("test_cover.txt");
+        c.save(output_cover_filename);
     }
 }
 
