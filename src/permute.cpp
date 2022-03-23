@@ -22,7 +22,6 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t num_kmers = 0;
     uint64_t seq_len = 0;
 
-    uint64_t prev_abundance = constants::invalid;
     uint64_t sum_of_abundances = 0;
     uint64_t num_sequences_diff_abs = 0;  // num sequences whose kmers have different abundances
     uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
@@ -70,7 +69,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         uint64_t front = constants::invalid;
         uint64_t back = constants::invalid;
 
-        for (uint64_t j = 0, kmer_id = num_kmers; j != seq_len - k + 1; ++j, ++kmer_id) {
+        for (uint64_t j = 0, prev_abundance = constants::invalid; j != seq_len - k + 1; ++j) {
             uint64_t abundance = std::strtoull(sequence.data() + i, &end, 10);
             sum_of_abundances += abundance;
             i = sequence.find_first_of(' ', i) + 1;
@@ -84,15 +83,17 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             if (j > 0 and abundance != prev_abundance) kmers_have_different_abundances = true;
 
             /* count the number of runs */
-            if (prev_abundance != constants::invalid and abundance != prev_abundance) {
-                data.num_runs_abundances += 1;
-            }
+            if (abundance != prev_abundance) data.num_runs_abundances += 1;
 
             prev_abundance = abundance;
         }
 
         num_sequences_diff_abs += kmers_have_different_abundances;
         num_sequences_all_mfa += kmers_have_all_mfa;
+
+        std::cout << "num_runs_abundances in seq " << num_sequences << " = "
+                  << data.num_runs_abundances << std::endl;
+        std::cout << "vertex " << num_sequences << ":[" << front << "," << back << "]" << std::endl;
 
         data.vertices.emplace_back(num_sequences, front, back);
     };
@@ -119,7 +120,8 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         }
     }
 
-    data.num_runs_abundances += 1;
+    assert(data.vertices.size() == num_sequences);
+    assert(data.num_runs_abundances >= num_sequences);
 
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, " << num_kmers
               << " kmers" << std::endl;
@@ -188,6 +190,10 @@ int main(int argc, char** argv) {
     uint64_t num_runs_abundances = data.num_runs_abundances;
 
     {
+        std::cout
+            << "The trivial lower bound assumes we are able to concatenate all sequences : R' = "
+            << num_runs_abundances - data.vertices.size() + 1 << std::endl;
+
         std::sort(data.vertices.begin(), data.vertices.end(), [](auto const& x, auto const& y) {
             /* sort on front */
             if (x.front != y.front) return x.front < y.front;
@@ -223,7 +229,7 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        std::cout << "computed lower bound: R = " << R << std::endl;
+        std::cout << "Computed lower bound: R = " << R << std::endl;
     }
 
     cover c;

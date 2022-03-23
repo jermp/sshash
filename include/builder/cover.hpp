@@ -119,19 +119,21 @@ struct cover {
                 return x.id < y.id;
             });
 
-            uint64_t prev_front = vertices.front().front;
-            uint64_t prev_offset = 0;
-            uint64_t offset = 0;
-            for (auto const& vertex : vertices) {
-                if (vertex.front != prev_front) {
-                    abundance_map[prev_front] = {prev_offset, offset, 0};
-                    prev_offset = offset;
+            if (num_vertices > 0) {
+                uint64_t prev_front = vertices.front().front;
+                uint64_t prev_offset = 0;
+                uint64_t offset = 0;
+                for (auto const& vertex : vertices) {
+                    if (vertex.front != prev_front) {
+                        abundance_map[prev_front] = {prev_offset, offset, 0};
+                        prev_offset = offset;
+                    }
+                    offset += 1;
+                    prev_front = vertex.front;
                 }
-                offset += 1;
-                prev_front = vertex.front;
+                abundance_map[prev_front] = {prev_offset, offset, 0};
+                assert(offset == vertices.size());
             }
-            abundance_map[prev_front] = {prev_offset, offset, 0};
-            assert(offset == vertices.size());
 
             while (true) {
                 walk.clear();
@@ -247,7 +249,7 @@ struct cover {
                     num_mergings_in_round += walk.size() - 1;
 #ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
-                    // std::cout << "=>";
+                    std::cout << "=>";
                     for (auto const& w : walk) {
                         if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
@@ -257,19 +259,19 @@ struct cover {
                         }
                         prev_back = w.back;
                         colors[w.id] = color::black;
-                        // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
+                        std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
-                    // std::cout << std::endl;
+                    std::cout << std::endl;
 #endif
                 }
                 num_runs -= num_mergings_in_round;
                 std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
                 std::cout << "  num_runs " << num_runs << std::endl;
 
-                // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
-                // for (auto const& v : tmp_vertices) {
-                //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
-                // }
+                std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
+                for (auto const& v : tmp_vertices) {
+                    std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
+                }
             }
 
             rounds.push_back(walks_in_round);
@@ -279,7 +281,7 @@ struct cover {
             walks_in_round.clear();
             abundance_map.clear();
 
-            if (all_singletons) {
+            if (all_singletons and rounds.size() > 1) {
                 std::cout << "STOP: all walks are singletons --> no new mergings were found"
                           << std::endl;
                 break;
@@ -293,6 +295,7 @@ struct cover {
 
     void save(std::string const& filename) {
         std::ofstream out(filename.c_str());
+        assert(rounds.size() > 0);
         int r = rounds.size() - 1;
         const auto& walks = rounds[r];
         for (auto const& walk : walks) {
