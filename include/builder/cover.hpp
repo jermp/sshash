@@ -25,14 +25,6 @@ struct cover {
         invalid = -1
     };
 
-    struct range {
-        range() {}
-        range(uint64_t b, uint64_t e, uint64_t p) : begin(b), end(e), position(p) {}
-        uint64_t begin;
-        uint64_t end;  // TODO: currently unused
-        uint64_t position;
-    };
-
     cover(uint64_t num_sequences, uint64_t num_runs_abundances)
         : m_num_sequences(num_sequences), m_num_runs_abundances(num_runs_abundances) {}
 
@@ -43,8 +35,8 @@ struct cover {
 
         timer.start();
 
-        /* (abundance, num_seqs_with_front_abundance=abundance) */
-        std::unordered_map<uint64_t, range> abundance_map;
+        /* (abundance, position of a candidate abundance with front = abundance) */
+        std::unordered_map<uint64_t, uint64_t> abundance_map;
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
         std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
@@ -131,22 +123,17 @@ struct cover {
             });
 
             if (num_vertices > 0) {
-                uint64_t prev_front = vertices.front().front;
-                uint64_t prev_offset = 0;
+                uint64_t prev_front = constants::invalid;
                 uint64_t offset = 0;
                 for (auto const& vertex : vertices) {
-                    if (vertex.front != prev_front) {
-                        abundance_map[prev_front] = {prev_offset, offset, 0};
-                        prev_offset = offset;
-                    }
+                    if (vertex.front != prev_front) abundance_map[vertex.front] = offset;
                     offset += 1;
                     prev_front = vertex.front;
                 }
-                abundance_map[prev_front] = {prev_offset, offset, 0};
                 assert(offset == vertices.size());
             }
 
-            uint64_t i = 0;  // offset of unvisited vertex
+            uint64_t i = 0;  // position of unvisited vertex in vertices
 
             while (true) {
                 walk.clear();
@@ -191,17 +178,16 @@ struct cover {
                     if (it == abundance_map.cend()) break;
 
                     bool no_match_found = false;
-                    uint64_t offset =
-                        (*it).second.begin + (*it).second.position;  // skip to position
+                    uint64_t candidate_i = (*it).second;  // candidate position
 
                     /* 3. search for a match */
                     while (true) {
-                        if (offset == num_vertices) break;
-                        auto candidate = vertices[offset];
+                        if (candidate_i == num_vertices) break;
+                        auto candidate = vertices[candidate_i];
 
                         /* skip */
                         if (candidate.id == id) {
-                            offset += 1;
+                            candidate_i += 1;
                             continue;
                         }
 
@@ -213,20 +199,19 @@ struct cover {
 
                         /* match found */
                         if (colors[candidate.id] != color::black) {
-                            uint64_t& position = (*it).second.position;
-                            assert((*it).second.begin + position <= offset);
-                            position += 1;
+                            assert((*it).second <= candidate_i);
+                            (*it).second += 1;
                             break;
                         }
 
-                        offset += 1;
+                        candidate_i += 1;
                     }
 
-                    assert(offset <= num_vertices);
-                    if (no_match_found or offset == num_vertices) break;
+                    assert(candidate_i <= num_vertices);
+                    if (no_match_found or candidate_i == num_vertices) break;
 
                     /* valid match was found, then visit it next */
-                    i = offset;
+                    i = candidate_i;
                 }
 
                 assert(!walk.empty());
