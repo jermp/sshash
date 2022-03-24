@@ -308,8 +308,14 @@ struct cover {
         assert(rounds.size() > 0);
         int r = rounds.size() - 1;
         const auto& walks = rounds[r];
+        uint64_t num_sequences = 0;
         for (auto const& walk : walks) {
-            for (auto const& vertex : walk) visit(vertex.id, r, out);
+            for (auto const& vertex : walk) num_sequences += visit(vertex.id, r, out);
+        }
+        if (num_sequences != m_num_sequences) {
+            std::cerr << "Error: expected to write " << m_num_sequences << " but written "
+                      << num_sequences << std::endl;
+            throw std::runtime_error("wrong number of sequences written");
         }
         out.close();
     }
@@ -320,20 +326,23 @@ private:
     std::vector<walks_t> rounds;
 
     /* visit walk of index w in round of index r */
-    void visit(int w, int r, std::ofstream& out) const {
+    uint64_t visit(int w, int r, std::ofstream& out) const {
         if (r > 0) {
             assert(size_t(w) < rounds[r].size());
             auto const& walk = rounds[r][w];
-            for (auto const& vertex : walk) { visit(vertex.id, r - 1, out); }
-        } else {  // print
-            assert(size_t(w) < rounds[0].size());
-            auto const& walk = rounds[0][w];
-            for (auto const& vertex : walk) {
-                // out << vertex.id << ":[" << vertex.front << "," << vertex.back << "] ";
-                out << vertex.id << '\n';
-            }
-            // out << '\n';
+            uint64_t num_sequences = 0;
+            for (auto const& vertex : walk) num_sequences += visit(vertex.id, r - 1, out);
+            return num_sequences;
         }
+        /* print */
+        assert(size_t(w) < rounds[0].size());
+        auto const& walk = rounds[0][w];
+        for (auto const& vertex : walk) {
+            // out << vertex.id << ":[" << vertex.front << "," << vertex.back << "] ";
+            out << vertex.id << '\n';
+        }
+        // out << '\n';
+        return walk.size();
     }
 };
 

@@ -55,8 +55,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         uint64_t j = sequence.find_first_of(' ', i);
         if (j == std::string::npos) throw parse_runtime_error();
 
-        char* end;
-        seq_len = std::strtoull(sequence.data() + i, &end, 10);
+        seq_len = std::strtoull(sequence.data() + i, nullptr, 10);
         i = j + 1;
         expect(sequence[i + 0], 'a');
         expect(sequence[i + 1], 'b');
@@ -71,7 +70,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         uint64_t back = constants::invalid;
 
         for (uint64_t j = 0, prev_abundance = constants::invalid; j != seq_len - k + 1; ++j) {
-            uint64_t abundance = std::strtoull(sequence.data() + i, &end, 10);
+            uint64_t abundance = std::strtoull(sequence.data() + i, nullptr, 10);
             sum_of_abundances += abundance;
             i = sequence.find_first_of(' ', i) + 1;
 
@@ -152,6 +151,62 @@ permute_data parse_file(std::string const& filename, build_configuration const& 
     return data;
 }
 
+void permute_and_write(std::istream& is, std::string const& output_filename,
+                       pthash::compact_vector const& permutation) {
+    // std::vector<std::string> filenames;
+    // constexpr uint64_t bytes = 2 * essentials::GB;
+    std::vector<std::pair<std::string, std::string>> buffer;  // (header, dna)
+
+    std::string header_sequence;
+    std::string dna_sequence;
+    uint64_t num_sequences = permutation.size();
+    uint64_t num_bases = 0;
+
+    for (uint64_t i = 0; i != num_sequences; ++i) {
+        std::getline(is, header_sequence);
+        std::getline(is, dna_sequence);
+        buffer.emplace_back(header_sequence, dna_sequence);
+
+        num_bases += dna_sequence.size();
+
+        // check for bytes used and flush
+
+        if (i != 0 and i % 100000 == 0) {
+            std::cout << "read " << i << " sequences, " << num_bases << " bases" << std::endl;
+        }
+    }
+
+    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases" << std::endl;
+
+    std::cout << "sorting..." << std::endl;
+    std::sort(buffer.begin(), buffer.end(), [&](auto const& p_x, auto const& p_y) {
+        assert(p_x.first.front() == '>');
+        assert(p_y.first.front() == '>');
+        uint64_t seq_id_x = std::strtoull(p_x.first.data() + 1, nullptr, 10);
+        uint64_t seq_id_y = std::strtoull(p_y.first.data() + 1, nullptr, 10);
+        return permutation[seq_id_x] < permutation[seq_id_y];
+    });
+
+    std::cout << "saving to file '" << output_filename << "'..." << std::endl;
+    std::ofstream out(output_filename.c_str());
+    for (auto const& seq : buffer) out << seq.first << '\n' << seq.second << '\n';
+    out.close();
+}
+
+void permute_and_write(std::string const& input_filename, std::string const& output_filename,
+                       pthash::compact_vector const& permutation) {
+    std::ifstream is(input_filename.c_str());
+    if (!is.good()) throw std::runtime_error("error in opening the file '" + input_filename + "'");
+    std::cout << "reading file '" << input_filename << "'..." << std::endl;
+    if (util::ends_with(input_filename, ".gz")) {
+        zip_istream zis(is);
+        permute_and_write(zis, output_filename, permutation);
+    } else {
+        permute_and_write(is, output_filename, permutation);
+    }
+    is.close();
+}
+
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
@@ -183,6 +238,8 @@ int main(int argc, char** argv) {
     if (parser.parsed("output_filename")) {
         output_filename = parser.get<std::string>("output_filename");
     }
+
+    std::string permutation_filename = input_filename + ".permutation";
 
     auto data = parse_file(input_filename, build_config);
 
@@ -235,10 +292,35 @@ int main(int argc, char** argv) {
         std::cout << "Computed lower bound: R_hi = " << R << std::endl;
     }
 
-    cover c(data.num_sequences, data.num_runs_abundances);
-    assert(data.vertices.size() == data.num_sequences);
-    c.compute(data.vertices);
-    c.save(output_filename);
+    {
+        /* compute cover */
+        cover c(data.num_sequences, data.num_runs_abundances);
+        assert(data.vertices.size() == data.num_sequences);
+        c.compute(data.vertices);
+        c.save(permutation_filename);
+        std::vector<vertex>().swap(data.vertices);
+    }
+
+    /* permute */
+    pthash::compact_vector permutation;
+    {
+        std::ifstream is(permutation_filename.c_str());
+        if (!is.good()) {
+            throw std::runtime_error("error in opening the file '" + permutation_filename + "'");
+        }
+        pthash::compact_vector::builder cv_builder(data.num_sequences,
+                                                   std::ceil(std::log2(data.num_sequences)));
+        for (uint64_t i = 0; i != data.num_sequences; ++i) {
+            uint64_t position = 0;
+            is >> position;
+            cv_builder.set(position, i);
+        }
+        is.close();
+        cv_builder.build(permutation);
+    }
+
+    permute_and_write(input_filename, output_filename, permutation);
+    std::remove(permutation_filename.c_str());
 
     return 0;
 }
