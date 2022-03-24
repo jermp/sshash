@@ -29,7 +29,7 @@ struct cover {
         range() {}
         range(uint64_t b, uint64_t e, uint64_t p) : begin(b), end(e), position(p) {}
         uint64_t begin;
-        uint64_t end;
+        uint64_t end;  // TODO: currently unused
         uint64_t position;
     };
 
@@ -61,6 +61,9 @@ struct cover {
                 forming a single (usually, long) walk.
                 Warning: here we are assuming the mfa is also the smallest abundance.
             */
+
+            essentials::timer_type timer;
+            timer.start();
 
             std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front > y.front;
@@ -95,6 +98,9 @@ struct cover {
 
                 walk.clear();
             }
+
+            timer.stop();
+            std::cout << "  time: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
         }
 
         while (true) {
@@ -102,6 +108,9 @@ struct cover {
 
             uint64_t num_vertices = vertices.size();
             std::cout << "  num_vertices " << num_vertices << std::endl;
+
+            essentials::timer_type round_timer;
+            round_timer.start();
 
             /* all unvisited */
             if (rounds.size() == 0) {
@@ -137,26 +146,37 @@ struct cover {
                 assert(offset == vertices.size());
             }
 
+            uint64_t i = 0;  // offset of unvisited vertex
+
             while (true) {
                 walk.clear();
 
-                /* take an unvisited vertex */
-                uint64_t i = 0;
+                /* 1. take an unvisited vertex */
+
+                // try to visit forward
                 for (; i != num_vertices; ++i) {
                     uint64_t id = vertices[i].id;
                     if (colors[id] == color::white) break;
                 }
 
+                // if a vertex is not found, try to visit backward
+                if (i == num_vertices) {
+                    i = 0;
+                    for (; i != num_vertices; ++i) {
+                        uint64_t id = vertices[i].id;
+                        if (colors[id] == color::white) break;
+                    }
+                }
+
                 if (i == num_vertices) break;  // all visited
 
-                /* create a new walk */
+                /* 2. create a new walk */
                 while (true) {
                     auto vertex = vertices[i];
                     uint64_t id = vertex.id;
                     assert(colors[id] != color::black);
 
                     colors[id] = color::gray;
-                    uint64_t back = vertex.back;
                     if (walk.size() > 0) {
                         assert(walk.back().id != id);
                         colors[walk.back().id] = color::black;
@@ -164,19 +184,17 @@ struct cover {
                     }
                     walk.push_back(vertex);
 
-                    uint64_t offset = 0;
-                    bool no_match_found = false;
-
+                    uint64_t back = vertex.back;
                     auto it = abundance_map.find(back);
 
                     /* abundance back is not found, so no match is possible */
-                    if (it == abundance_map.cend()) {
-                        no_match_found = true;
-                        break;
-                    }
-                    offset = (*it).second.begin + (*it).second.position;  // skip to position
+                    if (it == abundance_map.cend()) break;
 
-                    /* search for a match */
+                    bool no_match_found = false;
+                    uint64_t offset =
+                        (*it).second.begin + (*it).second.position;  // skip to position
+
+                    /* 3. search for a match */
                     while (true) {
                         if (offset == num_vertices) break;
                         auto candidate = vertices[offset];
@@ -251,7 +269,7 @@ struct cover {
                     num_mergings_in_round += walk.size() - 1;
 #ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
-                    std::cout << "=>";
+                    // std::cout << "=>";
                     for (auto const& w : walk) {
                         if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
@@ -261,9 +279,9 @@ struct cover {
                         }
                         prev_back = w.back;
                         colors[w.id] = color::black;
-                        std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
+                        // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
                     }
-                    std::cout << std::endl;
+                    // std::cout << std::endl;
 #endif
                 }
                 assert(m_num_runs_abundances > num_mergings_in_round);
@@ -271,6 +289,8 @@ struct cover {
                 std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
                 std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
 
+                round_timer.stop();
+                std::cout << "  time: " << round_timer.elapsed() / 1000000 << " [sec]" << std::endl;
                 // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
                 // for (auto const& v : tmp_vertices) {
                 //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
@@ -292,7 +312,6 @@ struct cover {
         }
 
         timer.stop();
-
         std::cout << "cover computed in: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
         assert(m_num_runs_abundances >= 1);
