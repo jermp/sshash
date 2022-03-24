@@ -168,7 +168,7 @@ int main(int argc, char** argv) {
     /* optional arguments */
     parser.add("output_filename", "Output file where the permuted collection will be written.",
                "-o", false);
-    parser.add("verbose", "Verbose output during construction.", "--verbose", true);
+    // parser.add("verbose", "Verbose output during construction.", "--verbose", true);
 
     if (!parser.parse()) return 1;
 
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
 
     build_configuration build_config;
     build_config.k = k;
-    build_config.verbose = parser.get<bool>("verbose");
+    // build_config.verbose = parser.get<bool>("verbose");
 
     std::string output_filename = input_filename + ".permuted";
     if (parser.parsed("output_filename")) {
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
     {
         uint64_t R_lower = data.num_runs_abundances - data.vertices.size() + 1;
         std::cout << "The trivial lower bound (too optimistic) assumes we are able to concatenate "
-                     "all sequences : R_lower = "
+                     "all sequences : R_lo = "
                   << R_lower << std::endl;
 
         std::sort(data.vertices.begin(), data.vertices.end(), [](auto const& x, auto const& y) {
@@ -200,7 +200,7 @@ int main(int argc, char** argv) {
         });
 
         /* (abundance, num_seqs_with_front=abundance) */
-        // We assume there are less than 2^32 distinct abundances and that
+        // We assume there are less than 2^32 sequences and that
         // the largest abundance fits into a 32-bit uint.
         std::unordered_map<uint32_t, uint32_t> abundance_map;
 
@@ -232,7 +232,7 @@ int main(int argc, char** argv) {
                 }
             }
         }
-        std::cout << "Computed lower bound: R = " << R << std::endl;
+        std::cout << "Computed lower bound: R_hi = " << R << std::endl;
     }
 
     cover c(data.num_sequences, data.num_runs_abundances);

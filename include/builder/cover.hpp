@@ -36,7 +36,7 @@ struct cover {
         timer.start();
 
         /* (abundance, position of a candidate abundance with front = abundance) */
-        std::unordered_map<uint64_t, uint64_t> abundance_map;
+        std::unordered_map<uint32_t, uint32_t> abundance_map;
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
         std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
@@ -298,6 +298,7 @@ struct cover {
 
         timer.stop();
         std::cout << "cover computed in: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+        std::cout << "final number of runs R = " << m_num_runs_abundances << std::endl;
 
         assert(m_num_runs_abundances >= 1);
     }
