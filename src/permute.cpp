@@ -9,15 +9,15 @@
 using namespace sshash;
 
 struct permute_data {
-    permute_data() : num_runs_abundances(0) {}
+    permute_data() : num_runs_abundances(0), num_sequences(0) {}
     uint64_t num_runs_abundances;
+    uint64_t num_sequences;
     std::vector<vertex> vertices;
 };
 
 void parse_file(std::istream& is, permute_data& data, build_configuration const& build_config) {
     std::string sequence;
     uint64_t k = build_config.k;
-    uint64_t num_sequences = 0;
     uint64_t num_bases = 0;
     uint64_t num_kmers = 0;
     uint64_t seq_len = 0;
@@ -26,6 +26,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t num_sequences_diff_abs = 0;  // num sequences whose kmers have different abundances
     uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
     data.num_runs_abundances = 0;
+    data.num_sequences = 0;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -91,11 +92,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         num_sequences_diff_abs += kmers_have_different_abundances;
         num_sequences_all_mfa += kmers_have_all_mfa;
 
-        std::cout << "num_runs_abundances in seq " << num_sequences << " = "
-                  << data.num_runs_abundances << std::endl;
-        std::cout << "vertex " << num_sequences << ":[" << front << "," << back << "]" << std::endl;
-
-        data.vertices.emplace_back(num_sequences, front, back);
+        data.vertices.emplace_back(data.num_sequences, front, back);
     };
 
     while (!is.eof()) {
@@ -105,8 +102,8 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         std::getline(is, sequence);  // DNA sequence
         if (sequence.size() < k) continue;
 
-        if (++num_sequences % 100000 == 0) {
-            std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
+        if (++data.num_sequences % 100000 == 0) {
+            std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
                       << num_kmers << " kmers" << std::endl;
         }
 
@@ -120,23 +117,24 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         }
     }
 
-    assert(data.vertices.size() == num_sequences);
-    assert(data.num_runs_abundances >= num_sequences);
+    assert(data.vertices.size() == data.num_sequences);
+    assert(data.num_runs_abundances >= data.num_sequences);
 
-    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, " << num_kmers
-              << " kmers" << std::endl;
+    std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
+              << num_kmers << " kmers" << std::endl;
     std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
     std::cout << "num_sequences whose kmers have different abundances: " << num_sequences_diff_abs
-              << "/" << num_sequences << " (" << (num_sequences_diff_abs * 100.0) / num_sequences
-              << "%)" << std::endl;
+              << "/" << data.num_sequences << " ("
+              << (num_sequences_diff_abs * 100.0) / data.num_sequences << "%)" << std::endl;
     std::cout << "num_sequences whose kmers all have the same abundance != mfa: "
-              << (num_sequences - num_sequences_diff_abs) << "/" << num_sequences << " ("
-              << ((num_sequences - num_sequences_diff_abs) * 100.0) / num_sequences << "%)"
-              << std::endl;
+              << (data.num_sequences - num_sequences_diff_abs) << "/" << data.num_sequences << " ("
+              << ((data.num_sequences - num_sequences_diff_abs) * 100.0) / data.num_sequences
+              << "%)" << std::endl;
     std::cout << "num_sequences whose kmers all have the same abundance == mfa: "
-              << num_sequences_all_mfa << "/" << (num_sequences - num_sequences_diff_abs) << " ("
-              << (num_sequences_all_mfa * 100.0) / (num_sequences - num_sequences_diff_abs) << "%)"
-              << std::endl;
+              << num_sequences_all_mfa << "/" << (data.num_sequences - num_sequences_diff_abs)
+              << " ("
+              << (num_sequences_all_mfa * 100.0) / (data.num_sequences - num_sequences_diff_abs)
+              << "%)" << std::endl;
 }
 
 permute_data parse_file(std::string const& filename, build_configuration const& build_config) {
@@ -187,12 +185,12 @@ int main(int argc, char** argv) {
     }
 
     auto data = parse_file(input_filename, build_config);
-    uint64_t num_runs_abundances = data.num_runs_abundances;
 
     {
-        std::cout
-            << "The trivial lower bound assumes we are able to concatenate all sequences : R' = "
-            << num_runs_abundances - data.vertices.size() + 1 << std::endl;
+        uint64_t R_lower = data.num_runs_abundances - data.vertices.size() + 1;
+        std::cout << "The trivial lower bound (too optimistic) assumes we are able to concatenate "
+                     "all sequences : R_lower = "
+                  << R_lower << std::endl;
 
         std::sort(data.vertices.begin(), data.vertices.end(), [](auto const& x, auto const& y) {
             /* sort on front */
@@ -218,12 +216,17 @@ int main(int argc, char** argv) {
         }
         abundance_map[prev_front] = count;
 
-        uint64_t R = num_runs_abundances;
+        uint64_t R = data.num_runs_abundances;
         for (auto const& vertex : data.vertices) {
             uint64_t back = vertex.back;
             auto it = abundance_map.find(back);
             if (it != abundance_map.cend()) {  // found
                 if ((*it).second > 0) {        // if it is 0, we cannot find a match
+
+                    /* We clearly cannot create more mergings than num_sequences - 1,
+                       thus R cannot be lower than R_lower. */
+                    if (R == R_lower) break;
+
                     (*it).second -= 1;
                     R -= 1;
                 }
@@ -232,8 +235,9 @@ int main(int argc, char** argv) {
         std::cout << "Computed lower bound: R = " << R << std::endl;
     }
 
-    cover c;
-    c.compute(data.vertices, num_runs_abundances);
+    cover c(data.num_sequences, data.num_runs_abundances);
+    assert(data.vertices.size() == data.num_sequences);
+    c.compute(data.vertices);
     c.save(output_filename);
 
     return 0;

@@ -33,13 +33,12 @@ struct cover {
         uint64_t position;
     };
 
-    cover() : num_sequences(0) {}
+    cover(uint64_t num_sequences, uint64_t num_runs_abundances)
+        : m_num_sequences(num_sequences), m_num_runs_abundances(num_runs_abundances) {}
 
-    uint64_t num_vertices() const { return num_sequences; }
+    void compute(std::vector<vertex>& vertices) {
+        assert(vertices.size() == m_num_sequences);
 
-    void compute(std::vector<vertex>& vertices,
-                 uint64_t num_runs_abundances  // TODO: remove from here
-    ) {
         essentials::timer_type timer;
 
         timer.start();
@@ -48,9 +47,7 @@ struct cover {
         std::unordered_map<uint64_t, range> abundance_map;
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
-        uint64_t num_runs = num_runs_abundances;
-        std::cout << "initial number of runs = " << num_runs << std::endl;
-        num_sequences = vertices.size();
+        std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
 
         walk_t walk;
         walks_t walks_in_round;
@@ -71,28 +68,33 @@ struct cover {
                 return x.id > y.id;
             });
 
-            uint64_t count = 0;
-            uint64_t total = vertices.size();
+            uint64_t num_special_vertices = 0;
+            uint64_t num_vertices = vertices.size();
             while (!vertices.empty()) {
                 auto v = vertices.back();
                 if (v.front == constants::most_frequent_abundance and
                     v.back == constants::most_frequent_abundance) {
                     walk.push_back(v);
                     vertices.pop_back();
-                    count += 1;
+                    num_special_vertices += 1;
                 } else {
                     break;
                 }
             }
             std::cout << "num vertices of the form v:[" << constants::most_frequent_abundance << ","
-                      << constants::most_frequent_abundance << "] = " << count << "/" << total
-                      << "(" << (count * 100.0) / total << "%)" << std::endl;
+                      << constants::most_frequent_abundance << "] = " << num_special_vertices << "/"
+                      << num_vertices << "(" << (num_special_vertices * 100.0) / num_vertices
+                      << "%)" << std::endl;
 
-            /* create a new vertex for next round */
-            tmp_vertices.emplace_back(walks_in_round.size(), walk.front().front, walk.back().back);
-            walks_in_round.push_back(walk);
+            if (num_special_vertices != 0) {
+                /* create a new vertex for next round */
+                assert(!walk.empty());
+                tmp_vertices.emplace_back(walks_in_round.size(), walk.front().front,
+                                          walk.back().back);
+                walks_in_round.push_back(walk);
 
-            walk.clear();
+                walk.clear();
+            }
         }
 
         while (true) {
@@ -104,8 +106,8 @@ struct cover {
             /* all unvisited */
             if (rounds.size() == 0) {
                 /* remember: we removed some vertices but the id-space still spans
-                   [0..num_sequences-1] */
-                colors.resize(num_sequences);
+                   [0..m_num_sequences-1] */
+                colors.resize(m_num_sequences);
                 std::fill(colors.begin(), colors.end(), color::invalid);
                 for (auto const& v : vertices) colors[v.id] = color::white;
             } else {
@@ -264,14 +266,15 @@ struct cover {
                     std::cout << std::endl;
 #endif
                 }
-                num_runs -= num_mergings_in_round;
+                assert(m_num_runs_abundances > num_mergings_in_round);
+                m_num_runs_abundances -= num_mergings_in_round;
                 std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
-                std::cout << "  num_runs " << num_runs << std::endl;
+                std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
 
-                std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
-                for (auto const& v : tmp_vertices) {
-                    std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
-                }
+                // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
+                // for (auto const& v : tmp_vertices) {
+                //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
+                // }
             }
 
             rounds.push_back(walks_in_round);
@@ -291,6 +294,8 @@ struct cover {
         timer.stop();
 
         std::cout << "cover computed in: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+
+        assert(m_num_runs_abundances >= 1);
     }
 
     void save(std::string const& filename) {
@@ -305,7 +310,8 @@ struct cover {
     }
 
 private:
-    uint64_t num_sequences;
+    uint64_t m_num_sequences;
+    uint64_t m_num_runs_abundances;
     std::vector<walks_t> rounds;
 
     /* visit walk of index w in round of index r */
