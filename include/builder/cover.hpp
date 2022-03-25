@@ -1,6 +1,7 @@
 #pragma once
 
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "../util.hpp"
@@ -39,12 +40,15 @@ struct cover {
         std::unordered_map<uint32_t, uint32_t> abundance_map;
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
-        std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
-
+        std::unordered_set<uint32_t> unvisited_vertices;
         walk_t walk;
         walks_t walks_in_round;
-        walk.reserve(vertices.size());            // at most
-        walks_in_round.reserve(vertices.size());  // at most
+
+        unvisited_vertices.reserve(vertices.size());  // at most
+        walk.reserve(vertices.size());                // at most
+        walks_in_round.reserve(vertices.size());      // at most
+
+        std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
 
         {
             /*
@@ -101,15 +105,8 @@ struct cover {
             uint64_t num_vertices = vertices.size();
             std::cout << "  num_vertices " << num_vertices << std::endl;
 
-            essentials::timer_type init_timer;  // colors init + sorting + filling abundance_map +
-                                                // add all gray vertices
-            essentials::timer_type unvisited_timer;  // taking unvisited vertex
-            essentials::timer_type walk_timer;       // creating walks
-
             essentials::timer_type round_timer;  // total time of round
             round_timer.start();
-
-            init_timer.start();
 
             /* all unvisited */
             if (rounds.size() == 0) {
@@ -122,6 +119,8 @@ struct cover {
                 colors.resize(num_vertices);
                 std::fill(colors.begin(), colors.end(), color::white);
             }
+
+            for (uint64_t i = 0; i != num_vertices; ++i) unvisited_vertices.insert(i);
 
             std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front < y.front;
@@ -140,54 +139,39 @@ struct cover {
                 assert(offset == vertices.size());
             }
 
-            init_timer.stop();
-
-            uint64_t i = 0;  // position of unvisited vertex in vertices
+            uint64_t i = 0;  // position of an unvisited vertex in vertices
 
             uint64_t total_vertices_visited_to_find_matches = 0;
             uint64_t total_vertices_visited_to_failure = 0;
             uint64_t total_vertices_visited_to_success = 0;
             uint64_t total_vertices = 0;
 
-            while (true) {
-                unvisited_timer.start();
+            while (!unvisited_vertices.empty()) {
                 /* 1. take an unvisited vertex */
-
-                // try to visit forward
-                for (; i != num_vertices; ++i) {
-                    uint64_t id = vertices[i].id;
-                    if (colors[id] == color::white) break;
-                }
-
-                // if a vertex is not found, try to visit backward
-                if (i == num_vertices) {
-                    i = 0;
-                    for (; i != num_vertices; ++i) {
-                        uint64_t id = vertices[i].id;
-                        if (colors[id] == color::white) break;
-                    }
-                }
-
-                unvisited_timer.stop();
-
-                if (i == num_vertices) break;  // all visited
+                i = *(unvisited_vertices.begin());
 
                 /* 2. create a new walk */
-                walk_timer.start();
                 walk.clear();
                 while (true) {
                     total_vertices += 1;
 
                     auto vertex = vertices[i];
                     uint64_t id = vertex.id;
-                    assert(colors[id] != color::black);
 
+                    assert(colors[id] != color::black);
                     colors[id] = color::gray;
+
+                    /* vertex has been visited, so erase it from unvisited_vertices */
+                    if (unvisited_vertices.find(i) != unvisited_vertices.cend()) {
+                        unvisited_vertices.erase(i);
+                    }
+
                     if (walk.size() > 0) {
                         assert(walk.back().id != id);
                         colors[walk.back().id] = color::black;
                         colors[id] = color::black;
                     }
+
                     walk.push_back(vertex);
 
                     uint64_t back = vertex.back;
@@ -252,7 +236,6 @@ struct cover {
                     i = candidate_i;
                 }
                 assert(!walk.empty());
-                walk_timer.stop();
 
                 if (walk.size() == 1) {
                     assert(colors[walk.front().id] == color::gray);  // visited but not merged
@@ -268,15 +251,9 @@ struct cover {
                                           walk.back().back);
                 walks_in_round.push_back(walk);
             }
+            assert(unvisited_vertices.empty());
 
             if (total_vertices_visited_to_find_matches > total_vertices) {
-                // std::cout << "  total_vertices " << total_vertices << std::endl;
-                // std::cout << "  total_vertices_visited_to_find_matches "
-                //           << total_vertices_visited_to_find_matches << std::endl;
-                // std::cout << "  total_vertices_visited_to_success  "
-                //           << total_vertices_visited_to_success << std::endl;
-                // std::cout << "  total_vertices_visited_to_failure  "
-                //           << total_vertices_visited_to_failure << std::endl;
                 std::cout << "  avg. num. vertices visited to find a match = "
                           << static_cast<double>(total_vertices_visited_to_find_matches) /
                                  total_vertices
@@ -288,8 +265,6 @@ struct cover {
                           << static_cast<double>(total_vertices_visited_to_failure) / total_vertices
                           << std::endl;
             }
-
-            init_timer.start();
 
             /* add all gray vertices (singleton walks) */
             for (auto const& v : vertices) {
@@ -334,16 +309,9 @@ struct cover {
                 std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
                 std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
 
-                init_timer.stop();
-
                 round_timer.stop();
                 std::cout << "  time: " << round_timer.elapsed() / 1000000 << " [sec]" << std::endl;
-                std::cout << "    init: " << init_timer.elapsed() / 1000000 << " [sec]"
-                          << std::endl;
-                std::cout << "    walk: " << walk_timer.elapsed() / 1000000 << " [sec]"
-                          << std::endl;
-                std::cout << "    unvisited: " << unvisited_timer.elapsed() / 1000000 << " [sec]"
-                          << std::endl;
+
                 // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
                 // for (auto const& v : tmp_vertices) {
                 //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
