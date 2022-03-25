@@ -101,8 +101,15 @@ struct cover {
             uint64_t num_vertices = vertices.size();
             std::cout << "  num_vertices " << num_vertices << std::endl;
 
-            essentials::timer_type round_timer;
+            essentials::timer_type init_timer;  // colors init + sorting + filling abundance_map +
+                                                // add all gray vertices
+            essentials::timer_type unvisited_timer;  // taking unvisited vertex
+            essentials::timer_type walk_timer;       // creating walks
+
+            essentials::timer_type round_timer;  // total time of round
             round_timer.start();
+
+            init_timer.start();
 
             /* all unvisited */
             if (rounds.size() == 0) {
@@ -133,11 +140,17 @@ struct cover {
                 assert(offset == vertices.size());
             }
 
+            init_timer.stop();
+
             uint64_t i = 0;  // position of unvisited vertex in vertices
 
-            while (true) {
-                walk.clear();
+            uint64_t total_vertices_visited_to_find_matches = 0;
+            uint64_t total_vertices_visited_to_failure = 0;
+            uint64_t total_vertices_visited_to_success = 0;
+            uint64_t total_vertices = 0;
 
+            while (true) {
+                unvisited_timer.start();
                 /* 1. take an unvisited vertex */
 
                 // try to visit forward
@@ -155,10 +168,16 @@ struct cover {
                     }
                 }
 
+                unvisited_timer.stop();
+
                 if (i == num_vertices) break;  // all visited
 
                 /* 2. create a new walk */
+                walk_timer.start();
+                walk.clear();
                 while (true) {
+                    total_vertices += 1;
+
                     auto vertex = vertices[i];
                     uint64_t id = vertex.id;
                     assert(colors[id] != color::black);
@@ -181,8 +200,18 @@ struct cover {
                     uint64_t candidate_i = (*it).second;  // candidate position
 
                     /* 3. search for a match */
+                    uint64_t tmp_total_vertices_visited_to_failure = 0;
+                    uint64_t tmp_total_vertices_visited_to_success = 0;
                     while (true) {
-                        if (candidate_i == num_vertices) break;
+                        total_vertices_visited_to_find_matches += 1;
+                        tmp_total_vertices_visited_to_failure += 1;
+                        tmp_total_vertices_visited_to_success += 1;
+
+                        if (candidate_i == num_vertices) {
+                            total_vertices_visited_to_failure +=
+                                tmp_total_vertices_visited_to_failure;
+                            break;
+                        }
                         auto candidate = vertices[candidate_i];
 
                         /* skip */
@@ -194,13 +223,15 @@ struct cover {
                         /* checked all candidate matches */
                         if (candidate.front != back) {
                             no_match_found = true;
+                            total_vertices_visited_to_failure +=
+                                tmp_total_vertices_visited_to_failure;
                             break;
                         }
 
                         /* match found */
                         if (colors[candidate.id] != color::black) {
-                            assert((*it).second <= candidate_i);
-                            (*it).second += 1;
+                            total_vertices_visited_to_success +=
+                                tmp_total_vertices_visited_to_success;
                             break;
                         }
 
@@ -208,13 +239,20 @@ struct cover {
                     }
 
                     assert(candidate_i <= num_vertices);
+
+                    constexpr uint64_t num_optimized_rounds_for_speed = 2;
+                    if (rounds.size() <= num_optimized_rounds_for_speed) {
+                        /* update candidate position in abundance_map */
+                        (*it).second = candidate_i;
+                    }
+
                     if (no_match_found or candidate_i == num_vertices) break;
 
                     /* valid match was found, then visit it next */
                     i = candidate_i;
                 }
-
                 assert(!walk.empty());
+                walk_timer.stop();
 
                 if (walk.size() == 1) {
                     assert(colors[walk.front().id] == color::gray);  // visited but not merged
@@ -230,6 +268,28 @@ struct cover {
                                           walk.back().back);
                 walks_in_round.push_back(walk);
             }
+
+            if (total_vertices_visited_to_find_matches > total_vertices) {
+                // std::cout << "  total_vertices " << total_vertices << std::endl;
+                // std::cout << "  total_vertices_visited_to_find_matches "
+                //           << total_vertices_visited_to_find_matches << std::endl;
+                // std::cout << "  total_vertices_visited_to_success  "
+                //           << total_vertices_visited_to_success << std::endl;
+                // std::cout << "  total_vertices_visited_to_failure  "
+                //           << total_vertices_visited_to_failure << std::endl;
+                std::cout << "  avg. num. vertices visited to find a match = "
+                          << static_cast<double>(total_vertices_visited_to_find_matches) /
+                                 total_vertices
+                          << std::endl;
+                std::cout << "  avg. num. vertices visited to success = "
+                          << static_cast<double>(total_vertices_visited_to_success) / total_vertices
+                          << std::endl;
+                std::cout << "  avg. num. vertices visited to failure = "
+                          << static_cast<double>(total_vertices_visited_to_failure) / total_vertices
+                          << std::endl;
+            }
+
+            init_timer.start();
 
             /* add all gray vertices (singleton walks) */
             for (auto const& v : vertices) {
@@ -274,8 +334,16 @@ struct cover {
                 std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
                 std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
 
+                init_timer.stop();
+
                 round_timer.stop();
                 std::cout << "  time: " << round_timer.elapsed() / 1000000 << " [sec]" << std::endl;
+                std::cout << "    init: " << init_timer.elapsed() / 1000000 << " [sec]"
+                          << std::endl;
+                std::cout << "    walk: " << walk_timer.elapsed() / 1000000 << " [sec]"
+                          << std::endl;
+                std::cout << "    unvisited: " << unvisited_timer.elapsed() / 1000000 << " [sec]"
+                          << std::endl;
                 // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
                 // for (auto const& v : tmp_vertices) {
                 //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
