@@ -250,7 +250,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         std::ofstream out(output_filename.c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
-        //  iterators and heap
+        // iterators and heap
         std::vector<lines_iterator> iterators;
         std::vector<uint32_t> idx_heap;
         iterators.reserve(num_files_to_merge);
@@ -262,7 +262,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
             assert(iterators[j].header().front() == '>');
             uint64_t seq_id_x = std::strtoull(iterators[i].header().data() + 1, nullptr, 10);
             uint64_t seq_id_y = std::strtoull(iterators[j].header().data() + 1, nullptr, 10);
-            return permutation[seq_id_x] < permutation[seq_id_y];
+            return permutation[seq_id_x] > permutation[seq_id_y];
         };
         auto advance_heap_head = [&]() {
             auto idx = idx_heap.front();
