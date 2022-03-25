@@ -168,7 +168,6 @@ struct lines_iterator {
 private:
     uint8_t const* m_begin;
     uint8_t const* m_end;
-
     std::string m_header;
     std::string m_sequence;
 
@@ -176,14 +175,13 @@ private:
         uint8_t const* begin = m_begin;
         while (m_begin != m_end and *m_begin++ != '\n')
             ;
-        if (begin == m_begin) return "";
+        if (begin == m_begin) return std::string("");
         return std::string(reinterpret_cast<const char*>(begin), m_begin - begin - 1);
     }
 };
 
 void permute_and_write(std::istream& is, std::string const& output_filename,
                        std::string const& tmp_dirname, pthash::compact_vector const& permutation) {
-    std::vector<std::string> filenames;
     constexpr uint64_t limit = 1 * essentials::GB;
     std::vector<std::pair<std::string, std::string>> buffer;  // (header, dna)
 
@@ -195,6 +193,11 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
     uint64_t num_sequences = permutation.size();
     uint64_t num_bases = 0;
     uint64_t bytes = 0;
+    uint64_t num_files_to_merge = 0;
+
+    auto get_tmp_output_filename = [&](uint64_t id) {
+        return tmp_dirname + "/tmp.run" + run_identifier + "." + std::to_string(id);
+    };
 
     auto sort_and_flush = [&]() {
         if (buffer.empty()) return;
@@ -208,18 +211,16 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
             return permutation[seq_id_x] < permutation[seq_id_y];
         });
 
-        std::string next_tmp_output_filename =
-            tmp_dirname + "/tmp.run" + run_identifier + "." + std::to_string(filenames.size());
-        std::cout << "saving to file '" << next_tmp_output_filename << "'..." << std::endl;
-        std::ofstream out(next_tmp_output_filename.c_str());
+        auto tmp_output_filename = get_tmp_output_filename(num_files_to_merge);
+        std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
+        std::ofstream out(tmp_output_filename.c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
         for (auto const& seq : buffer) out << seq.first << '\n' << seq.second << '\n';
         out.close();
 
-        filenames.push_back(next_tmp_output_filename);
-
         buffer.clear();
         bytes = 0;
+        num_files_to_merge += 1;
     };
 
     for (uint64_t i = 0; i != num_sequences; ++i) {
@@ -243,20 +244,15 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
 
     /* merge */
     {
-        uint64_t num_files_to_merge = filenames.size();
         assert(num_files_to_merge > 0);
         std::cout << "files to merge = " << num_files_to_merge << std::endl;
 
-        std::ofstream out(output_filename.c_str());
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
-
-        // iterators and heap
         std::vector<lines_iterator> iterators;
         std::vector<uint32_t> idx_heap;
         iterators.reserve(num_files_to_merge);
         idx_heap.reserve(num_files_to_merge);
+        std::vector<mm::file_source<uint8_t>> mm_files(num_files_to_merge);
 
-        // heap functions
         auto heap_idx_comparator = [&](uint32_t i, uint32_t j) {
             assert(iterators[i].header().front() == '>');
             assert(iterators[j].header().front() == '>');
@@ -264,11 +260,11 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
             uint64_t seq_id_y = std::strtoull(iterators[j].header().data() + 1, nullptr, 10);
             return permutation[seq_id_x] > permutation[seq_id_y];
         };
+
         auto advance_heap_head = [&]() {
             auto idx = idx_heap.front();
             iterators[idx].advance_to_next();
-            if (iterators[idx].has_next()) {
-                // percolate down the head
+            if (iterators[idx].has_next()) {  // percolate down the head
                 uint64_t pos = 0;
                 uint64_t size = idx_heap.size();
                 while (2 * pos + 1 < size) {
@@ -284,22 +280,22 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
             }
         };
 
-        std::vector<mm::file_source<uint8_t>> mm_files(num_files_to_merge);
-
-        // create the input iterators and the heap
+        /* create the input iterators and make the heap */
         for (uint64_t i = 0; i != num_files_to_merge; ++i) {
-            auto const& filename = filenames[i];
-            mm_files[i].open(filename, mm::advice::sequential);
+            auto tmp_output_filename = get_tmp_output_filename(i);
+            mm_files[i].open(tmp_output_filename, mm::advice::sequential);
             iterators.emplace_back(mm_files[i].data(), mm_files[i].data() + mm_files[i].size());
             idx_heap.push_back(i);
         }
         std::make_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
 
+        std::ofstream out(output_filename.c_str());
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+
         uint64_t num_written_sequences = 0;
         while (!idx_heap.empty()) {
             auto const& it = iterators[idx_heap.front()];
-            out << it.header() << '\n';
-            out << it.sequence() << '\n';
+            out << it.header() << '\n' << it.sequence() << '\n';
             num_written_sequences += 1;
             if (num_written_sequences % 100000 == 0) {
                 std::cout << "written sequences = " << num_written_sequences << "/" << num_sequences
@@ -313,10 +309,10 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         assert(num_written_sequences == num_sequences);
 
         /* remove tmp files */
-        for (uint64_t i = 0; i != filenames.size(); ++i) {
+        for (uint64_t i = 0; i != num_files_to_merge; ++i) {
             mm_files[i].close();
-            auto const& filename = filenames[i];
-            std::remove(filename.c_str());
+            auto tmp_output_filename = get_tmp_output_filename(i);
+            std::remove(tmp_output_filename.c_str());
         }
     }
 }
