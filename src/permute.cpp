@@ -151,58 +151,186 @@ permute_data parse_file(std::string const& filename, build_configuration const& 
     return data;
 }
 
+struct lines_iterator {
+    lines_iterator(uint8_t const* begin, uint8_t const* end) : m_begin(begin), m_end(end) {
+        advance_to_next();
+    }
+
+    void advance_to_next() {
+        m_header = read_line();
+        m_sequence = read_line();
+    }
+
+    std::string const& header() const { return m_header; }
+    std::string const& sequence() const { return m_sequence; }
+    bool has_next() const { return !m_header.empty() and !m_sequence.empty(); }
+
+private:
+    uint8_t const* m_begin;
+    uint8_t const* m_end;
+
+    std::string m_header;
+    std::string m_sequence;
+
+    std::string read_line() {
+        uint8_t const* begin = m_begin;
+        while (m_begin != m_end and *m_begin++ != '\n')
+            ;
+        if (begin == m_begin) return "";
+        return std::string(reinterpret_cast<const char*>(begin), m_begin - begin - 1);
+    }
+};
+
 void permute_and_write(std::istream& is, std::string const& output_filename,
-                       pthash::compact_vector const& permutation) {
-    // std::vector<std::string> filenames;
-    // constexpr uint64_t bytes = 2 * essentials::GB;
+                       std::string const& tmp_dirname, pthash::compact_vector const& permutation) {
+    std::vector<std::string> filenames;
+    constexpr uint64_t limit = 1 * essentials::GB;
     std::vector<std::pair<std::string, std::string>> buffer;  // (header, dna)
+
+    std::string run_identifier =
+        std::to_string(pthash::clock_type::now().time_since_epoch().count());
 
     std::string header_sequence;
     std::string dna_sequence;
     uint64_t num_sequences = permutation.size();
     uint64_t num_bases = 0;
+    uint64_t bytes = 0;
+
+    auto sort_and_flush = [&]() {
+        if (buffer.empty()) return;
+
+        std::cout << "sorting buffer..." << std::endl;
+        std::sort(buffer.begin(), buffer.end(), [&](auto const& p_x, auto const& p_y) {
+            assert(p_x.first.front() == '>');
+            assert(p_y.first.front() == '>');
+            uint64_t seq_id_x = std::strtoull(p_x.first.data() + 1, nullptr, 10);
+            uint64_t seq_id_y = std::strtoull(p_y.first.data() + 1, nullptr, 10);
+            return permutation[seq_id_x] < permutation[seq_id_y];
+        });
+
+        std::string next_tmp_output_filename =
+            tmp_dirname + "/tmp.run" + run_identifier + "." + std::to_string(filenames.size());
+        std::cout << "saving to file '" << next_tmp_output_filename << "'..." << std::endl;
+        std::ofstream out(next_tmp_output_filename.c_str());
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        for (auto const& seq : buffer) out << seq.first << '\n' << seq.second << '\n';
+        out.close();
+
+        filenames.push_back(next_tmp_output_filename);
+
+        buffer.clear();
+        bytes = 0;
+    };
 
     for (uint64_t i = 0; i != num_sequences; ++i) {
         std::getline(is, header_sequence);
         std::getline(is, dna_sequence);
+
+        uint64_t seq_bytes = header_sequence.size() + dna_sequence.size() + 16;
+        if (bytes + seq_bytes > limit) sort_and_flush();
+
+        bytes += seq_bytes;
         buffer.emplace_back(header_sequence, dna_sequence);
-
         num_bases += dna_sequence.size();
-
-        // check for bytes used and flush
 
         if (i != 0 and i % 100000 == 0) {
             std::cout << "read " << i << " sequences, " << num_bases << " bases" << std::endl;
         }
     }
+    sort_and_flush();
 
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases" << std::endl;
 
-    std::cout << "sorting..." << std::endl;
-    std::sort(buffer.begin(), buffer.end(), [&](auto const& p_x, auto const& p_y) {
-        assert(p_x.first.front() == '>');
-        assert(p_y.first.front() == '>');
-        uint64_t seq_id_x = std::strtoull(p_x.first.data() + 1, nullptr, 10);
-        uint64_t seq_id_y = std::strtoull(p_y.first.data() + 1, nullptr, 10);
-        return permutation[seq_id_x] < permutation[seq_id_y];
-    });
+    /* merge */
+    {
+        uint64_t num_files_to_merge = filenames.size();
+        assert(num_files_to_merge > 0);
+        std::cout << "files to merge = " << num_files_to_merge << std::endl;
 
-    std::cout << "saving to file '" << output_filename << "'..." << std::endl;
-    std::ofstream out(output_filename.c_str());
-    for (auto const& seq : buffer) out << seq.first << '\n' << seq.second << '\n';
-    out.close();
+        std::ofstream out(output_filename.c_str());
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+
+        //  iterators and heap
+        std::vector<lines_iterator> iterators;
+        std::vector<uint32_t> idx_heap;
+        iterators.reserve(num_files_to_merge);
+        idx_heap.reserve(num_files_to_merge);
+
+        // heap functions
+        auto heap_idx_comparator = [&](uint32_t i, uint32_t j) {
+            assert(iterators[i].header().front() == '>');
+            assert(iterators[j].header().front() == '>');
+            uint64_t seq_id_x = std::strtoull(iterators[i].header().data() + 1, nullptr, 10);
+            uint64_t seq_id_y = std::strtoull(iterators[j].header().data() + 1, nullptr, 10);
+            return permutation[seq_id_x] < permutation[seq_id_y];
+        };
+        auto advance_heap_head = [&]() {
+            auto idx = idx_heap.front();
+            iterators[idx].advance_to_next();
+            if (iterators[idx].has_next()) {
+                // percolate down the head
+                uint64_t pos = 0;
+                uint64_t size = idx_heap.size();
+                while (2 * pos + 1 < size) {
+                    uint64_t i = 2 * pos + 1;
+                    if (i + 1 < size and heap_idx_comparator(idx_heap[i], idx_heap[i + 1])) ++i;
+                    if (heap_idx_comparator(idx_heap[i], idx_heap[pos])) break;
+                    std::swap(idx_heap[pos], idx_heap[i]);
+                    pos = i;
+                }
+            } else {
+                std::pop_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
+                idx_heap.pop_back();
+            }
+        };
+
+        std::vector<mm::file_source<uint8_t>> mm_files(num_files_to_merge);
+
+        // create the input iterators and the heap
+        for (uint64_t i = 0; i != num_files_to_merge; ++i) {
+            auto const& filename = filenames[i];
+            mm_files[i].open(filename, mm::advice::sequential);
+            iterators.emplace_back(mm_files[i].data(), mm_files[i].data() + mm_files[i].size());
+            idx_heap.push_back(i);
+        }
+        std::make_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
+
+        uint64_t num_written_sequences = 0;
+        while (!idx_heap.empty()) {
+            auto const& it = iterators[idx_heap.front()];
+            out << it.header() << '\n';
+            out << it.sequence() << '\n';
+            num_written_sequences += 1;
+            if (num_written_sequences % 100000 == 0) {
+                std::cout << "written sequences = " << num_written_sequences << "/" << num_sequences
+                          << std::endl;
+            }
+            advance_heap_head();
+        }
+        std::cout << "written sequences = " << num_written_sequences << "/" << num_sequences
+                  << std::endl;
+        out.close();
+        assert(num_written_sequences == num_sequences);
+
+        /* remove tmp files */
+        for (uint64_t i = 0; i != filenames.size(); ++i) {
+            mm_files[i].close();
+            auto const& filename = filenames[i];
+            std::remove(filename.c_str());
+        }
+    }
 }
 
 void permute_and_write(std::string const& input_filename, std::string const& output_filename,
-                       pthash::compact_vector const& permutation) {
+                       std::string const& tmp_dirname, pthash::compact_vector const& permutation) {
     std::ifstream is(input_filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + input_filename + "'");
     std::cout << "reading file '" << input_filename << "'..." << std::endl;
     if (util::ends_with(input_filename, ".gz")) {
         zip_istream zis(is);
-        permute_and_write(zis, output_filename, permutation);
+        permute_and_write(zis, output_filename, tmp_dirname, permutation);
     } else {
-        permute_and_write(is, output_filename, permutation);
+        permute_and_write(is, output_filename, tmp_dirname, permutation);
     }
     is.close();
 }
@@ -223,7 +351,10 @@ int main(int argc, char** argv) {
     /* optional arguments */
     parser.add("output_filename", "Output file where the permuted collection will be written.",
                "-o", false);
-    // parser.add("verbose", "Verbose output during construction.", "--verbose", true);
+    parser.add("tmp_dirname",
+               "Temporary directory used for merging in external memory. Default is directory '" +
+                   constants::default_tmp_dirname + "'.",
+               "-d", false);
 
     if (!parser.parse()) return 1;
 
@@ -232,14 +363,16 @@ int main(int argc, char** argv) {
 
     build_configuration build_config;
     build_config.k = k;
-    // build_config.verbose = parser.get<bool>("verbose");
 
     std::string output_filename = input_filename + ".permuted";
     if (parser.parsed("output_filename")) {
         output_filename = parser.get<std::string>("output_filename");
     }
 
-    std::string permutation_filename = input_filename + ".permutation";
+    std::string tmp_dirname = constants::default_tmp_dirname;
+    if (parser.parsed("tmp_dirname")) tmp_dirname = parser.get<std::string>("tmp_dirname");
+
+    std::string permutation_filename = tmp_dirname + "/tmp.permutation";
 
     auto data = parse_file(input_filename, build_config);
 
@@ -319,7 +452,7 @@ int main(int argc, char** argv) {
         cv_builder.build(permutation);
     }
 
-    permute_and_write(input_filename, output_filename, permutation);
+    permute_and_write(input_filename, output_filename, tmp_dirname, permutation);
     std::remove(permutation_filename.c_str());
 
     return 0;

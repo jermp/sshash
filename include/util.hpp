@@ -18,6 +18,7 @@ constexpr double c = 3.0;  // for PThash
 constexpr uint64_t min_l = 6;
 constexpr uint64_t max_l = 12;
 constexpr uint64_t most_frequent_abundance = 1;  // usual value
+static const std::string default_tmp_dirname(".");
 }  // namespace constants
 
 typedef pthash::murmurhash2_64 base_hasher_type;
