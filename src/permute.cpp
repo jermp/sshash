@@ -12,7 +12,7 @@ struct permute_data {
     permute_data() : num_runs_abundances(0), num_sequences(0) {}
     uint64_t num_runs_abundances;
     uint64_t num_sequences;
-    std::vector<vertex> vertices;
+    std::vector<node> nodes;
 };
 
 void parse_file(std::istream& is, permute_data& data, build_configuration const& build_config) {
@@ -92,7 +92,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         num_sequences_all_mfa += kmers_have_all_mfa;
 
         constexpr bool sign = true;
-        data.vertices.emplace_back(data.num_sequences, front, back, sign);
+        data.nodes.emplace_back(data.num_sequences, front, back, sign);
     };
 
     while (!is.eof()) {
@@ -117,7 +117,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         }
     }
 
-    assert(data.vertices.size() == data.num_sequences);
+    assert(data.nodes.size() == data.num_sequences);
     assert(data.num_runs_abundances >= data.num_sequences);
 
     std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
@@ -374,12 +374,12 @@ int main(int argc, char** argv) {
     auto data = parse_file(input_filename, build_config);
 
     {
-        uint64_t R_lower = data.num_runs_abundances - data.vertices.size() + 1;
+        uint64_t R_lower = data.num_runs_abundances - data.nodes.size() + 1;
         std::cout << "The trivial lower bound (too optimistic) assumes we are able to concatenate "
                      "all sequences : R_lo = "
                   << R_lower << std::endl;
 
-        std::sort(data.vertices.begin(), data.vertices.end(), [](auto const& x, auto const& y) {
+        std::sort(data.nodes.begin(), data.nodes.end(), [](auto const& x, auto const& y) {
             /* sort on front */
             if (x.front != y.front) return x.front < y.front;
             if (x.back != y.back) return x.back < y.back;
@@ -391,21 +391,21 @@ int main(int argc, char** argv) {
         // the largest abundance fits into a 32-bit uint.
         std::unordered_map<uint32_t, uint32_t> abundance_map;
 
-        uint64_t prev_front = data.vertices.front().front;
+        uint64_t prev_front = data.nodes.front().front;
         uint64_t count = 0;
-        for (auto const& vertex : data.vertices) {
-            if (vertex.front != prev_front) {
+        for (auto const& node : data.nodes) {
+            if (node.front != prev_front) {
                 abundance_map[prev_front] = count;
                 count = 0;
             }
             count += 1;
-            prev_front = vertex.front;
+            prev_front = node.front;
         }
         abundance_map[prev_front] = count;
 
         uint64_t R = data.num_runs_abundances;
-        for (auto const& vertex : data.vertices) {
-            uint64_t back = vertex.back;
+        for (auto const& node : data.nodes) {
+            uint64_t back = node.back;
             auto it = abundance_map.find(back);
             if (it != abundance_map.cend()) {  // found
                 if ((*it).second > 0) {        // if it is 0, we cannot find a match
@@ -425,10 +425,10 @@ int main(int argc, char** argv) {
     {
         /* compute cover */
         cover c(data.num_sequences, data.num_runs_abundances);
-        assert(data.vertices.size() == data.num_sequences);
-        c.compute(data.vertices);
+        assert(data.nodes.size() == data.num_sequences);
+        c.compute(data.nodes);
         c.save(permutation_filename);
-        std::vector<vertex>().swap(data.vertices);
+        std::vector<node>().swap(data.nodes);
     }
 
     /* permute */

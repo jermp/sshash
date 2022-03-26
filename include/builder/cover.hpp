@@ -8,105 +8,105 @@
 
 namespace sshash {
 
-struct vertex {
+struct node {
     // We assume there are less than 2^32 sequences and that
     // the largest abundance fits into a 32-bit uint.
-    vertex(uint32_t i, uint32_t f, uint32_t b, bool s) : id(i), front(f), back(b), sign(s) {}
+    node(uint32_t i, uint32_t f, uint32_t b, bool s) : id(i), front(f), back(b), sign(s) {}
     uint32_t id, front, back;
     bool sign;  // '+' --> forward
                 // '-' --> backward
 };
 
 struct cover {
-    typedef std::vector<vertex> walk_t;
+    typedef std::vector<node> walk_t;
     typedef std::vector<walk_t> walks_t;
-
-    enum color {
-        white = 0,  // unvisited
-        gray = 1,   // visited by not merged
-        black = 2,  // visited and merged
-        invalid = -1
-    };
 
     cover(uint64_t num_sequences, uint64_t num_runs_abundances)
         : m_num_sequences(num_sequences), m_num_runs_abundances(num_runs_abundances) {}
 
-    void compute(std::vector<vertex>& vertices) {
-        assert(vertices.size() == m_num_sequences);
+    void compute(std::vector<node>& nodes) {
+        assert(nodes.size() == m_num_sequences);
 
         essentials::timer_type timer;
-
         timer.start();
 
         /* (abundance, position of a candidate abundance with front = abundance) */
         std::unordered_map<uint32_t, uint32_t> abundance_map;
-        std::vector<color> colors;
-        std::vector<vertex> tmp_vertices;
-        std::unordered_set<uint32_t> unvisited_vertices;
-        /* map from vertex id to offset+ into vertices */
+
+        /* visited[node.id] = true if node has been visited; false otherwise */
+        std::vector<bool> visited;
+
+        /* set of unvisited nodes */
+        std::unordered_set<uint32_t> unvisited_nodes;
+
+        /* map from node id to offset+ into nodes */
         std::vector<uint32_t> id_to_offset;
+
+        /* nodes created for next round */
+        std::vector<node> tmp_nodes;
+
         walk_t walk;
         walks_t walks_in_round;
 
-        unvisited_vertices.reserve(vertices.size());  // at most
-        walk.reserve(vertices.size());                // at most
-        walks_in_round.reserve(2 * vertices.size());  // at most
+        unvisited_nodes.reserve(nodes.size());     // at most
+        walk.reserve(nodes.size());                // at most
+        walks_in_round.reserve(2 * nodes.size());  // at most
 
         std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
 
         {
             /*
                 optimize for the most frequent case:
-                push vertices of the form v:[mfa,mfa] to the bottom, and remove them
+                push nodes of the form v:[mfa,mfa] to the bottom, and remove them
                 forming a single (usually, long) walk.
-                Warning: here we are assuming the mfa is also the smallest abundance.
+                Warning: here we are assuming the mfa is also the *smallest* abundance.
             */
 
             essentials::timer_type timer;
             timer.start();
 
-            std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
+            std::sort(nodes.begin(), nodes.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front > y.front;
                 if (x.back != y.back) return x.back > y.back;
                 return x.id > y.id;
             });
 
-            uint64_t num_special_vertices = 0;
-            uint64_t num_vertices = vertices.size();
-            while (!vertices.empty()) {
-                auto v = vertices.back();
+            uint64_t num_special_nodes = 0;
+            uint64_t num_nodes = nodes.size();
+            while (!nodes.empty()) {
+                auto v = nodes.back();
                 if (v.front == constants::most_frequent_abundance and
                     v.back == constants::most_frequent_abundance) {
                     walk.push_back(v);
-                    vertices.pop_back();
-                    num_special_vertices += 1;
+                    nodes.pop_back();
+                    num_special_nodes += 1;
                 } else {
                     break;
                 }
             }
-            std::cout << "num vertices of the form v:[" << constants::most_frequent_abundance << ","
-                      << constants::most_frequent_abundance << "] = " << num_special_vertices << "/"
-                      << num_vertices << "(" << (num_special_vertices * 100.0) / num_vertices
-                      << "%)" << std::endl;
+            std::cout << "num nodes of the form v:[" << constants::most_frequent_abundance << ","
+                      << constants::most_frequent_abundance << "] = " << num_special_nodes << "/"
+                      << num_nodes << "(" << (num_special_nodes * 100.0) / num_nodes << "%)"
+                      << std::endl;
 
-            if (num_special_vertices != 0) {
-                /* create new vertices for next round */
+            if (num_special_nodes != 0) {
+                /* create new nodes for next round */
                 assert(!walk.empty());
                 uint32_t id = walks_in_round.size();
                 uint32_t front = walk.front().front;
                 uint32_t back = walk.back().back;
-                tmp_vertices.emplace_back(id, front, back, true);
-                tmp_vertices.emplace_back(id, back, front, false);
+                tmp_nodes.emplace_back(id, front, back, true);
+                tmp_nodes.emplace_back(id, back, front, false);
                 walks_in_round.push_back(walk);
                 walk.clear();
             }
 
-            /* now  add all the vertices with backward orientation */
-            num_vertices = vertices.size();
-            for (uint64_t i = 0; i != num_vertices; ++i) {
-                auto vertex = vertices[i];
-                assert(vertex.sign == true);
-                vertices.emplace_back(vertex.id, vertex.back, vertex.front, false);
+            /* add all the nodes with backward orientation */
+            num_nodes = nodes.size();
+            for (uint64_t i = 0; i != num_nodes; ++i) {
+                auto node = nodes[i];
+                assert(node.sign == true);
+                nodes.emplace_back(node.id, node.back, node.front, false);
             }
 
             timer.stop();
@@ -116,32 +116,30 @@ struct cover {
         while (true) {
             std::cout << "round " << rounds.size() << std::endl;
 
-            uint64_t num_vertices = vertices.size();
-            std::cout << "  num_vertices " << num_vertices << std::endl;
-            assert(num_vertices % 2 == 0);
+            uint64_t num_nodes = nodes.size();
+            std::cout << "  num_nodes " << num_nodes << std::endl;
+            assert(num_nodes % 2 == 0);
 
             essentials::timer_type round_timer;  // total time of round
             round_timer.start();
 
-            /* all unvisited */
             if (rounds.size() == 0) {
-                /* remember: we removed some vertices but the id-space still spans
+                /* remember: we removed some nodes but the id-space still spans
                    [0..m_num_sequences-1] */
                 id_to_offset.resize(m_num_sequences);
-                colors.resize(m_num_sequences);
-                std::fill(colors.begin(), colors.end(), color::invalid);
-                for (auto const& vertex : vertices) colors[vertex.id] = color::white;
+                visited.resize(m_num_sequences);
             } else {
-                id_to_offset.resize(num_vertices / 2);
-                colors.resize(num_vertices / 2);
-                std::fill(colors.begin(), colors.end(), color::white);
+                id_to_offset.resize(num_nodes / 2);
+                visited.resize(num_nodes / 2);
             }
 
-            for (auto const& vertex : vertices) unvisited_vertices.insert(vertex.id);
-            std::cout << "  num_unvisited_vertices " << unvisited_vertices.size() << std::endl;
-            assert(unvisited_vertices.size() == num_vertices / 2);
+            /* all nodes unvisited */
+            std::fill(visited.begin(), visited.end(), false);
 
-            std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
+            for (auto const& node : nodes) unvisited_nodes.insert(node.id);
+            assert(unvisited_nodes.size() == num_nodes / 2);
+
+            std::sort(nodes.begin(), nodes.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front < y.front;
                 if (x.back != y.back) return x.back < y.back;
                 return x.id < y.id;
@@ -151,78 +149,71 @@ struct cover {
             {
                 uint64_t prev_front = constants::invalid;
                 uint64_t offset = 0;
-                for (auto const& vertex : vertices) {
-                    if (vertex.front != prev_front) abundance_map[vertex.front] = offset;
+                for (auto const& node : nodes) {
+                    if (node.front != prev_front) abundance_map[node.front] = offset;
                     offset += 1;
-                    prev_front = vertex.front;
+                    prev_front = node.front;
                 }
-                assert(offset == vertices.size());
+                assert(offset == nodes.size());
             }
 
             /* fill id_to_offset map */
             {
                 uint64_t offset = 0;
-                for (auto const& vertex : vertices) {
-                    if (vertex.sign) id_to_offset[vertex.id] = offset;
+                for (auto const& node : nodes) {
+                    if (node.sign) id_to_offset[node.id] = offset;
                     offset += 1;
                 }
             }
 
-            uint64_t i = 0;  // position of an unvisited vertex in vertices
+            uint64_t i = 0;                        // position of an unvisited node in nodes
+            bool no_more_matches_possible = true;  // to stop the algorithm
 
-            uint64_t total_vertices_visited_to_find_matches = 0;
-            uint64_t total_vertices_visited_to_failure = 0;
-            uint64_t total_vertices_visited_to_success = 0;
-            uint64_t total_vertices = 0;
-            bool no_more_matches_possible = true;
+            /* some statistics */
+            uint64_t total_nodes_visited_to_find_matches = 0;
+            uint64_t total_nodes_visited_to_failure = 0;
+            uint64_t total_nodes_visited_to_success = 0;
+            uint64_t total_nodes = 0;
 
-            while (!unvisited_vertices.empty()) {
-                /* 1. take an unvisited vertex */
+            while (!unvisited_nodes.empty()) {
+                /* 1. take an unvisited node */
                 {
-                    uint32_t unvisited_vertex_id = *(unvisited_vertices.begin());
-                    i = id_to_offset[unvisited_vertex_id];
+                    uint32_t unvisited_node_id = *(unvisited_nodes.begin());
+                    i = id_to_offset[unvisited_node_id];
                 }
 
                 /* 2. create a new walk */
                 walk.clear();
                 while (true) {
-                    total_vertices += 1;
+                    total_nodes += 1;
 
-                    auto vertex = vertices[i];
-                    uint64_t id = vertex.id;
+                    auto node = nodes[i];
+                    uint64_t id = node.id;
+                    assert(visited[id] == false);
+                    visited[id] = true;
+                    walk.push_back(node);
 
-                    assert(colors[id] != color::black);
-                    colors[id] = color::gray;
-
-                    /* vertex has been visited, so erase it from unvisited_vertices */
-                    if (unvisited_vertices.find(id) != unvisited_vertices.cend()) {
-                        unvisited_vertices.erase(id);
+                    /* node has been visited, so erase it from unvisited_nodes */
+                    if (unvisited_nodes.find(id) != unvisited_nodes.cend()) {
+                        unvisited_nodes.erase(id);
                     }
-
-                    if (walk.size() > 0) {
-                        assert(walk.back().id != id);
-                        colors[walk.back().id] = color::black;
-                        colors[id] = color::black;
-                    }
-
-                    walk.push_back(vertex);
 
                     auto search_match = [&](uint64_t back, uint64_t candidate_i) {
                         bool no_match_found = false;
-                        uint64_t tmp_total_vertices_visited_to_failure = 0;
-                        uint64_t tmp_total_vertices_visited_to_success = 0;
+                        uint64_t tmp_total_nodes_visited_to_failure = 0;
+                        uint64_t tmp_total_nodes_visited_to_success = 0;
 
                         while (true) {
-                            total_vertices_visited_to_find_matches += 1;
-                            tmp_total_vertices_visited_to_failure += 1;
-                            tmp_total_vertices_visited_to_success += 1;
+                            total_nodes_visited_to_find_matches += 1;
+                            tmp_total_nodes_visited_to_failure += 1;
+                            tmp_total_nodes_visited_to_success += 1;
 
-                            if (candidate_i == num_vertices) {
-                                total_vertices_visited_to_failure +=
-                                    tmp_total_vertices_visited_to_failure;
+                            if (candidate_i == num_nodes) {
+                                total_nodes_visited_to_failure +=
+                                    tmp_total_nodes_visited_to_failure;
                                 break;
                             }
-                            auto candidate = vertices[candidate_i];
+                            auto candidate = nodes[candidate_i];
 
                             /* skip */
                             if (candidate.id == id) {
@@ -233,27 +224,26 @@ struct cover {
                             /* checked all candidate matches */
                             if (candidate.front != back) {
                                 no_match_found = true;
-                                total_vertices_visited_to_failure +=
-                                    tmp_total_vertices_visited_to_failure;
+                                total_nodes_visited_to_failure +=
+                                    tmp_total_nodes_visited_to_failure;
                                 break;
                             }
 
                             /* match found */
-                            if (colors[candidate.id] != color::black) {
-                                total_vertices_visited_to_success +=
-                                    tmp_total_vertices_visited_to_success;
+                            if (visited[candidate.id] == false) {
+                                total_nodes_visited_to_success +=
+                                    tmp_total_nodes_visited_to_success;
                                 break;
                             }
 
                             candidate_i += 1;
                         }
-
-                        assert(candidate_i <= num_vertices);
+                        assert(candidate_i <= num_nodes);
 
                         /* update candidate position in abundance_map */
                         abundance_map[back] = candidate_i;
 
-                        if (no_match_found or candidate_i == num_vertices) return false;
+                        if (no_match_found or candidate_i == num_nodes) return false;
 
                         /* valid match was found, then visit it next */
                         i = candidate_i;
@@ -261,118 +251,87 @@ struct cover {
                     };
 
                     /* 3. search for a match */
-                    uint64_t back = vertex.back;
+
+                    /* first, try to match back abundance */
+                    uint64_t back = node.back;
                     uint64_t candidate_i = abundance_map[back];
                     bool found = search_match(back, candidate_i);
 
+                    /* if a match is not found and the walk is singleton,
+                       then the only node in the walk could be matched on
+                       front abundance */
                     if (!found and walk.size() == 1) {
-                        back = vertex.front;
+                        back = node.front;
                         candidate_i = abundance_map[back];
                         found = search_match(back, candidate_i);
                         if (found) {
-                            /* change orientation of the vertex */
-                            walk[0] = {vertex.id, vertex.back, vertex.front, !vertex.sign};
+                            /* change orientation of the node */
+                            walk[0] = {node.id, node.back, node.front, !node.sign};
                         }
                     }
 
                     if (!found) break;
-
                     no_more_matches_possible = false;
                 }
                 assert(!walk.empty());
 
-                if (walk.size() == 1) {
-                    assert(colors[walk.front().id] == color::gray);  // visited but not merged
-                    continue;
-                }
-
-                /* invariant: all vertices belonging to a walk are all black */
-                assert(std::all_of(walk.begin(), walk.end(),
-                                   [&](vertex const& v) { return colors[v.id] == color::black; }));
-
-                /* create new vertices for next round */
+                /* create new nodes for next round */
                 uint32_t id = walks_in_round.size();
                 uint32_t front = walk.front().front;
                 uint32_t back = walk.back().back;
-                tmp_vertices.emplace_back(id, front, back, true);
-                tmp_vertices.emplace_back(id, back, front, false);
+                tmp_nodes.emplace_back(id, front, back, true);
+                tmp_nodes.emplace_back(id, back, front, false);
                 walks_in_round.push_back(walk);
             }
-            assert(unvisited_vertices.empty());
+            assert(unvisited_nodes.empty());
 
-            if (total_vertices_visited_to_find_matches > total_vertices) {
-                std::cout << "  avg. num. vertices visited to find a match = "
-                          << static_cast<double>(total_vertices_visited_to_find_matches) /
-                                 total_vertices
+            if (total_nodes_visited_to_find_matches > total_nodes) {
+                std::cout << "  avg. num. nodes visited to find a match = "
+                          << static_cast<double>(total_nodes_visited_to_find_matches) / total_nodes
                           << std::endl;
-                std::cout << "  avg. num. vertices visited to success = "
-                          << static_cast<double>(total_vertices_visited_to_success) / total_vertices
+                std::cout << "  avg. num. nodes visited to success = "
+                          << static_cast<double>(total_nodes_visited_to_success) / total_nodes
                           << std::endl;
-                std::cout << "  avg. num. vertices visited to failure = "
-                          << static_cast<double>(total_vertices_visited_to_failure) / total_vertices
+                std::cout << "  avg. num. nodes visited to failure = "
+                          << static_cast<double>(total_nodes_visited_to_failure) / total_nodes
                           << std::endl;
-            }
-
-            /* add all gray vertices (singleton walks) */
-            for (auto const& v : vertices) {
-                if (colors[v.id] == color::gray) {
-                    uint32_t id = walks_in_round.size();
-                    uint32_t front = v.front;
-                    uint32_t back = v.back;
-
-                    if (v.sign) {
-                        tmp_vertices.emplace_back(id, front, back, true);
-                        tmp_vertices.emplace_back(id, back, front, false);
-                    } else {
-                        tmp_vertices.emplace_back(id, front, back, false);
-                        tmp_vertices.emplace_back(id, back, front, true);
-                    }
-
-                    walk_t walk;
-                    walk.push_back(v);
-                    walks_in_round.push_back(walk);
-
-                    colors[v.id] = color::black;
-                }
             }
 
             std::cout << "  num_walks = " << walks_in_round.size() << std::endl;
 
             {
 #ifndef NDEBUG
-                std::fill(colors.begin(), colors.end(), color::white);
+                std::fill(visited.begin(), visited.end(), false);
 #endif
-                uint64_t num_mergings_in_round = 0;
+                uint64_t num_matches_in_round = 0;
                 for (auto const& walk : walks_in_round) {
-                    num_mergings_in_round += walk.size() - 1;
+                    num_matches_in_round += walk.size() - 1;
 #ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
                     std::cout << "=>";
                     for (auto const& w : walk) {
-                        if (colors[w.id] == color::black) {
-                            std::cout << "ERROR: duplicate vertex." << std::endl;
-                        }
+                        if (visited[w.id]) std::cout << "ERROR: duplicate node." << std::endl;
                         if (w.front != prev_back) {
                             std::cout << "ERROR: path is broken." << std::endl;
                         }
                         prev_back = w.back;
-                        colors[w.id] = color::black;
+                        visited[w.id] = true;
                         std::cout << w.id << ":[" << w.front << "," << w.back << ","
                                   << (w.sign ? '+' : '-') << "] ";
                     }
                     std::cout << std::endl;
 #endif
                 }
-                assert(m_num_runs_abundances > num_mergings_in_round);
-                m_num_runs_abundances -= num_mergings_in_round;
-                std::cout << "  num_mergings = " << num_mergings_in_round << std::endl;
+                assert(m_num_runs_abundances > num_matches_in_round);
+                m_num_runs_abundances -= num_matches_in_round;
+                std::cout << "  num_matches = " << num_matches_in_round << std::endl;
                 std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
 
                 round_timer.stop();
                 std::cout << "  time: " << round_timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
-                // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
-                // for (auto const& v : tmp_vertices) {
+                // std::cout << "created nodes in round " << rounds.size() << ":" << std::endl;
+                // for (auto const& v : tmp_nodes) {
                 //     std::cout << v.id << ":[" << v.front << "," << v.back << ","
                 //               << (v.sign ? '+' : '-') << "]\n";
                 // }
@@ -380,8 +339,8 @@ struct cover {
 
             rounds.push_back(walks_in_round);
 
-            vertices.swap(tmp_vertices);
-            tmp_vertices.clear();
+            nodes.swap(tmp_nodes);
+            tmp_nodes.clear();
             walks_in_round.clear();
             abundance_map.clear();
 
@@ -424,16 +383,16 @@ private:
             assert(size_t(w) < rounds[r].size());
             auto const& walk = rounds[r][w];
             uint64_t num_sequences = 0;
-            for (auto const& vertex : walk) num_sequences += visit(vertex.id, r - 1, out);
+            for (auto const& node : walk) num_sequences += visit(node.id, r - 1, out);
             return num_sequences;
         }
         /* print */
         assert(size_t(w) < rounds[0].size());
         auto const& walk = rounds[0][w];
-        for (auto const& vertex : walk) {
-            // out << vertex.id << ":[" << vertex.front << "," << vertex.back << "] ";
-            out << vertex.id;
-            out << (vertex.sign ? " +\n" : " -\n");
+        for (auto const& node : walk) {
+            // out << node.id << ":[" << node.front << "," << node.back << "] ";
+            out << node.id;
+            out << (node.sign ? " +\n" : " -\n");
         }
         // out << '\n';
         return walk.size();
