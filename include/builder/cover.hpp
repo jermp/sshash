@@ -11,8 +11,10 @@ namespace sshash {
 struct vertex {
     // We assume there are less than 2^32 sequences and that
     // the largest abundance fits into a 32-bit uint.
-    vertex(uint32_t s, uint32_t f, uint32_t b) : id(s), front(f), back(b) {}
+    vertex(uint32_t i, uint32_t f, uint32_t b, bool s) : id(i), front(f), back(b), sign(s) {}
     uint32_t id, front, back;
+    bool sign;  // '+' --> forward
+                // '-' --> backward
 };
 
 struct cover {
@@ -41,12 +43,14 @@ struct cover {
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
         std::unordered_set<uint32_t> unvisited_vertices;
+        /* map from vertex id to (offset+,offset-)*/
+        std::vector<std::pair<uint32_t, uint32_t>> id_to_offsets;
         walk_t walk;
         walks_t walks_in_round;
 
         unvisited_vertices.reserve(vertices.size());  // at most
         walk.reserve(vertices.size());                // at most
-        walks_in_round.reserve(vertices.size());      // at most
+        walks_in_round.reserve(2 * vertices.size());  // at most
 
         std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
 
@@ -86,13 +90,23 @@ struct cover {
                       << "%)" << std::endl;
 
             if (num_special_vertices != 0) {
-                /* create a new vertex for next round */
+                /* create new vertices for next round */
                 assert(!walk.empty());
-                tmp_vertices.emplace_back(walks_in_round.size(), walk.front().front,
-                                          walk.back().back);
+                uint32_t id = walks_in_round.size();
+                uint32_t front = walk.front().front;
+                uint32_t back = walk.back().back;
+                tmp_vertices.emplace_back(id, front, back, true);
+                tmp_vertices.emplace_back(id, back, front, false);
                 walks_in_round.push_back(walk);
-
                 walk.clear();
+            }
+
+            /* now  add all the vertices with backward orientation */
+            num_vertices = vertices.size();
+            for (uint64_t i = 0; i != num_vertices; ++i) {
+                auto vertex = vertices[i];
+                assert(vertex.sign == true);
+                vertices.emplace_back(vertex.id, vertex.back, vertex.front, false);
             }
 
             timer.stop();
@@ -104,6 +118,7 @@ struct cover {
 
             uint64_t num_vertices = vertices.size();
             std::cout << "  num_vertices " << num_vertices << std::endl;
+            assert(num_vertices % 2 == 0);
 
             essentials::timer_type round_timer;  // total time of round
             round_timer.start();
@@ -112,15 +127,19 @@ struct cover {
             if (rounds.size() == 0) {
                 /* remember: we removed some vertices but the id-space still spans
                    [0..m_num_sequences-1] */
+                id_to_offsets.resize(m_num_sequences);
                 colors.resize(m_num_sequences);
                 std::fill(colors.begin(), colors.end(), color::invalid);
-                for (auto const& v : vertices) colors[v.id] = color::white;
+                for (auto const& vertex : vertices) colors[vertex.id] = color::white;
             } else {
-                colors.resize(num_vertices);
+                id_to_offsets.resize(num_vertices / 2);
+                colors.resize(num_vertices / 2);
                 std::fill(colors.begin(), colors.end(), color::white);
             }
 
-            for (uint64_t i = 0; i != num_vertices; ++i) unvisited_vertices.insert(i);
+            for (auto const& vertex : vertices) unvisited_vertices.insert(vertex.id);
+            std::cout << "  num_unvisited_vertices " << unvisited_vertices.size() << std::endl;
+            assert(unvisited_vertices.size() == num_vertices / 2);
 
             std::sort(vertices.begin(), vertices.end(), [](auto const& x, auto const& y) {
                 if (x.front != y.front) return x.front < y.front;
@@ -128,7 +147,8 @@ struct cover {
                 return x.id < y.id;
             });
 
-            if (num_vertices > 0) {
+            // if (num_vertices > 0)
+            {
                 uint64_t prev_front = constants::invalid;
                 uint64_t offset = 0;
                 for (auto const& vertex : vertices) {
@@ -139,16 +159,33 @@ struct cover {
                 assert(offset == vertices.size());
             }
 
+            /* fill id_to_offsets map */
+            {
+                uint64_t offset = 0;
+                for (auto const& vertex : vertices) {
+                    if (vertex.sign) {
+                        id_to_offsets[vertex.id].first = offset;
+                    } else {
+                        id_to_offsets[vertex.id].second = offset;
+                    }
+                    offset += 1;
+                }
+            }
+
             uint64_t i = 0;  // position of an unvisited vertex in vertices
 
             uint64_t total_vertices_visited_to_find_matches = 0;
             uint64_t total_vertices_visited_to_failure = 0;
             uint64_t total_vertices_visited_to_success = 0;
             uint64_t total_vertices = 0;
+            bool no_more_matches_possible = true;
 
             while (!unvisited_vertices.empty()) {
                 /* 1. take an unvisited vertex */
-                i = *(unvisited_vertices.begin());
+                {
+                    uint32_t unvisited_vertex_id = *(unvisited_vertices.begin());
+                    i = id_to_offsets[unvisited_vertex_id].first;
+                }
 
                 /* 2. create a new walk */
                 walk.clear();
@@ -158,12 +195,14 @@ struct cover {
                     auto vertex = vertices[i];
                     uint64_t id = vertex.id;
 
+                    // std::cout << "  visiting vertex " << id << " at offset " << i << std::endl;
+
                     assert(colors[id] != color::black);
                     colors[id] = color::gray;
 
                     /* vertex has been visited, so erase it from unvisited_vertices */
-                    if (unvisited_vertices.find(i) != unvisited_vertices.cend()) {
-                        unvisited_vertices.erase(i);
+                    if (unvisited_vertices.find(id) != unvisited_vertices.cend()) {
+                        unvisited_vertices.erase(id);
                     }
 
                     if (walk.size() > 0) {
@@ -174,66 +213,80 @@ struct cover {
 
                     walk.push_back(vertex);
 
-                    uint64_t back = vertex.back;
-                    auto it = abundance_map.find(back);
+                    auto search_match = [&](uint64_t back, uint64_t candidate_i) {
+                        bool no_match_found = false;
+                        uint64_t tmp_total_vertices_visited_to_failure = 0;
+                        uint64_t tmp_total_vertices_visited_to_success = 0;
 
-                    /* abundance back is not found, so no match is possible */
-                    if (it == abundance_map.cend()) break;
+                        while (true) {
+                            total_vertices_visited_to_find_matches += 1;
+                            tmp_total_vertices_visited_to_failure += 1;
+                            tmp_total_vertices_visited_to_success += 1;
 
-                    bool no_match_found = false;
-                    uint64_t candidate_i = (*it).second;  // candidate position
+                            if (candidate_i == num_vertices) {
+                                total_vertices_visited_to_failure +=
+                                    tmp_total_vertices_visited_to_failure;
+                                break;
+                            }
+                            auto candidate = vertices[candidate_i];
+
+                            /* skip */
+                            if (candidate.id == id) {
+                                candidate_i += 1;
+                                continue;
+                            }
+
+                            /* checked all candidate matches */
+                            if (candidate.front != back) {
+                                no_match_found = true;
+                                total_vertices_visited_to_failure +=
+                                    tmp_total_vertices_visited_to_failure;
+                                break;
+                            }
+
+                            /* match found */
+                            if (colors[candidate.id] != color::black) {
+                                total_vertices_visited_to_success +=
+                                    tmp_total_vertices_visited_to_success;
+                                break;
+                            }
+
+                            candidate_i += 1;
+                        }
+
+                        assert(candidate_i <= num_vertices);
+
+                        constexpr uint64_t num_optimized_rounds_for_speed = 2;
+                        if (rounds.size() <= num_optimized_rounds_for_speed) {
+                            /* update candidate position in abundance_map */
+                            abundance_map[back] = candidate_i;
+                        }
+
+                        if (no_match_found or candidate_i == num_vertices) return false;
+
+                        /* valid match was found, then visit it next */
+                        i = candidate_i;
+                        return true;
+                    };
 
                     /* 3. search for a match */
-                    uint64_t tmp_total_vertices_visited_to_failure = 0;
-                    uint64_t tmp_total_vertices_visited_to_success = 0;
-                    while (true) {
-                        total_vertices_visited_to_find_matches += 1;
-                        tmp_total_vertices_visited_to_failure += 1;
-                        tmp_total_vertices_visited_to_success += 1;
+                    uint64_t back = vertex.back;
+                    uint64_t candidate_i = abundance_map[back];
+                    bool found = search_match(back, candidate_i);
 
-                        if (candidate_i == num_vertices) {
-                            total_vertices_visited_to_failure +=
-                                tmp_total_vertices_visited_to_failure;
-                            break;
+                    if (!found and walk.size() == 1) {
+                        back = vertex.front;
+                        candidate_i = abundance_map[back];
+                        found = search_match(back, candidate_i);
+                        if (found) {
+                            /* change orientation of the vertex */
+                            walk[0] = {vertex.id, vertex.back, vertex.front, !vertex.sign};
                         }
-                        auto candidate = vertices[candidate_i];
-
-                        /* skip */
-                        if (candidate.id == id) {
-                            candidate_i += 1;
-                            continue;
-                        }
-
-                        /* checked all candidate matches */
-                        if (candidate.front != back) {
-                            no_match_found = true;
-                            total_vertices_visited_to_failure +=
-                                tmp_total_vertices_visited_to_failure;
-                            break;
-                        }
-
-                        /* match found */
-                        if (colors[candidate.id] != color::black) {
-                            total_vertices_visited_to_success +=
-                                tmp_total_vertices_visited_to_success;
-                            break;
-                        }
-
-                        candidate_i += 1;
                     }
 
-                    assert(candidate_i <= num_vertices);
+                    if (!found) break;
 
-                    constexpr uint64_t num_optimized_rounds_for_speed = 2;
-                    if (rounds.size() <= num_optimized_rounds_for_speed) {
-                        /* update candidate position in abundance_map */
-                        (*it).second = candidate_i;
-                    }
-
-                    if (no_match_found or candidate_i == num_vertices) break;
-
-                    /* valid match was found, then visit it next */
-                    i = candidate_i;
+                    no_more_matches_possible = false;
                 }
                 assert(!walk.empty());
 
@@ -246,9 +299,12 @@ struct cover {
                 assert(std::all_of(walk.begin(), walk.end(),
                                    [&](vertex const& v) { return colors[v.id] == color::black; }));
 
-                /* create a new vertex for next round */
-                tmp_vertices.emplace_back(walks_in_round.size(), walk.front().front,
-                                          walk.back().back);
+                /* create new vertices for next round */
+                uint32_t id = walks_in_round.size();
+                uint32_t front = walk.front().front;
+                uint32_t back = walk.back().back;
+                tmp_vertices.emplace_back(id, front, back, true);
+                tmp_vertices.emplace_back(id, back, front, false);
                 walks_in_round.push_back(walk);
             }
             assert(unvisited_vertices.empty());
@@ -269,27 +325,38 @@ struct cover {
             /* add all gray vertices (singleton walks) */
             for (auto const& v : vertices) {
                 if (colors[v.id] == color::gray) {
-                    tmp_vertices.emplace_back(walks_in_round.size(), v.front, v.back);
+                    uint32_t id = walks_in_round.size();
+                    uint32_t front = v.front;
+                    uint32_t back = v.back;
+
+                    if (v.sign) {
+                        tmp_vertices.emplace_back(id, front, back, true);
+                        tmp_vertices.emplace_back(id, back, front, false);
+                    } else {
+                        tmp_vertices.emplace_back(id, front, back, false);
+                        tmp_vertices.emplace_back(id, back, front, true);
+                    }
+
                     walk_t walk;
                     walk.push_back(v);
                     walks_in_round.push_back(walk);
+
+                    colors[v.id] = color::black;
                 }
             }
 
             std::cout << "  num_walks = " << walks_in_round.size() << std::endl;
 
-            bool all_singletons = true;
             {
 #ifndef NDEBUG
                 std::fill(colors.begin(), colors.end(), color::white);
 #endif
                 uint64_t num_mergings_in_round = 0;
                 for (auto const& walk : walks_in_round) {
-                    if (walk.size() > 1) all_singletons = false;
                     num_mergings_in_round += walk.size() - 1;
 #ifndef NDEBUG
                     uint64_t prev_back = walk.front().front;
-                    // std::cout << "=>";
+                    std::cout << "=>";
                     for (auto const& w : walk) {
                         if (colors[w.id] == color::black) {
                             std::cout << "ERROR: duplicate vertex." << std::endl;
@@ -299,9 +366,10 @@ struct cover {
                         }
                         prev_back = w.back;
                         colors[w.id] = color::black;
-                        // std::cout << w.id << ":[" << w.front << "," << w.back << "] ";
+                        std::cout << w.id << ":[" << w.front << "," << w.back << ","
+                                  << (w.sign ? '+' : '-') << "] ";
                     }
-                    // std::cout << std::endl;
+                    std::cout << std::endl;
 #endif
                 }
                 assert(m_num_runs_abundances > num_mergings_in_round);
@@ -314,7 +382,8 @@ struct cover {
 
                 // std::cout << "created vertices in round " << rounds.size() << ":" << std::endl;
                 // for (auto const& v : tmp_vertices) {
-                //     std::cout << v.id << ":[" << v.front << "," << v.back << "]\n";
+                //     std::cout << v.id << ":[" << v.front << "," << v.back << ","
+                //               << (v.sign ? '+' : '-') << "]\n";
                 // }
             }
 
@@ -325,9 +394,8 @@ struct cover {
             walks_in_round.clear();
             abundance_map.clear();
 
-            if (all_singletons and rounds.size() > 1) {
-                std::cout << "STOP: all walks are singletons --> no new mergings were found"
-                          << std::endl;
+            if (no_more_matches_possible) {
+                std::cout << "STOP: no more matches possible." << std::endl;
                 break;
             }
         }
@@ -345,9 +413,7 @@ struct cover {
         int r = rounds.size() - 1;
         const auto& walks = rounds[r];
         uint64_t num_sequences = 0;
-        for (auto const& walk : walks) {
-            for (auto const& vertex : walk) num_sequences += visit(vertex.id, r, out);
-        }
+        for (uint64_t w = 0; w != walks.size(); ++w) num_sequences += visit(w, r, out);
         if (num_sequences != m_num_sequences) {
             std::cerr << "Error: expected to write " << m_num_sequences << " but written "
                       << num_sequences << std::endl;
@@ -375,7 +441,8 @@ private:
         auto const& walk = rounds[0][w];
         for (auto const& vertex : walk) {
             // out << vertex.id << ":[" << vertex.front << "," << vertex.back << "] ";
-            out << vertex.id << '\n';
+            out << vertex.id;
+            out << (vertex.sign ? " +\n" : " -\n");
         }
         // out << '\n';
         return walk.size();

@@ -91,7 +91,8 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         num_sequences_diff_abs += kmers_have_different_abundances;
         num_sequences_all_mfa += kmers_have_all_mfa;
 
-        data.vertices.emplace_back(data.num_sequences, front, back);
+        constexpr bool sign = true;
+        data.vertices.emplace_back(data.num_sequences, front, back, sign);
     };
 
     while (!is.eof()) {
@@ -437,8 +438,9 @@ int main(int argc, char** argv) {
         if (!is.good()) {
             throw std::runtime_error("error in opening the file '" + permutation_filename + "'");
         }
-        pthash::compact_vector::builder cv_builder(data.num_sequences,
-                                                   std::ceil(std::log2(data.num_sequences)));
+        pthash::compact_vector::builder cv_builder(
+            data.num_sequences,
+            data.num_sequences == 1 ? 1 : std::ceil(std::log2(data.num_sequences)));
         for (uint64_t i = 0; i != data.num_sequences; ++i) {
             uint64_t position = 0;
             is >> position;
