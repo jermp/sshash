@@ -43,8 +43,8 @@ struct cover {
         std::vector<color> colors;
         std::vector<vertex> tmp_vertices;
         std::unordered_set<uint32_t> unvisited_vertices;
-        /* map from vertex id to (offset+,offset-)*/
-        std::vector<std::pair<uint32_t, uint32_t>> id_to_offsets;
+        /* map from vertex id to offset+ into vertices */
+        std::vector<uint32_t> id_to_offset;
         walk_t walk;
         walks_t walks_in_round;
 
@@ -127,12 +127,12 @@ struct cover {
             if (rounds.size() == 0) {
                 /* remember: we removed some vertices but the id-space still spans
                    [0..m_num_sequences-1] */
-                id_to_offsets.resize(m_num_sequences);
+                id_to_offset.resize(m_num_sequences);
                 colors.resize(m_num_sequences);
                 std::fill(colors.begin(), colors.end(), color::invalid);
                 for (auto const& vertex : vertices) colors[vertex.id] = color::white;
             } else {
-                id_to_offsets.resize(num_vertices / 2);
+                id_to_offset.resize(num_vertices / 2);
                 colors.resize(num_vertices / 2);
                 std::fill(colors.begin(), colors.end(), color::white);
             }
@@ -147,7 +147,7 @@ struct cover {
                 return x.id < y.id;
             });
 
-            // if (num_vertices > 0)
+            /* fill abundance_map */
             {
                 uint64_t prev_front = constants::invalid;
                 uint64_t offset = 0;
@@ -159,15 +159,11 @@ struct cover {
                 assert(offset == vertices.size());
             }
 
-            /* fill id_to_offsets map */
+            /* fill id_to_offset map */
             {
                 uint64_t offset = 0;
                 for (auto const& vertex : vertices) {
-                    if (vertex.sign) {
-                        id_to_offsets[vertex.id].first = offset;
-                    } else {
-                        id_to_offsets[vertex.id].second = offset;
-                    }
+                    if (vertex.sign) id_to_offset[vertex.id] = offset;
                     offset += 1;
                 }
             }
@@ -184,7 +180,7 @@ struct cover {
                 /* 1. take an unvisited vertex */
                 {
                     uint32_t unvisited_vertex_id = *(unvisited_vertices.begin());
-                    i = id_to_offsets[unvisited_vertex_id].first;
+                    i = id_to_offset[unvisited_vertex_id];
                 }
 
                 /* 2. create a new walk */
@@ -194,8 +190,6 @@ struct cover {
 
                     auto vertex = vertices[i];
                     uint64_t id = vertex.id;
-
-                    // std::cout << "  visiting vertex " << id << " at offset " << i << std::endl;
 
                     assert(colors[id] != color::black);
                     colors[id] = color::gray;
@@ -256,11 +250,8 @@ struct cover {
 
                         assert(candidate_i <= num_vertices);
 
-                        constexpr uint64_t num_optimized_rounds_for_speed = 2;
-                        if (rounds.size() <= num_optimized_rounds_for_speed) {
-                            /* update candidate position in abundance_map */
-                            abundance_map[back] = candidate_i;
-                        }
+                        /* update candidate position in abundance_map */
+                        abundance_map[back] = candidate_i;
 
                         if (no_match_found or candidate_i == num_vertices) return false;
 
