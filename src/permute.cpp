@@ -223,7 +223,11 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         std::to_string(pthash::clock_type::now().time_since_epoch().count());
 
     std::string header_sequence;
+    std::string header_sequence_r;
+
     std::string dna_sequence;
+    std::string dna_sequence_rc;
+
     uint64_t num_sequences = permutation.size();
     uint64_t num_bases = 0;
     uint64_t bytes = 0;
@@ -264,18 +268,11 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         if (!signs[i]) {
             /* compute reverse complement of dna_sequence
                and reverse the abundances in header_sequence */
-            std::string dna_sequence_rc(dna_sequence.size(), 0);
-            std::string header_sequence_r;
-
+            dna_sequence_rc.resize(dna_sequence.size());
+            header_sequence_r.clear();
             util::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
                                              dna_sequence.size());
             reverse_header(header_sequence, header_sequence_r, k);
-
-            // std::cout << "header_sequence '" << header_sequence << "'" << std::endl;
-            // std::cout << "dna_sequence '" << dna_sequence << "'" << std::endl;
-            // std::cout << "header_sequence_r '" << header_sequence_r << "'" << std::endl;
-            // std::cout << "dna_sequence_rc '" << dna_sequence_rc << "'" << std::endl;
-
             dna_sequence.swap(dna_sequence_rc);
             header_sequence.swap(header_sequence_r);
         }
@@ -508,9 +505,9 @@ int main(int argc, char** argv) {
         signs.build(&bv_builder);
     }
 
-    /* permute */
+    /* permute and save to output file */
     permute_and_write(input_filename, output_filename, tmp_dirname, permutation, signs, k);
-    // std::remove(permutation_filename.c_str());
+    std::remove(permutation_filename.c_str());
 
     return 0;
 }
