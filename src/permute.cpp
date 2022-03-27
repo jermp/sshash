@@ -424,10 +424,10 @@ int main(int argc, char** argv) {
     auto data = parse_file(input_filename, build_config);
 
     {
-        uint64_t R_lower = data.num_runs_abundances - data.nodes.size() + 1;
+        uint64_t R_lo = data.num_runs_abundances - data.nodes.size() + 1;
         std::cout << "The trivial lower bound (too optimistic) assumes we are able to concatenate "
                      "all sequences : R_lo = "
-                  << R_lower << std::endl;
+                  << R_lo << std::endl;
 
         std::sort(data.nodes.begin(), data.nodes.end(), [](auto const& x, auto const& y) {
             /* sort on front */
@@ -436,10 +436,13 @@ int main(int argc, char** argv) {
             return x.id < y.id;
         });
 
-        /* (abundance, num_seqs_with_front=abundance) */
+        /* (back_abundance, num_seqs_with_front=back_abundance) */
         // We assume there are less than 2^32 sequences and that
         // the largest abundance fits into a 32-bit uint.
         std::unordered_map<uint32_t, uint32_t> abundance_map;
+
+        /* (back_abundance, num_seqs_with_back=back_abundance) */
+        std::unordered_map<uint32_t, uint32_t> back_abundance_freqs;
 
         uint64_t prev_front = data.nodes.front().front;
         uint64_t count = 0;
@@ -452,24 +455,26 @@ int main(int argc, char** argv) {
             prev_front = node.front;
         }
         abundance_map[prev_front] = count;
+        // for (auto const& p : abundance_map) {
+        //     std::cout << "ab:" << p.first << " - potential matches: " << p.second << std::endl;
+        // }
 
-        uint64_t R = data.num_runs_abundances;
         for (auto const& node : data.nodes) {
-            uint64_t back = node.back;
-            auto it = abundance_map.find(back);
-            if (it != abundance_map.cend()) {  // found
-                if ((*it).second > 0) {        // if it is 0, we cannot find a match
-
-                    /* We clearly cannot create more mergings than num_sequences - 1,
-                       thus R cannot be lower than R_lower. */
-                    if (R == R_lower) break;
-
-                    (*it).second -= 1;
-                    R -= 1;
-                }
+            auto it = back_abundance_freqs.find(node.back);
+            if (it == back_abundance_freqs.cend()) {
+                back_abundance_freqs[node.back] = 1;
+            } else {
+                (*it).second += 1;
             }
         }
-        std::cout << "Computed lower bound: R_hi = " << R << std::endl;
+        uint64_t R_hi = R_lo;
+        for (auto const& p : back_abundance_freqs) {
+            // std::cout << "ab:" << p.first << " - freq:" << p.second << std::endl;
+            if (p.second == 1 and abundance_map.find(p.first) == abundance_map.cend()) {
+                R_hi += 1;
+            }
+        }
+        std::cout << "Computed lower bound: R_hi = " << R_hi << std::endl;
     }
 
     {

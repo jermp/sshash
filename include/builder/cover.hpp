@@ -394,7 +394,7 @@ private:
                     + & - = -
                     - & + = -
                 */
-                bool new_sign = sign * node.sign;
+                bool new_sign = sign and node.sign;
                 if (sign == false and node.sign == false) new_sign = true;
                 num_sequences += visit(node.id, r - 1, new_sign, out);
             }
