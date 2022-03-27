@@ -363,7 +363,11 @@ struct cover {
         int r = rounds.size() - 1;
         const auto& walks = rounds[r];
         uint64_t num_sequences = 0;
-        for (uint64_t w = 0; w != walks.size(); ++w) num_sequences += visit(w, r, out);
+        for (uint64_t w = 0; w != walks.size(); ++w) {
+            assert(walks[w].size() == 1);
+            assert(walks[w].front().sign == true);
+            num_sequences += visit(w, r, true, out);
+        }
         if (num_sequences != m_num_sequences) {
             std::cerr << "Error: expected to write " << m_num_sequences << " but written "
                       << num_sequences << std::endl;
@@ -378,23 +382,46 @@ private:
     std::vector<walks_t> rounds;
 
     /* visit walk of index w in round of index r */
-    uint64_t visit(int w, int r, std::ofstream& out) const {
+    uint64_t visit(int w, int r, bool sign, std::ofstream& out) const {
         if (r > 0) {
             assert(size_t(w) < rounds[r].size());
             auto const& walk = rounds[r][w];
             uint64_t num_sequences = 0;
-            for (auto const& node : walk) num_sequences += visit(node.id, r - 1, out);
+            for (auto const& node : walk) {
+                /*
+                    + & + = +
+                    - & - = +
+                    + & - = -
+                    - & + = -
+                */
+                bool new_sign = sign * node.sign;
+                if (sign == false and node.sign == false) new_sign = true;
+                num_sequences += visit(node.id, r - 1, new_sign, out);
+            }
             return num_sequences;
         }
         /* print */
         assert(size_t(w) < rounds[0].size());
         auto const& walk = rounds[0][w];
-        for (auto const& node : walk) {
-            // out << node.id << ":[" << node.front << "," << node.back << "] ";
-            out << node.id;
-            out << (node.sign ? " +\n" : " -\n");
+
+        if (sign) {
+            /* print forward */
+            for (uint64_t i = 0; i != walk.size(); ++i) {
+                auto const& node = walk[i];
+                // out << node.id << ":[" << node.front << "," << node.back << "] ";
+                out << node.id;
+                out << (node.sign ? " 1\n" : " 0\n");
+            }
+        } else {
+            /* print backward and change orientation */
+            for (int64_t i = walk.size() - 1; i >= 0; --i) {
+                auto const& node = walk[i];
+                // out << node.id << ":[" << node.back << "," << node.front << "] ";
+                out << node.id;
+                out << (node.sign ? " 0\n" : " 1\n");
+            }
         }
-        // out << '\n';
+
         return walk.size();
     }
 };

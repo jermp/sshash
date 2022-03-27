@@ -181,8 +181,41 @@ private:
     }
 };
 
+void reverse_header(std::string const& input, std::string& output, uint64_t k) {
+    // Example header:
+    // >2 LN:i:61 ab:Z:4 4 4 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1
+    // Expected output:
+    // >2 LN:i:61 ab:Z:1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 4 4 4
+
+    /* skip validation of input string */
+
+    uint64_t i = 0;
+    i = input.find_first_of(' ', i);
+    if (i == std::string::npos) throw parse_runtime_error();
+
+    i += 6;  // skip ' LN:i':
+    uint64_t j = input.find_first_of(' ', i);
+    if (j == std::string::npos) throw parse_runtime_error();
+
+    uint64_t seq_len = std::strtoull(input.data() + i, nullptr, 10);
+    i = j + 6;  // skip ' ab:Z:'
+    output.append(input.data(), input.data() + i);
+
+    std::vector<uint32_t> abundances;
+    abundances.reserve(seq_len - k + 1);
+    for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
+        uint64_t abundance = std::strtoull(input.data() + i, nullptr, 10);
+        abundances.push_back(abundance);
+        i = input.find_first_of(' ', i) + 1;
+    }
+
+    std::reverse(abundances.begin(), abundances.end());
+    for (auto abundance : abundances) { output.append(std::to_string(abundance) + " "); }
+}
+
 void permute_and_write(std::istream& is, std::string const& output_filename,
-                       std::string const& tmp_dirname, pthash::compact_vector const& permutation) {
+                       std::string const& tmp_dirname, pthash::compact_vector const& permutation,
+                       pthash::bit_vector const& signs, uint64_t k) {
     constexpr uint64_t limit = 1 * essentials::GB;
     std::vector<std::pair<std::string, std::string>> buffer;  // (header, dna)
 
@@ -227,6 +260,25 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
     for (uint64_t i = 0; i != num_sequences; ++i) {
         std::getline(is, header_sequence);
         std::getline(is, dna_sequence);
+
+        if (!signs[i]) {
+            /* compute reverse complement of dna_sequence
+               and reverse the abundances in header_sequence */
+            std::string dna_sequence_rc(dna_sequence.size(), 0);
+            std::string header_sequence_r;
+
+            util::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
+                                             dna_sequence.size());
+            reverse_header(header_sequence, header_sequence_r, k);
+
+            // std::cout << "header_sequence '" << header_sequence << "'" << std::endl;
+            // std::cout << "dna_sequence '" << dna_sequence << "'" << std::endl;
+            // std::cout << "header_sequence_r '" << header_sequence_r << "'" << std::endl;
+            // std::cout << "dna_sequence_rc '" << dna_sequence_rc << "'" << std::endl;
+
+            dna_sequence.swap(dna_sequence_rc);
+            header_sequence.swap(header_sequence_r);
+        }
 
         uint64_t seq_bytes = header_sequence.size() + dna_sequence.size() + 16;
         if (bytes + seq_bytes > limit) sort_and_flush();
@@ -319,15 +371,16 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
 }
 
 void permute_and_write(std::string const& input_filename, std::string const& output_filename,
-                       std::string const& tmp_dirname, pthash::compact_vector const& permutation) {
+                       std::string const& tmp_dirname, pthash::compact_vector const& permutation,
+                       pthash::bit_vector const& signs, uint64_t k) {
     std::ifstream is(input_filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + input_filename + "'");
     std::cout << "reading file '" << input_filename << "'..." << std::endl;
     if (util::ends_with(input_filename, ".gz")) {
         zip_istream zis(is);
-        permute_and_write(zis, output_filename, tmp_dirname, permutation);
+        permute_and_write(zis, output_filename, tmp_dirname, permutation, signs, k);
     } else {
-        permute_and_write(is, output_filename, tmp_dirname, permutation);
+        permute_and_write(is, output_filename, tmp_dirname, permutation, signs, k);
     }
     is.close();
 }
@@ -431,8 +484,8 @@ int main(int argc, char** argv) {
         std::vector<node>().swap(data.nodes);
     }
 
-    /* permute */
     pthash::compact_vector permutation;
+    pthash::bit_vector signs;
     {
         std::ifstream is(permutation_filename.c_str());
         if (!is.good()) {
@@ -441,17 +494,23 @@ int main(int argc, char** argv) {
         pthash::compact_vector::builder cv_builder(
             data.num_sequences,
             data.num_sequences == 1 ? 1 : std::ceil(std::log2(data.num_sequences)));
+        pthash::bit_vector_builder bv_builder(data.num_sequences);
         for (uint64_t i = 0; i != data.num_sequences; ++i) {
             uint64_t position = 0;
+            bool sign = 0;
             is >> position;
+            is >> sign;
             cv_builder.set(position, i);
+            bv_builder.set(position, sign);
         }
         is.close();
         cv_builder.build(permutation);
+        signs.build(&bv_builder);
     }
 
-    permute_and_write(input_filename, output_filename, tmp_dirname, permutation);
-    std::remove(permutation_filename.c_str());
+    /* permute */
+    permute_and_write(input_filename, output_filename, tmp_dirname, permutation, signs, k);
+    // std::remove(permutation_filename.c_str());
 
     return 0;
 }

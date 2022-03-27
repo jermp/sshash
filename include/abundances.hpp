@@ -80,17 +80,20 @@ struct abundances {
                 return x.first < y.first;
             });
 
-            /* If this test fails, then we need to change the value of
-                constants::most_frequent_abundance. */
-            if (m_most_frequent_abundance != m_abundances.front().first) {
-                throw std::runtime_error("the most frequent abundance is not " +
-                                         std::to_string(constants::most_frequent_abundance) +
-                                         " but " + std::to_string(m_abundances.front().first));
+            if (m_kmer_id_interval_values.size() != 0) {  // optimize_mfa
+                /* If this test fails, then we need to change the value of
+                    constants::most_frequent_abundance. */
+                if (m_most_frequent_abundance != m_abundances.front().first) {
+                    throw std::runtime_error("the most frequent abundance is not " +
+                                             std::to_string(constants::most_frequent_abundance) +
+                                             " but " + std::to_string(m_abundances.front().first));
+                }
             }
 
             uint64_t rest = num_kmers - m_abundances.front().second;
             std::cout << "kmers that do not have the most frequent ab: " << rest << " ("
                       << (rest * 100.0) / num_kmers << "%)" << std::endl;
+
             if (m_kmer_id_interval_values.size() != 0) {  // optimize_mfa
                 std::cout << "cumulative_kmer_id_interval_lengths "
                           << m_kmer_id_interval_lengths.back() << '/' << rest << std::endl;
