@@ -132,8 +132,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         uint64_t j = sequence.find_first_of(' ', i);
         if (j == std::string::npos) throw parse_runtime_error();
 
-        char* end;
-        seq_len = std::strtoull(sequence.data() + i, &end, 10);
+        seq_len = std::strtoull(sequence.data() + i, nullptr, 10);
         i = j + 1;
         expect(sequence[i + 0], 'a');
         expect(sequence[i + 1], 'b');
@@ -150,7 +149,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         for (uint64_t j = 0, num_kmers = data.num_kmers, prev_ab = constants::invalid;
              j != seq_len - k + 1; ++j, ++num_kmers) {
-            uint64_t ab = std::strtoull(sequence.data() + i, &end, 10);
+            uint64_t ab = std::strtoull(sequence.data() + i, nullptr, 10);
             i = sequence.find_first_of(' ', i) + 1;
 
             if (ab != constants::most_frequent_abundance) kmers_have_all_mfa = false;
