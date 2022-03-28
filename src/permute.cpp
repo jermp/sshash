@@ -429,52 +429,54 @@ int main(int argc, char** argv) {
                      "all sequences : R_lo = "
                   << R_lo << std::endl;
 
-        std::sort(data.nodes.begin(), data.nodes.end(), [](auto const& x, auto const& y) {
-            /* sort on front */
-            if (x.front != y.front) return x.front < y.front;
-            if (x.back != y.back) return x.back < y.back;
-            return x.id < y.id;
-        });
-
-        /* (back_abundance, num_seqs_with_front=back_abundance) */
         // We assume there are less than 2^32 sequences and that
         // the largest abundance fits into a 32-bit uint.
-        std::unordered_map<uint32_t, uint32_t> abundance_map;
+
+        /* (front_abundance, num_seqs_with_front=front_abundance) */
+        std::unordered_map<uint32_t, uint32_t> front_abundance_freqs;
 
         /* (back_abundance, num_seqs_with_back=back_abundance) */
         std::unordered_map<uint32_t, uint32_t> back_abundance_freqs;
 
-        uint64_t prev_front = data.nodes.front().front;
-        uint64_t count = 0;
         for (auto const& node : data.nodes) {
-            if (node.front != prev_front) {
-                abundance_map[prev_front] = count;
-                count = 0;
+            auto it_front = front_abundance_freqs.find(node.front);
+            if (it_front == front_abundance_freqs.cend()) {
+                front_abundance_freqs[node.front] = 1;
+            } else {
+                (*it_front).second += 1;
             }
-            count += 1;
-            prev_front = node.front;
-        }
-        abundance_map[prev_front] = count;
-        // for (auto const& p : abundance_map) {
-        //     std::cout << "ab:" << p.first << " - potential matches: " << p.second << std::endl;
-        // }
-
-        for (auto const& node : data.nodes) {
-            auto it = back_abundance_freqs.find(node.back);
-            if (it == back_abundance_freqs.cend()) {
+            auto it_back = back_abundance_freqs.find(node.back);
+            if (it_back == back_abundance_freqs.cend()) {
                 back_abundance_freqs[node.back] = 1;
             } else {
-                (*it).second += 1;
+                (*it_back).second += 1;
             }
         }
+
         uint64_t R_hi = R_lo;
         for (auto const& p : back_abundance_freqs) {
-            // std::cout << "ab:" << p.first << " - freq:" << p.second << std::endl;
-            if (p.second == 1 and abundance_map.find(p.first) == abundance_map.cend()) {
+            /* if there is only one occurrence of this back abundance
+               and it does not appear in any front abundance, then it cannot be matched */
+            if (p.second == 1 and
+                front_abundance_freqs.find(p.first) == front_abundance_freqs.cend()) {
                 R_hi += 1;
             }
         }
         std::cout << "Computed lower bound: R_hi = " << R_hi << std::endl;
+
+        /*
+        note that we do NOT do the same for front_abundance_freqs,
+        namely the following piece of code:
+
+            for (auto const& p : front_abundance_freqs) {
+                if (p.second == 1 and
+                    back_abundance_freqs.find(p.first) == back_abundance_freqs.cend()) {
+                    R_hi += 1;
+                }
+            }
+
+        because otherwise we will end up in potentially counting twice the number of cuts.
+        */
     }
 
     {
