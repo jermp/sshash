@@ -12,6 +12,7 @@ struct permute_data {
     permute_data() : num_runs_abundances(0), num_sequences(0) {}
     uint64_t num_runs_abundances;
     uint64_t num_sequences;
+    uint64_t num_distinct_abundances;
     std::vector<node> nodes;
 };
 
@@ -27,6 +28,9 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
     data.num_runs_abundances = 0;
     data.num_sequences = 0;
+    data.num_distinct_abundances = 0;
+
+    std::unordered_set<uint32_t> distinct_abundances;  // count number of distinct abundances
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -74,6 +78,8 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             sum_of_abundances += abundance;
             i = sequence.find_first_of(' ', i) + 1;
 
+            distinct_abundances.insert(abundance);
+
             /* set front and back */
             if (j == 0) front = abundance;
             if (j == seq_len - k) back = abundance;
@@ -119,9 +125,11 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
     assert(data.nodes.size() == data.num_sequences);
     assert(data.num_runs_abundances >= data.num_sequences);
+    data.num_distinct_abundances = distinct_abundances.size();
 
     std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
               << num_kmers << " kmers" << std::endl;
+    std::cout << "found " << data.num_distinct_abundances << " distint abundances" << std::endl;
     std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
     std::cout << "num_sequences whose kmers have different abundances: " << num_sequences_diff_abs
               << "/" << data.num_sequences << " ("
@@ -424,10 +432,16 @@ int main(int argc, char** argv) {
     auto data = parse_file(input_filename, build_config);
 
     {
+        /* R_lo = max(c,r-p+1)
+           where c = num. distinct abundances
+                 r = num. runs in the abundances
+                 p = num. sequences */
         uint64_t R_lo = data.num_runs_abundances - data.nodes.size() + 1;
-        std::cout << "The trivial lower bound (too optimistic) assumes we are able to concatenate "
-                     "all sequences : R_lo = "
-                  << R_lo << std::endl;
+        if (R_lo < data.num_distinct_abundances) {
+            /* clearly we cannot have less than data.num_distinct_abundances runs */
+            R_lo = data.num_distinct_abundances;
+        }
+        std::cout << "R_lo = " << R_lo << std::endl;
 
         // We assume there are less than 2^32 sequences and that
         // the largest abundance fits into a 32-bit uint.
@@ -462,7 +476,7 @@ int main(int argc, char** argv) {
                 R_hi += 1;
             }
         }
-        std::cout << "Computed lower bound: R_hi = " << R_hi << std::endl;
+        std::cout << "R_hi = " << R_hi << std::endl;
 
         /*
         note that we do NOT do the same for front_abundance_freqs,
