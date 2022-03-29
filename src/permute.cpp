@@ -12,8 +12,6 @@ struct permute_data {
     permute_data() : num_runs_abundances(0), num_sequences(0) {}
     uint64_t num_runs_abundances;
     uint64_t num_sequences;
-    uint64_t num_distinct_abundances;
-    uint64_t num_distinct_links;
     std::vector<node> nodes;
 };
 
@@ -33,15 +31,12 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t sum_of_abundances = 0;
     uint64_t num_sequences_diff_abs = 0;  // num sequences whose kmers have different abundances
     uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
+
     data.num_runs_abundances = 0;
     data.num_sequences = 0;
-    data.num_distinct_abundances = 0;
 
-    std::unordered_set<uint32_t> distinct_abundances;  // count number of distinct abundances
-
-    std::unordered_map<std::pair<uint32_t, uint32_t>, uint32_t, pair_hash> distinct_links_freq;
-    std::unordered_map<uint32_t, uint32_t> indegree;
-    std::unordered_map<uint32_t, uint32_t> outdegree;
+    /* count number of distinct abundances */
+    std::unordered_set<uint32_t> distinct_abundances;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -110,33 +105,6 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
         constexpr bool sign = true;
         data.nodes.emplace_back(data.num_sequences, front, back, sign);
-
-        if (front != back) {
-            {
-                auto it = indegree.find(back);
-                if (it != indegree.cend()) {
-                    (*it).second += 1;
-                } else {
-                    indegree[back] = 1;
-                }
-            }
-            {
-                auto it = outdegree.find(front);
-                if (it != outdegree.cend()) {
-                    (*it).second += 1;
-                } else {
-                    outdegree[front] = 1;
-                }
-            }
-            {
-                auto it = distinct_links_freq.find({front, back});
-                if (it != distinct_links_freq.cend()) {
-                    (*it).second += 1;
-                } else {
-                    distinct_links_freq[{front, back}] = 1;
-                }
-            }
-        }
     };
 
     while (!is.eof()) {
@@ -163,145 +131,10 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
     assert(data.nodes.size() == data.num_sequences);
     assert(data.num_runs_abundances >= data.num_sequences);
-    data.num_distinct_abundances = distinct_abundances.size();
-    data.num_distinct_links = distinct_links_freq.size();
-
-    {
-        /* (front_abundance, num_seqs_with_front=front_abundance) */
-        std::unordered_map<uint32_t, uint32_t> front_abundance_freqs;
-
-        /* (back_abundance, num_seqs_with_back=back_abundance) */
-        std::unordered_map<uint32_t, uint32_t> back_abundance_freqs;
-
-        for (auto const& node : data.nodes) {
-            auto it_front = front_abundance_freqs.find(node.front);
-            if (it_front == front_abundance_freqs.cend()) {
-                front_abundance_freqs[node.front] = 1;
-            } else {
-                (*it_front).second += 1;
-            }
-            auto it_back = back_abundance_freqs.find(node.back);
-            if (it_back == back_abundance_freqs.cend()) {
-                back_abundance_freqs[node.back] = 1;
-            } else {
-                (*it_back).second += 1;
-            }
-        }
-
-        std::vector<uint32_t> distinct_abundances_vec;
-        distinct_abundances_vec.reserve(distinct_abundances.size());
-        for (auto x : distinct_abundances) distinct_abundances_vec.push_back(x);
-        std::sort(distinct_abundances_vec.begin(), distinct_abundances_vec.end());
-
-        uint64_t will_appear = 0;
-        for (auto ab : distinct_abundances_vec) {
-            int64_t freq_front = 0;
-            int64_t freq_back = 0;
-            auto it_front = front_abundance_freqs.find(ab);
-            auto it_back = back_abundance_freqs.find(ab);
-            if (it_front != front_abundance_freqs.cend()) { freq_front = (*it_front).second; }
-            if (it_back != back_abundance_freqs.cend()) { freq_back = (*it_back).second; }
-
-            /* abundance only appears for internal kmers */
-            if (freq_front == 0 and freq_back == 0) continue;
-
-            // std::cout << "ab:" << ab << " - freq_front:" << freq_front
-            //           << " - freq_back:" << freq_back;
-
-            uint64_t in_count = 0;
-            uint64_t out_count = 0;
-            auto it_in_count = indegree.find(ab);
-            auto it_out_count = outdegree.find(ab);
-            if (it_in_count != indegree.cend()) { in_count = (*it_in_count).second; }
-            if (it_out_count != outdegree.cend()) { out_count = (*it_out_count).second; }
-
-            // std::cout << " - indegree:" << in_count << " - outdegree:" << out_count;
-
-            /* special case */
-            if (in_count == 0 and out_count == 0) {
-                // std::cout << " - **2**\n";
-                will_appear += 2;  // will appear as singleton, so count twice
-                continue;
-            }
-
-            uint64_t diff = std::abs(freq_front - freq_back);
-            if (diff % 2 == 0) {
-                // std::cout << " - 0\n";
-            } else {
-                // std::cout << " - 1\n";
-                will_appear += 1;
-            }
-        }
-
-        uint64_t num_runs_abundances_internal = data.num_runs_abundances - data.nodes.size();
-        std::cout << "will_appear = " << will_appear / 2 << std::endl;
-        std::cout << "computed lower bound = " << (num_runs_abundances_internal + will_appear / 2)
-                  << std::endl;
-
-        // uint64_t cuts = 0;
-        // for (uint64_t i = 0; i != distinct_abundances_vec.size(); ++i) {
-        //     uint64_t front = distinct_abundances_vec[i];
-        //     if (i + 1 == distinct_abundances_vec.size()) break;
-        //     uint64_t back = distinct_abundances_vec[i + 1];
-
-        //     std::cout << "trying to glue [" << front << "," << back << "]; ";
-
-        //     int64_t freq_forward = 0;  // signed
-        //     int64_t freq_bckward = 0;  // signed
-        //     auto it_forward = distinct_links_freq.find({front, back});
-        //     auto it_bckward = distinct_links_freq.find({back, front});
-        //     if (it_forward != distinct_links_freq.cend()) { freq_forward = (*it_forward).second;
-        //     } if (it_bckward != distinct_links_freq.cend()) { freq_bckward =
-        //     (*it_bckward).second; }
-
-        //     std::cout << "freq of link [" << front << "," << back << "] = " << freq_forward << ";
-        //     "; std::cout << "freq of link [" << back << "," << front << "] = " << freq_bckward <<
-        //     "; ";
-
-        //     /* if the difference in abs value is even, then the link
-        //     disappears and we cannot glue anymore, i.e., we originate a cut */
-        //     uint64_t diff = std::abs(freq_forward - freq_bckward);
-        //     if (diff % 2 == 0) {
-        //         // std::cout << "NOT GLUEABLE";
-        //         // cuts += 1;
-
-        //         int64_t freq_front = 0;  // signed
-        //         int64_t freq_back = 0;   // signed
-        //         auto it_front = front_abundance_freqs.find(front);
-        //         auto it_back = back_abundance_freqs.find(front);
-        //         if (it_front != front_abundance_freqs.cend()) { freq_front = (*it_front).second;
-        //         } if (it_back != back_abundance_freqs.cend()) { freq_back = (*it_back).second; }
-
-        //         bool front_appears = (std::abs(freq_front - freq_back) % 2 != 0);
-        //         // or (freq_front == 1 and freq_back == 1);
-
-        //         freq_front = 0;  // signed
-        //         freq_back = 0;   // signed
-        //         it_front = front_abundance_freqs.find(back);
-        //         it_back = back_abundance_freqs.find(back);
-        //         if (it_front != front_abundance_freqs.cend()) { freq_front = (*it_front).second;
-        //         } if (it_back != back_abundance_freqs.cend()) { freq_back = (*it_back).second; }
-
-        //         bool back_appears = (std::abs(freq_front - freq_back) % 2 != 0);
-        //         // or (freq_front == 1 and freq_back == 1);
-
-        //         if (front_appears and back_appears) {  // and link is absent
-        //             std::cout << "NOT GLUEABLE";
-        //             cuts += 1;
-        //         }
-
-        //     } else {
-        //         std::cout << "glueable";
-        //     }
-
-        //     std::cout << '\n';
-        // }
-        // std::cout << "cuts = " << cuts << std::endl;
-    }
 
     std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
               << num_kmers << " kmers" << std::endl;
-    std::cout << "found " << data.num_distinct_abundances << " distint abundances" << std::endl;
+    std::cout << "found " << distinct_abundances.size() << " distinct abundances" << std::endl;
     std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
     std::cout << "num_sequences whose kmers have different abundances: " << num_sequences_diff_abs
               << "/" << data.num_sequences << " ("
@@ -315,6 +148,107 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
               << " ("
               << (num_sequences_all_mfa * 100.0) / (data.num_sequences - num_sequences_diff_abs)
               << "%)" << std::endl;
+
+    /* computation of lower bound to the number of final abundance runs */
+    {
+        /* (front_abundance, num_seqs_with_front=front_abundance) */
+        std::unordered_map<uint32_t, uint32_t> front_abundance_freqs;
+
+        /* (back_abundance, num_seqs_with_back=back_abundance) */
+        std::unordered_map<uint32_t, uint32_t> back_abundance_freqs;
+
+        /* (front_abundance, num_edges_outgoing_from) */
+        std::unordered_map<uint32_t, uint32_t> outdegree;
+
+        /* (back_abundance, num_edges_incoming_in) */
+        std::unordered_map<uint32_t, uint32_t> indegree;
+
+        for (auto const& node : data.nodes) {
+            uint64_t front = node.front;
+            uint64_t back = node.back;
+            auto it_front = front_abundance_freqs.find(front);
+            if (it_front == front_abundance_freqs.cend()) {
+                front_abundance_freqs[front] = 1;
+            } else {
+                (*it_front).second += 1;
+            }
+            auto it_back = back_abundance_freqs.find(back);
+            if (it_back == back_abundance_freqs.cend()) {
+                back_abundance_freqs[back] = 1;
+            } else {
+                (*it_back).second += 1;
+            }
+            if (front != back) {
+                {
+                    auto it = indegree.find(back);
+                    if (it != indegree.cend()) {
+                        (*it).second += 1;
+                    } else {
+                        indegree[back] = 1;
+                    }
+                }
+                {
+                    auto it = outdegree.find(front);
+                    if (it != outdegree.cend()) {
+                        (*it).second += 1;
+                    } else {
+                        outdegree[front] = 1;
+                    }
+                }
+            }
+        }
+
+        std::vector<uint32_t> distinct_abundances_vec;
+        distinct_abundances_vec.reserve(distinct_abundances.size());
+        for (auto x : distinct_abundances) distinct_abundances_vec.push_back(x);
+        std::sort(distinct_abundances_vec.begin(), distinct_abundances_vec.end());
+
+        uint64_t num_end_points = 0;
+        for (auto ab : distinct_abundances_vec) {
+            int64_t freq_front = 0;
+            int64_t freq_back = 0;
+            auto it_front = front_abundance_freqs.find(ab);
+            auto it_back = back_abundance_freqs.find(ab);
+            if (it_front != front_abundance_freqs.cend()) { freq_front = (*it_front).second; }
+            if (it_back != back_abundance_freqs.cend()) { freq_back = (*it_back).second; }
+
+            /* abundance only appears for internal kmers */
+            if (freq_front == 0 and freq_back == 0) continue;
+
+            uint64_t in_count = 0;
+            uint64_t out_count = 0;
+            auto it_in_count = indegree.find(ab);
+            auto it_out_count = outdegree.find(ab);
+            if (it_in_count != indegree.cend()) { in_count = (*it_in_count).second; }
+            if (it_out_count != outdegree.cend()) { out_count = (*it_out_count).second; }
+
+            // std::cout << "ab:" << ab << " - freq_front:" << freq_front
+            //           << " - freq_back:" << freq_back << " - indegree:" << in_count
+            //           << " - outdegree:" << out_count << std::endl;
+
+            /* special case: abundance will appear as singletion, so count twice */
+            if (in_count == 0 and out_count == 0) {
+                num_end_points += 2;
+                continue;
+            }
+
+            /* if the excess of frequency is odd, then the abundance will appear as end-point */
+            uint64_t diff = std::abs(freq_front - freq_back);
+            if (diff % 2 == 1) num_end_points += 1;
+        }
+
+        uint64_t num_distinct_abundances = distinct_abundances.size();
+        uint64_t num_runs_abundances_internal = data.num_runs_abundances - data.nodes.size();
+        std::cout << "num_end_points = " << num_end_points / 2 << std::endl;
+        std::cout << "num_runs_abundances = " << data.num_runs_abundances << std::endl;
+        std::cout << "num_runs_abundances_internal = " << num_runs_abundances_internal << std::endl;
+
+        uint64_t R_lo =
+            std::max<uint64_t>(num_distinct_abundances, num_runs_abundances_internal + 1);
+        uint64_t R_hi = num_runs_abundances_internal + num_end_points / 2;
+        std::cout << "R_lo = " << R_lo << std::endl;
+        std::cout << "R_hi = " << R_hi << std::endl;
+    }
 }
 
 permute_data parse_file(std::string const& filename, build_configuration const& build_config) {
@@ -602,119 +536,6 @@ int main(int argc, char** argv) {
     std::string permutation_filename = tmp_dirname + "/tmp.permutation";
 
     auto data = parse_file(input_filename, build_config);
-
-    {
-        /* R_lo = max(c,r-p+1)
-           where c = num. distinct abundances
-                 r = num. runs in the abundances
-                 p = num. sequences */
-        uint64_t num_runs_abundances_internal = data.num_runs_abundances - data.nodes.size();
-        std::cout << "num_runs_abundances = " << data.num_runs_abundances << std::endl;
-        std::cout << "num_runs_abundances_internal = " << num_runs_abundances_internal << std::endl;
-        std::cout << "num_distinct_links = " << data.num_distinct_links << std::endl;
-
-        uint64_t R_lo = data.num_runs_abundances - data.nodes.size() + 1;
-        uint64_t R_hi = R_lo;
-        if (R_lo < data.num_distinct_abundances) {
-            /* clearly we cannot have less than data.num_distinct_abundances runs */
-            R_lo = data.num_distinct_abundances;
-            // R_hi = data.num_runs_abundances_internal;
-            R_hi = data.num_distinct_abundances + num_runs_abundances_internal -
-                   data.num_distinct_links;
-        }
-        // else {
-        // We assume there are less than 2^32 sequences and that
-        // the largest abundance fits into a 32-bit uint.
-
-        /* (front_abundance, num_seqs_with_front=front_abundance) */
-        std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> front_abundance_freqs;
-
-        /* (back_abundance, num_seqs_with_back=back_abundance) */
-        std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> back_abundance_freqs;
-
-        uint64_t offset = 0;
-        for (auto const& node : data.nodes) {
-            auto it_front = front_abundance_freqs.find(node.front);
-            if (it_front == front_abundance_freqs.cend()) {
-                front_abundance_freqs[node.front] = {1, offset};
-            } else {
-                (*it_front).second.first += 1;
-                (*it_front).second.second = -1;
-            }
-            auto it_back = back_abundance_freqs.find(node.back);
-            if (it_back == back_abundance_freqs.cend()) {
-                back_abundance_freqs[node.back] = {1, offset};
-            } else {
-                (*it_back).second.first += 1;
-                (*it_back).second.second = -1;
-            }
-            ++offset;
-        }
-
-        // std::cout << "front_abundance_freqs.size() = " << front_abundance_freqs.size() <<
-        // std::endl; std::cout << "back_abundance_freqs.size() = " << back_abundance_freqs.size()
-        // << std::endl;
-
-        // for (auto const& p : back_abundance_freqs) {
-        //     std::cout << "back-ab:" << p.first << " - freq:" << p.second.first << std::endl;
-        // }
-        // for (auto const& p : front_abundance_freqs) {
-        //     std::cout << "front-ab:" << p.first << " - freq:" << p.second.first << std::endl;
-        // }
-
-        for (auto const& p : back_abundance_freqs) {
-            /* if there is only one occurrence of this back abundance
-               and it does not appear in any front abundance, then it cannot be matched */
-            if (p.second.first == 1) {
-                auto it = front_abundance_freqs.find(p.first);
-                if (it == front_abundance_freqs.cend()) { R_hi += 1; }
-                // else {
-                //     if ((*it).second.first == 1 and p.second.second == (*it).second.second) {
-                //         // uint64_t offset = p.second.second;
-                //         // auto node = data.nodes[offset];
-                //         // std::cout << "node " << node.id << ":[" << node.front << "," <<
-                //         // node.back
-                //         //           << "]" << std::endl;
-                //         R_hi += 1;
-                //     }
-                // }
-            }
-            // else {
-            //     auto it = front_abundance_freqs.find(p.first);
-            //     if (it != front_abundance_freqs.cend()) {
-            //         // abundance is present both as back and front
-
-            //         // and appears an even number of times, will originate a walk
-            //         //   with both sides unmatchable
-            //         if ((*it).second.first % 2 == 0 and p.second.first % 2 == 0) { R_hi += 1; }
-            //     }
-            // }
-        }
-
-        // for (auto const& p : front_abundance_freqs) {
-        //     if (p.second.first == 1 and
-        //         back_abundance_freqs.find(p.first) == back_abundance_freqs.cend()) {
-        //         R_hi += 1;
-        //     }
-        // }
-
-        /*
-        note that we do NOT do the same for front_abundance_freqs,
-        namely the following piece of code:
-
-            for (auto const& p : front_abundance_freqs) {
-                if (p.second == 1 and
-                    back_abundance_freqs.find(p.first) == back_abundance_freqs.cend()) {
-                    R_hi += 1;
-                }
-            }
-
-        because otherwise we will end up in potentially counting twice the number of cuts.
-        */
-        // }
-        std::cout << "R_lo = " << R_lo << std::endl;
-        std::cout << "R_hi = " << R_hi << std::endl;
-    }
 
     {
         /* compute cover */
