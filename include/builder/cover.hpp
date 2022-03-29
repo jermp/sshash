@@ -306,21 +306,23 @@ struct cover {
                 uint64_t num_matches_in_round = 0;
                 for (auto const& walk : walks_in_round) {
                     num_matches_in_round += walk.size() - 1;
-#ifndef NDEBUG
-                    uint64_t prev_back = walk.front().front;
-                    std::cout << "=>";
-                    for (auto const& w : walk) {
-                        if (visited[w.id]) std::cout << "ERROR: duplicate node." << std::endl;
-                        if (w.front != prev_back) {
-                            std::cout << "ERROR: path is broken." << std::endl;
-                        }
-                        prev_back = w.back;
-                        visited[w.id] = true;
-                        std::cout << w.id << ":[" << w.front << "," << w.back << ","
-                                  << (w.sign ? '+' : '-') << "] ";
-                    }
-                    std::cout << std::endl;
-#endif
+                    // #ifndef NDEBUG
+                    // if (no_more_matches_possible) {
+                    //     // uint64_t prev_back = walk.front().front;
+                    //     std::cout << "=>";
+                    //     for (auto const& w : walk) {
+                    //         // if (visited[w.id]) std::cout << "ERROR: duplicate node." <<
+                    //         // std::endl; if (w.front != prev_back) {
+                    //         //     std::cout << "ERROR: path is broken." << std::endl;
+                    //         // }
+                    //         // prev_back = w.back;
+                    //         // visited[w.id] = true;
+                    //         std::cout << w.id << ":[" << w.front << "," << w.back << ","
+                    //                   << (w.sign ? '+' : '-') << "] ";
+                    //     }
+                    //     std::cout << std::endl;
+                    //     // #endif
+                    // }
                 }
                 assert(m_num_runs_abundances > num_matches_in_round);
                 m_num_runs_abundances -= num_matches_in_round;
