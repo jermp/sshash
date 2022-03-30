@@ -205,8 +205,8 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
         uint64_t num_end_points = 0;
         for (auto ab : distinct_abundances_vec) {
-            int64_t freq_front = 0;
-            int64_t freq_back = 0;
+            uint64_t freq_front = 0;
+            uint64_t freq_back = 0;
             auto it_front = front_abundance_freqs.find(ab);
             auto it_back = back_abundance_freqs.find(ab);
             if (it_front != front_abundance_freqs.cend()) { freq_front = (*it_front).second; }
@@ -226,15 +226,15 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             //           << " - freq_back:" << freq_back << " - indegree:" << in_count
             //           << " - outdegree:" << out_count << std::endl;
 
-            /* special case: abundance will appear as singletion, so count twice */
+            /* special case: abundance will appear as singleton, so count twice */
             if (in_count == 0 and out_count == 0) {
                 num_end_points += 2;
                 continue;
             }
 
             /* if the excess of frequency is odd, then the abundance will appear as end-point */
-            uint64_t diff = std::abs(freq_front - freq_back);
-            if (diff % 2 == 1) num_end_points += 1;
+            uint64_t sum = freq_front + freq_back;
+            if (sum % 2 == 1) num_end_points += 1;
         }
 
         uint64_t num_distinct_abundances = distinct_abundances.size();
