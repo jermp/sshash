@@ -357,11 +357,7 @@ struct cover {
         int r = rounds.size() - 1;
         const auto& walks = rounds[r];
         uint64_t num_sequences = 0;
-        for (uint64_t w = 0; w != walks.size(); ++w) {
-            assert(walks[w].size() == 1);
-            assert(walks[w].front().sign == true);
-            num_sequences += visit(w, r, true, out);
-        }
+        for (uint64_t w = 0; w != walks.size(); ++w) num_sequences += visit(w, r, true, out);
         if (num_sequences != m_num_sequences) {
             std::cerr << "Error: expected to write " << m_num_sequences << " but written "
                       << num_sequences << std::endl;

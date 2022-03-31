@@ -151,101 +151,65 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
     /* computation of lower bound to the number of final abundance runs */
     {
-        /* (front_abundance, num_seqs_with_front=front_abundance) */
-        std::unordered_map<uint32_t, uint32_t> front_abundance_freqs;
+        struct counts {
+            uint32_t freq;
+            uint32_t indegree;
+            uint32_t outdegree;
+        };
 
-        /* (back_abundance, num_seqs_with_back=back_abundance) */
-        std::unordered_map<uint32_t, uint32_t> back_abundance_freqs;
-
-        /* (front_abundance, num_edges_outgoing_from) */
-        std::unordered_map<uint32_t, uint32_t> outdegree;
-
-        /* (back_abundance, num_edges_incoming_in) */
-        std::unordered_map<uint32_t, uint32_t> indegree;
+        std::unordered_map<uint32_t, counts> endpoint_counts;
 
         for (auto const& node : data.nodes) {
             uint64_t front = node.front;
             uint64_t back = node.back;
-            auto it_front = front_abundance_freqs.find(front);
-            if (it_front == front_abundance_freqs.cend()) {
-                front_abundance_freqs[front] = 1;
-            } else {
-                (*it_front).second += 1;
+            {
+                auto it = endpoint_counts.find(front);
+                if (it == endpoint_counts.cend()) {
+                    endpoint_counts[front] = {1, 0, 0};
+                } else {
+                    (*it).second.freq += 1;
+                }
             }
-            auto it_back = back_abundance_freqs.find(back);
-            if (it_back == back_abundance_freqs.cend()) {
-                back_abundance_freqs[back] = 1;
-            } else {
-                (*it_back).second += 1;
+            {
+                auto it = endpoint_counts.find(back);
+                if (it == endpoint_counts.cend()) {
+                    endpoint_counts[back] = {1, 0, 0};
+                } else {
+                    (*it).second.freq += 1;
+                }
             }
             if (front != back) {
-                {
-                    auto it = indegree.find(back);
-                    if (it != indegree.cend()) {
-                        (*it).second += 1;
-                    } else {
-                        indegree[back] = 1;
-                    }
-                }
-                {
-                    auto it = outdegree.find(front);
-                    if (it != outdegree.cend()) {
-                        (*it).second += 1;
-                    } else {
-                        outdegree[front] = 1;
-                    }
-                }
+                endpoint_counts[back].indegree += 1;
+                endpoint_counts[front].outdegree += 1;
             }
         }
 
-        std::vector<uint32_t> distinct_abundances_vec;
-        distinct_abundances_vec.reserve(distinct_abundances.size());
-        for (auto x : distinct_abundances) distinct_abundances_vec.push_back(x);
-        std::sort(distinct_abundances_vec.begin(), distinct_abundances_vec.end());
-
-        uint64_t num_end_points = 0;
-        for (auto ab : distinct_abundances_vec) {
-            uint64_t freq_front = 0;
-            uint64_t freq_back = 0;
-            auto it_front = front_abundance_freqs.find(ab);
-            auto it_back = back_abundance_freqs.find(ab);
-            if (it_front != front_abundance_freqs.cend()) { freq_front = (*it_front).second; }
-            if (it_back != back_abundance_freqs.cend()) { freq_back = (*it_back).second; }
-
-            /* abundance only appears for internal kmers */
-            if (freq_front == 0 and freq_back == 0) continue;
-
-            uint64_t in_count = 0;
-            uint64_t out_count = 0;
-            auto it_in_count = indegree.find(ab);
-            auto it_out_count = outdegree.find(ab);
-            if (it_in_count != indegree.cend()) { in_count = (*it_in_count).second; }
-            if (it_out_count != outdegree.cend()) { out_count = (*it_out_count).second; }
-
-            // std::cout << "ab:" << ab << " - freq_front:" << freq_front
-            //           << " - freq_back:" << freq_back << " - indegree:" << in_count
-            //           << " - outdegree:" << out_count << std::endl;
+        uint64_t num_endpoints = 0;
+        for (auto const& p : endpoint_counts) {
+            uint64_t freq = p.second.freq;
+            uint64_t indegree = p.second.indegree;
+            uint64_t outdegree = p.second.outdegree;
 
             /* special case: abundance will appear as singleton, so count twice */
-            if (in_count == 0 and out_count == 0) {
-                num_end_points += 2;
+            if (indegree == 0 and outdegree == 0) {
+                num_endpoints += 2;
                 continue;
             }
 
             /* if the excess of frequency is odd, then the abundance will appear as end-point */
-            uint64_t sum = freq_front + freq_back;
-            if (sum % 2 == 1) num_end_points += 1;
+            if (freq % 2 == 1) num_endpoints += 1;
         }
 
         uint64_t num_distinct_abundances = distinct_abundances.size();
         uint64_t num_runs_abundances_internal = data.num_runs_abundances - data.nodes.size();
-        std::cout << "num_end_points = " << num_end_points / 2 << std::endl;
+        uint64_t num_walks = num_endpoints / 2;
+        std::cout << "(estimated) num_walks = " << num_walks << std::endl;
         std::cout << "num_runs_abundances = " << data.num_runs_abundances << std::endl;
         std::cout << "num_runs_abundances_internal = " << num_runs_abundances_internal << std::endl;
 
         uint64_t R_lo =
             std::max<uint64_t>(num_distinct_abundances, num_runs_abundances_internal + 1);
-        uint64_t R_hi = num_runs_abundances_internal + num_end_points / 2;
+        uint64_t R_hi = num_runs_abundances_internal + num_walks;
         std::cout << "R_lo = " << R_lo << std::endl;
         std::cout << "R_hi = " << R_hi << std::endl;
     }
