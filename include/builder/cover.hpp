@@ -8,6 +8,10 @@
 
 namespace sshash {
 
+namespace constants {
+constexpr uint64_t most_frequent_abundance = 1;  // usual value
+}
+
 struct node {
     // We assume there are less than 2^32 sequences and that
     // the largest abundance fits into a 32-bit uint.
@@ -59,13 +63,20 @@ struct cover {
                 optimize for the most frequent case:
                 push nodes of the form v:[mfa,mfa] to the bottom, and remove them
                 forming a single (usually, long) walk.
-                Warning: here we are assuming the mfa is also the *smallest* abundance.
             */
 
             essentials::timer_type timer;
             timer.start();
 
             std::sort(nodes.begin(), nodes.end(), [](auto const& x, auto const& y) {
+                if (x.front == constants::most_frequent_abundance and
+                    x.back == constants::most_frequent_abundance) {
+                    return false;
+                }
+                if (y.front == constants::most_frequent_abundance and
+                    y.back == constants::most_frequent_abundance) {
+                    return true;
+                }
                 if (x.front != y.front) return x.front > y.front;
                 if (x.back != y.back) return x.back > y.back;
                 return x.id > y.id;

@@ -15,12 +15,6 @@ struct permute_data {
     std::vector<node> nodes;
 };
 
-struct pair_hash {
-    inline uint64_t operator()(std::pair<uint32_t, uint32_t> const& v) const {
-        return static_cast<uint64_t>(v.first) * 31 + static_cast<uint64_t>(v.second);
-    }
-};
-
 void parse_file(std::istream& is, permute_data& data, build_configuration const& build_config) {
     std::string sequence;
     uint64_t k = build_config.k;
@@ -288,7 +282,7 @@ void reverse_header(std::string const& input, std::string& output, uint64_t k) {
     }
 
     std::reverse(abundances.begin(), abundances.end());
-    for (auto abundance : abundances) { output.append(std::to_string(abundance) + " "); }
+    for (auto abundance : abundances) output.append(std::to_string(abundance) + " ");
 }
 
 void permute_and_write(std::istream& is, std::string const& output_filename,

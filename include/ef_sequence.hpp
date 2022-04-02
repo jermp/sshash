@@ -8,13 +8,13 @@ namespace sshash {
 
 template <bool index_zeros = false>
 struct ef_sequence {
-    ef_sequence() {}
+    ef_sequence() : m_universe(0) {}
 
     template <typename Iterator>
     void encode(Iterator begin, uint64_t n) {
         if (n == 0) return;
         uint64_t u = *(begin + n - 1);
-        m_universe = u;  // universe is last element, "back"
+        m_universe = u;
 
         uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);
         pthash::bit_vector_builder bvb_high_bits(n + (u >> l) + 1);
@@ -37,8 +37,8 @@ struct ef_sequence {
 
         pthash::bit_vector(&bvb_high_bits).swap(m_high_bits);
         cv_builder_low_bits.build(m_low_bits);
-        pthash::darray1(m_high_bits).swap(m_high_bits_d1);
-        if constexpr (index_zeros) { pthash::darray0(m_high_bits).swap(m_high_bits_d0); }
+        m_high_bits_d1.build(m_high_bits);
+        if constexpr (index_zeros) m_high_bits_d0.build(m_high_bits);
     }
 
     struct iterator {
@@ -55,7 +55,6 @@ struct ef_sequence {
         }
 
         bool good() const { return m_ef != nullptr; }
-
         bool has_next() const { return m_pos < m_ef->size(); }
 
         uint64_t next() {
