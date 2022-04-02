@@ -178,11 +178,13 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             }
         }
 
+        uint64_t sum_of_freqs = 0;
         uint64_t num_endpoints = 0;
         for (auto const& p : endpoint_counts) {
             uint64_t freq = p.second.freq;
             uint64_t indegree = p.second.indegree;
             uint64_t outdegree = p.second.outdegree;
+            sum_of_freqs += freq;
 
             /* special case: abundance will appear as singleton, so count twice */
             if (indegree == 0 and outdegree == 0) {
@@ -194,16 +196,18 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             if (freq % 2 == 1) num_endpoints += 1;
         }
 
+        assert(sum_of_freqs == 2 * data.num_sequences);
+        assert(num_endpoints % 2 == 0);
+        (void)sum_of_freqs;
         uint64_t num_distinct_abundances = distinct_abundances.size();
-        uint64_t num_runs_abundances_internal = data.num_runs_abundances - data.nodes.size();
+        uint64_t num_switch_points = data.num_runs_abundances - data.nodes.size();
         uint64_t num_walks = num_endpoints / 2;
         std::cout << "(estimated) num_walks = " << num_walks << std::endl;
         std::cout << "num_runs_abundances = " << data.num_runs_abundances << std::endl;
-        std::cout << "num_runs_abundances_internal = " << num_runs_abundances_internal << std::endl;
+        std::cout << "num_switch_points = " << num_switch_points << std::endl;
 
-        uint64_t R_lo =
-            std::max<uint64_t>(num_distinct_abundances, num_runs_abundances_internal + 1);
-        uint64_t R_hi = num_runs_abundances_internal + num_walks;
+        uint64_t R_lo = std::max<uint64_t>(num_distinct_abundances, num_switch_points + 1);
+        uint64_t R_hi = num_switch_points + num_walks;
         std::cout << "R_lo = " << R_lo << std::endl;
         std::cout << "R_hi = " << R_hi << std::endl;
     }
