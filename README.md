@@ -218,6 +218,28 @@ We see that the canonical dictionary is twice as fast as the regular dictionary
 for low-hit workloads,
 even on this tiny example, for only +0.4 bits/k-mer.
 
+### Example 4
+
+	./permute ../data/unitigs_stitched/with_abundances/ecoli_sakai.BA000007.3.k31_ust.abundances.fa.gz 31 -o ecoli_sakai.permuted.fa
+
+This command re-orders (and possibly reverse-complement) the strings in the collection as to *minimize* the number of runs in the abundances and, hence, optimize the encoding of the abundances.
+The result is saved to the file `ecoli_sakai.permuted.fa`.
+
+In this example for the E.Coli collection (Sakai strain) we reduce the number of runs in the abundances from 5820 to 3723.
+
+Then use the `build` command as usual to build the permuted collection:
+
+	./build ecoli_sakai.permuted.fa 31 13 --abundances --verbose
+	
+The index built on the permuted collection
+optimizes the storage space for the abundances which results in a 15.1X better space than the empirical entropy of the abundances.
+
+For reference, the index built on the original collection:
+
+	./build ../data/unitigs_stitched/with_abundances/ecoli_sakai.BA000007.3.k31_ust.abundances.fa.gz 31 13 --abundances --verbose
+
+already achieves a 12.4X better space than the empirical entropy.
+
 Input Files
 -----------
 
