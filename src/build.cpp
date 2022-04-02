@@ -43,8 +43,6 @@ int main(int argc, char** argv) {
                "--canonical-parsing", true);
     parser.add("store_abundances", "Also store the abundances in compressed format.",
                "--abundances", true);
-    parser.add("optimize_mfa", "Turn on space optimization for most frequent abundance (mfa).",
-               "--optimize-mfa", true);
     parser.add("output_filename", "Output file name where the data structure will be serialized.",
                "-o", false);
     parser.add("check", "Check correctness after construction.", "--check", true);
@@ -68,7 +66,6 @@ int main(int argc, char** argv) {
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
     build_config.store_abundances = parser.get<bool>("store_abundances");
-    build_config.optimize_mfa = parser.get<bool>("optimize_mfa");
     build_config.verbose = parser.get<bool>("verbose");
     build_config.print();
 
