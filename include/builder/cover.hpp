@@ -205,9 +205,7 @@ struct cover {
                     walk.push_back(node);
 
                     /* node has been visited, so erase it from unvisited_nodes */
-                    if (unvisited_nodes.find(id) != unvisited_nodes.cend()) {
-                        unvisited_nodes.erase(id);
-                    }
+                    unvisited_nodes.erase(id);
 
                     auto search_match = [&](uint64_t back, uint64_t candidate_i) {
                         bool no_match_found = false;
@@ -226,18 +224,18 @@ struct cover {
                             }
                             auto candidate = nodes[candidate_i];
 
-                            /* skip */
-                            if (candidate.id == id) {
-                                candidate_i += 1;
-                                continue;
-                            }
-
                             /* checked all candidate matches */
                             if (candidate.front != back) {
                                 no_match_found = true;
                                 total_nodes_visited_to_failure +=
                                     tmp_total_nodes_visited_to_failure;
                                 break;
+                            }
+
+                            /* skip */
+                            if (candidate.id == id) {
+                                candidate_i += 1;
+                                continue;
                             }
 
                             /* match found */
@@ -251,30 +249,33 @@ struct cover {
                         }
                         assert(candidate_i <= num_nodes);
 
-                        /* update candidate position in abundance_map */
-                        abundance_map[back] = candidate_i;
-
-                        if (no_match_found or candidate_i == num_nodes) return false;
+                        if (no_match_found or candidate_i == num_nodes) {
+                            abundance_map[back] = candidate_i;
+                            return false;
+                        }
 
                         /* valid match was found, then visit it next */
                         i = candidate_i;
+
+                        /* update candidate position in abundance_map to point to *next* position */
+                        abundance_map[back] = candidate_i + 1;
+
                         return true;
                     };
 
                     /* 3. search for a match */
 
                     /* first, try to match back abundance */
-                    uint64_t back = node.back;
-                    uint64_t candidate_i = abundance_map[back];
-                    bool found = search_match(back, candidate_i);
+                    uint64_t candidate_i = abundance_map[node.back];
+                    bool found = search_match(node.back, candidate_i);
 
                     /* if a match is not found and the walk is singleton,
                        then the only node in the walk could be matched on
                        front abundance */
                     if (!found and walk.size() == 1) {
-                        back = node.front;
-                        candidate_i = abundance_map[back];
-                        found = search_match(back, candidate_i);
+                        candidate_i = abundance_map[node.front];
+                        found = search_match(node.front, candidate_i);
+
                         if (found) {
                             /* change orientation of the node */
                             walk[0] = {node.id, node.back, node.front, !node.sign};
