@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <deque>
 
 #include "../util.hpp"
 
@@ -17,12 +18,12 @@ struct node {
     // the largest abundance fits into a 32-bit uint.
     node(uint32_t i, uint32_t f, uint32_t b, bool s) : id(i), front(f), back(b), sign(s) {}
     uint32_t id, front, back;
-    bool sign;  // '+' --> forward
-                // '-' --> backward
+    bool sign;  // 'true'  --> '+'
+                // 'false' --> '-'
 };
 
 struct cover {
-    typedef std::vector<node> walk_t;
+    typedef std::deque<node> walk_t;
     typedef std::vector<walk_t> walks_t;
 
     cover(uint64_t num_sequences, uint64_t num_runs_abundances)
@@ -46,314 +47,216 @@ struct cover {
         /* map from node id to offset+ into nodes */
         std::vector<uint32_t> id_to_offset;
 
-        /* nodes created for next round */
-        std::vector<node> tmp_nodes;
-
         walk_t walk;
-        walks_t walks_in_round;
-
-        unvisited_nodes.reserve(nodes.size());     // at most
-        walk.reserve(nodes.size());                // at most
-        walks_in_round.reserve(2 * nodes.size());  // at most
+        unvisited_nodes.reserve(nodes.size());  // at most
+        m_walks.reserve(nodes.size());          // at most
 
         std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
 
-        {
-            /*
-                optimize for the most frequent case:
-                push nodes of the form v:[mfa,mfa] to the bottom, and remove them
-                forming a single (usually, long) walk.
-            */
-
-            essentials::timer_type timer;
-            timer.start();
-
-            std::sort(nodes.begin(), nodes.end(), [](auto const& x, auto const& y) {
-                if (x.front == constants::most_frequent_abundance and
-                    x.back == constants::most_frequent_abundance) {
-                    return false;
-                }
-                if (y.front == constants::most_frequent_abundance and
-                    y.back == constants::most_frequent_abundance) {
-                    return true;
-                }
-                if (x.front != y.front) return x.front > y.front;
-                if (x.back != y.back) return x.back > y.back;
-                return x.id > y.id;
-            });
-
-            uint64_t num_special_nodes = 0;
-            uint64_t num_nodes = nodes.size();
-            while (!nodes.empty()) {
-                auto v = nodes.back();
-                if (v.front == constants::most_frequent_abundance and
-                    v.back == constants::most_frequent_abundance) {
-                    walk.push_back(v);
-                    nodes.pop_back();
-                    num_special_nodes += 1;
-                } else {
-                    break;
-                }
-            }
-            std::cout << "num nodes of the form v:[" << constants::most_frequent_abundance << ","
-                      << constants::most_frequent_abundance << "] = " << num_special_nodes << "/"
-                      << num_nodes << "(" << (num_special_nodes * 100.0) / num_nodes << "%)"
-                      << std::endl;
-
-            if (num_special_nodes != 0) {
-                /* create new nodes for next round */
-                assert(!walk.empty());
-                uint32_t id = walks_in_round.size();
-                uint32_t front = walk.front().front;
-                uint32_t back = walk.back().back;
-                tmp_nodes.emplace_back(id, front, back, true);
-                tmp_nodes.emplace_back(id, back, front, false);
-                walks_in_round.push_back(walk);
-                walk.clear();
-            }
-
-            /* add all the nodes with backward orientation */
-            num_nodes = nodes.size();
-            for (uint64_t i = 0; i != num_nodes; ++i) {
-                auto node = nodes[i];
-                assert(node.sign == true);
-                nodes.emplace_back(node.id, node.back, node.front, false);
-            }
-
-            timer.stop();
-            std::cout << "  time: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+        /* add all the nodes with backward orientation */
+        uint64_t num_nodes = nodes.size();
+        for (uint64_t i = 0; i != num_nodes; ++i) {
+            auto node = nodes[i];
+            assert(node.sign == true);
+            nodes.emplace_back(node.id, node.back, node.front, false);
         }
 
-        while (true) {
-            std::cout << "round " << rounds.size() << std::endl;
+        num_nodes = nodes.size();
+        std::cout << "  num_nodes " << num_nodes << std::endl;
+        assert(num_nodes % 2 == 0);
 
-            uint64_t num_nodes = nodes.size();
-            std::cout << "  num_nodes " << num_nodes << std::endl;
-            assert(num_nodes % 2 == 0);
+        id_to_offset.resize(num_nodes / 2);
+        visited.resize(num_nodes / 2);
 
-            essentials::timer_type round_timer;  // total time of round
-            round_timer.start();
+        /* all nodes unvisited */
+        std::fill(visited.begin(), visited.end(), false);
 
-            if (rounds.size() == 0) {
-                /* remember: we removed some nodes but the id-space still spans
-                   [0..m_num_sequences-1] */
-                id_to_offset.resize(m_num_sequences);
-                visited.resize(m_num_sequences);
-            } else {
-                id_to_offset.resize(num_nodes / 2);
-                visited.resize(num_nodes / 2);
+        for (auto const& node : nodes) unvisited_nodes.insert(node.id);
+        assert(unvisited_nodes.size() == num_nodes / 2);
+
+        std::sort(nodes.begin(), nodes.end(), [](auto const& x, auto const& y) {
+            if (x.front != y.front) return x.front < y.front;
+            if (x.back != y.back) return x.back < y.back;
+            return x.id < y.id;
+        });
+
+        /* fill abundance_map */
+        {
+            uint64_t prev_front = constants::invalid;
+            uint64_t offset = 0;
+            for (auto const& node : nodes) {
+                if (node.front != prev_front) abundance_map[node.front] = offset;
+                offset += 1;
+                prev_front = node.front;
             }
+            assert(offset == nodes.size());
+        }
 
-            /* all nodes unvisited */
-            std::fill(visited.begin(), visited.end(), false);
+        /* fill id_to_offset map */
+        {
+            uint64_t offset = 0;
+            for (auto const& node : nodes) {
+                if (node.sign) id_to_offset[node.id] = offset;
+                offset += 1;
+            }
+        }
 
-            for (auto const& node : nodes) unvisited_nodes.insert(node.id);
-            assert(unvisited_nodes.size() == num_nodes / 2);
+        uint64_t i = 0;  // position of an unvisited node in nodes
 
-            std::sort(nodes.begin(), nodes.end(), [](auto const& x, auto const& y) {
-                if (x.front != y.front) return x.front < y.front;
-                if (x.back != y.back) return x.back < y.back;
-                return x.id < y.id;
-            });
+        /* some statistics */
+        uint64_t total_nodes_visited_to_find_matches = 0;
+        uint64_t total_nodes_visited_to_failure = 0;
+        uint64_t total_nodes_visited_to_success = 0;
+        uint64_t total_nodes = 0;
 
-            /* fill abundance_map */
+        while (!unvisited_nodes.empty()) {
+            /* 1. take an unvisited node */
             {
-                uint64_t prev_front = constants::invalid;
-                uint64_t offset = 0;
-                for (auto const& node : nodes) {
-                    if (node.front != prev_front) abundance_map[node.front] = offset;
-                    offset += 1;
-                    prev_front = node.front;
-                }
-                assert(offset == nodes.size());
+                uint32_t unvisited_node_id = *(unvisited_nodes.begin());
+                i = id_to_offset[unvisited_node_id];
             }
 
-            /* fill id_to_offset map */
-            {
-                uint64_t offset = 0;
-                for (auto const& node : nodes) {
-                    if (node.sign) id_to_offset[node.id] = offset;
-                    offset += 1;
-                }
-            }
+            /* 2. create a new walk */
+            walk.clear();
+            while (true) {
+                total_nodes += 1;
 
-            uint64_t i = 0;                        // position of an unvisited node in nodes
-            bool no_more_matches_possible = true;  // to stop the algorithm
+                auto node = nodes[i];
+                uint64_t id = node.id;
+                assert(visited[id] == false);
+                visited[id] = true;
 
-            /* some statistics */
-            uint64_t total_nodes_visited_to_find_matches = 0;
-            uint64_t total_nodes_visited_to_failure = 0;
-            uint64_t total_nodes_visited_to_success = 0;
-            uint64_t total_nodes = 0;
-
-            while (!unvisited_nodes.empty()) {
-                /* 1. take an unvisited node */
-                {
-                    uint32_t unvisited_node_id = *(unvisited_nodes.begin());
-                    i = id_to_offset[unvisited_node_id];
-                }
-
-                /* 2. create a new walk */
-                walk.clear();
-                while (true) {
-                    total_nodes += 1;
-
-                    auto node = nodes[i];
-                    uint64_t id = node.id;
-                    assert(visited[id] == false);
-                    visited[id] = true;
+                /* append node to walk */
+                if (walk.empty()) {
                     walk.push_back(node);
+                } else if (walk.back().back == node.front) {
+                    walk.push_back(node);
+                } else if (walk.back().back == node.back) {
+                    change_orientation(node);
+                    walk.push_back(node);
+                } else if (walk.front().front == node.back) {
+                    walk.push_front(node);
+                } else if (walk.front().front == node.front) {
+                    change_orientation(node);
+                    walk.push_front(node);
+                } else {
+                    assert(false);
+                }
 
-                    /* node has been visited, so erase it from unvisited_nodes */
-                    unvisited_nodes.erase(id);
+                /* node has been visited, so erase it from unvisited_nodes */
+                unvisited_nodes.erase(id);
 
-                    auto search_match = [&](uint64_t back, uint64_t candidate_i) {
-                        bool no_match_found = false;
-                        uint64_t tmp_total_nodes_visited_to_failure = 0;
-                        uint64_t tmp_total_nodes_visited_to_success = 0;
+                auto try_to_extend = [&](uint64_t back, uint64_t candidate_i) {
+                    bool no_match_found = false;
+                    uint64_t tmp_total_nodes_visited_to_failure = 0;
+                    uint64_t tmp_total_nodes_visited_to_success = 0;
 
-                        while (true) {
-                            total_nodes_visited_to_find_matches += 1;
-                            tmp_total_nodes_visited_to_failure += 1;
-                            tmp_total_nodes_visited_to_success += 1;
+                    while (true) {
+                        total_nodes_visited_to_find_matches += 1;
+                        tmp_total_nodes_visited_to_failure += 1;
+                        tmp_total_nodes_visited_to_success += 1;
 
-                            if (candidate_i == num_nodes) {
-                                total_nodes_visited_to_failure +=
-                                    tmp_total_nodes_visited_to_failure;
-                                break;
-                            }
-                            auto candidate = nodes[candidate_i];
+                        if (candidate_i == num_nodes) {
+                            total_nodes_visited_to_failure += tmp_total_nodes_visited_to_failure;
+                            break;
+                        }
+                        auto candidate = nodes[candidate_i];
 
-                            /* checked all candidate matches */
-                            if (candidate.front != back) {
-                                no_match_found = true;
-                                total_nodes_visited_to_failure +=
-                                    tmp_total_nodes_visited_to_failure;
-                                break;
-                            }
+                        /* checked all candidate matches */
+                        if (candidate.front != back) {
+                            no_match_found = true;
+                            total_nodes_visited_to_failure += tmp_total_nodes_visited_to_failure;
+                            break;
+                        }
 
-                            /* skip */
-                            if (candidate.id == id) {
-                                candidate_i += 1;
-                                continue;
-                            }
-
-                            /* match found */
-                            if (visited[candidate.id] == false) {
-                                total_nodes_visited_to_success +=
-                                    tmp_total_nodes_visited_to_success;
-                                break;
-                            }
-
+                        /* skip */
+                        if (candidate.id == id) {
                             candidate_i += 1;
-                        }
-                        assert(candidate_i <= num_nodes);
-
-                        if (no_match_found or candidate_i == num_nodes) {
-                            abundance_map[back] = candidate_i;
-                            return false;
+                            continue;
                         }
 
-                        /* valid match was found, then visit it next */
-                        i = candidate_i;
-
-                        /* update candidate position in abundance_map to point to *next* position */
-                        abundance_map[back] = candidate_i + 1;
-
-                        return true;
-                    };
-
-                    /* 3. search for a match */
-
-                    /* first, try to match back abundance */
-                    uint64_t candidate_i = abundance_map[node.back];
-                    bool found = search_match(node.back, candidate_i);
-
-                    /* if a match is not found and the walk is singleton,
-                       then the only node in the walk could be matched on
-                       front abundance */
-                    if (!found and walk.size() == 1) {
-                        candidate_i = abundance_map[node.front];
-                        found = search_match(node.front, candidate_i);
-
-                        if (found) {
-                            /* change orientation of the node */
-                            walk[0] = {node.id, node.back, node.front, !node.sign};
+                        /* match found */
+                        if (visited[candidate.id] == false) {
+                            total_nodes_visited_to_success += tmp_total_nodes_visited_to_success;
+                            break;
                         }
+
+                        candidate_i += 1;
+                    }
+                    assert(candidate_i <= num_nodes);
+
+                    if (no_match_found or candidate_i == num_nodes) {
+                        abundance_map[back] = candidate_i;
+                        return false;
                     }
 
-                    if (!found) break;
-                    no_more_matches_possible = false;
+                    /* valid match was found, then visit it next */
+                    i = candidate_i;
+
+                    /* update candidate position in abundance_map to point to *next* position */
+                    abundance_map[back] = candidate_i + 1;
+
+                    return true;
+                };
+
+                /* try to extend to the right */
+                uint64_t candidate_i = abundance_map[walk.back().back];
+                bool found = try_to_extend(walk.back().back, candidate_i);
+
+                /* if not possible, try to extend to the left */
+                if (!found) {
+                    candidate_i = abundance_map[walk.front().front];
+                    found = try_to_extend(walk.front().front, candidate_i);
                 }
-                assert(!walk.empty());
 
-                /* create new nodes for next round */
-                uint32_t id = walks_in_round.size();
-                uint32_t front = walk.front().front;
-                uint32_t back = walk.back().back;
-                tmp_nodes.emplace_back(id, front, back, true);
-                tmp_nodes.emplace_back(id, back, front, false);
-                walks_in_round.push_back(walk);
+                if (!found) break;
             }
-            assert(unvisited_nodes.empty());
+            assert(!walk.empty());
+            m_walks.push_back(walk);
+        }
+        assert(unvisited_nodes.empty());
 
-            if (total_nodes_visited_to_find_matches > total_nodes) {
-                std::cout << "  avg. num. nodes visited to find a match = "
-                          << static_cast<double>(total_nodes_visited_to_find_matches) / total_nodes
-                          << std::endl;
-                std::cout << "  avg. num. nodes visited to success = "
-                          << static_cast<double>(total_nodes_visited_to_success) / total_nodes
-                          << std::endl;
-                std::cout << "  avg. num. nodes visited to failure = "
-                          << static_cast<double>(total_nodes_visited_to_failure) / total_nodes
-                          << std::endl;
-            }
+        if (total_nodes_visited_to_find_matches > total_nodes) {
+            std::cout << "  avg. num. nodes visited to find a match = "
+                      << static_cast<double>(total_nodes_visited_to_find_matches) / total_nodes
+                      << std::endl;
+            std::cout << "  avg. num. nodes visited to success = "
+                      << static_cast<double>(total_nodes_visited_to_success) / total_nodes
+                      << std::endl;
+            std::cout << "  avg. num. nodes visited to failure = "
+                      << static_cast<double>(total_nodes_visited_to_failure) / total_nodes
+                      << std::endl;
+        }
 
-            std::cout << "  num_walks = " << walks_in_round.size() << std::endl;
+        std::cout << "  num_walks = " << m_walks.size() << std::endl;
 
-            {
+        {
 #ifndef NDEBUG
-                std::fill(visited.begin(), visited.end(), false);
+            std::fill(visited.begin(), visited.end(), false);
 #endif
-                uint64_t num_matches_in_round = 0;
-                for (auto const& walk : walks_in_round) {
-                    num_matches_in_round += walk.size() - 1;
+            uint64_t num_matches_in_round = 0;
+            for (auto const& walk : m_walks) {
+                num_matches_in_round += walk.size() - 1;
 #ifndef NDEBUG
-                    uint64_t prev_back = walk.front().front;
-                    // std::cout << "=>";
-                    for (auto const& w : walk) {
-                        if (visited[w.id]) std::cout << "ERROR: duplicate node." << std::endl;
-                        if (w.front != prev_back) {
-                            std::cout << "ERROR: path is broken." << std::endl;
-                        }
-                        prev_back = w.back;
-                        visited[w.id] = true;
-                        // std::cout << w.id << ":[" << w.front << "," << w.back << ","
-                        //           << (w.sign ? '+' : '-') << "] ";
+                uint64_t prev_back = walk.front().front;
+                // std::cout << "=>";
+                for (auto node : walk) {
+                    if (visited[node.id]) std::cout << "ERROR: duplicate node." << std::endl;
+                    if (node.front != prev_back) {
+                        std::cout << "ERROR: path is broken." << std::endl;
                     }
-                    // std::cout << std::endl;
-#endif
+                    prev_back = node.back;
+                    visited[node.id] = true;
+                    // std::cout << node.id << ":[" << node.front << "," << node.back << ","
+                    //           << (node.sign ? '+' : '-') << "] ";
                 }
-                assert(m_num_runs_abundances > num_matches_in_round);
-                m_num_runs_abundances -= num_matches_in_round;
-                std::cout << "  num_matches = " << num_matches_in_round << std::endl;
-                std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
-
-                round_timer.stop();
-                std::cout << "  time: " << round_timer.elapsed() / 1000000 << " [sec]" << std::endl;
+                // std::cout << std::endl;
+#endif
             }
-
-            rounds.push_back(walks_in_round);
-
-            nodes.swap(tmp_nodes);
-            tmp_nodes.clear();
-            walks_in_round.clear();
-            abundance_map.clear();
-
-            if (no_more_matches_possible) {
-                std::cout << "STOP: no more matches possible." << std::endl;
-                break;
-            }
+            assert(m_num_runs_abundances > num_matches_in_round);
+            m_num_runs_abundances -= num_matches_in_round;
+            std::cout << "  num_matches = " << num_matches_in_round << std::endl;
+            std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
         }
 
         timer.stop();
@@ -365,11 +268,15 @@ struct cover {
 
     void save(std::string const& filename) {
         std::ofstream out(filename.c_str());
-        assert(rounds.size() > 0);
-        int r = rounds.size() - 1;
-        const auto& walks = rounds[r];
         uint64_t num_sequences = 0;
-        for (uint64_t w = 0; w != walks.size(); ++w) num_sequences += visit(w, r, true, out);
+        for (auto const& walk : m_walks) {
+            for (auto node : walk) {
+                // out << node.id << ":[" << node.front << "," << node.back << "] ";
+                out << node.id;
+                out << (node.sign ? " 1\n" : " 0\n");
+            }
+            num_sequences += walk.size();
+        }
         if (num_sequences != m_num_sequences) {
             std::cerr << "Error: expected to write " << m_num_sequences << " but written "
                       << num_sequences << std::endl;
@@ -381,50 +288,11 @@ struct cover {
 private:
     uint64_t m_num_sequences;
     uint64_t m_num_runs_abundances;
-    std::vector<walks_t> rounds;
+    walks_t m_walks;
 
-    /* visit walk of index w in round of index r */
-    uint64_t visit(int w, int r, bool sign, std::ofstream& out) const {
-        if (r > 0) {
-            assert(size_t(w) < rounds[r].size());
-            auto const& walk = rounds[r][w];
-            uint64_t num_sequences = 0;
-            for (auto const& node : walk) {
-                /*
-                    + & + = +
-                    - & - = +
-                    + & - = -
-                    - & + = -
-                */
-                bool new_sign = sign and node.sign;
-                if (sign == false and node.sign == false) new_sign = true;
-                num_sequences += visit(node.id, r - 1, new_sign, out);
-            }
-            return num_sequences;
-        }
-        /* print */
-        assert(size_t(w) < rounds[0].size());
-        auto const& walk = rounds[0][w];
-
-        if (sign) {
-            /* print forward */
-            for (uint64_t i = 0; i != walk.size(); ++i) {
-                auto const& node = walk[i];
-                // out << node.id << ":[" << node.front << "," << node.back << "] ";
-                out << node.id;
-                out << (node.sign ? " 1\n" : " 0\n");
-            }
-        } else {
-            /* print backward and change orientation */
-            for (int64_t i = walk.size() - 1; i >= 0; --i) {
-                auto const& node = walk[i];
-                // out << node.id << ":[" << node.back << "," << node.front << "] ";
-                out << node.id;
-                out << (node.sign ? " 0\n" : " 1\n");
-            }
-        }
-
-        return walk.size();
+    void change_orientation(node& n) {
+        std::swap(n.front, n.back);
+        n.sign = !n.sign;
     }
 };
 
