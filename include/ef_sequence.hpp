@@ -141,55 +141,6 @@ struct ef_sequence {
         return {pos, val};
     }
 
-    // Return [pos,val,prev] of the rightmost smallest element >= x.
-    // If x = val, then prev must be ignored as it is set to val.
-    // Otherwise, the following condition holds: prev < x < val,
-    // and pos is the position of val.
-    // Return [size(),back(),back()] if x > back() (largest element).
-    inline std::tuple<uint64_t, uint64_t, uint64_t> next_geq_neighbourhood(uint64_t x) const {
-        static_assert(index_zeros == true, "must build index on zeros");
-        assert(m_high_bits_d0.num_positions());
-
-        if (x >= back()) return {size() - (x == back()), back(), back()};
-
-        uint64_t h_x = x >> m_low_bits.width();
-        uint64_t begin = h_x ? m_high_bits_d0.select(m_high_bits, h_x - 1) - h_x + 1 : 0;
-        assert(begin < size());
-
-        // uint64_t end = m_high_bits_d0.select(m_high_bits, h_x) - h_x;
-        // assert(end <= size());
-        // assert(begin <= end);
-        // return binary search for x in [begin, end)
-
-        auto it = at(begin);
-        uint64_t pos = begin;
-        uint64_t val = it.next();
-        uint64_t prev = val;
-        while (val < x) {
-            ++pos;
-            prev = val;
-            val = it.next();
-        }
-        assert(val >= x);
-
-        // now pos is the position of the first element (the leftmost one)
-        // that is >= x
-
-        if (val == x) {
-            // keep scanning to pick the rightmost one
-            while (val == x) {
-                ++pos;
-                val = it.next();
-            }
-            assert(val > x);
-            return {pos - 1, x, x};
-        }
-
-        if (pos > 0) return {pos, val, pos != begin ? prev : access(pos - 1)};
-
-        return {0, val, val};
-    }
-
     // Return the position of the rightmost largest element <= x.
     // Return size() if x > back() (largest element).
     inline uint64_t prev_leq(uint64_t x) const {

@@ -4,6 +4,7 @@
 #include "../external/pthash/external/essentials/include/essentials.hpp"
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/builder/cover.hpp"
+// #include "../include/builder/cover_with_hashtables.hpp"
 #include "../include/builder/util.hpp"
 
 using namespace sshash;
@@ -145,49 +146,50 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
     /* computation of lower bound to the number of final abundance runs */
     {
-        struct counts {
+        struct info {
+            /* how many times an end-point weight appears */
             uint32_t freq;
-            uint32_t indegree;
-            uint32_t outdegree;
+
+            /* if this flag is true, then the weight w always appears in nodes of the form
+            (w,w) and its freq is always even. */
+            bool all_equal;
         };
 
-        std::unordered_map<uint32_t, counts> endpoint_counts;
+        std::unordered_map<uint32_t, info> endpoint_weights;
 
         for (auto const& node : data.nodes) {
             uint64_t front = node.front;
             uint64_t back = node.back;
             {
-                auto it = endpoint_counts.find(front);
-                if (it == endpoint_counts.cend()) {
-                    endpoint_counts[front] = {1, 0, 0};
+                auto it = endpoint_weights.find(front);
+                if (it == endpoint_weights.cend()) {
+                    endpoint_weights[front] = {1, true};
                 } else {
                     (*it).second.freq += 1;
                 }
             }
             {
-                auto it = endpoint_counts.find(back);
-                if (it == endpoint_counts.cend()) {
-                    endpoint_counts[back] = {1, 0, 0};
+                auto it = endpoint_weights.find(back);
+                if (it == endpoint_weights.cend()) {
+                    endpoint_weights[back] = {1, true};
                 } else {
                     (*it).second.freq += 1;
                 }
             }
             if (front != back) {
-                endpoint_counts[back].indegree += 1;
-                endpoint_counts[front].outdegree += 1;
+                endpoint_weights[back].all_equal = false;
+                endpoint_weights[front].all_equal = false;
             }
         }
 
         uint64_t sum_of_freqs = 0;
         uint64_t num_endpoints = 0;
-        for (auto const& p : endpoint_counts) {
+        for (auto const& p : endpoint_weights) {
             uint64_t freq = p.second.freq;
-            uint64_t indegree = p.second.indegree;
-            uint64_t outdegree = p.second.outdegree;
             sum_of_freqs += freq;
 
             /* special case: abundance will appear as singleton, so count twice */
-            if (indegree == 0 and outdegree == 0) {
+            if (p.second.all_equal) {
                 num_endpoints += 2;
                 continue;
             }
