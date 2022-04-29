@@ -7,7 +7,7 @@ SSHash
 This is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
-**A (pre-print) paper describing the data structure can be found [here](https://www.biorxiv.org/content/10.1101/2022.01.15.476199).**
+**A (pre-print) paper describing the data structure can be found [here](https://www.biorxiv.org/content/10.1101/2022.01.15.476199) [1]. Please, cite the paper if you use SSHash.**
 
 For a dictionary of n k-mers,
 two basic queries are supported:
@@ -31,8 +31,9 @@ The dictionary can also stream through all k-mers of a given DNA file
 * [Build a Dictionary](#build-a-dictionary)
 * [Examples](#Examples)
 * [Input Files](#input-files)
-* [Large-scale Benchmark](#large-scale-benchmark)
+* [Large-Scale Benchmark](#large-scale-benchmark)
 * [Author](#author)
+* [References](#references)
 
 Compiling the Code
 ------------------
@@ -260,14 +261,16 @@ Below we provide a complete example (assuming both BCALM2 and UST are installed 
 	gzip Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa.ust.fa
 	rm ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
 
-See also the script `scripts/download_and_preprocess_datasets.sh`
-for precise arguments.
+#### Datasets
+The script `scripts/download_and_preprocess_datasets.sh`
+contains all the needed steps to download and pre-process
+the datasets that we used in [1].
 
 #### Abundances
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
 
 
-Large-scale Benchmark
+Large-Scale Benchmark
 ---------------------
 
 *Pinus Taeda* ("pine", [GCA_000404065.3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/404/065/GCA_000404065.3_Ptaeda2.0/GCA_000404065.3_Ptaeda2.0_genomic.fna.gz)) and *Ambystoma Mexicanum* ("axolotl", [GCA_002915635.2](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/915/635/GCA_002915635.3_AmbMex60DD/GCA_002915635.3_AmbMex60DD_genomic.fna.gz))
@@ -347,3 +350,7 @@ Author
 ------
 
 Giulio Ermanno Pibiri - <giulio.ermanno.pibiri@isti.cnr.it>
+
+References
+-----
+* [1] Giulio Ermanno Pibiri. [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199). ISMB 2022 (Bioinformatics journal). To Appear.
