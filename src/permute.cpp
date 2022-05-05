@@ -4,7 +4,6 @@
 #include "../external/pthash/external/essentials/include/essentials.hpp"
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/builder/cover.hpp"
-// #include "../include/builder/cover_with_hashtables.hpp"
 #include "../include/builder/util.hpp"
 
 using namespace sshash;
