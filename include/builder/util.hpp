@@ -8,8 +8,7 @@ struct empty_bucket_runtime_error : public std::runtime_error {
 };
 
 struct parse_runtime_error : public std::runtime_error {
-    parse_runtime_error()
-        : std::runtime_error("did you provide an input file with abundance counts?") {}
+    parse_runtime_error() : std::runtime_error("did you provide an input file with weights?") {}
 };
 
 void expect(char got, char expected) {

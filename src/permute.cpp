@@ -9,8 +9,8 @@
 using namespace sshash;
 
 struct permute_data {
-    permute_data() : num_runs_abundances(0), num_sequences(0) {}
-    uint64_t num_runs_abundances;
+    permute_data() : num_runs_weights(0), num_sequences(0) {}
+    uint64_t num_runs_weights;
     uint64_t num_sequences;
     std::vector<node> nodes;
 };
@@ -22,15 +22,15 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t num_kmers = 0;
     uint64_t seq_len = 0;
 
-    uint64_t sum_of_abundances = 0;
-    uint64_t num_sequences_diff_abs = 0;  // num sequences whose kmers have different abundances
-    uint64_t num_sequences_all_mfa = 0;   // num sequences whose kmers have same abundance == mfa
+    uint64_t sum_of_weights = 0;
+    uint64_t num_sequences_diff_weights = 0;  // num sequences whose kmers have different weights
+    uint64_t num_sequences_all_mfw = 0;       // num sequences whose kmers have same weight == mfw
 
-    data.num_runs_abundances = 0;
+    data.num_runs_weights = 0;
     data.num_sequences = 0;
 
-    /* count number of distinct abundances */
-    std::unordered_set<uint32_t> distinct_abundances;
+    /* count number of distinct weights */
+    std::unordered_set<uint32_t> distinct_weights;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -38,7 +38,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         /*
             Heder format:
             >[id] LN:i:[seq_len] ab:Z:[ab_seq]
-            where [ab_seq] is a space-separated sequence of integer counters (the abundances),
+            where [ab_seq] is a space-separated sequence of integer counters (the weights),
             whose length is equal to [seq_len]-k+1
         */
 
@@ -68,34 +68,34 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         expect(sequence[i + 4], ':');
         i += 5;
 
-        bool kmers_have_all_mfa = true;
-        bool kmers_have_different_abundances = false;
+        bool kmers_have_all_mfw = true;
+        bool kmers_have_different_weights = false;
         uint64_t front = constants::invalid;
         uint64_t back = constants::invalid;
 
-        for (uint64_t j = 0, prev_abundance = constants::invalid; j != seq_len - k + 1; ++j) {
-            uint64_t abundance = std::strtoull(sequence.data() + i, nullptr, 10);
-            sum_of_abundances += abundance;
+        for (uint64_t j = 0, prev_weight = constants::invalid; j != seq_len - k + 1; ++j) {
+            uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
+            sum_of_weights += weight;
             i = sequence.find_first_of(' ', i) + 1;
 
-            distinct_abundances.insert(abundance);
+            distinct_weights.insert(weight);
 
             /* set front and back */
-            if (j == 0) front = abundance;
-            if (j == seq_len - k) back = abundance;
+            if (j == 0) front = weight;
+            if (j == seq_len - k) back = weight;
 
             /* accumulate statistics */
-            if (abundance != constants::most_frequent_abundance) kmers_have_all_mfa = false;
-            if (j > 0 and abundance != prev_abundance) kmers_have_different_abundances = true;
+            if (weight != constants::most_frequent_weight) kmers_have_all_mfw = false;
+            if (j > 0 and weight != prev_weight) kmers_have_different_weights = true;
 
             /* count the number of runs */
-            if (abundance != prev_abundance) data.num_runs_abundances += 1;
+            if (weight != prev_weight) data.num_runs_weights += 1;
 
-            prev_abundance = abundance;
+            prev_weight = weight;
         }
 
-        num_sequences_diff_abs += kmers_have_different_abundances;
-        num_sequences_all_mfa += kmers_have_all_mfa;
+        num_sequences_diff_weights += kmers_have_different_weights;
+        num_sequences_all_mfw += kmers_have_all_mfw;
 
         constexpr bool sign = true;
         data.nodes.emplace_back(data.num_sequences, front, back, sign);
@@ -124,26 +124,27 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     }
 
     assert(data.nodes.size() == data.num_sequences);
-    assert(data.num_runs_abundances >= data.num_sequences);
+    assert(data.num_runs_weights >= data.num_sequences);
 
     std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
               << num_kmers << " kmers" << std::endl;
-    std::cout << "found " << distinct_abundances.size() << " distinct abundances" << std::endl;
-    std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
-    std::cout << "num_sequences whose kmers have different abundances: " << num_sequences_diff_abs
+    std::cout << "found " << distinct_weights.size() << " distinct weights" << std::endl;
+    std::cout << "sum_of_weights " << sum_of_weights << std::endl;
+    std::cout << "num_sequences whose kmers have different weights: " << num_sequences_diff_weights
               << "/" << data.num_sequences << " ("
-              << (num_sequences_diff_abs * 100.0) / data.num_sequences << "%)" << std::endl;
-    std::cout << "num_sequences whose kmers all have the same abundance != mfa: "
-              << (data.num_sequences - num_sequences_diff_abs) << "/" << data.num_sequences << " ("
-              << ((data.num_sequences - num_sequences_diff_abs) * 100.0) / data.num_sequences
-              << "%)" << std::endl;
-    std::cout << "num_sequences whose kmers all have the same abundance == mfa: "
-              << num_sequences_all_mfa << "/" << (data.num_sequences - num_sequences_diff_abs)
+              << (num_sequences_diff_weights * 100.0) / data.num_sequences << "%)" << std::endl;
+    std::cout << "num_sequences whose kmers all have the same weight != mfw: "
+              << (data.num_sequences - num_sequences_diff_weights) << "/" << data.num_sequences
               << " ("
-              << (num_sequences_all_mfa * 100.0) / (data.num_sequences - num_sequences_diff_abs)
+              << ((data.num_sequences - num_sequences_diff_weights) * 100.0) / data.num_sequences
+              << "%)" << std::endl;
+    std::cout << "num_sequences whose kmers all have the same weight == mfw: "
+              << num_sequences_all_mfw << "/" << (data.num_sequences - num_sequences_diff_weights)
+              << " ("
+              << (num_sequences_all_mfw * 100.0) / (data.num_sequences - num_sequences_diff_weights)
               << "%)" << std::endl;
 
-    /* computation of lower bound to the number of final abundance runs */
+    /* computation of lower bound to the number of final weight runs */
     {
         struct info {
             /* how many times an end-point weight appears */
@@ -187,27 +188,27 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             uint64_t freq = p.second.freq;
             sum_of_freqs += freq;
 
-            /* special case: abundance will appear as singleton, so count twice */
+            /* special case: weight will appear as singleton, so count twice */
             if (p.second.all_equal) {
                 num_endpoints += 2;
                 continue;
             }
 
-            /* if the excess of frequency is odd, then the abundance will appear as end-point */
+            /* if the excess of frequency is odd, then the weight will appear as end-point */
             if (freq % 2 == 1) num_endpoints += 1;
         }
 
         assert(sum_of_freqs == 2 * data.num_sequences);
         assert(num_endpoints % 2 == 0);
         (void)sum_of_freqs;
-        uint64_t num_distinct_abundances = distinct_abundances.size();
-        uint64_t num_switch_points = data.num_runs_abundances - data.nodes.size();
+        uint64_t num_distinct_weights = distinct_weights.size();
+        uint64_t num_switch_points = data.num_runs_weights - data.nodes.size();
         uint64_t num_walks = num_endpoints / 2;
         std::cout << "(estimated) num_walks = " << num_walks << std::endl;
-        std::cout << "num_runs_abundances = " << data.num_runs_abundances << std::endl;
+        std::cout << "num_runs_weights = " << data.num_runs_weights << std::endl;
         std::cout << "num_switch_points = " << num_switch_points << std::endl;
 
-        uint64_t R_lo = std::max<uint64_t>(num_distinct_abundances, num_switch_points + 1);
+        uint64_t R_lo = std::max<uint64_t>(num_distinct_weights, num_switch_points + 1);
         uint64_t R_hi = num_switch_points + num_walks;
         std::cout << "R_lo = " << R_lo << std::endl;
         std::cout << "R_hi = " << R_hi << std::endl;
@@ -278,16 +279,16 @@ void reverse_header(std::string const& input, std::string& output, uint64_t k) {
     i = j + 6;  // skip ' ab:Z:'
     output.append(input.data(), input.data() + i);
 
-    std::vector<uint32_t> abundances;
-    abundances.reserve(seq_len - k + 1);
+    std::vector<uint32_t> weights;
+    weights.reserve(seq_len - k + 1);
     for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
-        uint64_t abundance = std::strtoull(input.data() + i, nullptr, 10);
-        abundances.push_back(abundance);
+        uint64_t weight = std::strtoull(input.data() + i, nullptr, 10);
+        weights.push_back(weight);
         i = input.find_first_of(' ', i) + 1;
     }
 
-    std::reverse(abundances.begin(), abundances.end());
-    for (auto abundance : abundances) output.append(std::to_string(abundance) + " ");
+    std::reverse(weights.begin(), weights.end());
+    for (auto weight : weights) output.append(std::to_string(weight) + " ");
 }
 
 void permute_and_write(std::istream& is, std::string const& output_filename,
@@ -344,7 +345,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
 
         if (!signs[i]) {
             /* compute reverse complement of dna_sequence
-               and reverse the abundances in header_sequence */
+               and reverse the weights in header_sequence */
             dna_sequence_rc.resize(dna_sequence.size());
             header_sequence_r.clear();
             util::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
@@ -467,7 +468,7 @@ int main(int argc, char** argv) {
                "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
                "\t- without duplicate nor invalid kmers\n"
                "\t- one DNA sequence per line\n"
-               "\t- with also kmers' abundances.\n"
+               "\t- with also kmers' weights.\n"
                "\tFor example, it could be the de Bruijn graph topology output by BCALM.");
 
     parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").");
@@ -502,7 +503,7 @@ int main(int argc, char** argv) {
 
     {
         /* compute cover */
-        cover c(data.num_sequences, data.num_runs_abundances);
+        cover c(data.num_sequences, data.num_runs_weights);
         assert(data.nodes.size() == data.num_sequences);
         c.compute(data.nodes);
         c.save(permutation_filename);

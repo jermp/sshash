@@ -18,7 +18,7 @@ uint64_t skew_index::print_info() const {
         num_kmers_in_skew_index += n;
         lower = upper;
         upper = 2 * lower;
-        if (partition_id == num_partitions - 1) upper = max_num_strings_in_bucket;
+        // if (partition_id == num_partitions - 1) upper = max_num_strings_in_bucket;
     }
     return num_kmers_in_skew_index;
 }
@@ -40,9 +40,9 @@ void dictionary::print_space_breakdown() const {
               << " [bits/kmer]\n";
     std::cout << "  skew_index: " << static_cast<double>(m_skew_index.num_bits()) / size()
               << " [bits/kmer]\n";
-    std::cout << "  abundances: " << static_cast<double>(m_abundances.num_bits()) / size()
+    std::cout << "  weights: " << static_cast<double>(m_weights.num_bits()) / size()
               << " [bits/kmer]\n";
-    m_abundances.print_space_breakdown(size());
+    m_weights.print_space_breakdown(size());
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
               << std::endl;

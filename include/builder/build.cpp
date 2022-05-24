@@ -18,7 +18,7 @@ struct parse_data {
     uint64_t num_kmers;
     minimizers_tuples minimizers;
     compact_string_pool strings;
-    abundances::builder abundances_builder;
+    weights::builder weights_builder;
 };
 
 void parse_file(std::istream& is, parse_data& data, build_configuration const& build_config) {
@@ -79,20 +79,20 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     };
 
     uint64_t seq_len = 0;
-    uint64_t sum_of_abundances = 0;
-    data.abundances_builder.init();
+    uint64_t sum_of_weights = 0;
+    data.weights_builder.init();
 
-    /* intervals of abundances */
-    uint64_t ab_value = constants::invalid;
-    uint64_t ab_length = 0;
+    /* intervals of weights */
+    uint64_t weight_value = constants::invalid;
+    uint64_t weight_length = 0;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
 
         /*
             Heder format:
-            >[id] LN:i:[seq_len] ab:Z:[ab_seq]
-            where [ab_seq] is a space-separated sequence of integer counters (the abundances),
+            >[id] LN:i:[seq_len] ab:Z:[weight_seq]
+            where [weight_seq] is a space-separated sequence of integer counters (the weights),
             whose length is equal to [seq_len]-k+1
         */
 
@@ -123,27 +123,27 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         i += 5;
 
         for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
-            uint64_t ab = std::strtoull(sequence.data() + i, nullptr, 10);
+            uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
             i = sequence.find_first_of(' ', i) + 1;
 
-            data.abundances_builder.eat(ab);
-            sum_of_abundances += ab;
+            data.weights_builder.eat(weight);
+            sum_of_weights += weight;
 
-            if (ab == ab_value) {
-                ab_length += 1;
+            if (weight == weight_value) {
+                weight_length += 1;
             } else {
-                if (ab_value != constants::invalid) {
-                    data.abundances_builder.push_abundance_interval(ab_value, ab_length);
+                if (weight_value != constants::invalid) {
+                    data.weights_builder.push_weight_interval(weight_value, weight_length);
                 }
-                ab_value = ab;
-                ab_length = 1;
+                weight_value = weight;
+                weight_length = 1;
             }
         }
     };
 
     while (!is.eof()) {
         std::getline(is, sequence);  // header sequence
-        if (build_config.store_abundances) parse_header();
+        if (build_config.weighted) parse_header();
 
         std::getline(is, sequence);  // DNA sequence
         if (sequence.size() < k) continue;
@@ -159,7 +159,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         prev_minimizer = constants::invalid;
         num_bases += sequence.size();
 
-        if (build_config.store_abundances and seq_len != sequence.size()) {
+        if (build_config.weighted and seq_len != sequence.size()) {
             std::cout << "ERROR: expected a sequence of length " << seq_len
                       << " but got one of length " << sequence.size() << std::endl;
             throw std::runtime_error("file is malformed");
@@ -204,10 +204,10 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
               << std::endl;
     assert(data.strings.pieces.size() == num_sequences + 1);
 
-    if (build_config.store_abundances) {
-        std::cout << "sum_of_abundances " << sum_of_abundances << std::endl;
-        data.abundances_builder.push_abundance_interval(ab_value, ab_length);
-        data.abundances_builder.finalize(data.num_kmers);
+    if (build_config.weighted) {
+        std::cout << "sum_of_weights " << sum_of_weights << std::endl;
+        data.weights_builder.push_weight_interval(weight_value, weight_length);
+        data.weights_builder.finalize(data.num_kmers);
     }
 }
 
@@ -288,12 +288,11 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     uint64_t min_log2_size = m_skew_index.min_log2;
     uint64_t max_log2_size = m_skew_index.max_log2;
 
-    m_skew_index.max_num_strings_in_bucket = buckets_stats.max_num_strings_in_bucket();
+    uint64_t max_num_strings_in_bucket = buckets_stats.max_num_strings_in_bucket();
     m_skew_index.log2_max_num_strings_in_bucket =
         std::ceil(std::log2(buckets_stats.max_num_strings_in_bucket()));
 
-    std::cout << "max_num_strings_in_bucket " << m_skew_index.max_num_strings_in_bucket
-              << std::endl;
+    std::cout << "max_num_strings_in_bucket " << max_num_strings_in_bucket << std::endl;
     std::cout << "log2_max_num_strings_in_bucket " << m_skew_index.log2_max_num_strings_in_bucket
               << std::endl;
 
@@ -354,9 +353,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
                 lower = upper;
                 upper = 2 * lower;
-                if (partition_id == num_partitions - 1) {
-                    upper = m_skew_index.max_num_strings_in_bucket;
-                }
+                if (partition_id == num_partitions - 1) upper = max_num_strings_in_bucket;
 
                 /*
                     If still larger than upper, then there is an empty bucket
@@ -447,7 +444,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                 upper = 2 * lower;
                 num_bits_per_pos += 1;
                 if (partition_id == num_partitions - 1) {
-                    upper = m_skew_index.max_num_strings_in_bucket;
+                    upper = max_num_strings_in_bucket;
                     num_bits_per_pos = m_skew_index.log2_max_num_strings_in_bucket;
                 }
 
@@ -517,20 +514,20 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     timer.reset();
     /******/
 
-    if (build_config.store_abundances) {
-        /* step 1.1: compress abundances ***/
+    if (build_config.weighted) {
+        /* step 1.1: compress weights ***/
         timer.start();
-        data.abundances_builder.build(m_abundances);
+        data.weights_builder.build(m_weights);
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_abundances'");
+        print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_weights'");
         timer.reset();
         /******/
         if (build_config.verbose) {
-            double entropy_ab = data.abundances_builder.print_info(data.num_kmers);
-            double avg_bits_per_ab = static_cast<double>(m_abundances.num_bits()) / data.num_kmers;
-            std::cout << "abundances: " << avg_bits_per_ab << " [bits/kmer]" << std::endl;
-            std::cout << "  (" << entropy_ab / avg_bits_per_ab
+            double entropy_weights = data.weights_builder.print_info(data.num_kmers);
+            double avg_bits_per_weight = static_cast<double>(m_weights.num_bits()) / data.num_kmers;
+            std::cout << "weights: " << avg_bits_per_weight << " [bits/kmer]" << std::endl;
+            std::cout << "  (" << entropy_weights / avg_bits_per_weight
                       << "x smaller than the empirical entropy)" << std::endl;
         }
     }

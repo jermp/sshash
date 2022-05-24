@@ -7,7 +7,12 @@ SSHash
 This is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
-**A (pre-print) paper describing the data structure can be found [here](https://www.biorxiv.org/content/10.1101/2022.01.15.476199) [1]. Please, cite the paper if you use SSHash.**
+The data structure is described in the following papers:
+
+* [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199) [1]
+* [*"On Weighted K-Mers Dictionaries"*](https://doi.org/10.1101/2022.05.23.493024) [2]
+
+Please, cite these papers if you use SSHash.
 
 For a dictionary of n k-mers,
 two basic queries are supported:
@@ -15,11 +20,11 @@ two basic queries are supported:
 - i = Lookup(g), where i is in [0,n) if the k-mer g is found in the dictionary or i = -1 otherwise;
 - g = Access(i), where g is the k-mer associated to the identifier i.
 
-If also the abundances of the k-mers (their frequency counts) are stored in the dictionary, then the dictionary is said to be *weighted* and it also supports:
+If also the weights of the k-mers (their frequency counts) are stored in the dictionary, then the dictionary is said to be *weighted* and it also supports:
 
-- c = Abundance(i), where i is a given k-mer identifier.
+- w = Weight(i), where i is a given k-mer identifier and w is the weight of the k-mer.
 
-A membership query (determine if a given k-mer is present in the dictionary or not) is, therefore, supported by means of the lookup query.
+A membership query (determine if a given k-mer is present in the dictionary or not) is, therefore, supported by means of the Lookup query.
 The dictionary can also stream through all k-mers of a given DNA file
 (.fasta or .fastq formats) to determine their membership to the dictionary.
 
@@ -95,7 +100,7 @@ where the code was compiled (see the section [Compiling the Code](#compiling-the
 
 to show the usage of the driver program (reported below for convenience).
 
-	Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--abundances] [-o output_filename] [--check] [--bench] [--verbose]
+	Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--weighted] [-o output_filename] [--check] [--bench] [--verbose]
 
 	 input_filename
 		Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
@@ -121,8 +126,8 @@ to show the usage of the driver program (reported below for convenience).
 	 [--canonical-parsing]
 		Canonical parsing of k-mers. This option changes the parsing and results in a trade-off between index space and lookup time.
 
-	 [--abundances]
-		Also store the abundances in compressed format.
+	 [--weighted]
+		Also store the weights in compressed format.
 
 	 [-o output_filename]
 		Output file name where the data structure will be serialized.
@@ -147,7 +152,7 @@ For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
 These collections were built for k = 31, so dictionaries should be built with k = 31 as well to ensure correctness.
 
-(The subdirectory `../data/unitigs_stitched/with_abundances` contains some files with k-mers' abundances too.)
+(The subdirectory `../data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
 
 In the section [Input Files](#input-files), we explain how
 such collections of stitched unitigs can be obtained from raw FASTA files.
@@ -164,9 +169,9 @@ use:
 
 	./bench salmonella_enterica.index
 
-To also store the abundances, use the option `--abundances`:
+To also store the weights, use the option `--weighted`:
 
-	./build ../data/unitigs_stitched/with_abundances/salmonella_enterica_k31_ust.abundances.fa.gz 31 13 --abundances --check --verbose
+	./build ../data/unitigs_stitched/with_weights/salmonella_enterica_k31_ust.weights.fa.gz 31 13 --weighted --check --verbose
 	
 ### Example 2
 
@@ -221,23 +226,23 @@ even on this tiny example, for only +0.4 bits/k-mer.
 
 ### Example 4
 
-	./permute ../data/unitigs_stitched/with_abundances/ecoli_sakai.BA000007.3.k31_ust.abundances.fa.gz 31 -o ecoli_sakai.permuted.fa
+	./permute ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 -o ecoli_sakai.permuted.fa
 
-This command re-orders (and possibly reverse-complement) the strings in the collection as to *minimize* the number of runs in the abundances and, hence, optimize the encoding of the abundances.
+This command re-orders (and possibly reverse-complement) the strings in the collection as to *minimize* the number of runs in the weights and, hence, optimize the encoding of the weights.
 The result is saved to the file `ecoli_sakai.permuted.fa`.
 
-In this example for the E.Coli collection (Sakai strain) we reduce the number of runs in the abundances from 5820 to 3723.
+In this example for the E.Coli collection (Sakai strain) we reduce the number of runs in the weights from 5820 to 3723.
 
 Then use the `build` command as usual to build the permuted collection:
 
-	./build ecoli_sakai.permuted.fa 31 13 --abundances --verbose
+	./build ecoli_sakai.permuted.fa 31 13 --weighted --verbose
 	
 The index built on the permuted collection
-optimizes the storage space for the abundances which results in a 15.1X better space than the empirical entropy of the abundances.
+optimizes the storage space for the weights which results in a 15.1X better space than the empirical entropy of the weights.
 
 For reference, the index built on the original collection:
 
-	./build ../data/unitigs_stitched/with_abundances/ecoli_sakai.BA000007.3.k31_ust.abundances.fa.gz 31 13 --abundances --verbose
+	./build ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 13 --weighted --verbose
 
 already achieves a 12.4X better space than the empirical entropy.
 
@@ -266,7 +271,7 @@ The script `scripts/download_and_preprocess_datasets.sh`
 contains all the needed steps to download and pre-process
 the datasets that we used in [1].
 
-#### Abundances
+#### weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
 
 
@@ -353,4 +358,5 @@ Giulio Ermanno Pibiri - <giulio.ermanno.pibiri@isti.cnr.it>
 
 References
 -----
-* [1] Giulio Ermanno Pibiri. [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199). ISMB 2022 (Bioinformatics journal). To Appear.
+* [1] Giulio Ermanno Pibiri. [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199). ISMB (Bioinformatics journal). 2022. To Appear.
+* [2] Giulio Ermanno Pibiri. [*"On Weighted K-Mers Dictionaries"*](https://doi.org/10.1101/2022.05.23.493024). bioRxiv. 2022.

@@ -90,17 +90,17 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     return true;
 }
 
-bool check_correctness_abundances(std::istream& is, dictionary const& dict) {
+bool check_correctness_weights(std::istream& is, dictionary const& dict) {
     uint64_t k = dict.k();
     std::string line;
     uint64_t kmer_id = 0;
 
     if (!dict.weighted()) {
-        std::cerr << "ERROR: the dictionary does not store abundances" << std::endl;
+        std::cerr << "ERROR: the dictionary does not store weights" << std::endl;
         return false;
     }
 
-    std::cout << "checking correctness of abundances..." << std::endl;
+    std::cout << "checking correctness of weights..." << std::endl;
 
     while (!is.eof()) {
         std::getline(is, line);  // header line
@@ -121,22 +121,22 @@ bool check_correctness_abundances(std::istream& is, dictionary const& dict) {
         i += 5;  // skip "ab:Z:"
 
         for (uint64_t j = 0; j != seq_len - k + 1; ++j, ++kmer_id) {
-            uint64_t expected_ab = std::strtoull(line.data() + i, &end, 10);
+            uint64_t expected = std::strtoull(line.data() + i, &end, 10);
             i = line.find_first_of(' ', i) + 1;
-            uint64_t got_ab = dict.abundance(kmer_id);
-            if (expected_ab != got_ab) {
-                std::cout << "ERROR for kmer_id " << kmer_id << ": expected_ab " << expected_ab
-                          << " but got_ab " << got_ab << std::endl;
+            uint64_t got = dict.weight(kmer_id);
+            if (expected != got) {
+                std::cout << "ERROR for kmer_id " << kmer_id << ": expected " << expected
+                          << " but got " << got << std::endl;
             }
             if (kmer_id != 0 and kmer_id % 5000000 == 0) {
-                std::cout << "checked " << kmer_id << " abundances" << std::endl;
+                std::cout << "checked " << kmer_id << " weights" << std::endl;
             }
         }
 
         std::getline(is, line);  // skip DNA sequence
     }
 
-    std::cout << "checked " << kmer_id << " abundances" << std::endl;
+    std::cout << "checked " << kmer_id << " weights" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;
 }
@@ -162,15 +162,15 @@ bool check_correctness_lookup_access(dictionary const& dict, std::string const& 
 /*
    The input file must be the one the index was built from.
 */
-bool check_correctness_abundances(dictionary const& dict, std::string const& filename) {
+bool check_correctness_weights(dictionary const& dict, std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        good = check_correctness_abundances(zis, dict);
+        good = check_correctness_weights(zis, dict);
     } else {
-        good = check_correctness_abundances(is, dict);
+        good = check_correctness_weights(is, dict);
     }
     is.close();
     return good;

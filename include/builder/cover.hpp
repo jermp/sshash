@@ -10,12 +10,12 @@
 namespace sshash {
 
 namespace constants {
-constexpr uint64_t most_frequent_abundance = 1;  // usual value
+constexpr uint64_t most_frequent_weight = 1;  // usual value
 }
 
 struct node {
     // We assume there are less than 2^32 sequences and that
-    // the largest abundance fits into a 32-bit uint.
+    // the largest weight fits into a 32-bit uint.
     node(uint32_t i, uint32_t f, uint32_t b, bool s) : id(i), front(f), back(b), sign(s) {}
     uint32_t id, front, back;
     bool sign;  // 'true'  --> '+'
@@ -26,8 +26,8 @@ struct cover {
     typedef std::deque<node> walk_t;
     typedef std::vector<walk_t> walks_t;
 
-    cover(uint64_t num_sequences, uint64_t num_runs_abundances)
-        : m_num_sequences(num_sequences), m_num_runs_abundances(num_runs_abundances) {}
+    cover(uint64_t num_sequences, uint64_t num_runs_weights)
+        : m_num_sequences(num_sequences), m_num_runs_weights(num_runs_weights) {}
 
     void compute(std::vector<node>& nodes) {
         assert(nodes.size() == m_num_sequences);
@@ -35,8 +35,8 @@ struct cover {
         essentials::timer_type timer;
         timer.start();
 
-        /* (abundance, position of a candidate abundance with front = abundance) */
-        std::unordered_map<uint32_t, uint32_t> abundance_map;
+        /* (weight, position of a candidate weight with front = weight) */
+        std::unordered_map<uint32_t, uint32_t> weight_map;
 
         /* visited[node.id] = true if node has been visited; false otherwise */
         std::vector<bool> visited;
@@ -51,7 +51,7 @@ struct cover {
         unvisited_nodes.reserve(nodes.size());  // at most
         m_walks.reserve(nodes.size());          // at most
 
-        std::cout << "initial number of runs = " << m_num_runs_abundances << std::endl;
+        std::cout << "initial number of runs = " << m_num_runs_weights << std::endl;
 
         /* add all the nodes with backward orientation */
         uint64_t num_nodes = nodes.size();
@@ -80,12 +80,12 @@ struct cover {
             return x.id < y.id;
         });
 
-        /* fill abundance_map */
+        /* fill weight_map */
         {
             uint64_t prev_front = constants::invalid;
             uint64_t offset = 0;
             for (auto const& node : nodes) {
-                if (node.front != prev_front) abundance_map[node.front] = offset;
+                if (node.front != prev_front) weight_map[node.front] = offset;
                 offset += 1;
                 prev_front = node.front;
             }
@@ -186,26 +186,26 @@ struct cover {
                     assert(candidate_i <= num_nodes);
 
                     if (no_match_found or candidate_i == num_nodes) {
-                        abundance_map[back] = candidate_i;
+                        weight_map[back] = candidate_i;
                         return false;
                     }
 
                     /* valid match was found, then visit it next */
                     i = candidate_i;
 
-                    /* update candidate position in abundance_map to point to *next* position */
-                    abundance_map[back] = candidate_i + 1;
+                    /* update candidate position in weight_map to point to *next* position */
+                    weight_map[back] = candidate_i + 1;
 
                     return true;
                 };
 
                 /* try to extend to the right */
-                uint64_t candidate_i = abundance_map[walk.back().back];
+                uint64_t candidate_i = weight_map[walk.back().back];
                 bool found = try_to_extend(walk.back().back, candidate_i);
 
                 /* if not possible, try to extend to the left */
                 if (!found) {
-                    candidate_i = abundance_map[walk.front().front];
+                    candidate_i = weight_map[walk.front().front];
                     found = try_to_extend(walk.front().front, candidate_i);
                 }
 
@@ -253,17 +253,17 @@ struct cover {
                 // std::cout << std::endl;
 #endif
             }
-            assert(m_num_runs_abundances > num_matches_in_round);
-            m_num_runs_abundances -= num_matches_in_round;
+            assert(m_num_runs_weights > num_matches_in_round);
+            m_num_runs_weights -= num_matches_in_round;
             std::cout << "  num_matches = " << num_matches_in_round << std::endl;
-            std::cout << "  num_runs " << m_num_runs_abundances << std::endl;
+            std::cout << "  num_runs " << m_num_runs_weights << std::endl;
         }
 
         timer.stop();
         std::cout << "cover computed in: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
-        std::cout << "final number of runs R = " << m_num_runs_abundances << std::endl;
+        std::cout << "final number of runs R = " << m_num_runs_weights << std::endl;
 
-        assert(m_num_runs_abundances >= 1);
+        assert(m_num_runs_weights >= 1);
     }
 
     void save(std::string const& filename) {
@@ -287,7 +287,7 @@ struct cover {
 
 private:
     uint64_t m_num_sequences;
-    uint64_t m_num_runs_abundances;
+    uint64_t m_num_runs_weights;
     walks_t m_walks;
 
     void change_orientation(node& n) {

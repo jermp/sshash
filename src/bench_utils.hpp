@@ -94,9 +94,9 @@ void perf_test_lookup_access(dictionary const& dict) {
     }
 }
 
-void perf_test_lookup_abundance(dictionary const& dict) {
+void perf_test_lookup_weight(dictionary const& dict) {
     if (!dict.weighted()) {
-        std::cerr << "ERROR: the dictionary does not store abundances" << std::endl;
+        std::cerr << "ERROR: the dictionary does not store weights" << std::endl;
         return;
     }
 
@@ -126,14 +126,13 @@ void perf_test_lookup_abundance(dictionary const& dict) {
     for (uint64_t r = 0; r != runs; ++r) {
         for (auto const& string : lookup_queries) {
             auto id = dict.lookup(string.c_str());
-            auto ab = dict.abundance(id);
-            essentials::do_not_optimize_away(ab);
+            auto w = dict.weight(id);
+            essentials::do_not_optimize_away(w);
         }
     }
     t.stop();
     double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-    std::cout << "avg_nanosec_per_positive_lookup_with_abundance " << nanosec_per_lookup
-              << std::endl;
+    std::cout << "avg_nanosec_per_positive_lookup_with_weight " << nanosec_per_lookup << std::endl;
 }
 
 }  // namespace sshash

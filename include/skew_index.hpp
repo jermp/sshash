@@ -8,7 +8,6 @@ struct skew_index {
     skew_index()
         : min_log2(constants::min_l)
         , max_log2(constants::max_l)
-        , max_num_strings_in_bucket(0)
         , log2_max_num_strings_in_bucket(0) {
         mphfs.resize(0);
         positions.resize(0);
@@ -34,9 +33,8 @@ struct skew_index {
     }
 
     uint64_t num_bits() const {
-        uint64_t n = (sizeof(min_log2) + sizeof(max_log2) + sizeof(max_num_strings_in_bucket) +
-                      sizeof(log2_max_num_strings_in_bucket)) *
-                     8;
+        uint64_t n =
+            (sizeof(min_log2) + sizeof(max_log2) + sizeof(log2_max_num_strings_in_bucket)) * 8;
         for (uint64_t partition_id = 0; partition_id != mphfs.size(); ++partition_id) {
             auto const& mphf = mphfs[partition_id];
             auto const& P = positions[partition_id];
@@ -49,7 +47,6 @@ struct skew_index {
     void visit(Visitor& visitor) {
         visitor.visit(min_log2);
         visitor.visit(max_log2);
-        visitor.visit(max_num_strings_in_bucket);
         visitor.visit(log2_max_num_strings_in_bucket);
         visitor.visit(mphfs);
         visitor.visit(positions);
@@ -57,7 +54,6 @@ struct skew_index {
 
     uint16_t min_log2;
     uint16_t max_log2;
-    uint32_t max_num_strings_in_bucket;  // useless
     uint32_t log2_max_num_strings_in_bucket;
     std::vector<pthash_mphf_type> mphfs;
     std::vector<pthash::compact_vector> positions;
