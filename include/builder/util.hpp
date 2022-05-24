@@ -22,11 +22,10 @@ struct compact_string_pool {
     compact_string_pool() {}
 
     struct builder {
-        builder(uint64_t k) : k(k), offset(0), num_strings(0) {}
+        builder(uint64_t k) : k(k), offset(0), num_super_kmers(0) {}
 
         void build(compact_string_pool& pool) {
-            pool.k = k;
-            pool.num_strings = num_strings;
+            pool.m_num_super_kmers = num_super_kmers;
             pool.pieces.swap(pieces);
             pool.strings.build(&bvb_strings);
         }
@@ -43,7 +42,7 @@ struct compact_string_pool {
             for (uint64_t i = prefix; i != size; ++i) {
                 bvb_strings.append_bits(util::char_to_uint64(string[i]), 2);
             }
-            num_strings += 1;
+            num_super_kmers += 1;
             offset = bvb_strings.size() / 2;
         }
 
@@ -59,29 +58,30 @@ struct compact_string_pool {
 
         uint64_t k;
         uint64_t offset;
-        uint64_t num_strings;
+        uint64_t num_super_kmers;
         std::vector<uint64_t> pieces;
         pthash::bit_vector_builder bvb_strings;
     };
 
     uint64_t num_bits() const { return strings.size(); }
-    uint64_t size() const { return num_strings; }
+    uint64_t num_super_kmers() const { return m_num_super_kmers; }
 
-    uint64_t k;
-    uint64_t num_strings;
     std::vector<uint64_t> pieces;
     pthash::bit_vector strings;
+
+private:
+    uint64_t m_num_super_kmers;
 };
 
-typedef uint8_t num_kmers_in_string_uint_type;
+typedef uint8_t num_kmers_in_super_kmer_uint_type;
 
 #pragma pack(push, 1)
 struct minimizer_tuple {
-    minimizer_tuple(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_string)
-        : minimizer(minimizer), offset(offset), num_kmers_in_string(num_kmers_in_string) {}
+    minimizer_tuple(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer)
+        : minimizer(minimizer), offset(offset), num_kmers_in_super_kmer(num_kmers_in_super_kmer) {}
     uint64_t minimizer;
     uint64_t offset;
-    num_kmers_in_string_uint_type num_kmers_in_string;
+    num_kmers_in_super_kmer_uint_type num_kmers_in_super_kmer;
 };
 #pragma pack(pop)
 
@@ -94,7 +94,7 @@ struct list_type {
         iterator(std::vector<minimizer_tuple>::iterator begin) : m_begin(begin) {}
 
         inline std::pair<uint64_t, uint64_t> operator*() const {
-            return {(*m_begin).offset, (*m_begin).num_kmers_in_string};
+            return {(*m_begin).offset, (*m_begin).num_kmers_in_super_kmer};
         }
 
         inline void operator++() { ++m_begin; }
@@ -121,8 +121,8 @@ struct minimizers_tuples {
     //     tuples.reserve(n);
     // }
 
-    void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_string) {
-        tuples.emplace_back(minimizer, offset, num_kmers_in_string);
+    void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
+        tuples.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
     }
 
     minimizer_tuple& back() { return tuples.back(); }

@@ -18,7 +18,6 @@ uint64_t skew_index::print_info() const {
         num_kmers_in_skew_index += n;
         lower = upper;
         upper = 2 * lower;
-        // if (partition_id == num_partitions - 1) upper = max_num_strings_in_bucket;
     }
     return num_kmers_in_skew_index;
 }
@@ -31,8 +30,8 @@ void dictionary::print_space_breakdown() const {
               << " [bits/kmer]\n";
     std::cout << "  pieces: " << static_cast<double>(m_buckets.pieces.num_bits()) / size()
               << " [bits/kmer]\n";
-    std::cout << "  num_strings_before_bucket: "
-              << static_cast<double>(m_buckets.num_strings_before_bucket.num_bits()) / size()
+    std::cout << "  num_super_kmers_before_bucket: "
+              << static_cast<double>(m_buckets.num_super_kmers_before_bucket.num_bits()) / size()
               << " [bits/kmer]\n";
     std::cout << "  offsets: " << static_cast<double>(8 * m_buckets.offsets.bytes()) / size()
               << " [bits/kmer]\n";
@@ -57,10 +56,9 @@ void dictionary::print_info() const {
     std::cout << "canonicalized = " << (canonicalized() ? "true" : "false") << '\n';
     std::cout << "weighted = " << (weighted() ? "true" : "false") << '\n';
 
-    std::cout << "num_strings = " << m_buckets.offsets.size() << '\n';
+    std::cout << "num_super_kmers = " << m_buckets.offsets.size() << '\n';
     std::cout << "num_pieces = " << m_buckets.pieces.size() << " (+"
               << (2.0 * m_buckets.pieces.size() * (k() - 1)) / size() << " [bits/kmer])" << '\n';
-    std::cout << "num_symbols_in_string = " << m_buckets.strings.size() / 2 << '\n';
     std::cout << "bits_per_offset = ceil(log2(" << m_buckets.strings.size() / 2
               << ")) = " << std::ceil(std::log2(m_buckets.strings.size() / 2)) << '\n';
     uint64_t num_kmers_in_skew_index = m_skew_index.print_info();

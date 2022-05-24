@@ -92,40 +92,42 @@ struct buckets_statistics {
     static const uint64_t max_bucket_size = 4 * 1024;
     static const uint64_t max_string_size = 256;
 
-    buckets_statistics(uint64_t num_buckets, uint64_t num_kmers, uint64_t num_strings = 0)
+    buckets_statistics(uint64_t num_buckets, uint64_t num_kmers, uint64_t num_super_kmers = 0)
         : m_num_buckets(num_buckets)
         , m_num_kmers(num_kmers)
-        // , m_num_strings(num_strings)
-        , m_max_num_kmers_in_string(0)
-        , m_max_num_strings_in_bucket(0) {
-        (void)num_strings;
+        // , m_num_super_kmers(num_super_kmers)
+        , m_max_num_kmers_in_super_kmer(0)
+        , m_max_num_super_kmers_in_bucket(0) {
+        (void)num_super_kmers;
         m_bucket_sizes.resize(max_bucket_size + 1, 0);
         m_total_kmers.resize(max_bucket_size + 1, 0);
         m_string_sizes.resize(max_string_size + 1, 0);
     }
 
-    void add_num_strings_in_bucket(uint64_t num_strings_in_bucket) {
-        if (num_strings_in_bucket < max_bucket_size + 1) {
-            m_bucket_sizes[num_strings_in_bucket] += 1;
+    void add_num_super_kmers_in_bucket(uint64_t num_super_kmers_in_bucket) {
+        if (num_super_kmers_in_bucket < max_bucket_size + 1) {
+            m_bucket_sizes[num_super_kmers_in_bucket] += 1;
         }
     }
 
-    void add_num_kmers_in_string(uint64_t num_strings_in_bucket, uint64_t num_kmers_in_string) {
-        if (num_strings_in_bucket < max_bucket_size + 1) {
-            m_total_kmers[num_strings_in_bucket] += num_kmers_in_string;
+    void add_num_kmers_in_super_kmer(uint64_t num_super_kmers_in_bucket,
+                                     uint64_t num_kmers_in_super_kmer) {
+        if (num_super_kmers_in_bucket < max_bucket_size + 1) {
+            m_total_kmers[num_super_kmers_in_bucket] += num_kmers_in_super_kmer;
         }
-        if (num_kmers_in_string > m_max_num_kmers_in_string) {
-            m_max_num_kmers_in_string = num_kmers_in_string;
+        if (num_kmers_in_super_kmer > m_max_num_kmers_in_super_kmer) {
+            m_max_num_kmers_in_super_kmer = num_kmers_in_super_kmer;
         }
-        if (num_strings_in_bucket > m_max_num_strings_in_bucket) {
-            m_max_num_strings_in_bucket = num_strings_in_bucket;
+        if (num_super_kmers_in_bucket > m_max_num_super_kmers_in_bucket) {
+            m_max_num_super_kmers_in_bucket = num_super_kmers_in_bucket;
         }
-        if (num_kmers_in_string < max_string_size + 1) m_string_sizes[num_kmers_in_string] += 1;
+        if (num_kmers_in_super_kmer < max_string_size + 1)
+            m_string_sizes[num_kmers_in_super_kmer] += 1;
     }
 
     uint64_t num_kmers() const { return m_num_kmers; }
     uint64_t num_buckets() const { return m_num_buckets; }
-    uint64_t max_num_strings_in_bucket() const { return m_max_num_strings_in_bucket; }
+    uint64_t max_num_super_kmers_in_bucket() const { return m_max_num_super_kmers_in_bucket; }
 
     void print() const {
         // full statistics
@@ -135,7 +137,7 @@ struct buckets_statistics {
         //      bucket_size != max_bucket_size + 1; ++bucket_size) {
         //     if (m_bucket_sizes[bucket_size] > 0) {
         //         std::cout << "buckets with " << bucket_size
-        //                   << " strings=" << m_bucket_sizes[bucket_size] << "("
+        //                   << " super_kmers=" << m_bucket_sizes[bucket_size] << "("
         //                   << (m_bucket_sizes[bucket_size] * 100.0) / m_num_buckets
         //                   << "%)|total_kmers=" << m_total_kmers[bucket_size] << "("
         //                   << (m_total_kmers[bucket_size] * 100.0) / m_num_kmers << "%)"
@@ -170,42 +172,44 @@ struct buckets_statistics {
         std::cout << " === bucket statistics (less) === \n";
         for (uint64_t bucket_size = 1; bucket_size != 16 + 1; ++bucket_size) {
             if (m_bucket_sizes[bucket_size] > 0) {
-                std::cout << "buckets with " << bucket_size
-                          << " strings = " << (m_bucket_sizes[bucket_size] * 100.0) / m_num_buckets
-                          << "%" << std::endl;
+                std::cout << "buckets with " << bucket_size << " super_kmers = "
+                          << (m_bucket_sizes[bucket_size] * 100.0) / m_num_buckets << "%"
+                          << std::endl;
             }
         }
-        std::cout << "max_num_strings_in_bucket " << m_max_num_strings_in_bucket << std::endl;
+        std::cout << "max_num_super_kmers_in_bucket " << m_max_num_super_kmers_in_bucket
+                  << std::endl;
 
-        // std::cout << " === string statistics === \n";
-        // uint64_t total_strings = 0;
+        // std::cout << " === super_kmer statistics === \n";
+        // uint64_t total_super_kmers = 0;
         // uint64_t total_kmers = 0;
         // for (uint64_t string_size = 1; string_size != max_string_size + 1; ++string_size) {
         //     if (m_string_sizes[string_size] > 0) {
-        //         std::cout << "strings with " << string_size
+        //         std::cout << "super_kmers with " << string_size
         //                   << " kmer=" << m_string_sizes[string_size] << "("
-        //                   << (m_string_sizes[string_size] * 100.0) / m_num_strings
+        //                   << (m_string_sizes[string_size] * 100.0) / m_num_super_kmers
         //                   << "%)|total_kmers=" << (string_size * m_string_sizes[string_size]) <<
         //                   "("
         //                   << (string_size * m_string_sizes[string_size] * 100.0) / m_num_kmers
         //                   << "%)" << std::endl;
-        //         total_strings += m_string_sizes[string_size];
+        //         total_super_kmers += m_string_sizes[string_size];
         //         total_kmers += string_size * m_string_sizes[string_size];
         //     }
         // }
-        // std::cout << "total_strings " << total_strings << "/" << m_num_strings << " ("
-        //           << (total_strings * 100.0) / m_num_strings << "%)" << std::endl;
+        // std::cout << "total_super_kmers " << total_super_kmers << "/" << m_num_super_kmers << "("
+        //           << (total_super_kmers * 100.0) / m_num_super_kmers << "%)" << std::endl;
         // std::cout << "total_kmers " << total_kmers << "/" << m_num_kmers << " ("
         //           << (total_kmers * 100.0) / m_num_kmers << "%)" << std::endl;
-        // std::cout << "max_num_kmers_in_string " << m_max_num_kmers_in_string << std::endl;
+        // std::cout << "max_num_kmers_in_super_kmer " << m_max_num_kmers_in_super_kmer <<
+        // std::endl;
     }
 
 private:
     uint64_t m_num_buckets;
     uint64_t m_num_kmers;
-    // uint64_t m_num_strings;
-    uint64_t m_max_num_kmers_in_string;
-    uint64_t m_max_num_strings_in_bucket;
+    // uint64_t m_num_super_kmers;
+    uint64_t m_max_num_kmers_in_super_kmer;
+    uint64_t m_max_num_super_kmers_in_bucket;
     std::vector<uint64_t> m_bucket_sizes;
     std::vector<uint64_t> m_total_kmers;
     std::vector<uint64_t> m_string_sizes;

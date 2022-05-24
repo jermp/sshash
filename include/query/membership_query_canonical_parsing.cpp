@@ -146,17 +146,19 @@ private:
     int is_member() {
         bool check_minimizer = !same_minimizer();
         if (!m_dict->m_skew_index.empty()) {
-            uint64_t num_strings_in_bucket = m_end - m_begin;
-            uint64_t log2_num_strings_in_bucket = util::ceil_log2_uint32(num_strings_in_bucket);
-            if (log2_num_strings_in_bucket > (m_dict->m_skew_index).min_log2) {
-                uint64_t p = m_dict->m_skew_index.lookup(m_kmer, log2_num_strings_in_bucket);
-                if (p < num_strings_in_bucket) {
+            uint64_t num_super_kmers_in_bucket = m_end - m_begin;
+            uint64_t log2_num_super_kmers_in_bucket =
+                util::ceil_log2_uint32(num_super_kmers_in_bucket);
+            if (log2_num_super_kmers_in_bucket > (m_dict->m_skew_index).min_log2) {
+                uint64_t p = m_dict->m_skew_index.lookup(m_kmer, log2_num_super_kmers_in_bucket);
+                if (p < num_super_kmers_in_bucket) {
                     int ret = is_member(m_begin + p, m_begin + p + 1, check_minimizer);
                     if (ret != return_value::KMER_NOT_FOUND) return ret;
                     check_minimizer = false;
                 }
-                uint64_t p_rc = m_dict->m_skew_index.lookup(m_kmer_rc, log2_num_strings_in_bucket);
-                if (p_rc < num_strings_in_bucket) {
+                uint64_t p_rc =
+                    m_dict->m_skew_index.lookup(m_kmer_rc, log2_num_super_kmers_in_bucket);
+                if (p_rc < num_super_kmers_in_bucket) {
                     int ret = is_member(m_begin + p_rc, m_begin + p_rc + 1, check_minimizer);
                     if (ret != return_value::KMER_NOT_FOUND) return ret;
                 }
@@ -167,8 +169,8 @@ private:
     }
 
     int is_member(uint64_t begin, uint64_t end, bool check_minimizer) {
-        for (uint64_t string_id = begin; string_id != end; ++string_id) {
-            uint64_t offset = (m_dict->m_buckets).offsets.access(string_id);
+        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
+            uint64_t offset = (m_dict->m_buckets).offsets.access(super_kmer_id);
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
@@ -180,7 +182,7 @@ private:
             while (m_pos_in_window != m_window_size) {
                 uint64_t val = m_string_iterator.read(2 * m_k);
 
-                if (check_minimizer and string_id == begin and m_pos_in_window == 0) {
+                if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
                     uint64_t val_rc = util::compute_reverse_complement(val, m_k);
                     uint64_t minimizer =
                         std::min<uint64_t>(util::compute_minimizer(val, m_k, m_m, m_seed),

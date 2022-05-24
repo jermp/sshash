@@ -25,55 +25,55 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
-    uint64_t max_num_kmers_in_string = k - m + 1;
-    uint64_t block_size = 2 * k - m;  // max_num_kmers_in_string + k - 1
+    uint64_t max_num_kmers_in_super_kmer = k - m + 1;
+    uint64_t block_size = 2 * k - m;  // max_num_kmers_in_super_kmer + k - 1
 
-    if (max_num_kmers_in_string >= (1ULL << (sizeof(num_kmers_in_string_uint_type) * 8))) {
-        throw std::runtime_error("max_num_kmers_in_string " +
-                                 std::to_string(max_num_kmers_in_string) + " does not fit into " +
-                                 std::to_string(sizeof(num_kmers_in_string_uint_type) * 8) +
-                                 " bits");
+    if (max_num_kmers_in_super_kmer >= (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8))) {
+        throw std::runtime_error(
+            "max_num_kmers_in_super_kmer " + std::to_string(max_num_kmers_in_super_kmer) +
+            " does not fit into " + std::to_string(sizeof(num_kmers_in_super_kmer_uint_type) * 8) +
+            " bits");
     }
 
     /* fit into the wanted number of bits */
-    assert(max_num_kmers_in_string < (1ULL << (sizeof(num_kmers_in_string_uint_type) * 8)));
+    assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
     compact_string_pool::builder builder(k);
 
     std::string sequence;
     uint64_t prev_minimizer = constants::invalid;
 
-    uint64_t begin = 0;  // begin of parsed string in sequence
-    uint64_t end = 0;    // end of parsed string in sequence
+    uint64_t begin = 0;  // begin of parsed super_kmer in sequence
+    uint64_t end = 0;    // end of parsed super_kmer in sequence
     uint64_t num_sequences = 0;
     uint64_t num_bases = 0;
     bool glue = false;
 
-    auto append_string = [&]() {
+    auto append_super_kmer = [&]() {
         if (sequence.empty() or prev_minimizer == constants::invalid or begin == end) return;
 
         assert(end > begin);
-        char const* string = sequence.data() + begin;
+        char const* super_kmer = sequence.data() + begin;
         uint64_t size = (end - begin) + k - 1;
-        assert(util::is_valid(string, size));
+        assert(util::is_valid(super_kmer, size));
 
-        /* if num_kmers_in_string > k - m + 1, then split the string into blocks */
-        uint64_t num_kmers_in_string = end - begin;
-        uint64_t num_blocks = num_kmers_in_string / max_num_kmers_in_string +
-                              (num_kmers_in_string % max_num_kmers_in_string != 0);
+        /* if num_kmers_in_super_kmer > k - m + 1, then split the super_kmer into blocks */
+        uint64_t num_kmers_in_super_kmer = end - begin;
+        uint64_t num_blocks = num_kmers_in_super_kmer / max_num_kmers_in_super_kmer +
+                              (num_kmers_in_super_kmer % max_num_kmers_in_super_kmer != 0);
         assert(num_blocks > 0);
         for (uint64_t i = 0; i != num_blocks; ++i) {
             uint64_t n = block_size;
             if (i == num_blocks - 1) n = size;
             uint64_t num_kmers_in_block = n - k + 1;
-            assert(num_kmers_in_block <= max_num_kmers_in_string);
+            assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
             data.minimizers.emplace_back(prev_minimizer, builder.offset, num_kmers_in_block);
-            builder.append(string + i * max_num_kmers_in_string, n, glue);
+            builder.append(super_kmer + i * max_num_kmers_in_super_kmer, n, glue);
             if (glue) {
                 assert(data.minimizers.back().offset > k - 1);
                 data.minimizers.back().offset -= k - 1;
             }
-            size -= max_num_kmers_in_string;
+            size -= max_num_kmers_in_super_kmer;
             glue = true;
         }
     };
@@ -179,7 +179,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
             if (prev_minimizer == constants::invalid) prev_minimizer = minimizer;
             if (minimizer != prev_minimizer) {
-                append_string();
+                append_super_kmer();
                 begin = end;
                 prev_minimizer = minimizer;
                 glue = true;
@@ -189,7 +189,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             ++end;
         }
 
-        append_string();
+        append_super_kmer();
     }
 
     builder.finalize();
@@ -198,7 +198,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
     std::cout << "num_kmers " << data.num_kmers << std::endl;
-    std::cout << "num_strings " << data.strings.size() << std::endl;
+    std::cout << "num_super_kmers " << data.strings.num_super_kmers() << std::endl;
     std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
               << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
               << std::endl;
@@ -230,12 +230,11 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
                                buckets& m_buckets) {
     uint64_t num_buckets = m_minimizers.size();
     uint64_t num_kmers = data.num_kmers;
-    uint64_t num_strings = data.strings.size();
-    std::vector<uint64_t> num_strings_before_bucket(num_buckets + 1, 0);
+    uint64_t num_super_kmers = data.strings.num_super_kmers();
+    std::vector<uint64_t> num_super_kmers_before_bucket(num_buckets + 1, 0);
     pthash::compact_vector::builder offsets;
-    offsets.resize(num_strings, std::ceil(std::log2(data.strings.num_bits() / 2)));
+    offsets.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
 
-    std::cout << "num_symbols_in_string " << data.strings.num_bits() / 2 << std::endl;
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
 
@@ -243,39 +242,40 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
         assert(it.list().size() > 0);
         if (it.list().size() != 1) {
             uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
-            num_strings_before_bucket[bucket_id + 1] = it.list().size() - 1;
+            num_super_kmers_before_bucket[bucket_id + 1] = it.list().size() - 1;
         }
-        // else: it.list().size() = 1 and num_strings_before_bucket[bucket_id + 1] is already 0
+        // else: it.list().size() = 1 and num_super_kmers_before_bucket[bucket_id + 1] is already 0
     }
-    std::partial_sum(num_strings_before_bucket.begin(), num_strings_before_bucket.end(),
-                     num_strings_before_bucket.begin());
+    std::partial_sum(num_super_kmers_before_bucket.begin(), num_super_kmers_before_bucket.end(),
+                     num_super_kmers_before_bucket.begin());
 
-    buckets_statistics buckets_stats(num_buckets, num_kmers, num_strings);
+    buckets_statistics buckets_stats(num_buckets, num_kmers, num_super_kmers);
 
     uint64_t num_singletons = 0;
     for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
         uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
-        uint64_t base = num_strings_before_bucket[bucket_id] + bucket_id;
-        uint64_t num_strings_in_bucket =
-            (num_strings_before_bucket[bucket_id + 1] + bucket_id + 1) - base;
-        assert(num_strings_in_bucket > 0);
-        if (num_strings_in_bucket == 1) ++num_singletons;
-        buckets_stats.add_num_strings_in_bucket(num_strings_in_bucket);
+        uint64_t base = num_super_kmers_before_bucket[bucket_id] + bucket_id;
+        uint64_t num_super_kmers_in_bucket =
+            (num_super_kmers_before_bucket[bucket_id + 1] + bucket_id + 1) - base;
+        assert(num_super_kmers_in_bucket > 0);
+        if (num_super_kmers_in_bucket == 1) ++num_singletons;
+        buckets_stats.add_num_super_kmers_in_bucket(num_super_kmers_in_bucket);
         uint64_t offset_pos = 0;
         auto list = it.list();
-        for (auto [offset, num_kmers_in_string] : list) {
+        for (auto [offset, num_kmers_in_super_kmer] : list) {
             offsets.set(base + offset_pos++, offset);
-            buckets_stats.add_num_kmers_in_string(num_strings_in_bucket, num_kmers_in_string);
+            buckets_stats.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket,
+                                                      num_kmers_in_super_kmer);
         }
-        assert(offset_pos == num_strings_in_bucket);
+        assert(offset_pos == num_super_kmers_in_bucket);
     }
 
     std::cout << "num_singletons " << num_singletons << "/" << num_buckets << " ("
               << (num_singletons * 100.0) / num_buckets << "%)" << std::endl;
 
     m_buckets.pieces.encode(data.strings.pieces.begin(), data.strings.pieces.size());
-    m_buckets.num_strings_before_bucket.encode(num_strings_before_bucket.begin(),
-                                               num_strings_before_bucket.size());
+    m_buckets.num_super_kmers_before_bucket.encode(num_super_kmers_before_bucket.begin(),
+                                                   num_super_kmers_before_bucket.size());
     offsets.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings.strings);
 
@@ -288,13 +288,13 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     uint64_t min_log2_size = m_skew_index.min_log2;
     uint64_t max_log2_size = m_skew_index.max_log2;
 
-    uint64_t max_num_strings_in_bucket = buckets_stats.max_num_strings_in_bucket();
-    m_skew_index.log2_max_num_strings_in_bucket =
-        std::ceil(std::log2(buckets_stats.max_num_strings_in_bucket()));
+    uint64_t max_num_super_kmers_in_bucket = buckets_stats.max_num_super_kmers_in_bucket();
+    m_skew_index.log2_max_num_super_kmers_in_bucket =
+        std::ceil(std::log2(buckets_stats.max_num_super_kmers_in_bucket()));
 
-    std::cout << "max_num_strings_in_bucket " << max_num_strings_in_bucket << std::endl;
-    std::cout << "log2_max_num_strings_in_bucket " << m_skew_index.log2_max_num_strings_in_bucket
-              << std::endl;
+    std::cout << "max_num_super_kmers_in_bucket " << max_num_super_kmers_in_bucket << std::endl;
+    std::cout << "log2_max_num_super_kmers_in_bucket "
+              << m_skew_index.log2_max_num_super_kmers_in_bucket << std::endl;
 
     uint64_t num_buckets_in_skew_index = 0;
     for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
@@ -318,8 +318,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
               [](list_type const& x, list_type const& y) { return x.size() < y.size(); });
 
     uint64_t num_partitions = max_log2_size - min_log2_size + 1;
-    if (buckets_stats.max_num_strings_in_bucket() < (1ULL << max_log2_size)) {
-        num_partitions = m_skew_index.log2_max_num_strings_in_bucket - min_log2_size;
+    if (buckets_stats.max_num_super_kmers_in_bucket() < (1ULL << max_log2_size)) {
+        num_partitions = m_skew_index.log2_max_num_super_kmers_in_bucket - min_log2_size;
     }
     std::cout << "num_partitions " << num_partitions << std::endl;
 
@@ -353,7 +353,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
                 lower = upper;
                 upper = 2 * lower;
-                if (partition_id == num_partitions - 1) upper = max_num_strings_in_bucket;
+                if (partition_id == num_partitions - 1) upper = max_num_super_kmers_in_bucket;
 
                 /*
                     If still larger than upper, then there is an empty bucket
@@ -368,9 +368,9 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
             }
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
-            for (auto [offset, num_kmers_in_string] : lists[i]) {
+            for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
                 (void)offset;  // unused
-                num_kmers_in_partition[partition_id] += num_kmers_in_string;
+                num_kmers_in_partition[partition_id] += num_kmers_in_super_kmer;
             }
         }
         assert(partition_id == num_partitions);
@@ -399,11 +399,11 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         uint64_t upper = 2 * lower;
         uint64_t num_bits_per_pos = min_log2_size + 1;
 
-        /* tmp storage for keys and string_ids ******/
+        /* tmp storage for keys and super_kmer_ids ******/
         std::vector<uint64_t> keys_in_partition;
-        std::vector<uint32_t> string_ids_in_partition;
+        std::vector<uint32_t> super_kmer_ids_in_partition;
         keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
-        string_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
+        super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
         pthash::compact_vector::builder cvb_positions;
         cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
         /*******/
@@ -415,7 +415,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
                 auto& mphf = m_skew_index.mphfs[partition_id];
                 assert(num_kmers_in_partition[partition_id] == keys_in_partition.size());
-                assert(num_kmers_in_partition[partition_id] == string_ids_in_partition.size());
+                assert(num_kmers_in_partition[partition_id] == super_kmer_ids_in_partition.size());
                 mphf.build_in_internal_memory(keys_in_partition.begin(), keys_in_partition.size(),
                                               mphf_config);
 
@@ -426,8 +426,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                 for (uint64_t i = 0; i != keys_in_partition.size(); ++i) {
                     uint64_t kmer = keys_in_partition[i];
                     uint64_t pos = mphf(kmer);
-                    uint32_t string_id = string_ids_in_partition[i];
-                    cvb_positions.set(pos, string_id);
+                    uint32_t super_kmer_id = super_kmer_ids_in_partition[i];
+                    cvb_positions.set(pos, super_kmer_id);
                 }
                 auto& positions = m_skew_index.positions[partition_id];
                 cvb_positions.build(positions);
@@ -444,29 +444,29 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                 upper = 2 * lower;
                 num_bits_per_pos += 1;
                 if (partition_id == num_partitions - 1) {
-                    upper = max_num_strings_in_bucket;
-                    num_bits_per_pos = m_skew_index.log2_max_num_strings_in_bucket;
+                    upper = max_num_super_kmers_in_bucket;
+                    num_bits_per_pos = m_skew_index.log2_max_num_super_kmers_in_bucket;
                 }
 
                 keys_in_partition.clear();
-                string_ids_in_partition.clear();
+                super_kmer_ids_in_partition.clear();
                 keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
-                string_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
+                super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
                 cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
             }
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
-            uint64_t string_id = 0;
-            for (auto [offset, num_kmers_in_string] : lists[i]) {
+            uint64_t super_kmer_id = 0;
+            for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
                 bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
-                for (uint64_t i = 0; i != num_kmers_in_string; ++i) {
+                for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
                     uint64_t kmer = bv_it.read(2 * build_config.k);
                     keys_in_partition.push_back(kmer);
-                    string_ids_in_partition.push_back(string_id);
+                    super_kmer_ids_in_partition.push_back(super_kmer_id);
                     bv_it.eat(2);
                 }
-                assert(string_id < (1ULL << cvb_positions.width()));
-                ++string_id;
+                assert(super_kmer_id < (1ULL << cvb_positions.width()));
+                ++super_kmer_id;
             }
         }
         assert(partition_id == num_partitions);

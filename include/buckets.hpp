@@ -46,8 +46,8 @@ struct buckets {
     }
 
     std::pair<uint64_t, uint64_t> locate_bucket(uint64_t bucket_id) const {
-        uint64_t begin = num_strings_before_bucket.access(bucket_id) + bucket_id;
-        uint64_t end = num_strings_before_bucket.access(bucket_id + 1) + bucket_id + 1;
+        uint64_t begin = num_super_kmers_before_bucket.access(bucket_id) + bucket_id;
+        uint64_t end = num_super_kmers_before_bucket.access(bucket_id + 1) + bucket_id + 1;
         assert(begin < end);
         return {begin, end};
     }
@@ -59,8 +59,8 @@ struct buckets {
 
     uint64_t lookup(uint64_t begin, uint64_t end, uint64_t target_kmer, uint64_t k,
                     uint64_t m) const {
-        for (uint64_t string_id = begin; string_id != end; ++string_id) {
-            uint64_t offset = offsets.access(string_id);
+        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
+            uint64_t offset = offsets.access(super_kmer_id);
             auto [kmer_id, offset_end] = offset_to_id(offset, k);
             bit_vector_iterator bv_it(strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, offset_end - offset - k + 1);
@@ -72,9 +72,9 @@ struct buckets {
         return constants::invalid;
     }
 
-    uint64_t lookup_in_string(uint64_t string_id, uint64_t target_kmer, uint64_t k,
-                              uint64_t m) const {
-        uint64_t offset = offsets.access(string_id);
+    uint64_t lookup_in_super_kmer(uint64_t super_kmer_id, uint64_t target_kmer, uint64_t k,
+                                  uint64_t m) const {
+        uint64_t offset = offsets.access(super_kmer_id);
         auto [kmer_id, offset_end] = offset_to_id(offset, k);
         bit_vector_iterator bv_it(strings, 2 * offset);
         uint64_t window_size = std::min<uint64_t>(k - m + 1, offset_end - offset - k + 1);
@@ -93,8 +93,8 @@ struct buckets {
     }
     uint64_t lookup_canonical(uint64_t begin, uint64_t end, uint64_t target_kmer,
                               uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
-        for (uint64_t string_id = begin; string_id != end; ++string_id) {
-            uint64_t offset = offsets.access(string_id);
+        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
+            uint64_t offset = offsets.access(super_kmer_id);
             auto [kmer_id, offset_end] = offset_to_id(offset, k);
             bit_vector_iterator bv_it(strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, offset_end - offset - k + 1);
@@ -183,20 +183,20 @@ struct buckets {
     }
 
     uint64_t num_bits() const {
-        return pieces.num_bits() + num_strings_before_bucket.num_bits() +
+        return pieces.num_bits() + num_super_kmers_before_bucket.num_bits() +
                8 * (offsets.bytes() + strings.bytes());
     }
 
     template <typename Visitor>
     void visit(Visitor& visitor) {
         visitor.visit(pieces);
-        visitor.visit(num_strings_before_bucket);
+        visitor.visit(num_super_kmers_before_bucket);
         visitor.visit(offsets);
         visitor.visit(strings);
     }
 
     ef_sequence<true> pieces;
-    ef_sequence<false> num_strings_before_bucket;
+    ef_sequence<false> num_super_kmers_before_bucket;
     pthash::compact_vector offsets;
     pthash::bit_vector strings;
 };
