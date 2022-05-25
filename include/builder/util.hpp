@@ -208,10 +208,10 @@ struct minimizers_tuples {
     }
 
     void merge() {
+        std::cout << "files to merge = " << m_num_files_to_merge << std::endl;
         if (m_num_files_to_merge == 0) return;
 
         assert(m_num_files_to_merge > 0);
-        std::cout << "files to merge = " << m_num_files_to_merge << std::endl;
 
         struct iterator_type {
             iterator_type(minimizer_tuple const* b, minimizer_tuple const* e) : begin(b), end(e) {}
@@ -305,7 +305,7 @@ private:
     std::string m_tmp_dirname;
     std::vector<minimizer_tuple> m_buffer;
 
-    std::string get_tmp_output_filename(uint64_t id) {
+    std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers." << id
                  << ".bin";

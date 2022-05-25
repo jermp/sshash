@@ -72,16 +72,17 @@ struct bucket_pairs {
     }
 
     std::string get_bucket_pairs_filename() const {
+        if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".bucket_pairs.bin";
         return filename.str();
     }
 
     void merge() {
-        if (m_num_files_to_merge == 0) return;
-
-        assert(m_num_files_to_merge > 0);
         std::cout << "files to merge = " << m_num_files_to_merge << std::endl;
+        if (m_num_files_to_merge <= 1) return;
+
+        assert(m_num_files_to_merge > 1);
 
         struct iterator_type {
             iterator_type(bucket_pair const* b, bucket_pair const* e) : begin(b), end(e) {}
@@ -164,7 +165,7 @@ private:
     std::string m_tmp_dirname;
     std::vector<bucket_pair> m_buffer;
 
-    std::string get_tmp_output_filename(uint64_t id) {
+    std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".bucket_pairs."
                  << id << ".bin";
