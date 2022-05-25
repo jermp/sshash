@@ -67,7 +67,9 @@ struct build_configuration {
 
         , canonical_parsing(false)
         , weighted(false)
-        , verbose(true) {}
+        , verbose(true)
+
+        , tmp_dirname(constants::default_tmp_dirname) {}
 
     uint64_t k;  // kmer size
     uint64_t m;  // minimizer size
@@ -79,6 +81,8 @@ struct build_configuration {
     bool canonical_parsing;
     bool weighted;
     bool verbose;
+
+    std::string tmp_dirname;
 
     void print() const {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l

@@ -104,7 +104,8 @@ struct weights {
             }
             weight_interval_values.build(index.m_weight_interval_values);
             index.m_weight_interval_lengths.encode(m_weight_interval_lengths.begin(),
-                                                   m_weight_interval_lengths.size());
+                                                   m_weight_interval_lengths.size(),
+                                                   m_weight_interval_lengths.back());
 
             m_weight_dictionary_builder.build(index.m_weight_dictionary);
         }

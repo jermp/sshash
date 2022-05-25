@@ -16,24 +16,46 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     std::cout << "log2_max_num_super_kmers_in_bucket "
               << m_skew_index.log2_max_num_super_kmers_in_bucket << std::endl;
 
+    mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                           mm::advice::sequential);
+
     uint64_t num_buckets_in_skew_index = 0;
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
-        if (it.list().size() > (1ULL << min_log2_size)) ++num_buckets_in_skew_index;
+    uint64_t num_super_kmers_in_skew_index = 0;
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
+         it.next()) {
+        uint64_t list_size = it.list().size();
+        if (list_size > (1ULL << min_log2_size)) {
+            num_super_kmers_in_skew_index += list_size;
+            ++num_buckets_in_skew_index;
+        }
     }
     std::cout << "num_buckets_in_skew_index " << num_buckets_in_skew_index << "/"
               << buckets_stats.num_buckets() << "("
               << (num_buckets_in_skew_index * 100.0) / buckets_stats.num_buckets() << "%)"
               << std::endl;
 
-    if (num_buckets_in_skew_index == 0) return;
+    if (num_buckets_in_skew_index == 0) {
+        input.close();
+        return;
+    }
 
     std::vector<list_type> lists;
     lists.reserve(num_buckets_in_skew_index);
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
+    std::vector<minimizer_tuple> lists_tuples;  // backed memory
+    lists_tuples.reserve(num_super_kmers_in_skew_index);
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
+         it.next()) {
         auto list = it.list();
-        if (list.size() > (1ULL << min_log2_size)) lists.push_back(list);
+        if (list.size() > (1ULL << min_log2_size)) {
+            minimizer_tuple const* begin = lists_tuples.data() + lists_tuples.size();
+            std::copy(list.begin_ptr(), list.end_ptr(), std::back_inserter(lists_tuples));
+            minimizer_tuple const* end = lists_tuples.data() + lists_tuples.size();
+            lists.push_back(list_type(begin, end));
+        }
     }
     assert(lists.size() == num_buckets_in_skew_index);
+    input.close();
+
     std::sort(lists.begin(), lists.end(),
               [](list_type const& x, list_type const& y) { return x.size() < y.size(); });
 

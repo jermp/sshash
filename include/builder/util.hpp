@@ -91,12 +91,11 @@ struct minimizer_tuple {
 #pragma pack(pop)
 
 struct list_type {
-    list_type(std::vector<minimizer_tuple>::iterator begin,
-              std::vector<minimizer_tuple>::iterator end)
-        : m_begin(begin), m_size(std::distance(begin, end)) {}
+    list_type(minimizer_tuple const* begin, minimizer_tuple const* end)
+        : m_begin(begin), m_end(end), m_size(std::distance(begin, end)) {}
 
     struct iterator {
-        iterator(std::vector<minimizer_tuple>::iterator begin) : m_begin(begin) {}
+        iterator(minimizer_tuple const* begin) : m_begin(begin) {}
 
         inline std::pair<uint64_t, uint64_t> operator*() const {
             return {(*m_begin).offset, (*m_begin).num_kmers_in_super_kmer};
@@ -107,76 +106,211 @@ struct list_type {
         bool operator!=(iterator const& other) const { return !(*this == other); }
 
     private:
-        std::vector<minimizer_tuple>::iterator m_begin;
+        minimizer_tuple const* m_begin;
     };
 
     iterator begin() const { return iterator(m_begin); }
-    iterator end() const { return iterator(m_begin + m_size); }
+    iterator end() const { return iterator(m_end); }
     uint64_t size() const { return m_size; }
 
+    minimizer_tuple const* begin_ptr() const { return m_begin; }
+    minimizer_tuple const* end_ptr() const { return m_end; }
+
 private:
-    std::vector<minimizer_tuple>::iterator m_begin;
+    minimizer_tuple const* m_begin;
+    minimizer_tuple const* m_end;
     uint64_t m_size;
 };
 
-struct minimizers_tuples {
-    minimizers_tuples() {}
+struct minimizers_tuples_iterator : std::forward_iterator_tag {
+    typedef minimizer_tuple value_type;
 
-    // void reserve(uint64_t n) {
-    //     tuples.reserve(n);
-    // }
-
-    void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
-        tuples.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
+    minimizers_tuples_iterator(minimizer_tuple const* begin, minimizer_tuple const* end)
+        : m_list_begin(begin), m_list_end(begin), m_end(end) {
+        m_list_end = next_begin();
     }
 
-    minimizer_tuple& back() { return tuples.back(); }
+    inline uint64_t minimizer() const { return (*m_list_begin).minimizer; }
+    inline uint64_t operator*() const { return minimizer(); }
+    inline void next() {
+        m_list_begin = m_list_end;
+        m_list_end = next_begin();
+    }
+    inline void operator++() { next(); }
+    bool has_next() const { return m_list_begin != m_end; }
+    list_type list() const { return list_type(m_list_begin, m_list_end); }
 
-    void sort() {
-        std::sort(tuples.begin(), tuples.end(),
+private:
+    minimizer_tuple const* m_list_begin;
+    minimizer_tuple const* m_list_end;
+    minimizer_tuple const* m_end;
+
+    minimizer_tuple const* next_begin() {
+        minimizer_tuple const* begin = m_list_begin;
+        uint64_t prev_minimizer = (*begin).minimizer;
+        while (begin != m_end) {
+            ++begin;
+            uint64_t curr_minimizer = (*begin).minimizer;
+            if (curr_minimizer != prev_minimizer) break;
+        }
+        return begin;
+    }
+};
+
+struct minimizers_tuples {
+    static constexpr uint64_t ram_limit = 0.5 * essentials::GB;
+
+    minimizers_tuples(std::string const& tmp_dirname)
+        : m_buffer_size(0)
+        , m_num_files_to_merge(0)
+        , m_num_minimizers(0)
+        , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
+        , m_tmp_dirname(tmp_dirname) {
+        m_buffer_size = ram_limit / sizeof(minimizer_tuple);
+        std::cout << "m_buffer_size " << m_buffer_size << std::endl;
+    }
+
+    void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
+        if (m_buffer.size() == m_buffer_size) sort_and_flush();
+        m_buffer.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
+    }
+
+    minimizer_tuple& back() { return m_buffer.back(); }
+
+    void sort_and_flush() {
+        std::cout << "sorting buffer..." << std::endl;
+        std::sort(m_buffer.begin(), m_buffer.end(),
                   [](minimizer_tuple const& x, minimizer_tuple const& y) {
                       return (x.minimizer < y.minimizer) or
                              (x.minimizer == y.minimizer and x.offset < y.offset);
                   });
+
+        auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
+        std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
+        std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        out.write(reinterpret_cast<char const*>(m_buffer.data()),
+                  m_buffer.size() * sizeof(minimizer_tuple));
+        out.close();
+
+        m_buffer.clear();
+        ++m_num_files_to_merge;
     }
 
-    struct iterator {
-        iterator(std::vector<minimizer_tuple>::iterator b, std::vector<minimizer_tuple>::iterator e)
-            : begin(b), end(e) {}
+    void finalize() {
+        if (!m_buffer.empty()) sort_and_flush();
+    }
 
-        inline uint64_t minimizer() const { return (*begin).minimizer; }
-        inline uint64_t operator*() const { return minimizer(); }
-        list_type list() const { return list_type(begin, next_begin()); }
-        bool has_next() const { return begin != end; }
-        inline void next() { begin = next_begin(); }
-        inline void operator++() { next(); }
+    std::string get_minimizers_filename() const {
+        std::stringstream filename;
+        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
+        return filename.str();
+    }
 
-        inline iterator operator+(uint64_t /*offset*/) const {
-            assert(false);
-            return iterator(end, end);
-        }
+    void merge() {
+        std::cout << "files to merge = " << m_num_files_to_merge << std::endl;
+        if (m_num_files_to_merge == 0) return;
 
-    private:
-        std::vector<minimizer_tuple>::iterator begin, end;
+        assert(m_num_files_to_merge > 0);
 
-        std::vector<minimizer_tuple>::iterator next_begin() const {
-            auto i = begin;
-            uint64_t prev = (*i).minimizer;
-            while (true) {
-                ++i;
-                if (i == end) break;
-                uint64_t curr = (*i).minimizer;
-                if (curr != prev) break;
+        struct iterator_type {
+            iterator_type(minimizer_tuple const* b, minimizer_tuple const* e) : begin(b), end(e) {}
+            minimizer_tuple const* begin;
+            minimizer_tuple const* end;
+        };
+        std::vector<iterator_type> iterators;
+        std::vector<uint32_t> idx_heap;
+        iterators.reserve(m_num_files_to_merge);
+        idx_heap.reserve(m_num_files_to_merge);
+        std::vector<mm::file_source<minimizer_tuple>> mm_files(m_num_files_to_merge);
+
+        auto heap_idx_comparator = [&](uint32_t i, uint32_t j) {
+            minimizer_tuple const* begin_i = iterators[i].begin;
+            minimizer_tuple const* begin_j = iterators[j].begin;
+            if ((*begin_i).minimizer != (*begin_j).minimizer) {
+                return (*begin_i).minimizer > (*begin_j).minimizer;
             }
-            assert(i > begin);
-            return i;
-        }
-    };
+            return (*begin_i).offset > (*begin_j).offset;
+        };
 
-    iterator begin() { return iterator(tuples.begin(), tuples.end()); }
+        auto advance_heap_head = [&]() {
+            uint32_t idx = idx_heap.front();
+            iterators[idx].begin += 1;
+            if (iterators[idx].begin != iterators[idx].end) {  // percolate down the head
+                uint64_t pos = 0;
+                uint64_t size = idx_heap.size();
+                while (2 * pos + 1 < size) {
+                    uint64_t i = 2 * pos + 1;
+                    if (i + 1 < size and heap_idx_comparator(idx_heap[i], idx_heap[i + 1])) ++i;
+                    if (heap_idx_comparator(idx_heap[i], idx_heap[pos])) break;
+                    std::swap(idx_heap[pos], idx_heap[i]);
+                    pos = i;
+                }
+            } else {
+                std::pop_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
+                idx_heap.pop_back();
+            }
+        };
+
+        /* create the input iterators and make the heap */
+        for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
+            auto tmp_output_filename = get_tmp_output_filename(i);
+            mm_files[i].open(tmp_output_filename, mm::advice::sequential);
+            iterators.emplace_back(mm_files[i].data(), mm_files[i].data() + mm_files[i].size());
+            idx_heap.push_back(i);
+        }
+        std::make_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
+
+        std::ofstream out(get_minimizers_filename().c_str());
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+
+        uint64_t num_written_tuples = 0;
+        uint64_t prev_minimizer = constants::invalid;
+        while (!idx_heap.empty()) {
+            minimizer_tuple const* begin = iterators[idx_heap.front()].begin;
+            out.write(reinterpret_cast<char const*>(begin), sizeof(minimizer_tuple));
+            if ((*begin).minimizer != prev_minimizer) {
+                prev_minimizer = (*begin).minimizer;
+                ++m_num_minimizers;
+            }
+            num_written_tuples += 1;
+            if (num_written_tuples % 50000000 == 0) {
+                std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
+            }
+            advance_heap_head();
+        }
+        std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
+        out.close();
+
+        /* remove tmp files */
+        for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
+            mm_files[i].close();
+            auto tmp_output_filename = get_tmp_output_filename(i);
+            std::remove(tmp_output_filename.c_str());
+        }
+
+        std::vector<minimizer_tuple>().swap(m_buffer);
+        m_num_files_to_merge = 0;  // any other call to merge() will do nothing
+    }
+
+    uint64_t num_minimizers() const { return m_num_minimizers; }
+
+    void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
 private:
-    std::vector<minimizer_tuple> tuples;
+    uint64_t m_buffer_size;
+    uint64_t m_num_files_to_merge;
+    uint64_t m_num_minimizers;
+    uint64_t m_run_identifier;
+    std::string m_tmp_dirname;
+    std::vector<minimizer_tuple> m_buffer;
+
+    std::string get_tmp_output_filename(uint64_t id) const {
+        std::stringstream filename;
+        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers." << id
+                 << ".bin";
+        return filename.str();
+    }
 };
 
 }  // namespace sshash

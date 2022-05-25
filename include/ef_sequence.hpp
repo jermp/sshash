@@ -10,10 +10,9 @@ template <bool index_zeros = false>
 struct ef_sequence {
     ef_sequence() : m_universe(0) {}
 
-    template <typename Iterator>
-    void encode(Iterator begin, uint64_t n) {
+    template <typename ForwardIterator>
+    void encode(ForwardIterator begin, uint64_t n, uint64_t u) {
         if (n == 0) return;
-        uint64_t u = *(begin + n - 1);
         m_universe = u;
 
         uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);

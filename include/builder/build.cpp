@@ -68,12 +68,16 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         }
     }
 
-    /* step 2: sort minimizers and build MPHF ***/
+    /* step 2: merge minimizers and build MPHF ***/
     timer.start();
-    data.minimizers.sort();
-    uint64_t num_buckets = 0;
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) ++num_buckets;
-    m_minimizers.build(data.minimizers.begin(), num_buckets);
+    data.minimizers.merge();
+    {
+        mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                               mm::advice::sequential);
+        minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
+        m_minimizers.build(iterator, data.minimizers.num_minimizers(), build_config);
+        input.close();
+    }
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 2: 'build_minimizers'");
@@ -82,7 +86,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_index(data, m_minimizers, m_buckets);
+    auto buckets_stats = build_index(data, m_minimizers, m_buckets, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");
@@ -104,6 +108,8 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     print_space_breakdown();
 
     if (build_config.verbose) buckets_stats.print();
+
+    data.minimizers.remove_tmp_file();
 }
 
 }  // namespace sshash

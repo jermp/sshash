@@ -6,7 +6,7 @@ namespace sshash {
 
 struct minimizers {
     template <typename ForwardIterator>
-    void build(ForwardIterator begin, uint64_t size) {
+    void build(ForwardIterator begin, uint64_t size, build_configuration const& build_config) {
         util::check_hash_collision_probability(size);
         pthash::build_configuration mphf_config;
         mphf_config.c = 6.0;
@@ -14,12 +14,10 @@ struct minimizers {
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        /*
-            We use one thread here because the keys iterator is not
-            a random-access iterator, just forward
-        */
-        mphf_config.num_threads = 1;
-        m_mphf.build_in_internal_memory(begin, size, mphf_config);
+        mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        mphf_config.ram = 2 * essentials::GB;
+        mphf_config.tmp_dir = build_config.tmp_dirname;
+        m_mphf.build_in_external_memory(begin, size, mphf_config);
     }
 
     uint64_t lookup(uint64_t uint64_minimizer) const {
