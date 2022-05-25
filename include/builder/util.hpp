@@ -184,6 +184,7 @@ struct minimizers_tuples {
                       return (x.minimizer < y.minimizer) or
                              (x.minimizer == y.minimizer and x.offset < y.offset);
                   });
+
         auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
@@ -309,7 +310,7 @@ private:
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers." << id
                  << ".bin";
         return filename.str();
-    };
+    }
 };
 
 }  // namespace sshash
