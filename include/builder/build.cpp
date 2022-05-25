@@ -74,11 +74,11 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     /* step 2: sort minimizers and build MPHF ***/
     timer.start();
     data.minimizers.sort();
+    auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
     {
-        auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
         data.minimizers.flush(minimizers_filename);
         data.minimizers.release();  // release internal memory
-        mm::file_source<uint8_t> input(minimizers_filename, mm::advice::sequential);
+        mm::file_source<minimizer_tuple> input(minimizers_filename, mm::advice::sequential);
 
         uint64_t num_minimizers = 0;
         for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
@@ -120,6 +120,8 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     print_space_breakdown();
 
     if (build_config.verbose) buckets_stats.print();
+
+    std::remove(minimizers_filename.c_str());
 }
 
 }  // namespace sshash

@@ -19,19 +19,18 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     // TODO: have user input here
     std::string tmp_dirname = constants::default_tmp_dirname;
     auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
-    mm::file_source<uint8_t> input(minimizers_filename, mm::advice::sequential);
+    mm::file_source<minimizer_tuple> input(minimizers_filename, mm::advice::sequential);
 
     uint64_t num_buckets_in_skew_index = 0;
-    uint64_t num_bytes = 0;
+    uint64_t num_super_kmers_in_skew_index = 0;
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
          it.next()) {
         uint64_t list_size = it.list().size();
         if (list_size > (1ULL << min_log2_size)) {
-            num_bytes += list_size * sizeof(minimizer_tuple);
+            num_super_kmers_in_skew_index += list_size;
             ++num_buckets_in_skew_index;
         }
     }
-    std::cout << "num_bytes = " << num_bytes << std::endl;
     std::cout << "num_buckets_in_skew_index " << num_buckets_in_skew_index << "/"
               << buckets_stats.num_buckets() << "("
               << (num_buckets_in_skew_index * 100.0) / buckets_stats.num_buckets() << "%)"
@@ -44,15 +43,15 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
     std::vector<list_type> lists;
     lists.reserve(num_buckets_in_skew_index);
-    std::vector<uint8_t> lists_bytes;  // backed memory
-    lists_bytes.reserve(num_bytes);
+    std::vector<minimizer_tuple> lists_tuples;  // backed memory
+    lists_tuples.reserve(num_super_kmers_in_skew_index);
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
          it.next()) {
         auto list = it.list();
         if (list.size() > (1ULL << min_log2_size)) {
-            uint8_t const* begin = lists_bytes.data() + lists_bytes.size();
-            std::copy(list.begin_ptr(), list.end_ptr(), std::back_inserter(lists_bytes));
-            uint8_t const* end = lists_bytes.data() + lists_bytes.size();
+            minimizer_tuple const* begin = lists_tuples.data() + lists_tuples.size();
+            std::copy(list.begin_ptr(), list.end_ptr(), std::back_inserter(lists_tuples));
+            minimizer_tuple const* end = lists_tuples.data() + lists_tuples.size();
             lists.push_back(list_type(begin, end));
         }
     }

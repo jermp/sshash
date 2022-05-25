@@ -91,11 +91,8 @@ struct minimizer_tuple {
 #pragma pack(pop)
 
 struct list_type {
-    list_type(uint8_t const* begin, uint8_t const* end) : m_begin(begin), m_end(end) {
-        uint64_t num_bytes = std::distance(begin, end);
-        assert(num_bytes % sizeof(minimizer_tuple) == 0);
-        m_size = num_bytes / sizeof(minimizer_tuple);
-    }
+    list_type(minimizer_tuple const* begin, minimizer_tuple const* end)
+        : m_begin(begin), m_end(end), m_size(std::distance(begin, end)) {}
 
     struct iterator {
         iterator(minimizer_tuple const* begin) : m_begin(begin) {}
@@ -112,28 +109,28 @@ struct list_type {
         minimizer_tuple const* m_begin;
     };
 
-    iterator begin() const { return iterator(reinterpret_cast<minimizer_tuple const*>(m_begin)); }
-    iterator end() const { return iterator(reinterpret_cast<minimizer_tuple const*>(m_end)); }
+    iterator begin() const { return iterator(m_begin); }
+    iterator end() const { return iterator(m_end); }
     uint64_t size() const { return m_size; }
 
-    uint8_t const* begin_ptr() const { return m_begin; }
-    uint8_t const* end_ptr() const { return m_end; }
+    minimizer_tuple const* begin_ptr() const { return m_begin; }
+    minimizer_tuple const* end_ptr() const { return m_end; }
 
 private:
-    uint8_t const* m_begin;
-    uint8_t const* m_end;
+    minimizer_tuple const* m_begin;
+    minimizer_tuple const* m_end;
     uint64_t m_size;
 };
 
 struct minimizers_tuples_iterator : std::forward_iterator_tag {
     typedef minimizer_tuple value_type;
 
-    minimizers_tuples_iterator(uint8_t const* begin, uint8_t const* end)
+    minimizers_tuples_iterator(minimizer_tuple const* begin, minimizer_tuple const* end)
         : m_list_begin(begin), m_list_end(begin), m_end(end) {
         m_list_end = next_begin();
     }
 
-    inline uint64_t minimizer() const { return *reinterpret_cast<uint64_t const*>(m_list_begin); }
+    inline uint64_t minimizer() const { return (*m_list_begin).minimizer; }
     inline uint64_t operator*() const { return minimizer(); }
     inline void next() {
         m_list_begin = m_list_end;
@@ -144,16 +141,16 @@ struct minimizers_tuples_iterator : std::forward_iterator_tag {
     list_type list() const { return list_type(m_list_begin, m_list_end); }
 
 private:
-    uint8_t const* m_list_begin;
-    uint8_t const* m_list_end;
-    uint8_t const* m_end;
+    minimizer_tuple const* m_list_begin;
+    minimizer_tuple const* m_list_end;
+    minimizer_tuple const* m_end;
 
-    uint8_t const* next_begin() {
-        uint8_t const* begin = m_list_begin;
-        uint64_t prev_minimizer = *reinterpret_cast<uint64_t const*>(begin);
+    minimizer_tuple const* next_begin() {
+        minimizer_tuple const* begin = m_list_begin;
+        uint64_t prev_minimizer = (*begin).minimizer;
         while (begin != m_end) {
-            begin += sizeof(minimizer_tuple);
-            uint64_t curr_minimizer = *reinterpret_cast<uint64_t const*>(begin);
+            ++begin;
+            uint64_t curr_minimizer = (*begin).minimizer;
             if (curr_minimizer != prev_minimizer) break;
         }
         return begin;
