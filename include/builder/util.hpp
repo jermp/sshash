@@ -267,7 +267,7 @@ struct minimizers_tuples {
             minimizer_tuple const* begin = iterators[idx_heap.front()].begin;
             out.write(reinterpret_cast<char const*>(begin), sizeof(minimizer_tuple));
             num_written_tuples += 1;
-            if (num_written_tuples % 100000 == 0) {
+            if (num_written_tuples % 50000000 == 0) {
                 std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
             }
             advance_heap_head();
