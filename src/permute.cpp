@@ -312,7 +312,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
     uint64_t num_files_to_merge = 0;
 
     auto get_tmp_output_filename = [&](uint64_t id) {
-        return tmp_dirname + "/tmp.run" + run_identifier + "." + std::to_string(id);
+        return tmp_dirname + "/sshash.tmp.run" + run_identifier + "." + std::to_string(id);
     };
 
     auto sort_and_flush = [&]() {

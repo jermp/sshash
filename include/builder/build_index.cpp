@@ -14,13 +14,20 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
 
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
+    // TODO: have user input here
+    std::string tmp_dirname = constants::default_tmp_dirname;
+    auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
+    mm::file_source<uint8_t> input(minimizers_filename, mm::advice::sequential);
+
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
+         it.next()) {
         assert(it.list().size() > 0);
         if (it.list().size() != 1) {
             uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
             num_super_kmers_before_bucket[bucket_id + 1] = it.list().size() - 1;
         }
-        // else: it.list().size() = 1 and num_super_kmers_before_bucket[bucket_id + 1] is already 0
+        // else: it.list().size() = 1 and num_super_kmers_before_bucket[bucket_id + 1] is
+        // already 0
     }
     std::partial_sum(num_super_kmers_before_bucket.begin(), num_super_kmers_before_bucket.end(),
                      num_super_kmers_before_bucket.begin());
@@ -28,7 +35,8 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     buckets_statistics buckets_stats(num_buckets, num_kmers, num_super_kmers);
 
     uint64_t num_singletons = 0;
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
+         it.next()) {
         uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
         uint64_t base = num_super_kmers_before_bucket[bucket_id] + bucket_id;
         uint64_t num_super_kmers_in_bucket =
@@ -54,6 +62,8 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
                                                    num_super_kmers_before_bucket.size());
     offsets.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings.strings);
+
+    input.close();
 
     return buckets_stats;
 }

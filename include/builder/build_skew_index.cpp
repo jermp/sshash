@@ -16,24 +16,49 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     std::cout << "log2_max_num_super_kmers_in_bucket "
               << m_skew_index.log2_max_num_super_kmers_in_bucket << std::endl;
 
+    // TODO: have user input here
+    std::string tmp_dirname = constants::default_tmp_dirname;
+    auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
+    mm::file_source<uint8_t> input(minimizers_filename, mm::advice::sequential);
+
     uint64_t num_buckets_in_skew_index = 0;
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
-        if (it.list().size() > (1ULL << min_log2_size)) ++num_buckets_in_skew_index;
+    uint64_t num_bytes = 0;
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
+         it.next()) {
+        uint64_t list_size = it.list().size();
+        if (list_size > (1ULL << min_log2_size)) {
+            num_bytes += list_size * sizeof(minimizer_tuple);
+            ++num_buckets_in_skew_index;
+        }
     }
+    std::cout << "num_bytes = " << num_bytes << std::endl;
     std::cout << "num_buckets_in_skew_index " << num_buckets_in_skew_index << "/"
               << buckets_stats.num_buckets() << "("
               << (num_buckets_in_skew_index * 100.0) / buckets_stats.num_buckets() << "%)"
               << std::endl;
 
-    if (num_buckets_in_skew_index == 0) return;
+    if (num_buckets_in_skew_index == 0) {
+        input.close();
+        return;
+    }
 
     std::vector<list_type> lists;
     lists.reserve(num_buckets_in_skew_index);
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) {
+    std::vector<uint8_t> lists_bytes;  // backed memory
+    lists_bytes.reserve(num_bytes);
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
+         it.next()) {
         auto list = it.list();
-        if (list.size() > (1ULL << min_log2_size)) lists.push_back(list);
+        if (list.size() > (1ULL << min_log2_size)) {
+            uint8_t const* begin = lists_bytes.data() + lists_bytes.size();
+            std::copy(list.begin_ptr(), list.end_ptr(), std::back_inserter(lists_bytes));
+            uint8_t const* end = lists_bytes.data() + lists_bytes.size();
+            lists.push_back(list_type(begin, end));
+        }
     }
     assert(lists.size() == num_buckets_in_skew_index);
+    input.close();
+
     std::sort(lists.begin(), lists.end(),
               [](list_type const& x, list_type const& y) { return x.size() < y.size(); });
 

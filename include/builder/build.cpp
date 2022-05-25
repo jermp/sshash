@@ -30,6 +30,9 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         throw std::runtime_error("l must be <= " + std::to_string(constants::max_l));
     }
 
+    // TODO: have user input here
+    std::string tmp_dirname = constants::default_tmp_dirname;
+
     m_k = build_config.k;
     m_m = build_config.m;
     m_seed = build_config.seed;
@@ -71,17 +74,21 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     /* step 2: sort minimizers and build MPHF ***/
     timer.start();
     data.minimizers.sort();
-    uint64_t num_buckets = 0;
-    for (auto it = data.minimizers.begin(); it.has_next(); it.next()) ++num_buckets;
-    // m_minimizers.build(data.minimizers.begin(), num_buckets); // internal-mem construction
     {
-        data.minimizers.flush();
-        mm::file_source<uint8_t> input(data.minimizers.get_minimizers_filename(),
-                                       mm::advice::sequential);
+        auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
+        data.minimizers.flush(minimizers_filename);
+        data.minimizers.release();  // release internal memory
+        mm::file_source<uint8_t> input(minimizers_filename, mm::advice::sequential);
+
+        uint64_t num_minimizers = 0;
+        for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
+             it.has_next(); it.next()) {
+            ++num_minimizers;
+        }
+
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-        m_minimizers.build(iterator, num_buckets);
+        m_minimizers.build(iterator, num_minimizers);
         input.close();
-        std::remove(data.minimizers.get_minimizers_filename().c_str());
     }
     timer.stop();
     timings.push_back(timer.elapsed());
