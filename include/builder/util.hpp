@@ -163,6 +163,7 @@ struct minimizers_tuples {
     minimizers_tuples(std::string tmp_dirname = constants::default_tmp_dirname)
         : m_buffer_size(0)
         , m_num_files_to_merge(0)
+        , m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
         , m_tmp_dirname(tmp_dirname) {
         m_buffer_size = ram_limit / sizeof(minimizer_tuple);
@@ -263,9 +264,14 @@ struct minimizers_tuples {
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
         uint64_t num_written_tuples = 0;
+        uint64_t prev_minimizer = constants::invalid;
         while (!idx_heap.empty()) {
             minimizer_tuple const* begin = iterators[idx_heap.front()].begin;
             out.write(reinterpret_cast<char const*>(begin), sizeof(minimizer_tuple));
+            if ((*begin).minimizer != prev_minimizer) {
+                prev_minimizer = (*begin).minimizer;
+                ++m_num_minimizers;
+            }
             num_written_tuples += 1;
             if (num_written_tuples % 50000000 == 0) {
                 std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
@@ -286,11 +292,14 @@ struct minimizers_tuples {
         m_num_files_to_merge = 0;  // any other call to merge() will do nothing
     }
 
+    uint64_t num_minimizers() const { return m_num_minimizers; }
+
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
 private:
     uint64_t m_buffer_size;
     uint64_t m_num_files_to_merge;
+    uint64_t m_num_minimizers;
     uint64_t m_run_identifier;
     std::string m_tmp_dirname;
     std::vector<minimizer_tuple> m_buffer;

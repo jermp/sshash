@@ -30,9 +30,6 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         throw std::runtime_error("l must be <= " + std::to_string(constants::max_l));
     }
 
-    // TODO: have user input here
-    std::string tmp_dirname = constants::default_tmp_dirname;
-
     m_k = build_config.k;
     m_m = build_config.m;
     m_seed = build_config.seed;
@@ -77,15 +74,8 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     {
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
-
-        uint64_t num_minimizers = 0;
-        for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
-             it.has_next(); it.next()) {
-            ++num_minimizers;
-        }
-
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-        m_minimizers.build(iterator, num_minimizers);
+        m_minimizers.build(iterator, data.minimizers.num_minimizers());
         input.close();
     }
     timer.stop();
