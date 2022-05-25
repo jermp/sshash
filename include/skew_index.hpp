@@ -18,12 +18,11 @@ struct skew_index {
 
     bool empty() const { return mphfs.empty(); }
 
-    uint64_t lookup(uint64_t uint64_kmer, uint64_t log2_num_super_kmers_in_bucket) const {
-        assert(log2_num_super_kmers_in_bucket >= uint64_t(min_log2 + 1));
-        assert(log2_num_super_kmers_in_bucket <= log2_max_num_super_kmers_in_bucket);
-        uint64_t partition_id = log2_num_super_kmers_in_bucket - (min_log2 + 1);
-        if (log2_num_super_kmers_in_bucket == log2_max_num_super_kmers_in_bucket or
-            log2_num_super_kmers_in_bucket > max_log2) {
+    uint64_t lookup(uint64_t uint64_kmer, uint64_t log2_bucket_size) const {
+        assert(log2_bucket_size >= uint64_t(min_log2 + 1));
+        assert(log2_bucket_size <= log2_max_num_super_kmers_in_bucket);
+        uint64_t partition_id = log2_bucket_size - (min_log2 + 1);
+        if (log2_bucket_size == log2_max_num_super_kmers_in_bucket or log2_bucket_size > max_log2) {
             partition_id = positions.size() - 1;
         }
         auto const& mphf = mphfs[partition_id];

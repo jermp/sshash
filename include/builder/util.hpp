@@ -2,6 +2,11 @@
 
 namespace sshash {
 
+void print_time(double time, uint64_t num_kmers, std::string const& message) {
+    std::cout << "=== " << message << " " << time / 1000000 << " [sec] ("
+              << (time * 1000) / num_kmers << " [ns/kmer])" << std::endl;
+}
+
 struct empty_bucket_runtime_error : public std::runtime_error {
     empty_bucket_runtime_error()
         : std::runtime_error("try a different choice of l or change seed") {}

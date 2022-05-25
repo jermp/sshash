@@ -14,7 +14,7 @@ constexpr uint64_t max_k = 31;  // max *odd* size that can be packed into 64 bit
 constexpr uint64_t invalid = uint64_t(-1);
 constexpr uint64_t seed = 1;
 constexpr uint64_t hashcode_bits = 64;
-constexpr double c = 3.0;  // for PThash
+constexpr double c = 3.0;  // for PTHash
 constexpr uint64_t min_l = 6;
 constexpr uint64_t max_l = 12;
 static const std::string default_tmp_dirname(".");

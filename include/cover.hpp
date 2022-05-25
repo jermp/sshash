@@ -5,7 +5,7 @@
 #include <vector>
 #include <deque>
 
-#include "../util.hpp"
+#include "util.hpp"
 
 namespace sshash {
 
