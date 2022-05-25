@@ -14,12 +14,9 @@ struct minimizers {
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        /*
-            We use one thread here because the keys iterator is not
-            a random-access iterator, just forward
-        */
-        mphf_config.num_threads = 1;
-        m_mphf.build_in_internal_memory(begin, size, mphf_config);
+        mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        mphf_config.ram = 2 * essentials::GB;
+        m_mphf.build_in_external_memory(begin, size, mphf_config);
     }
 
     uint64_t lookup(uint64_t uint64_minimizer) const {

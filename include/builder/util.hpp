@@ -119,27 +119,55 @@ private:
     uint64_t m_size;
 };
 
+/* suitable for external-memory iterator */
+struct minimizers_tuples_iterator : std::forward_iterator_tag {
+    typedef minimizer_tuple value_type;
+
+    minimizers_tuples_iterator(uint8_t const* begin, uint8_t const* end)
+        : m_begin(begin), m_end(end) {}
+
+    inline uint64_t operator*() const { return minimizer(); }
+    inline void operator++() { next_begin(); }
+
+private:
+    uint8_t const* m_begin;
+    uint8_t const* m_end;
+
+    inline uint64_t minimizer() const { return *reinterpret_cast<uint64_t const*>(m_begin); }
+
+    void next_begin() {
+        uint64_t prev = minimizer();
+        while (true) {
+            m_begin += sizeof(minimizer_tuple);
+            if (m_begin == m_end) break;
+            uint64_t curr = minimizer();
+            if (curr != prev) break;
+        }
+    }
+};
+
 struct minimizers_tuples {
-    minimizers_tuples() {}
+    minimizers_tuples() : m_run_identifier(pthash::clock_type::now().time_since_epoch().count()) {}
 
     // void reserve(uint64_t n) {
-    //     tuples.reserve(n);
+    //     m_tuples.reserve(n);
     // }
 
     void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
-        tuples.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
+        m_tuples.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
     }
 
-    minimizer_tuple& back() { return tuples.back(); }
+    minimizer_tuple& back() { return m_tuples.back(); }
 
     void sort() {
-        std::sort(tuples.begin(), tuples.end(),
+        std::sort(m_tuples.begin(), m_tuples.end(),
                   [](minimizer_tuple const& x, minimizer_tuple const& y) {
                       return (x.minimizer < y.minimizer) or
                              (x.minimizer == y.minimizer and x.offset < y.offset);
                   });
     }
 
+    /* internal-memory iterator */
     struct iterator {
         iterator(std::vector<minimizer_tuple>::iterator b, std::vector<minimizer_tuple>::iterator e)
             : begin(b), end(e) {}
@@ -173,10 +201,26 @@ struct minimizers_tuples {
         }
     };
 
-    iterator begin() { return iterator(tuples.begin(), tuples.end()); }
+    iterator begin() { return iterator(m_tuples.begin(), m_tuples.end()); }
+
+    std::string get_minimizers_filename() const {
+        std::stringstream filename;
+        // TODO: use a tmp_dir
+        filename << "sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
+        return filename.str();
+    }
+
+    void flush() {
+        std::ofstream out(get_minimizers_filename().c_str(), std::ofstream::binary);
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        out.write(reinterpret_cast<char const*>(m_tuples.data()),
+                  m_tuples.size() * sizeof(minimizer_tuple));
+        out.close();
+    }
 
 private:
-    std::vector<minimizer_tuple> tuples;
+    uint64_t m_run_identifier;
+    std::vector<minimizer_tuple> m_tuples;
 };
 
 }  // namespace sshash

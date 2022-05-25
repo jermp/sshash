@@ -73,7 +73,16 @@ void dictionary::build(std::string const& filename, build_configuration const& b
     data.minimizers.sort();
     uint64_t num_buckets = 0;
     for (auto it = data.minimizers.begin(); it.has_next(); it.next()) ++num_buckets;
-    m_minimizers.build(data.minimizers.begin(), num_buckets);
+    // m_minimizers.build(data.minimizers.begin(), num_buckets); // internal-mem construction
+    {
+        data.minimizers.flush();
+        mm::file_source<uint8_t> input(data.minimizers.get_minimizers_filename(),
+                                       mm::advice::sequential);
+        minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
+        m_minimizers.build(iterator, num_buckets);
+        input.close();
+        std::remove(data.minimizers.get_minimizers_filename().c_str());
+    }
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 2: 'build_minimizers'");
