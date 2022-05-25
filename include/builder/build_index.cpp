@@ -14,10 +14,8 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
 
-    // TODO: have user input here
-    std::string tmp_dirname = constants::default_tmp_dirname;
-    auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
-    mm::file_source<minimizer_tuple> input(minimizers_filename, mm::advice::sequential);
+    mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                           mm::advice::sequential);
 
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
          it.next()) {

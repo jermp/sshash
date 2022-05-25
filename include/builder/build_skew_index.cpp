@@ -16,10 +16,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     std::cout << "log2_max_num_super_kmers_in_bucket "
               << m_skew_index.log2_max_num_super_kmers_in_bucket << std::endl;
 
-    // TODO: have user input here
-    std::string tmp_dirname = constants::default_tmp_dirname;
-    auto minimizers_filename = data.minimizers.get_minimizers_filename(tmp_dirname);
-    mm::file_source<minimizer_tuple> input(minimizers_filename, mm::advice::sequential);
+    mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                           mm::advice::sequential);
 
     uint64_t num_buckets_in_skew_index = 0;
     uint64_t num_super_kmers_in_skew_index = 0;

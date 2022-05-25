@@ -181,6 +181,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         append_super_kmer();
     }
 
+    data.minimizers.finalize();
     builder.finalize();
     builder.build(data.strings);
 
