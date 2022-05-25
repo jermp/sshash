@@ -160,7 +160,7 @@ private:
 struct minimizers_tuples {
     static constexpr uint64_t ram_limit = 0.5 * essentials::GB;
 
-    minimizers_tuples(std::string tmp_dirname = constants::default_tmp_dirname)
+    minimizers_tuples(std::string const& tmp_dirname)
         : m_buffer_size(0)
         , m_num_files_to_merge(0)
         , m_num_minimizers(0)

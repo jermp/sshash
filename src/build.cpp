@@ -37,13 +37,18 @@ int main(int argc, char** argv) {
                "A reasonable value lies between 3.0 and 10.0 (default is " +
                    std::to_string(constants::c) + ").",
                "-c", false);
+    parser.add("output_filename", "Output file name where the data structure will be serialized.",
+               "-o", false);
+    parser.add(
+        "tmp_dirname",
+        "Temporary directory used for construction in external memory. Default is directory '" +
+            constants::default_tmp_dirname + "'.",
+        "-d", false);
     parser.add("canonical_parsing",
                "Canonical parsing of k-mers. This option changes the parsing and results in a "
                "trade-off between index space and lookup time.",
                "--canonical-parsing", true);
     parser.add("weighted", "Also store the weights in compressed format.", "--weighted", true);
-    parser.add("output_filename", "Output file name where the data structure will be serialized.",
-               "-o", false);
     parser.add("check", "Check correctness after construction.", "--check", true);
     parser.add("bench", "Run benchmark after construction.", "--bench", true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", true);
@@ -66,6 +71,9 @@ int main(int argc, char** argv) {
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
     build_config.weighted = parser.get<bool>("weighted");
     build_config.verbose = parser.get<bool>("verbose");
+    if (parser.parsed("tmp_dirname")) {
+        build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
+    }
     build_config.print();
 
     dict.build(input_filename, build_config);

@@ -100,49 +100,52 @@ where the code was compiled (see the section [Compiling the Code](#compiling-the
 
 to show the usage of the driver program (reported below for convenience).
 
-	Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--weighted] [-o output_filename] [--check] [--bench] [--verbose]
-
+	Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--weighted] [-o output_filename] [-d tmp_dirname] [--check] [--bench] [--verbose]
+	
 	 input_filename
 		Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
 		- without duplicate nor invalid kmers
 		- one DNA sequence per line.
 		For example, it could be the de Bruijn graph topology output by BCALM.
-
+	
 	 k
 		K-mer length (must be <= 31).
-
+	
 	 m
 		Minimizer length (must be < k).
-
+	
 	 [-s seed]
 		Seed for construction (default is 1).
-
+	
 	 [-l l]
 		A (integer) constant that controls the space/time trade-off of the dictionary. A reasonable values lies between 2 and 12 (default is 6).
-
+	
 	 [-c c]
 		A (floating point) constant that trades construction speed for space effectiveness of minimal perfect hashing. A reasonable value lies between 3.0 and 10.0 (default is 3.000000).
-
-	 [--canonical-parsing]
-		Canonical parsing of k-mers. This option changes the parsing and results in a trade-off between index space and lookup time.
-
-	 [--weighted]
-		Also store the weights in compressed format.
-
+	
 	 [-o output_filename]
 		Output file name where the data structure will be serialized.
-
+	
+	 [-d tmp_dirname]
+		Temporary directory used for construction in external memory. Default is directory '.'.
+		
+	 [--canonical-parsing]
+		Canonical parsing of k-mers. This option changes the parsing and results in a trade-off between index space and lookup time.
+	
+	 [--weighted]
+		Also store the weights in compressed format.
+	
 	 [--check]
 		Check correctness after construction.
-
+	
 	 [--bench]
 		Run benchmark after construction.
-
+	
 	 [--verbose]
 		Verbose output during construction.
-
+	
 	 [-h,--help]
-		Print this help text and silently exits.
+	Print this help text and silently exits.
 		
 
 Examples

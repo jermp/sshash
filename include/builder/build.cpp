@@ -75,7 +75,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-        m_minimizers.build(iterator, data.minimizers.num_minimizers());
+        m_minimizers.build(iterator, data.minimizers.num_minimizers(), build_config);
         input.close();
     }
     timer.stop();
@@ -86,7 +86,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_index(data, m_minimizers, m_buckets);
+    auto buckets_stats = build_index(data, m_minimizers, m_buckets, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");

@@ -36,7 +36,7 @@ private:
 struct bucket_pairs {
     static constexpr uint64_t ram_limit = 0.25 * essentials::GB;
 
-    bucket_pairs(std::string tmp_dirname = constants::default_tmp_dirname)
+    bucket_pairs(std::string const& tmp_dirname)
         : m_buffer_size(0)
         , m_num_files_to_merge(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
@@ -173,8 +173,8 @@ private:
     }
 };
 
-buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
-                               buckets& m_buckets) {
+buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers, buckets& m_buckets,
+                               build_configuration const& build_config) {
     uint64_t num_buckets = m_minimizers.size();
     uint64_t num_kmers = data.num_kmers;
     uint64_t num_super_kmers = data.strings.num_super_kmers();
@@ -188,7 +188,7 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                            mm::advice::sequential);
 
-    bucket_pairs bucket_pairs_manager;
+    bucket_pairs bucket_pairs_manager(build_config.tmp_dirname);
     uint64_t num_singletons = 0;
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
          it.next()) {
