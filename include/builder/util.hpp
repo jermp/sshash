@@ -1,5 +1,7 @@
 #pragma once
 
+#include "file_merging_iterator.hpp"
+
 namespace sshash {
 
 void print_time(double time, uint64_t num_kmers, std::string const& message) {
@@ -87,6 +89,11 @@ struct minimizer_tuple {
     uint64_t minimizer;
     uint64_t offset;
     num_kmers_in_super_kmer_uint_type num_kmers_in_super_kmer;
+
+    bool operator>(minimizer_tuple other) const {
+        if (minimizer != other.minimizer) return minimizer > other.minimizer;
+        return offset > other.offset;
+    }
 };
 #pragma pack(pop)
 
@@ -157,6 +164,19 @@ private:
     }
 };
 
+template <typename ValueType>
+struct bytes_iterator {
+    bytes_iterator(uint8_t const* begin, uint8_t const* end) : m_begin(begin), m_end(end) {}
+
+    void next() { m_begin += sizeof(ValueType); }
+    bool has_next() const { return m_begin != m_end; }
+    ValueType operator*() const { return *reinterpret_cast<ValueType const*>(m_begin); }
+
+private:
+    uint8_t const* m_begin;
+    uint8_t const* m_end;
+};
+
 struct minimizers_tuples {
     static constexpr uint64_t ram_limit = 0.5 * essentials::GB;
 
@@ -202,89 +222,74 @@ struct minimizers_tuples {
     }
 
     std::string get_minimizers_filename() const {
+        assert(m_num_files_to_merge > 0);
+        if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
         return filename.str();
     }
 
+    struct files_name_iterator {
+        files_name_iterator(minimizers_tuples const* ptr) : m_id(0), m_ptr(ptr) {}
+
+        std::string operator*() { return m_ptr->get_tmp_output_filename(m_id); }
+        void operator++() { ++m_id; }
+
+    private:
+        uint64_t m_id;
+        minimizers_tuples const* m_ptr;
+    };
+
+    files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
+
     void merge() {
-        std::cout << "files to merge = " << m_num_files_to_merge << std::endl;
         if (m_num_files_to_merge == 0) return;
 
-        assert(m_num_files_to_merge > 0);
-
-        struct iterator_type {
-            iterator_type(minimizer_tuple const* b, minimizer_tuple const* e) : begin(b), end(e) {}
-            minimizer_tuple const* begin;
-            minimizer_tuple const* end;
-        };
-        std::vector<iterator_type> iterators;
-        std::vector<uint32_t> idx_heap;
-        iterators.reserve(m_num_files_to_merge);
-        idx_heap.reserve(m_num_files_to_merge);
-        std::vector<mm::file_source<minimizer_tuple>> mm_files(m_num_files_to_merge);
-
-        auto heap_idx_comparator = [&](uint32_t i, uint32_t j) {
-            minimizer_tuple const* begin_i = iterators[i].begin;
-            minimizer_tuple const* begin_j = iterators[j].begin;
-            if ((*begin_i).minimizer != (*begin_j).minimizer) {
-                return (*begin_i).minimizer > (*begin_j).minimizer;
+        if (m_num_files_to_merge == 1) {
+            /* just count num. distinct minimizers and do not write twice on disk */
+            mm::file_source<minimizer_tuple> input(get_minimizers_filename(),
+                                                   mm::advice::sequential);
+            for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
+                 it.has_next(); it.next()) {
+                ++m_num_minimizers;
             }
-            return (*begin_i).offset > (*begin_j).offset;
-        };
-
-        auto advance_heap_head = [&]() {
-            uint32_t idx = idx_heap.front();
-            iterators[idx].begin += 1;
-            if (iterators[idx].begin != iterators[idx].end) {  // percolate down the head
-                uint64_t pos = 0;
-                uint64_t size = idx_heap.size();
-                while (2 * pos + 1 < size) {
-                    uint64_t i = 2 * pos + 1;
-                    if (i + 1 < size and heap_idx_comparator(idx_heap[i], idx_heap[i + 1])) ++i;
-                    if (heap_idx_comparator(idx_heap[i], idx_heap[pos])) break;
-                    std::swap(idx_heap[pos], idx_heap[i]);
-                    pos = i;
-                }
-            } else {
-                std::pop_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
-                idx_heap.pop_back();
-            }
-        };
-
-        /* create the input iterators and make the heap */
-        for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
-            auto tmp_output_filename = get_tmp_output_filename(i);
-            mm_files[i].open(tmp_output_filename, mm::advice::sequential);
-            iterators.emplace_back(mm_files[i].data(), mm_files[i].data() + mm_files[i].size());
-            idx_heap.push_back(i);
+            input.close();
+            return;
         }
-        std::make_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
+
+        std::cout << " == files to merge = " << m_num_files_to_merge << std::endl;
+
+        assert(m_num_files_to_merge > 1);
+        typedef bytes_iterator<minimizer_tuple> bytes_iterator_type;
+        file_merging_iterator<bytes_iterator_type> fm_iterator(files_name_iterator_begin(),
+                                                               m_num_files_to_merge);
 
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
         uint64_t num_written_tuples = 0;
         uint64_t prev_minimizer = constants::invalid;
-        while (!idx_heap.empty()) {
-            minimizer_tuple const* begin = iterators[idx_heap.front()].begin;
-            out.write(reinterpret_cast<char const*>(begin), sizeof(minimizer_tuple));
-            if ((*begin).minimizer != prev_minimizer) {
-                prev_minimizer = (*begin).minimizer;
+        while (fm_iterator.has_next()) {
+            auto file_it = *fm_iterator;
+            minimizer_tuple tuple = *file_it;
+            out.write(reinterpret_cast<char const*>(&tuple), sizeof(minimizer_tuple));
+            num_written_tuples += 1;
+            if (tuple.minimizer != prev_minimizer) {
+                prev_minimizer = tuple.minimizer;
                 ++m_num_minimizers;
             }
-            num_written_tuples += 1;
             if (num_written_tuples % 50000000 == 0) {
                 std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
             }
-            advance_heap_head();
+            fm_iterator.next();
         }
         std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
+
         out.close();
+        fm_iterator.close();
 
         /* remove tmp files */
         for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
-            mm_files[i].close();
             auto tmp_output_filename = get_tmp_output_filename(i);
             std::remove(tmp_output_filename.c_str());
         }
