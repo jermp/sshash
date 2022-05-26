@@ -1,3 +1,5 @@
+#include "file_merging_iterator.hpp"
+
 namespace sshash {
 
 #pragma pack(push, 4)
@@ -5,6 +7,8 @@ struct bucket_pair {
     bucket_pair(uint64_t id, uint32_t size) : id(id), size(size) {}
     uint64_t id;
     uint32_t size;
+
+    bool operator>(bucket_pair other) const { return id > other.id; }
 };
 #pragma pack(pop)
 
@@ -72,88 +76,62 @@ struct bucket_pairs {
     }
 
     std::string get_bucket_pairs_filename() const {
+        assert(m_num_files_to_merge > 0);
         if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".bucket_pairs.bin";
         return filename.str();
     }
 
-    void merge() {
-        std::cout << "files to merge = " << m_num_files_to_merge << std::endl;
-        if (m_num_files_to_merge <= 1) return;
+    struct files_name_iterator {
+        files_name_iterator(bucket_pairs const* ptr) : m_id(0), m_ptr(ptr) {}
 
+        std::string operator*() { return m_ptr->get_tmp_output_filename(m_id); }
+        void operator++() { ++m_id; }
+
+    private:
+        uint64_t m_id;
+        bucket_pairs const* m_ptr;
+    };
+
+    files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
+
+    void merge() {
+        if (m_num_files_to_merge <= 1) return;
         assert(m_num_files_to_merge > 1);
 
-        struct iterator_type {
-            iterator_type(bucket_pair const* b, bucket_pair const* e) : begin(b), end(e) {}
-            bucket_pair const* begin;
-            bucket_pair const* end;
-        };
-        std::vector<iterator_type> iterators;
-        std::vector<uint32_t> idx_heap;
-        iterators.reserve(m_num_files_to_merge);
-        idx_heap.reserve(m_num_files_to_merge);
-        std::vector<mm::file_source<bucket_pair>> mm_files(m_num_files_to_merge);
+        std::cout << " == files to merge = " << m_num_files_to_merge << std::endl;
 
-        auto heap_idx_comparator = [&](uint32_t i, uint32_t j) {
-            bucket_pair const* begin_i = iterators[i].begin;
-            bucket_pair const* begin_j = iterators[j].begin;
-            return (*begin_i).id > (*begin_j).id;
-        };
-
-        auto advance_heap_head = [&]() {
-            uint32_t idx = idx_heap.front();
-            iterators[idx].begin += 1;
-            if (iterators[idx].begin != iterators[idx].end) {  // percolate down the head
-                uint64_t pos = 0;
-                uint64_t size = idx_heap.size();
-                while (2 * pos + 1 < size) {
-                    uint64_t i = 2 * pos + 1;
-                    if (i + 1 < size and heap_idx_comparator(idx_heap[i], idx_heap[i + 1])) ++i;
-                    if (heap_idx_comparator(idx_heap[i], idx_heap[pos])) break;
-                    std::swap(idx_heap[pos], idx_heap[i]);
-                    pos = i;
-                }
-            } else {
-                std::pop_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
-                idx_heap.pop_back();
-            }
-        };
-
-        /* create the input iterators and make the heap */
-        for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
-            auto tmp_output_filename = get_tmp_output_filename(i);
-            mm_files[i].open(tmp_output_filename, mm::advice::sequential);
-            iterators.emplace_back(mm_files[i].data(), mm_files[i].data() + mm_files[i].size());
-            idx_heap.push_back(i);
-        }
-        std::make_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
+        typedef bytes_iterator<bucket_pair> bytes_iterator_type;
+        file_merging_iterator<bytes_iterator_type> fm_iterator(files_name_iterator_begin(),
+                                                               m_num_files_to_merge);
 
         std::ofstream out(get_bucket_pairs_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
         uint64_t num_written_pairs = 0;
-        while (!idx_heap.empty()) {
-            bucket_pair const* begin = iterators[idx_heap.front()].begin;
-            out.write(reinterpret_cast<char const*>(begin), sizeof(bucket_pair));
+        while (fm_iterator.has_next()) {
+            auto file_it = *fm_iterator;
+            bucket_pair val = *file_it;
+            out.write(reinterpret_cast<char const*>(&val), sizeof(bucket_pair));
             num_written_pairs += 1;
             if (num_written_pairs % 50000000 == 0) {
                 std::cout << "num_written_pairs = " << num_written_pairs << std::endl;
             }
-            advance_heap_head();
+            fm_iterator.next();
         }
         std::cout << "num_written_pairs = " << num_written_pairs << std::endl;
+
         out.close();
+        fm_iterator.close();
 
         /* remove tmp files */
         for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
-            mm_files[i].close();
             auto tmp_output_filename = get_tmp_output_filename(i);
             std::remove(tmp_output_filename.c_str());
         }
 
         std::vector<bucket_pair>().swap(m_buffer);
-        m_num_files_to_merge = 0;  // any other call to merge() will do nothing
     }
 
     void remove_tmp_file() { std::remove(get_bucket_pairs_filename().c_str()); }
