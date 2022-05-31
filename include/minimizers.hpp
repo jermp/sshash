@@ -14,7 +14,9 @@ struct minimizers {
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        mphf_config.num_threads = 1;
+        uint64_t num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        if (size >= num_threads) mphf_config.num_threads = num_threads;
         mphf_config.ram = 2 * essentials::GB;
         mphf_config.tmp_dir = build_config.tmp_dirname;
         m_mphf.build_in_external_memory(begin, size, mphf_config);

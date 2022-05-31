@@ -236,7 +236,11 @@ bool ends_with(std::string const& str, std::string const& pattern) {
 
 // for a sorted list of size n whose universe is u
 uint64_t elias_fano_bitsize(uint64_t n, uint64_t u) {
-    return n * ((u > n ? (std::ceil(std::log2(static_cast<double>(u) / n))) : 0) + 2);
+    // return n * ((u > n ? (std::ceil(std::log2(static_cast<double>(u) / n))) : 0) + 2);
+    uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);
+    uint64_t high_bits = n + (u >> l) + 1;
+    uint64_t low_bits = n * l;
+    return high_bits + low_bits;
 }
 
 /*
@@ -500,23 +504,6 @@ struct murmurhash2_64 {
     }
 };
 
-// return a pointer to the start of the minimizer within the term
-template <typename Hasher = murmurhash2_64>
-char const* compute_minimizer(char const* kmer, uint64_t k, uint64_t m, uint64_t seed) {
-    assert(m <= k);
-    uint64_t min_hash = uint64_t(-1);
-    uint64_t min_index = 0;
-    for (uint64_t i = 0; i + m <= k; ++i) {
-        byte_range sub_kmer{kmer + i, kmer + i + m};
-        uint64_t hash = Hasher::hash(sub_kmer, seed);
-        if (hash < min_hash) {
-            min_hash = hash;
-            min_index = i;
-        }
-    }
-    return kmer + min_index;
-}
-
 template <typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m < 32);
@@ -534,6 +521,29 @@ uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_t seed)
         kmer >>= 2;
     }
     return minimizer;
+}
+
+/* not used: just for debug */
+template <typename Hasher = murmurhash2_64>
+std::pair<uint64_t, uint64_t> compute_minimizer_pos(uint64_t kmer, uint64_t k, uint64_t m,
+                                                    uint64_t seed) {
+    assert(m < 32);
+    assert(m <= k);
+    uint64_t min_hash = uint64_t(-1);
+    uint64_t minimizer = uint64_t(-1);
+    uint64_t mask = (uint64_t(1) << (2 * m)) - 1;
+    uint64_t pos = 0;
+    for (uint64_t i = 0; i != k - m + 1; ++i) {
+        uint64_t sub_kmer = kmer & mask;
+        uint64_t hash = Hasher::hash(sub_kmer, seed);
+        if (hash < min_hash) {
+            min_hash = hash;
+            minimizer = sub_kmer;
+            pos = i;
+        }
+        kmer >>= 2;
+    }
+    return {minimizer, pos};
 }
 
 }  // namespace util

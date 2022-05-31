@@ -23,7 +23,7 @@ struct bucket_pairs_iterator : std::forward_iterator_tag {
     uint64_t operator*() const { return m_val; }
     void operator++() {
         ++m_i;
-        if (m_i == (*m_begin).id) {
+        if (m_begin != nullptr and m_end != nullptr and m_i == (*m_begin).id) {
             m_val += (*m_begin).size;
             ++m_begin;
             assert(m_begin <= m_end);
@@ -134,6 +134,7 @@ struct bucket_pairs {
         std::vector<bucket_pair>().swap(m_buffer);
     }
 
+    uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
     void remove_tmp_file() { std::remove(get_bucket_pairs_filename().c_str()); }
 
 private:
@@ -184,9 +185,8 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     std::cout << "num_singletons " << num_singletons << "/" << num_buckets << " ("
               << (num_singletons * 100.0) / num_buckets << "%)" << std::endl;
 
-    bucket_pairs_manager.merge();
-
-    {
+    if (bucket_pairs_manager.num_files_to_merge() > 0) {
+        bucket_pairs_manager.merge();
         mm::file_source<bucket_pair> bucket_pairs_file(
             bucket_pairs_manager.get_bucket_pairs_filename(), mm::advice::sequential);
         bucket_pairs_iterator iterator(bucket_pairs_file.data(),
@@ -194,9 +194,13 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
         m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
                                                        num_super_kmers - num_buckets);
         bucket_pairs_file.close();
+        bucket_pairs_manager.remove_tmp_file();
+    } else {
+        /* all buckets are singletons, thus pass an empty iterator that always returns 0 */
+        bucket_pairs_iterator iterator(nullptr, nullptr);
+        m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
+                                                       num_super_kmers - num_buckets);
     }
-
-    bucket_pairs_manager.remove_tmp_file();
 
     buckets_statistics buckets_stats(num_buckets, num_kmers, num_super_kmers);
 
