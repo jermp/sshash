@@ -48,12 +48,12 @@ To build the code, [`CMake`](https://cmake.org/) is required.
 
 Clone the repository with
 
-	git clone --recursive https://github.com/jermp/sshash.git
+    git clone --recursive https://github.com/jermp/sshash.git
 
 If you have cloned the repository **without** `--recursive`, be sure you pull the dependencies with the following command before
 compiling:
 
-	git submodule update --init --recursive
+    git submodule update --init --recursive
 
 To compile the code for a release environment (see file `CMakeLists.txt` for the used compilation flags), it is sufficient to do the following:
 
@@ -79,11 +79,11 @@ To automatically pull the PTHash dependency, just clone the repo with
 
 If you do not have `zlib` installed, you can do
 
-	sudo apt-get install zlib1g
+    sudo apt-get install zlib1g
 
 if you are on Linux/Ubuntu, or
 
-	brew install zlib
+    brew install zlib
 
 if you have a Mac.
 
@@ -96,57 +96,57 @@ called `build` can be used to build a dictionary.
 From within the directory
 where the code was compiled (see the section [Compiling the Code](#compiling-the-code)), run the command:
 
-	./build --help
+    ./build --help
 
 to show the usage of the driver program (reported below for convenience).
 
-	Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--weighted] [-o output_filename] [-d tmp_dirname] [--check] [--bench] [--verbose]
-	
-	 input_filename
-		Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
-		- without duplicate nor invalid kmers
-		- one DNA sequence per line.
-		For example, it could be the de Bruijn graph topology output by BCALM.
-	
-	 k
-		K-mer length (must be <= 31).
-	
-	 m
-		Minimizer length (must be < k).
-	
-	 [-s seed]
-		Seed for construction (default is 1).
-	
-	 [-l l]
-		A (integer) constant that controls the space/time trade-off of the dictionary. A reasonable values lies between 2 and 12 (default is 6).
-	
-	 [-c c]
-		A (floating point) constant that trades construction speed for space effectiveness of minimal perfect hashing. A reasonable value lies between 3.0 and 10.0 (default is 3.000000).
-	
-	 [-o output_filename]
-		Output file name where the data structure will be serialized.
-	
-	 [-d tmp_dirname]
-		Temporary directory used for construction in external memory. Default is directory '.'.
-		
-	 [--canonical-parsing]
-		Canonical parsing of k-mers. This option changes the parsing and results in a trade-off between index space and lookup time.
-	
-	 [--weighted]
-		Also store the weights in compressed format.
-	
-	 [--check]
-		Check correctness after construction.
-	
-	 [--bench]
-		Run benchmark after construction.
-	
-	 [--verbose]
-		Verbose output during construction.
-	
-	 [-h,--help]
-	Print this help text and silently exits.
-		
+    Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--weighted] [-o output_filename] [-d tmp_dirname] [--check] [--bench] [--verbose]
+
+     input_filename
+        Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
+        - without duplicate nor invalid kmers
+        - one DNA sequence per line.
+        For example, it could be the de Bruijn graph topology output by BCALM.
+
+     k
+        K-mer length (must be <= 31).
+
+     m
+        Minimizer length (must be < k).
+
+     [-s seed]
+        Seed for construction (default is 1).
+
+     [-l l]
+        A (integer) constant that controls the space/time trade-off of the dictionary. A reasonable values lies between 2 and 12 (default is 6).
+
+     [-c c]
+        A (floating point) constant that trades construction speed for space effectiveness of minimal perfect hashing. A reasonable value lies between 3.0 and 10.0 (default is 3.000000).
+
+     [-o output_filename]
+        Output file name where the data structure will be serialized.
+
+     [-d tmp_dirname]
+        Temporary directory used for construction in external memory. Default is directory '.'.
+
+     [--canonical-parsing]
+        Canonical parsing of k-mers. This option changes the parsing and results in a trade-off between index space and lookup time.
+
+     [--weighted]
+        Also store the weights in compressed format.
+
+     [--check]
+        Check correctness after construction.
+
+     [--bench]
+        Run benchmark after construction.
+
+     [--verbose]
+        Verbose output during construction.
+
+     [-h,--help]
+        Print this help text and silently exits.
+
 
 Examples
 --------
@@ -162,7 +162,7 @@ such collections of stitched unitigs can be obtained from raw FASTA files.
 
 ### Example 1
 
-	./build ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz 31 13 --check --bench -o salmonella_enterica.index
+    ./build ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz 31 13 --check --bench -o salmonella_enterica.index
 
 This example builds a dictionary for the k-mers read from the file `../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz`,
 with k = 31 and m = 13. It also check the correctness of the dictionary (`--check` option), run a performance benchmark (`--bench` option), and serializes the index on disk to the file `salmonella_enterica.index`.
@@ -170,58 +170,58 @@ with k = 31 and m = 13. It also check the correctness of the dictionary (`--chec
 To run a performance benchmark after construction of the index,
 use:
 
-	./bench salmonella_enterica.index
+    ./bench salmonella_enterica.index
 
 To also store the weights, use the option `--weighted`:
 
-	./build ../data/unitigs_stitched/with_weights/salmonella_enterica_k31_ust.weights.fa.gz 31 13 --weighted --check --verbose
-	
+    ./build ../data/unitigs_stitched/with_weights/salmonella_enterica_k31_ust.weights.fa.gz 31 13 --weighted --check --verbose
+
 ### Example 2
 
-	./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 15 -l 2 -o salmonella_100.index
+    ./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 15 -l 2 -o salmonella_100.index
 
 This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (a pangenome consisting in 100 genomes of *Salmonella Enterica*), with k = 31, m = 15, and l = 2. It also serializes the index on disk to the file `salmonella_100.index`.
 
 To perform some streaming membership queries, use:
 
-	./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
+    ./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
 
 if your queries are meant to be read from a FASTQ file, or
 
-	./query salmonella_100.index ../data/queries/salmonella_enterica.fasta.gz --multiline
-	
+    ./query salmonella_100.index ../data/queries/salmonella_enterica.fasta.gz --multiline
+
 if your queries are to be read from a (multi-line) FASTA file.
 
 ### Example 3
 
-	./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 13 -l 4 -s 347692 --canonical-parsing -o salmonella_100.canon.index
+    ./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 13 -l 4 -s 347692 --canonical-parsing -o salmonella_100.canon.index
 
 This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, l = 4, using a seed 347692 for construction (`-s 347692`), and with the canonical parsing modality (option `--canonical-parsing`). The dictionary is serialized on disk to the file `salmonella_100.canon.index`.
 
-The	 "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
-	
+The  "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
+
 Below a comparison between the dictionary built in Example 2 (not canonical)
 and the one just built (Example 3, canonical).
 
-	./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
-	index size: 10.3981 [MB] (6.36232 [bits/kmer])
-	==== query report:
-	num_kmers = 460000
-	num_valid_kmers = 459143 (99.8137% of kmers)
-	num_positive_kmers = 46 (0.0100187% of valid kmers)
-	num_searches = 42/46 (91.3043%)
-	num_extensions = 4/46 (8.69565%)
-	elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
-	
-	./query salmonella_100.canon.index ../data/queries/SRR5833294.10K.fastq.gz
-	index size: 11.0657 [MB] (6.77083 [bits/kmer])
-	==== query report:
-	num_kmers = 460000
-	num_valid_kmers = 459143 (99.8137% of kmers)
-	num_positive_kmers = 46 (0.0100187% of valid kmers)
-	num_searches = 42/46 (91.3043%)
-	num_extensions = 4/46 (8.69565%)
-	elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer
+    ./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
+    index size: 10.3981 [MB] (6.36232 [bits/kmer])
+    ==== query report:
+    num_kmers = 460000
+    num_valid_kmers = 459143 (99.8137% of kmers)
+    num_positive_kmers = 46 (0.0100187% of valid kmers)
+    num_searches = 42/46 (91.3043%)
+    num_extensions = 4/46 (8.69565%)
+    elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
+
+    ./query salmonella_100.canon.index ../data/queries/SRR5833294.10K.fastq.gz
+    index size: 11.0657 [MB] (6.77083 [bits/kmer])
+    ==== query report:
+    num_kmers = 460000
+    num_valid_kmers = 459143 (99.8137% of kmers)
+    num_positive_kmers = 46 (0.0100187% of valid kmers)
+    num_searches = 42/46 (91.3043%)
+    num_extensions = 4/46 (8.69565%)
+    elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer
 
 We see that the canonical dictionary is twice as fast as the regular dictionary
 for low-hit workloads,
@@ -229,7 +229,7 @@ even on this tiny example, for only +0.4 bits/k-mer.
 
 ### Example 4
 
-	./permute ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 -o ecoli_sakai.permuted.fa
+    ./permute ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 -o ecoli_sakai.permuted.fa
 
 This command re-orders (and possibly reverse-complement) the strings in the collection as to *minimize* the number of runs in the weights and, hence, optimize the encoding of the weights.
 The result is saved to the file `ecoli_sakai.permuted.fa`.
@@ -238,14 +238,14 @@ In this example for the E.Coli collection (Sakai strain) we reduce the number of
 
 Then use the `build` command as usual to build the permuted collection:
 
-	./build ecoli_sakai.permuted.fa 31 13 --weighted --verbose
-	
+    ./build ecoli_sakai.permuted.fa 31 13 --weighted --verbose
+
 The index built on the permuted collection
 optimizes the storage space for the weights which results in a 15.1X better space than the empirical entropy of the weights.
 
 For reference, the index built on the original collection:
 
-	./build ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 13 --weighted --verbose
+    ./build ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 13 --weighted --verbose
 
 already achieves a 12.4X better space than the empirical entropy.
 
@@ -262,12 +262,12 @@ From the output of BCALM2, we can then *stitch* (i.e., glue) some unitigs to red
 
 Below we provide a complete example (assuming both BCALM2 and UST are installed correctly) that downloads the Human (GRCh38) Chromosome 13 and extracts the maximal stitiched unitigs for k = 31.
 
-	mkdir DNA_datasets
-	wget http://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz -O DNA_datasets/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz
-	~/bcalm/build/bcalm -in ~/DNA_datasets/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz -kmer-size 31 -abundance-min 1 -nb-cores 8
-	~/UST/ust -k 31 -i ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
-	gzip Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa.ust.fa
-	rm ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
+    mkdir DNA_datasets
+    wget http://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz -O DNA_datasets/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz
+    ~/bcalm/build/bcalm -in ~/DNA_datasets/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz -kmer-size 31 -abundance-min 1 -nb-cores 8
+    ~/UST/ust -k 31 -i ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
+    gzip Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa.ust.fa
+    rm ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
 
 #### Datasets
 The script `scripts/download_and_preprocess_datasets.sh`
@@ -291,7 +291,7 @@ After running BCALM2 and UST, we build the indexes as follows.
     ./build ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz 31 19 -l 6 -c 7 --canonical-parsing -o pinus.m19.canon.index
     ./build ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz 31 21 -l 6 -c 7 -o axolotl.m21.index
     ./build ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz 31 20 -l 6 -c 7 --canonical-parsing -o axolotl.m20.canon.index
-    
+
 The following table summarizes the space of the dictionaries.
 
 | Dictionary        |Pine       || Axolotl  ||
@@ -300,7 +300,7 @@ The following table summarizes the space of the dictionaries.
 | SSHash, regular   | 13.21  | 10.06       | 22.28 | 9.91       |
 | SSHash, canonical | 14.94  | 11.37       | 25.03 | 11.13      |
 
-    
+
 
 To query the dictionaries, we use [SRR17023415](https://www.ebi.ac.uk/ena/browser/view/SRR17023415) fastq reads
 (23,891,117 reads, each of 150 bases) for the pine,
@@ -353,7 +353,7 @@ Below the complete query reports.
     num_searches = 106220473/650467884 (16.3299%)
     num_extensions = 544247411/650467884 (83.6701%)
     elapsed = 193.871 sec / 3.23119 min / 208.158 ns/kmer
-    
+
 Author
 ------
 
@@ -362,4 +362,4 @@ Giulio Ermanno Pibiri - <giulio.ermanno.pibiri@isti.cnr.it>
 References
 -----
 * [1] Giulio Ermanno Pibiri. [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199). ISMB (Bioinformatics journal). 2022. To Appear.
-* [2] Giulio Ermanno Pibiri. [*"On Weighted K-Mers Dictionaries"*](https://doi.org/10.1101/2022.05.23.493024). bioRxiv. 2022.
+* [2] Giulio Ermanno Pibiri. [*"On Weighted K-Mers Dictionaries"*](https://doi.org/10.1101/2022.05.23.493024). International Workshop on Algorithms in Bioinformatics (WABI). 2022. To Appear.
