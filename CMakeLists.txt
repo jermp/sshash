@@ -52,7 +52,8 @@ add_library(sshash_static STATIC
 add_executable(build src/build.cpp)
 target_link_libraries(build
   sshash_static
-  z)
+  z
+)
 
 add_executable(bench src/bench.cpp ${SSHASH_SOURCES})
 
