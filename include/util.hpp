@@ -30,7 +30,7 @@ typedef pthash::single_phf<base_hasher_type,               // base hasher
 
 namespace util {
 
-void check_hash_collision_probability(uint64_t size) {
+static inline void check_hash_collision_probability(uint64_t size) {
     /*
         From: https://preshing.com/20110504/hash-collision-probabilities/
         Given a universe of size U (total number of possible hash values),
@@ -222,20 +222,20 @@ private:
 namespace util {
 
 /* return the position of the most significant bit */
-inline uint32_t msb(uint32_t x) {
+static inline uint32_t msb(uint32_t x) {
     assert(x > 0);
     return 31 - __builtin_clz(x);
 }
 
-inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1) + 1 : 0; }
+static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1) + 1 : 0; }
 
-bool ends_with(std::string const& str, std::string const& pattern) {
+[[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
     if (pattern.size() > str.size()) return false;
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
 }
 
 // for a sorted list of size n whose universe is u
-uint64_t elias_fano_bitsize(uint64_t n, uint64_t u) {
+[[maybe_unused]] static uint64_t elias_fano_bitsize(uint64_t n, uint64_t u) {
     // return n * ((u > n ? (std::ceil(std::log2(static_cast<double>(u) / n))) : 0) + 2);
     uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);
     uint64_t high_bits = n + (u >> l) + 1;
@@ -250,9 +250,9 @@ char decimal  binary
  G     71     01000-11-1 -> 11
  T     84     01010-10-0 -> 10
 */
-uint64_t char_to_uint64(char c) { return (c >> 1) & 3; }
+static uint64_t char_to_uint64(char c) { return (c >> 1) & 3; }
 
-char uint64_to_char(uint64_t x) {
+static char uint64_to_char(uint64_t x) {
     assert(x <= 3);
     static char nucleotides[4] = {'A', 'C', 'T', 'G'};
     return nucleotides[x];
@@ -295,7 +295,7 @@ char uint64_to_char(uint64_t x) {
     that is: if g and t are two k-mers and g < t lexicographically,
     then also id(g) < id(t).
 */
-uint64_t string_to_uint64(char const* str, uint64_t k) {
+[[maybe_unused]] static uint64_t string_to_uint64(char const* str, uint64_t k) {
     assert(k <= 32);
     uint64_t x = 0;
     for (uint64_t i = 0; i != k; ++i) {
@@ -304,7 +304,7 @@ uint64_t string_to_uint64(char const* str, uint64_t k) {
     }
     return x;
 }
-void uint64_to_string(uint64_t x, char* str, uint64_t k) {
+[[maybe_unused]] static void uint64_to_string(uint64_t x, char* str, uint64_t k) {
     assert(k <= 32);
     for (int i = k - 1; i >= 0; --i) {
         str[i] = uint64_to_char(x & 3);
@@ -313,7 +313,7 @@ void uint64_to_string(uint64_t x, char* str, uint64_t k) {
 }
 /****************************************************************************/
 
-std::string uint64_to_string(uint64_t x, uint64_t k) {
+[[maybe_unused]] static std::string uint64_to_string(uint64_t x, uint64_t k) {
     assert(k <= 32);
     std::string str;
     str.resize(k);
@@ -321,14 +321,14 @@ std::string uint64_to_string(uint64_t x, uint64_t k) {
     return str;
 }
 
-uint64_t string_to_uint64_no_reverse(char const* str, uint64_t k) {
+[[maybe_unused]] static uint64_t string_to_uint64_no_reverse(char const* str, uint64_t k) {
     assert(k <= 32);
     uint64_t x = 0;
     for (uint64_t i = 0; i != k; ++i) x += char_to_uint64(str[i]) << (2 * i);
     return x;
 }
 
-void uint64_to_string_no_reverse(uint64_t x, char* str, uint64_t k) {
+static void uint64_to_string_no_reverse(uint64_t x, char* str, uint64_t k) {
     assert(k <= 32);
     for (uint64_t i = 0; i != k; ++i) {
         str[i] = uint64_to_char(x & 3);
@@ -336,7 +336,7 @@ void uint64_to_string_no_reverse(uint64_t x, char* str, uint64_t k) {
     }
 }
 
-std::string uint64_to_string_no_reverse(uint64_t x, uint64_t k) {
+[[maybe_unused]] static std::string uint64_to_string_no_reverse(uint64_t x, uint64_t k) {
     assert(k <= 32);
     std::string str;
     str.resize(k);
@@ -353,7 +353,7 @@ std::string uint64_to_string_no_reverse(uint64_t x, uint64_t k) {
     in binary:
     reverse_complement("00011001000111") = 01111011001110
 */
-uint64_t compute_reverse_complement(uint64_t x, uint64_t size) {
+[[maybe_unused]] static uint64_t compute_reverse_complement(uint64_t x, uint64_t size) {
     assert(size <= 32);
     // Complement, swap byte order
     uint64_t res = __builtin_bswap64(x ^ 0xaaaaaaaaaaaaaaaa);
@@ -393,16 +393,17 @@ static const char canonicalize_basepair_reverse_map[256] = {
     0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 
-void compute_reverse_complement(char const* input, char* output, uint64_t size) {
+[[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
+                                                        uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
         int c = input[i];
         output[size - i - 1] = canonicalize_basepair_reverse_map[c];
     }
 }
 
-inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]; }
+static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]; }
 
-bool is_valid(char const* str, uint64_t size) {
+[[maybe_unused]] static bool is_valid(char const* str, uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
         int c = str[i];
         if (canonicalize_basepair_forward_map[c] == 0) return false;
@@ -411,87 +412,16 @@ bool is_valid(char const* str, uint64_t size) {
     return true;
 }
 
-/*
-    This code is an adaptation from
-    https://github.com/aappleby/smhasher/blob/master/src/MurmurHash2.cpp
-        by Austin Appleby
-*/
-uint64_t MurmurHash2_64(void const* key, size_t len, uint64_t seed) {
-    const uint64_t m = 0xc6a4a7935bd1e995ULL;
-    const int r = 47;
-
-    uint64_t h = seed ^ (len * m);
-
-#if defined(__arm) || defined(__arm__)
-    const size_t ksize = sizeof(uint64_t);
-    const unsigned char* data = (const unsigned char*)key;
-    const unsigned char* end = data + (std::size_t)(len / 8) * ksize;
-#else
-    const uint64_t* data = (const uint64_t*)key;
-    const uint64_t* end = data + (len / 8);
-#endif
-
-    while (data != end) {
-#if defined(__arm) || defined(__arm__)
-        uint64_t k;
-        memcpy(&k, data, ksize);
-        data += ksize;
-#else
-        uint64_t k = *data++;
-#endif
-
-        k *= m;
-        k ^= k >> r;
-        k *= m;
-
-        h ^= k;
-        h *= m;
-    }
-
-    const unsigned char* data2 = (const unsigned char*)data;
-
-    switch (len & 7) {
-        // fall through
-        case 7:
-            h ^= uint64_t(data2[6]) << 48;
-        // fall through
-        case 6:
-            h ^= uint64_t(data2[5]) << 40;
-        // fall through
-        case 5:
-            h ^= uint64_t(data2[4]) << 32;
-        // fall through
-        case 4:
-            h ^= uint64_t(data2[3]) << 24;
-        // fall through
-        case 3:
-            h ^= uint64_t(data2[2]) << 16;
-        // fall through
-        case 2:
-            h ^= uint64_t(data2[1]) << 8;
-        // fall through
-        case 1:
-            h ^= uint64_t(data2[0]);
-            h *= m;
-    };
-
-    h ^= h >> r;
-    h *= m;
-    h ^= h >> r;
-
-    return h;
-}
-
-struct byte_range {
-    char const* begin;
-    char const* end;
-};
+// struct byte_range {
+//     char const* begin;
+//     char const* end;
+// };
 
 struct murmurhash2_64 {
     // generic range of bytes
-    static inline uint64_t hash(byte_range range, uint64_t seed) {
-        return MurmurHash2_64(range.begin, range.end - range.begin, seed);
-    }
+    // static inline uint64_t hash(byte_range range, uint64_t seed) {
+    //     return pthash::MurmurHash2_64(range.begin, range.end - range.begin, seed);
+    // }
 
     // // specialization for std::string
     // static inline uint64_t hash(std::string const& val, uint64_t seed) {
@@ -500,12 +430,12 @@ struct murmurhash2_64 {
 
     // specialization for uint64_t
     static inline uint64_t hash(uint64_t val, uint64_t seed) {
-        return MurmurHash2_64(reinterpret_cast<char const*>(&val), sizeof(val), seed);
+        return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&val), sizeof(val), seed);
     }
 };
 
 template <typename Hasher = murmurhash2_64>
-uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
+static uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m < 32);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
@@ -525,8 +455,8 @@ uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_t seed)
 
 /* not used: just for debug */
 template <typename Hasher = murmurhash2_64>
-std::pair<uint64_t, uint64_t> compute_minimizer_pos(uint64_t kmer, uint64_t k, uint64_t m,
-                                                    uint64_t seed) {
+static std::pair<uint64_t, uint64_t> compute_minimizer_pos(uint64_t kmer, uint64_t k, uint64_t m,
+                                                           uint64_t seed) {
     assert(m < 32);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
@@ -549,7 +479,7 @@ std::pair<uint64_t, uint64_t> compute_minimizer_pos(uint64_t kmer, uint64_t k, u
 }  // namespace util
 
 // taken from tlx
-std::istream& appendline(std::istream& is, std::string& str, char delim = '\n') {
+static inline std::istream& appendline(std::istream& is, std::string& str, char delim = '\n') {
     size_t size = str.size();
     size_t capacity = str.capacity();
     std::streamsize rest = capacity - size;

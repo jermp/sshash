@@ -2,9 +2,10 @@
 
 #include "../dictionary.hpp"
 #include "../util.hpp"
-#include "../gz/zip_stream.cpp"
-#include "membership_query_canonical_parsing.cpp"
-#include "membership_query_regular_parsing.cpp"
+
+#include "../gz/zip_stream.hpp"
+#include "membership_query_canonical_parsing.hpp"
+#include "membership_query_regular_parsing.hpp"
 
 namespace sshash {
 

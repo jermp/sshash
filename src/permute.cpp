@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../include/gz/zip_stream.cpp"
+#include "../include/gz/zip_stream.hpp"
 #include "../external/pthash/external/essentials/include/essentials.hpp"
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/cover.hpp"

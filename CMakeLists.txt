@@ -32,16 +32,35 @@ if (UNIX)
 
 endif()
 
+set(Z_LIB_SOURCES
+  include/gz/zip_stream.cpp
+)
+
+set(SSHASH_SOURCES
+  include/lookup.cpp
+  include/info.cpp
+)
+
+# Create a static lib
+add_library(sshash_static STATIC
+  ${Z_LIB_SOURCES}
+  ${SSHASH_SOURCES}
+  include/builder/build.cpp
+)
+
+# build with the lib
 add_executable(build src/build.cpp)
-target_link_libraries(build z)
+target_link_libraries(build
+  sshash_static
+  z)
 
-add_executable(bench src/bench.cpp)
+add_executable(bench src/bench.cpp ${SSHASH_SOURCES})
 
-add_executable(check src/check.cpp)
+add_executable(check src/check.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
 target_link_libraries(check z)
 
-add_executable(query src/query.cpp)
+add_executable(query src/query.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
 target_link_libraries(query z)
 
-add_executable(permute src/permute.cpp)
+add_executable(permute src/permute.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
 target_link_libraries(permute z)

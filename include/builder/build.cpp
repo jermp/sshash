@@ -1,19 +1,14 @@
-#pragma once
-
-#include "../util.hpp"
 #include "../dictionary.hpp"
-#include "../info.cpp"
 #include "../../external/pthash/external/essentials/include/essentials.hpp"
-
 #include "util.hpp"
 
-#include <numeric>  // for std::accumulate
-
 /** build steps **/
-#include "parse_file.cpp"
-#include "build_index.cpp"
-#include "build_skew_index.cpp"
+#include "parse_file.hpp"
+#include "build_index.hpp"
+#include "build_skew_index.hpp"
 /*****************/
+
+#include <numeric>  // for std::accumulate
 
 namespace sshash {
 

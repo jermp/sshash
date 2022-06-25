@@ -1,4 +1,4 @@
-#pragma once
+#include "dictionary.hpp"
 
 namespace sshash {
 

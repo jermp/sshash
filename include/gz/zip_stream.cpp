@@ -1,5 +1,3 @@
-#pragma once
-
 #include "zip_stream.hpp"
 
 #include <cassert>
@@ -15,19 +13,19 @@
 #define OS_CODE 0x03 /* assume Unix */
 #endif
 
-static constexpr bool debug = false;
+[[maybe_unused]] static constexpr bool debug = false;
 
 /******************************************************************************/
 
 static const int gz_magic[2] = {0x1f, 0x8b}; /* gzip magic header */
 
 /* gzip flag byte */
-static const int gz_ascii_flag = 0x01;  /* bit 0 set: file probably ascii text */
-static const int gz_head_crc = 0x02;    /* bit 1 set: header CRC present */
-static const int gz_extra_field = 0x04; /* bit 2 set: extra field present */
-static const int gz_orig_name = 0x08;   /* bit 3 set: original file name present */
-static const int gz_comment = 0x10;     /* bit 4 set: file comment present */
-static const int gz_reserved = 0xE0;    /* bits 5..7: reserved */
+[[maybe_unused]] static const int gz_ascii_flag = 0x01; /* bit 0 set: file probably ascii text */
+static const int gz_head_crc = 0x02;                    /* bit 1 set: header CRC present */
+static const int gz_extra_field = 0x04;                 /* bit 2 set: extra field present */
+static const int gz_orig_name = 0x08;                   /* bit 3 set: original file name present */
+static const int gz_comment = 0x10;                     /* bit 4 set: file comment present */
+static const int gz_reserved = 0xE0;                    /* bits 5..7: reserved */
 
 /******************************************************************************/
 // basic_zip_streambuf

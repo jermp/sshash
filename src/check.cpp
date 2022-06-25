@@ -2,8 +2,6 @@
 
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/dictionary.hpp"
-#include "../include/lookup.cpp"
-#include "../include/info.cpp"
 #include "check_utils.hpp"
 
 using namespace sshash;

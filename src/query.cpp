@@ -2,8 +2,6 @@
 
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/dictionary.hpp"
-#include "../include/lookup.cpp"
-#include "../include/info.cpp"
 #include "../include/query/membership_query.hpp"
 
 using namespace sshash;

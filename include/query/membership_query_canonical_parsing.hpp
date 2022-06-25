@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../dictionary.hpp"
 #include "../minimizer_enumerator.hpp"
 #include "../util.hpp"

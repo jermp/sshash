@@ -1,3 +1,5 @@
+#pragma once
+
 #include "file_merging_iterator.hpp"
 
 namespace sshash {

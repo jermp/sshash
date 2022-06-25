@@ -1,3 +1,5 @@
+#pragma once
+
 #include "../../external/pthash/include/pthash.hpp"
 
 namespace sshash {
