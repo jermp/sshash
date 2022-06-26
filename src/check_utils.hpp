@@ -12,6 +12,8 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     std::string line;
     uint64_t pos = 0;
     uint64_t num_kmers = 0;
+    contig_query_result prev;
+    prev.contig_id = 0;
 
     std::string got_kmer_str(k, 0);
     std::string expected_kmer_str(k, 0);
@@ -27,6 +29,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
             assert(util::is_valid(line.data() + i, k));
             uint64_t uint64_kmer = util::string_to_uint64_no_reverse(line.data() + i, k);
+            bool orientation = constants::forward_orientation;
 
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
                 std::cout << "checked " << num_kmers << " kmers" << std::endl;
@@ -34,6 +37,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
             if ((num_kmers & 1) == 0) {
                 /* transform 50% of the kmers into their reverse complements */
                 uint64_kmer = util::compute_reverse_complement(uint64_kmer, k);
+                orientation = constants::backward_orientation;
             }
             util::uint64_to_string_no_reverse(uint64_kmer, expected_kmer_str.data(), k);
             uint64_t id = dict.lookup(expected_kmer_str.c_str());
@@ -48,6 +52,74 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
                 std::cout << "kmer '" << expected_kmer_str << "' not found!" << std::endl;
             }
             assert(id != constants::invalid_uint64);
+
+            auto curr = dict.lookup_advanced(expected_kmer_str.c_str());
+            assert(curr.kmer_id == id);
+
+            if (curr.kmer_orientation != orientation) {
+                std::cout << "ERROR: got orientation " << int(curr.kmer_orientation)
+                          << " but expected " << int(orientation) << std::endl;
+            }
+            assert(curr.kmer_orientation == orientation);
+
+            if (num_kmers == 0) {
+                if (curr.contig_id != 0) {
+                    std::cout << "contig_id " << curr.contig_id << " but expected 0" << std::endl;
+                }
+                assert(curr.contig_id == 0);  // at the beginning, contig_id must be 0
+            } else {
+                if (curr.kmer_id != prev.kmer_id + 1) {
+                    std::cout << "ERROR: got curr.kmer_id " << curr.kmer_id << " but expected "
+                              << prev.kmer_id + 1 << std::endl;
+                }
+                assert(curr.kmer_id == prev.kmer_id + 1);  // kmer_id must be sequential
+
+                if (curr.kmer_id_in_contig >= curr.contig_size) {
+                    std::cout << "ERROR: got curr.kmer_id_in_contig " << curr.kmer_id_in_contig
+                              << " but expected something < " << curr.contig_size << std::endl;
+                }
+                assert(curr.kmer_id_in_contig <
+                       curr.contig_size);  // kmer_id_in_contig must always be < contig_size
+
+                if (curr.contig_id == prev.contig_id) {
+                    /* same contig */
+                    if (curr.contig_size != prev.contig_size) {
+                        std::cout << "ERROR: got curr.contig_size " << curr.contig_size
+                                  << " but expected " << prev.contig_size << std::endl;
+                    }
+                    assert(curr.contig_size == prev.contig_size);  // contig_size must be same
+                    if (curr.kmer_id_in_contig != prev.kmer_id_in_contig + 1) {
+                        std::cout << "ERROR: got curr.kmer_id_in_contig " << curr.kmer_id_in_contig
+                                  << " but expected " << prev.kmer_id_in_contig + 1 << std::endl;
+                    }
+                    assert(curr.kmer_id_in_contig ==
+                           prev.kmer_id_in_contig + 1);  // kmer_id_in_contig must be sequential
+                } else {
+                    /* we have changed contig */
+                    if (curr.contig_id != prev.contig_id + 1) {
+                        std::cout << "ERROR: got curr.contig_id " << curr.contig_id
+                                  << " but expected " << prev.contig_id + 1 << std::endl;
+                    }
+                    assert(curr.contig_id ==
+                           prev.contig_id + 1);  // contig_id must be sequential since we stream
+                    if (curr.kmer_id_in_contig != 0) {
+                        std::cout << "ERROR: got curr.kmer_id_in_contig " << curr.kmer_id_in_contig
+                                  << " but expected 0" << std::endl;
+                    }
+                    assert(curr.kmer_id_in_contig ==
+                           0);  // kmer_id_in_contig must be 0 when we change contig
+                }
+            }
+
+            /* check also contig_size() */
+            uint64_t contig_size = dict.contig_size(curr.contig_id);
+            if (contig_size != curr.contig_size) {
+                std::cout << "ERROR: got contig_size " << contig_size << " but expected "
+                          << curr.contig_size << std::endl;
+            }
+            assert(contig_size == curr.contig_size);
+
+            prev = curr;
 
             // check access
             dict.access(id, got_kmer_str.data());
