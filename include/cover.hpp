@@ -82,7 +82,7 @@ struct cover {
 
         /* fill weight_map */
         {
-            uint64_t prev_front = constants::invalid;
+            uint64_t prev_front = constants::invalid_uint64;
             uint64_t offset = 0;
             for (auto const& node : nodes) {
                 if (node.front != prev_front) weight_map[node.front] = offset;

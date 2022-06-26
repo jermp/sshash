@@ -18,9 +18,9 @@ struct membership_query_canonical_parsing {
         , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
         , m_minimizer_not_found(false)
         , m_start(true)
-        , m_curr_minimizer(constants::invalid)
-        , m_prev_minimizer(constants::invalid)
-        , m_kmer(constants::invalid)
+        , m_curr_minimizer(constants::invalid_uint64)
+        , m_prev_minimizer(constants::invalid_uint64)
+        , m_kmer(constants::invalid_uint64)
 
         , m_shift(2 * (dict->m_k - 1))
         , m_k(dict->m_k)

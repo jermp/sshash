@@ -23,19 +23,10 @@ struct dictionary {
     uint64_t lookup(char const* string_kmer, bool check_reverse_complement_too = true) const;
     uint64_t lookup_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
 
-    bool is_member(char const* string_kmer, bool check_reverse_complement_too = true) const;
-    bool is_member_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
-
-    struct contig_query_result {
-        uint32_t contig_id;                   // TODO: check for dynamic
-        uint32_t contig_size;                 // TODO: check for dynamic
-        uint32_t kmer_id_in_contig;           // 0 <= kmer_id_in_contig < contig_size
-        uint32_t kmer_orientation_in_contig;  // 0 -> forward; 1 -> backward
-    };
-    contig_query_result contig(char const* string_kmer,
-                               bool check_reverse_complement_too = true) const;
-    contig_query_result contig_uint64(uint64_t uint64_kmer,
-                                      bool check_reverse_complement_too = true) const;
+    contig_query_result lookup_advanced(char const* string_kmer,
+                                        bool check_reverse_complement_too = true) const;
+    contig_query_result lookup_advanced_uint64(uint64_t uint64_kmer,
+                                               bool check_reverse_complement_too = true) const;
 
     /* Return the number of kmers in contig. Since contigs do not have duplicates,
        the length of the contig is always size + k - 1. */
@@ -45,6 +36,9 @@ struct dictionary {
     uint64_t weight(uint64_t kmer_id) const;
 
     void access(uint64_t kmer_id, char* string_kmer) const;
+
+    bool is_member(char const* string_kmer, bool check_reverse_complement_too = true) const;
+    bool is_member_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
 
     friend struct membership_query_canonical_parsing;
     friend struct membership_query_regular_parsing;
@@ -108,8 +102,11 @@ private:
     skew_index m_skew_index;
     weights m_weights;
 
-    uint64_t lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
-    uint64_t lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
+    template <bool advanced>
+    contig_query_result lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
+
+    template <bool advanced>
+    contig_query_result lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
 };
 
 }  // namespace sshash

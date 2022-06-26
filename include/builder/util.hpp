@@ -268,7 +268,7 @@ struct minimizers_tuples {
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
         uint64_t num_written_tuples = 0;
-        uint64_t prev_minimizer = constants::invalid;
+        uint64_t prev_minimizer = constants::invalid_uint64;
         while (fm_iterator.has_next()) {
             auto file_it = *fm_iterator;
             minimizer_tuple tuple = *file_it;

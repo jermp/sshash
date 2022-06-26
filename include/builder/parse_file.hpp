@@ -32,7 +32,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     compact_string_pool::builder builder(k);
 
     std::string sequence;
-    uint64_t prev_minimizer = constants::invalid;
+    uint64_t prev_minimizer = constants::invalid_uint64;
 
     uint64_t begin = 0;  // begin of parsed super_kmer in sequence
     uint64_t end = 0;    // end of parsed super_kmer in sequence
@@ -41,7 +41,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     bool glue = false;
 
     auto append_super_kmer = [&]() {
-        if (sequence.empty() or prev_minimizer == constants::invalid or begin == end) return;
+        if (sequence.empty() or prev_minimizer == constants::invalid_uint64 or begin == end) return;
 
         assert(end > begin);
         char const* super_kmer = sequence.data() + begin;
@@ -74,7 +74,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     data.weights_builder.init();
 
     /* intervals of weights */
-    uint64_t weight_value = constants::invalid;
+    uint64_t weight_value = constants::invalid_uint64;
     uint64_t weight_length = 0;
 
     auto parse_header = [&]() {
@@ -123,7 +123,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             if (weight == weight_value) {
                 weight_length += 1;
             } else {
-                if (weight_value != constants::invalid) {
+                if (weight_value != constants::invalid_uint64) {
                     data.weights_builder.push_weight_interval(weight_value, weight_length);
                 }
                 weight_value = weight;
@@ -147,7 +147,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         begin = 0;
         end = 0;
         glue = false;  // start a new piece
-        prev_minimizer = constants::invalid;
+        prev_minimizer = constants::invalid_uint64;
         num_bases += sequence.size();
 
         if (build_config.weighted and seq_len != sequence.size()) {
@@ -168,7 +168,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
                 minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
             }
 
-            if (prev_minimizer == constants::invalid) prev_minimizer = minimizer;
+            if (prev_minimizer == constants::invalid_uint64) prev_minimizer = minimizer;
             if (minimizer != prev_minimizer) {
                 append_super_kmer();
                 begin = end;

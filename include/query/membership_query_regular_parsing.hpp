@@ -21,12 +21,12 @@ struct membership_query_regular_parsing {
 
         , m_start(true)
 
-        , m_curr_minimizer(constants::invalid)
-        , m_curr_minimizer_rc(constants::invalid)
-        , m_prev_minimizer(constants::invalid)
-        , m_prev_minimizer_rc(constants::invalid)
+        , m_curr_minimizer(constants::invalid_uint64)
+        , m_curr_minimizer_rc(constants::invalid_uint64)
+        , m_prev_minimizer(constants::invalid_uint64)
+        , m_prev_minimizer_rc(constants::invalid_uint64)
 
-        , m_kmer(constants::invalid)
+        , m_kmer(constants::invalid_uint64)
 
         , m_shift(2 * (dict->m_k - 1))
         , m_k(dict->m_k)

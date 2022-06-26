@@ -60,8 +60,8 @@ add_executable(bench src/bench.cpp ${SSHASH_SOURCES})
 add_executable(check src/check.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
 target_link_libraries(check z)
 
-add_executable(query src/query.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
-target_link_libraries(query z)
+#add_executable(query src/query.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
+#target_link_libraries(query z)
 
 add_executable(permute src/permute.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
 target_link_libraries(permute z)

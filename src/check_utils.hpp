@@ -44,10 +44,10 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
             */
             if (id != num_kmers) std::cout << "wrong id assigned" << std::endl;
 
-            if (id == constants::invalid) {
+            if (id == constants::invalid_uint64) {
                 std::cout << "kmer '" << expected_kmer_str << "' not found!" << std::endl;
             }
-            assert(id != constants::invalid);
+            assert(id != constants::invalid_uint64);
 
             // check access
             dict.access(id, got_kmer_str.data());
@@ -81,7 +81,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
             but that would take much more memory...
         */
         uint64_t id = dict.lookup(got_kmer_str.c_str());
-        if (id != constants::invalid) {
+        if (id != constants::invalid_uint64) {
             std::cout << "kmer '" << got_kmer_str << "' found!" << std::endl;
         }
     }
@@ -186,7 +186,7 @@ bool check_dictionary(dictionary const& dict) {
         if (id != 0 and id % 5000000 == 0) std::cout << "checked " << id << " kmers" << std::endl;
         dict.access(id, kmer.data());
         uint64_t got_id = dict.lookup(kmer.c_str());
-        if (got_id == constants::invalid) {
+        if (got_id == constants::invalid_uint64) {
             std::cout << "kmer '" << kmer << "' not found!" << std::endl;
             return false;
         }
