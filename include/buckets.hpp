@@ -19,30 +19,9 @@ struct buckets {
         return {offset - p * (k - 1), piece_end};
     }
 
-    uint64_t id_to_offset(uint64_t id, uint64_t k) const {
-        constexpr uint64_t linear_scan_threshold = 8;
-        uint64_t lo = 0;
-        uint64_t hi = pieces.size() - 1;
-        assert(pieces.access(0) == 0);
-        while (lo < hi) {
-            if (hi - lo <= linear_scan_threshold) {
-                for (; lo < hi; ++lo) {
-                    uint64_t val = pieces.access(lo) - lo * (k - 1);
-                    if (val > id) break;
-                }
-                break;
-            }
-            uint64_t mid = lo + (hi - lo) / 2;
-            uint64_t val = pieces.access(mid);
-            assert(val >= mid * (k - 1));
-            if (id <= val - mid * (k - 1)) {
-                hi = mid;
-            } else {
-                lo = mid + 1;
-            }
-        }
-        if (lo < pieces.size() and pieces.access(lo) - lo * (k - 1) > id) --lo;
-        return id + lo * (k - 1);
+    uint64_t contig_length(uint64_t contig_id) const {
+        uint64_t length = pieces.access(contig_id + 1) - pieces.access(contig_id);
+        return length;
     }
 
     std::pair<uint64_t, uint64_t> locate_bucket(uint64_t bucket_id) const {
@@ -60,14 +39,8 @@ struct buckets {
     uint64_t lookup(uint64_t begin, uint64_t end, uint64_t target_kmer, uint64_t k,
                     uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            uint64_t offset = offsets.access(super_kmer_id);
-            auto [kmer_id, offset_end] = offset_to_id(offset, k);
-            bit_vector_iterator bv_it(strings, 2 * offset);
-            uint64_t window_size = std::min<uint64_t>(k - m + 1, offset_end - offset - k + 1);
-            for (uint64_t w = 0; w != window_size; ++w) {
-                uint64_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
-                if (read_kmer == target_kmer) return kmer_id + w;
-            }
+            uint64_t kmer_id = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
+            if (kmer_id != constants::invalid) return kmer_id;
         }
         return constants::invalid;
     }
@@ -106,6 +79,32 @@ struct buckets {
         return constants::invalid;
     }
     /****************************/
+
+    uint64_t id_to_offset(uint64_t id, uint64_t k) const {
+        constexpr uint64_t linear_scan_threshold = 8;
+        uint64_t lo = 0;
+        uint64_t hi = pieces.size() - 1;
+        assert(pieces.access(0) == 0);
+        while (lo < hi) {
+            if (hi - lo <= linear_scan_threshold) {
+                for (; lo < hi; ++lo) {
+                    uint64_t val = pieces.access(lo) - lo * (k - 1);
+                    if (val > id) break;
+                }
+                break;
+            }
+            uint64_t mid = lo + (hi - lo) / 2;
+            uint64_t val = pieces.access(mid);
+            assert(val >= mid * (k - 1));
+            if (id <= val - mid * (k - 1)) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        if (lo < pieces.size() and pieces.access(lo) - lo * (k - 1) > id) --lo;
+        return id + lo * (k - 1);
+    }
 
     void access(uint64_t kmer_id, char* string_kmer, uint64_t k) const {
         uint64_t offset = id_to_offset(kmer_id, k);
