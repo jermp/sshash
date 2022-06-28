@@ -55,6 +55,7 @@ contig_query_result dictionary::lookup_uint64_canonical_parsing(uint64_t uint64_
         }
         return contig_query_result();
     }
+
     return m_buckets.lookup_canonical<advanced>(begin, end, uint64_kmer, uint64_kmer_rc, m_k, m_m);
 }
 

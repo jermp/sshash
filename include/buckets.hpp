@@ -91,7 +91,10 @@ struct buckets {
                                uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             auto res = lookup_in_super_kmer<advanced>(super_kmer_id, target_kmer, k, m);
-            if (res.kmer_id != constants::invalid_uint64) return res;
+            if (res.kmer_id != constants::invalid_uint64) {
+                assert(is_valid(res));
+                return res;
+            }
         }
         return contig_query_result();
     }
@@ -108,6 +111,7 @@ struct buckets {
             if (read_kmer == target_kmer) {
                 res.kmer_id += w;
                 res.kmer_id_in_contig += w;
+                assert(is_valid(res));
                 return res;
             }
         }
@@ -135,12 +139,14 @@ struct buckets {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
                     res.kmer_orientation = constants::forward_orientation;
+                    assert(is_valid(res));
                     return res;
                 }
                 if (read_kmer == target_kmer_rc) {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
                     res.kmer_orientation = constants::backward_orientation;
+                    assert(is_valid(res));
                     return res;
                 }
             }
@@ -266,6 +272,13 @@ struct buckets {
     ef_sequence<false> num_super_kmers_before_bucket;
     pthash::compact_vector offsets;
     pthash::bit_vector strings;
+
+private:
+    bool is_valid(contig_query_result res) const {
+        return (res.contig_size == constants::invalid_uint32 or
+                res.kmer_id_in_contig < res.contig_size) and
+               (res.contig_id == constants::invalid_uint32 or res.contig_id < pieces.size());
+    }
 };
 
 }  // namespace sshash
