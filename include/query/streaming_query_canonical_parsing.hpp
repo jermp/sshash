@@ -48,7 +48,6 @@ struct streaming_query_canonical_parsing {
             m_start = true;
             return lookup_result();
         }
-        /*************/
 
         /* 2. compute kmer and minimizer */
         if (!m_start) {
@@ -65,7 +64,6 @@ struct streaming_query_canonical_parsing {
         uint64_t minimizer_rc = m_minimizer_enum_rc.next<reverse>(m_kmer_rc, m_start);
         assert(minimizer_rc == util::compute_minimizer(m_kmer_rc, m_k, m_m, m_seed));
         m_curr_minimizer = std::min<uint64_t>(m_curr_minimizer, minimizer_rc);
-        /******************************/
 
         /* 3. compute result */
         if (same_minimizer()) {
@@ -85,12 +83,10 @@ struct streaming_query_canonical_parsing {
                 lookup_advanced();
             }
         }
-        /******************/
 
         /* 4. update state */
         m_prev_minimizer = m_curr_minimizer;
         m_start = false;
-        /****************/
 
         assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
         return m_res;
@@ -102,6 +98,7 @@ struct streaming_query_canonical_parsing {
 private:
     dictionary const* m_dict;
 
+    /* result */
     lookup_result m_res;
 
     /* (kmer,minimizer) state */
@@ -194,9 +191,9 @@ private:
                 }
 
                 if (m_kmer_rc == val) {
-                    m_num_searches += 1;
                     m_reverse = true;
                     pos_in_string -= 2;
+                    m_num_searches += 1;
                     m_string_iterator.at(pos_in_string + 2 * (m_k - 1));
                     m_res.kmer_orientation = constants::backward_orientation;
                     return;
