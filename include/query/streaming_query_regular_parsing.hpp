@@ -6,13 +6,10 @@
 
 namespace sshash {
 
-struct membership_query_regular_parsing {
-    membership_query_regular_parsing(dictionary const* dict)
+struct streaming_query_regular_parsing {
+    streaming_query_regular_parsing(dictionary const* dict)
 
-        : num_searches(0)
-        , num_extensions(0)
-
-        , m_dict(dict)
+        : m_dict(dict)
 
         , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
         , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
@@ -40,6 +37,9 @@ struct membership_query_regular_parsing {
         , m_window_size(0)
 
         , m_reverse(false)
+
+        , m_num_searches(0)
+        , m_num_extensions(0)
 
     {
         assert(!m_dict->m_canonical_parsing);
@@ -135,8 +135,8 @@ struct membership_query_regular_parsing {
         return {true, answer};
     }
 
-    /* counts */
-    uint64_t num_searches, num_extensions;
+    uint64_t num_searches() const { return m_num_searches; }
+    uint64_t num_extensions() const { return m_num_extensions; }
 
 private:
     dictionary const* m_dict;
@@ -158,6 +158,10 @@ private:
     uint64_t m_begin, m_end;
     uint64_t m_pos_in_window, m_window_size;
     bool m_reverse;
+
+    /* performance counts */
+    uint64_t m_num_searches;
+    uint64_t m_num_extensions;
 
     enum return_value { MINIMIZER_NOT_FOUND = 0, KMER_FOUND = 1, KMER_NOT_FOUND = 2 };
 

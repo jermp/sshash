@@ -2,7 +2,7 @@
 
 namespace sshash {
 
-contig_query_result dictionary::lookup_uint64_regular_parsing(uint64_t uint64_kmer) const {
+lookup_result dictionary::lookup_uint64_regular_parsing(uint64_t uint64_kmer) const {
     uint64_t minimizer = util::compute_minimizer(uint64_kmer, m_k, m_m, m_seed);
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
@@ -17,13 +17,13 @@ contig_query_result dictionary::lookup_uint64_regular_parsing(uint64_t uint64_km
         if (pos < num_super_kmers_in_bucket) {
             return m_buckets.lookup_in_super_kmer(begin + pos, uint64_kmer, m_k, m_m);
         }
-        return contig_query_result();
+        return lookup_result();
     }
 
     return m_buckets.lookup(begin, end, uint64_kmer, m_k, m_m);
 }
 
-contig_query_result dictionary::lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const {
+lookup_result dictionary::lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const {
     uint64_t uint64_kmer_rc = util::compute_reverse_complement(uint64_kmer, m_k);
     uint64_t minimizer = util::compute_minimizer(uint64_kmer, m_k, m_m, m_seed);
     uint64_t minimizer_rc = util::compute_minimizer(uint64_kmer_rc, m_k, m_m, m_seed);
@@ -49,7 +49,7 @@ contig_query_result dictionary::lookup_uint64_canonical_parsing(uint64_t uint64_
             res.kmer_orientation = constants::backward_orientation;
             return res;
         }
-        return contig_query_result();
+        return lookup_result();
     }
 
     return m_buckets.lookup_canonical(begin, end, uint64_kmer, uint64_kmer_rc, m_k, m_m);
@@ -64,13 +64,13 @@ uint64_t dictionary::lookup_uint64(uint64_t uint64_kmer, bool check_reverse_comp
     return res.kmer_id;
 }
 
-contig_query_result dictionary::lookup_advanced(char const* string_kmer,
-                                                bool check_reverse_complement_too) const {
+lookup_result dictionary::lookup_advanced(char const* string_kmer,
+                                          bool check_reverse_complement_too) const {
     uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
     return lookup_advanced_uint64(uint64_kmer, check_reverse_complement_too);
 }
-contig_query_result dictionary::lookup_advanced_uint64(uint64_t uint64_kmer,
-                                                       bool check_reverse_complement_too) const {
+lookup_result dictionary::lookup_advanced_uint64(uint64_t uint64_kmer,
+                                                 bool check_reverse_complement_too) const {
     if (m_canonical_parsing) return lookup_uint64_canonical_parsing(uint64_kmer);
     auto res = lookup_uint64_regular_parsing(uint64_kmer);
     assert(res.kmer_orientation == constants::forward_orientation);

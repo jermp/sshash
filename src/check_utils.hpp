@@ -12,7 +12,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     std::string line;
     uint64_t pos = 0;
     uint64_t num_kmers = 0;
-    contig_query_result prev;
+    lookup_result prev;
     prev.contig_id = 0;
 
     std::string got_kmer_str(k, 0);

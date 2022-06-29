@@ -31,33 +31,58 @@ typedef pthash::single_phf<base_hasher_type,               // base hasher
                            >
     pthash_mphf_type;
 
-namespace util {
+struct streaming_query_report {
+    streaming_query_report()
+        : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
+    uint64_t num_kmers;
+    uint64_t num_positive_kmers;
+    uint64_t num_searches;
+    uint64_t num_extensions;
+};
 
-static inline void check_hash_collision_probability(uint64_t size) {
-    /*
-        From: https://preshing.com/20110504/hash-collision-probabilities/
-        Given a universe of size U (total number of possible hash values),
-        which is U = 2^b for b-bit hash codes,
-        the collision probability for n keys is (approximately):
-            1 - e^{-n(n-1)/(2U)}.
-        For example, for U=2^32 (32-bit hash codes), this probability
-        gets to 50% already for n = 77,163 keys.
-        We can approximate 1-e^{-X} with X when X is sufficiently small.
-        Then our collision probability is
-            n(n-1)/(2U) ~ n^2/(2U).
-        So it can derived that ~1.97B keys and 64-bit hash codes,
-        we have a probability of collision that is ~0.1 (10%), which may not be
-        so small for certain applications.
-        For n = 2^30, the probability of collision is ~0.031 (3.1%).
-    */
-    if (constants::hashcode_bits == 64 and size > (1ULL << 30)) {
-        throw std::runtime_error(
-            "Using 64-bit hash codes with more than 2^30 keys can be dangerous due to "
-            "collisions: use 128-bit hash codes instead.");
+struct lookup_result {
+    lookup_result()
+        : kmer_id(constants::invalid_uint64)
+        , kmer_id_in_contig(constants::invalid_uint32)
+        , kmer_orientation(constants::forward_orientation)
+        , contig_id(constants::invalid_uint32)
+        , contig_size(constants::invalid_uint32) {}
+    uint64_t kmer_id;            // "absolute" kmer-id
+    uint32_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
+    uint32_t kmer_orientation;
+    uint32_t contig_id;
+    uint32_t contig_size;
+};
+
+[[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
+    if (expected.kmer_id != got.kmer_id) {
+        std::cout << "expected kmer_id " << expected.kmer_id << " but got " << got.kmer_id
+                  << std::endl;
+        return false;
     }
+    if (expected.kmer_id_in_contig != got.kmer_id_in_contig) {
+        std::cout << "expected kmer_id_in_contig " << expected.kmer_id_in_contig << " but got "
+                  << got.kmer_id_in_contig << std::endl;
+        return false;
+    }
+    if (got.kmer_id != constants::invalid_uint64 and
+        expected.kmer_orientation != got.kmer_orientation) {
+        std::cout << "expected kmer_orientation " << expected.kmer_orientation << " but got "
+                  << got.kmer_orientation << std::endl;
+        return false;
+    }
+    if (expected.contig_id != got.contig_id) {
+        std::cout << "expected contig_id " << expected.contig_id << " but got " << got.contig_id
+                  << std::endl;
+        return false;
+    }
+    if (expected.contig_size != got.contig_size) {
+        std::cout << "expected contig_size " << expected.contig_size << " but got "
+                  << got.contig_size << std::endl;
+        return false;
+    }
+    return true;
 }
-
-}  // namespace util
 
 struct build_configuration {
     build_configuration()
@@ -223,6 +248,30 @@ private:
 };
 
 namespace util {
+
+static inline void check_hash_collision_probability(uint64_t size) {
+    /*
+        From: https://preshing.com/20110504/hash-collision-probabilities/
+        Given a universe of size U (total number of possible hash values),
+        which is U = 2^b for b-bit hash codes,
+        the collision probability for n keys is (approximately):
+            1 - e^{-n(n-1)/(2U)}.
+        For example, for U=2^32 (32-bit hash codes), this probability
+        gets to 50% already for n = 77,163 keys.
+        We can approximate 1-e^{-X} with X when X is sufficiently small.
+        Then our collision probability is
+            n(n-1)/(2U) ~ n^2/(2U).
+        So it can derived that ~1.97B keys and 64-bit hash codes,
+        we have a probability of collision that is ~0.1 (10%), which may not be
+        so small for certain applications.
+        For n = 2^30, the probability of collision is ~0.031 (3.1%).
+    */
+    if (constants::hashcode_bits == 64 and size > (1ULL << 30)) {
+        throw std::runtime_error(
+            "Using 64-bit hash codes with more than 2^30 keys can be dangerous due to "
+            "collisions: use 128-bit hash codes instead.");
+    }
+}
 
 /* return the position of the most significant bit */
 static inline uint32_t msb(uint32_t x) {

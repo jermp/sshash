@@ -70,6 +70,7 @@ int main(int argc, char** argv) {
     build_config.verbose = parser.get<bool>("verbose");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
+        essentials::create_directory(build_config.tmp_dirname);
     }
     build_config.print();
 

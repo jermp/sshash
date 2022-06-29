@@ -23,10 +23,10 @@ struct dictionary {
     uint64_t lookup(char const* string_kmer, bool check_reverse_complement_too = true) const;
     uint64_t lookup_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
 
-    contig_query_result lookup_advanced(char const* string_kmer,
-                                        bool check_reverse_complement_too = true) const;
-    contig_query_result lookup_advanced_uint64(uint64_t uint64_kmer,
-                                               bool check_reverse_complement_too = true) const;
+    lookup_result lookup_advanced(char const* string_kmer,
+                                  bool check_reverse_complement_too = true) const;
+    lookup_result lookup_advanced_uint64(uint64_t uint64_kmer,
+                                         bool check_reverse_complement_too = true) const;
 
     /* Return the number of kmers in contig. Since contigs do not have duplicates,
        the length of the contig is always size + k - 1. */
@@ -40,25 +40,11 @@ struct dictionary {
     bool is_member(char const* string_kmer, bool check_reverse_complement_too = true) const;
     bool is_member_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
 
-    friend struct membership_query_canonical_parsing;
-    friend struct membership_query_regular_parsing;
+    friend struct streaming_query_canonical_parsing;
+    friend struct streaming_query_regular_parsing;
 
-    struct membership_query_result {
-        membership_query_result()
-            : num_kmers(0)
-            , num_valid_kmers(0)
-            , num_positive_kmers(0)
-            , num_searches(0)
-            , num_extensions(0) {}
-        uint64_t num_kmers;
-        uint64_t num_valid_kmers;
-        uint64_t num_positive_kmers;
-        uint64_t num_searches;
-        uint64_t num_extensions;
-    };
-
-    membership_query_result membership_query_from_file(std::string const& filename,
-                                                       bool multiline) const;
+    streaming_query_report streaming_query_from_file(std::string const& filename,
+                                                     bool multiline) const;
 
     struct iterator {
         iterator(dictionary const* ptr, uint64_t kmer_id = 0) {
@@ -107,8 +93,8 @@ private:
     skew_index m_skew_index;
     weights m_weights;
 
-    contig_query_result lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
-    contig_query_result lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
+    lookup_result lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
+    lookup_result lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
 };
 
 }  // namespace sshash

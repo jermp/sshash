@@ -6,22 +6,8 @@
 
 namespace sshash {
 
-struct contig_query_result {
-    contig_query_result()
-        : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint32)
-        , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint32)
-        , contig_size(constants::invalid_uint32) {}
-    uint64_t kmer_id;            // "absolute" kmer-id
-    uint32_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint32_t kmer_orientation;
-    uint32_t contig_id;
-    uint32_t contig_size;
-};
-
 struct buckets {
-    std::pair<contig_query_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
+    std::pair<lookup_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
         auto [pos, contig_begin, contig_end] = pieces.locate(offset);
 
         /* The following two facts hold. */
@@ -49,7 +35,7 @@ struct buckets {
         assert(contig_length >= k);
         uint64_t contig_size = contig_length - k + 1;
 
-        contig_query_result res;
+        lookup_result res;
         res.kmer_id = absolute_kmer_id;
         res.kmer_id_in_contig = relative_kmer_id;
         res.contig_id = contig_id;
@@ -70,14 +56,13 @@ struct buckets {
         return {begin, end};
     }
 
-    contig_query_result lookup(uint64_t bucket_id, uint64_t target_kmer, uint64_t k,
-                               uint64_t m) const {
+    lookup_result lookup(uint64_t bucket_id, uint64_t target_kmer, uint64_t k, uint64_t m) const {
         auto [begin, end] = locate_bucket(bucket_id);
         return lookup(begin, end, target_kmer, k, m);
     }
 
-    contig_query_result lookup(uint64_t begin, uint64_t end, uint64_t target_kmer, uint64_t k,
-                               uint64_t m) const {
+    lookup_result lookup(uint64_t begin, uint64_t end, uint64_t target_kmer, uint64_t k,
+                         uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
             if (res.kmer_id != constants::invalid_uint64) {
@@ -85,11 +70,11 @@ struct buckets {
                 return res;
             }
         }
-        return contig_query_result();
+        return lookup_result();
     }
 
-    contig_query_result lookup_in_super_kmer(uint64_t super_kmer_id, uint64_t target_kmer,
-                                             uint64_t k, uint64_t m) const {
+    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, uint64_t target_kmer, uint64_t k,
+                                       uint64_t m) const {
         uint64_t offset = offsets.access(super_kmer_id);
         auto [res, contig_end] = offset_to_id(offset, k);
         bit_vector_iterator bv_it(strings, 2 * offset);
@@ -103,17 +88,17 @@ struct buckets {
                 return res;
             }
         }
-        return contig_query_result();
+        return lookup_result();
     }
 
-    contig_query_result lookup_canonical(uint64_t bucket_id, uint64_t target_kmer,
-                                         uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
+    lookup_result lookup_canonical(uint64_t bucket_id, uint64_t target_kmer,
+                                   uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
         auto [begin, end] = locate_bucket(bucket_id);
         return lookup_canonical(begin, end, target_kmer, target_kmer_rc, k, m);
     }
 
-    contig_query_result lookup_canonical(uint64_t begin, uint64_t end, uint64_t target_kmer,
-                                         uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
+    lookup_result lookup_canonical(uint64_t begin, uint64_t end, uint64_t target_kmer,
+                                   uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             uint64_t offset = offsets.access(super_kmer_id);
             auto [res, contig_end] = offset_to_id(offset, k);
@@ -137,7 +122,7 @@ struct buckets {
                 }
             }
         }
-        return contig_query_result();
+        return lookup_result();
     }
 
     uint64_t id_to_offset(uint64_t id, uint64_t k) const {
@@ -260,7 +245,7 @@ struct buckets {
     pthash::bit_vector strings;
 
 private:
-    bool is_valid(contig_query_result res) const {
+    bool is_valid(lookup_result res) const {
         return (res.contig_size == constants::invalid_uint32 or
                 res.kmer_id_in_contig < res.contig_size) and
                (res.contig_id == constants::invalid_uint32 or res.contig_id < pieces.size());
