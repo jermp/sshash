@@ -9,8 +9,8 @@ This is a compressed dictionary data structure for k-mers
 
 The data structure is described in the following papers:
 
-* [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199) [1]
-* [*"On Weighted K-Mers Dictionaries"*](https://doi.org/10.1101/2022.05.23.493024) [2]
+* [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245) [1]
+* [On Weighted K-Mers Dictionaries](https://doi.org/10.1101/2022.05.23.493024) [2]
 
 Please, cite these papers if you use SSHash.
 
@@ -361,5 +361,5 @@ Giulio Ermanno Pibiri - <giulio.ermanno.pibiri@isti.cnr.it>
 
 References
 -----
-* [1] Giulio Ermanno Pibiri. [*"Sparse and Skew Hashing of K-Mers"*](https://www.biorxiv.org/content/10.1101/2022.01.15.476199). ISMB (Bioinformatics journal). 2022. To Appear.
-* [2] Giulio Ermanno Pibiri. [*"On Weighted K-Mers Dictionaries"*](https://doi.org/10.1101/2022.05.23.493024). International Workshop on Algorithms in Bioinformatics (WABI). 2022. To Appear.
+* [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
+* [2] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://doi.org/10.1101/2022.05.23.493024). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
