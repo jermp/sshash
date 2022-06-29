@@ -220,7 +220,7 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id<false>(offset, m_k);
+            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
             (void)res;
             m_pos_in_window = 0;
             m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
@@ -254,7 +254,7 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id<false>(offset, m_k);
+            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
             (void)res;
             m_pos_in_window = 0;
             m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);

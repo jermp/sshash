@@ -44,7 +44,12 @@ struct dictionary {
     friend struct membership_query_regular_parsing;
 
     struct membership_query_result {
-        membership_query_result() : num_kmers(0), num_valid_kmers(0), num_positive_kmers(0) {}
+        membership_query_result()
+            : num_kmers(0)
+            , num_valid_kmers(0)
+            , num_positive_kmers(0)
+            , num_searches(0)
+            , num_extensions(0) {}
         uint64_t num_kmers;
         uint64_t num_valid_kmers;
         uint64_t num_positive_kmers;
@@ -102,10 +107,7 @@ private:
     skew_index m_skew_index;
     weights m_weights;
 
-    template <bool advanced>
     contig_query_result lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
-
-    template <bool advanced>
     contig_query_result lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
 };
 

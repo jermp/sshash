@@ -16,20 +16,20 @@ dictionary::membership_query_result membership_query_from_fasta_file_multiline(
     buffered_lines_iterator it(is);
     std::string buffer;
     uint64_t k = dict->k();
-    Query q(dict);
-    q.start();
+    Query query(dict);
+    query.start();
     while (!it.eof()) {
         bool empty_line_was_read = it.fill_buffer(buffer);
         for (uint64_t i = 0; i != buffer.size() - k + 1; ++i) {
             char const* kmer = buffer.data() + i;
-            auto answer = q.is_member(kmer);
+            auto answer = query.is_member(kmer);
             result.num_kmers += 1;
             result.num_valid_kmers += answer.is_valid;
             result.num_positive_kmers += answer.is_member;
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
-            q.start();
+            query.start();
         } else {
             if (buffer.size() > k - 1) {
                 std::copy(buffer.data() + buffer.size() - k + 1, buffer.data() + buffer.size(),
@@ -38,8 +38,8 @@ dictionary::membership_query_result membership_query_from_fasta_file_multiline(
             }
         }
     }
-    result.num_searches = q.num_searches;
-    result.num_extensions = q.num_extensions;
+    result.num_searches = query.num_searches;
+    result.num_extensions = query.num_extensions;
     return result;
 }
 
@@ -49,22 +49,22 @@ dictionary::membership_query_result membership_query_from_fasta_file(dictionary 
     dictionary::membership_query_result result;
     std::string line;
     uint64_t k = dict->k();
-    Query q(dict);
+    Query query(dict);
     while (!is.eof()) {
-        q.start();
+        query.start();
         std::getline(is, line);  // skip first header line
         std::getline(is, line);
         if (line.size() < k) continue;
         for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
             char const* kmer = line.data() + i;
-            auto answer = q.is_member(kmer);
+            auto answer = query.is_member(kmer);
             result.num_kmers += 1;
             result.num_valid_kmers += answer.is_valid;
             result.num_positive_kmers += answer.is_member;
         }
     }
-    result.num_searches = q.num_searches;
-    result.num_extensions = q.num_extensions;
+    result.num_searches = query.num_searches;
+    result.num_extensions = query.num_extensions;
     return result;
 }
 
@@ -74,16 +74,16 @@ dictionary::membership_query_result membership_query_from_fastq_file(dictionary 
     dictionary::membership_query_result result;
     std::string line;
     uint64_t k = dict->k();
-    Query q(dict);
+    Query query(dict);
     while (!is.eof()) {
-        q.start();
+        query.start();
         /* We assume the file is well-formed, i.e., there are exactly 4 lines per read. */
         std::getline(is, line);  // skip first header line
         std::getline(is, line);
         if (line.size() >= k) {
             for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
                 char const* kmer = line.data() + i;
-                auto answer = q.is_member(kmer);
+                auto answer = query.is_member(kmer);
                 result.num_kmers += 1;
                 result.num_valid_kmers += answer.is_valid;
                 result.num_positive_kmers += answer.is_member;
@@ -92,8 +92,8 @@ dictionary::membership_query_result membership_query_from_fastq_file(dictionary 
         std::getline(is, line);  // skip '+'
         std::getline(is, line);  // skip score
     }
-    result.num_searches = q.num_searches;
-    result.num_extensions = q.num_extensions;
+    result.num_searches = query.num_searches;
+    result.num_extensions = query.num_extensions;
     return result;
 }
 

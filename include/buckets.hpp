@@ -21,10 +21,8 @@ struct contig_query_result {
 };
 
 struct buckets {
-    template <bool advanced>
     std::pair<contig_query_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
-        auto [pos, contig_end] = pieces.next_geq(offset);
-        uint64_t contig_begin = 0;
+        auto [pos, contig_begin, contig_end] = pieces.locate(offset);
 
         /* The following two facts hold. */
         assert(pieces.access(pos) == contig_end);
@@ -38,10 +36,6 @@ struct buckets {
             assert(pos + 1 < pieces.size());
             contig_begin = contig_end;
             contig_end = pieces.access(pos + 1);
-        } else if constexpr (advanced) {
-            assert(shift == true);
-            /* Note that pieces.access(0) = 0 by construction. */
-            contig_begin = pieces.access(contig_id);
         }
 
         /* Now, the following facts hold. */
@@ -50,19 +44,16 @@ struct buckets {
         assert(offset < contig_end);
 
         uint64_t absolute_kmer_id = offset - contig_id * (k - 1);
+        uint64_t relative_kmer_id = offset - contig_begin;
+        uint64_t contig_length = contig_end - contig_begin;
+        assert(contig_length >= k);
+        uint64_t contig_size = contig_length - k + 1;
 
         contig_query_result res;
         res.kmer_id = absolute_kmer_id;
-
-        if constexpr (advanced) {
-            uint64_t relative_kmer_id = offset - contig_begin;
-            uint64_t contig_length = contig_end - contig_begin;
-            assert(contig_length >= k);
-            uint64_t contig_size = contig_length - k + 1;
-            res.kmer_id_in_contig = relative_kmer_id;
-            res.contig_id = contig_id;
-            res.contig_size = contig_size;
-        }
+        res.kmer_id_in_contig = relative_kmer_id;
+        res.contig_id = contig_id;
+        res.contig_size = contig_size;
 
         return {res, contig_end};
     }
@@ -79,18 +70,16 @@ struct buckets {
         return {begin, end};
     }
 
-    template <bool advanced>
     contig_query_result lookup(uint64_t bucket_id, uint64_t target_kmer, uint64_t k,
                                uint64_t m) const {
         auto [begin, end] = locate_bucket(bucket_id);
-        return lookup<advanced>(begin, end, target_kmer, k, m);
+        return lookup(begin, end, target_kmer, k, m);
     }
 
-    template <bool advanced>
     contig_query_result lookup(uint64_t begin, uint64_t end, uint64_t target_kmer, uint64_t k,
                                uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            auto res = lookup_in_super_kmer<advanced>(super_kmer_id, target_kmer, k, m);
+            auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
             if (res.kmer_id != constants::invalid_uint64) {
                 assert(is_valid(res));
                 return res;
@@ -99,11 +88,10 @@ struct buckets {
         return contig_query_result();
     }
 
-    template <bool advanced>
     contig_query_result lookup_in_super_kmer(uint64_t super_kmer_id, uint64_t target_kmer,
                                              uint64_t k, uint64_t m) const {
         uint64_t offset = offsets.access(super_kmer_id);
-        auto [res, contig_end] = offset_to_id<advanced>(offset, k);
+        auto [res, contig_end] = offset_to_id(offset, k);
         bit_vector_iterator bv_it(strings, 2 * offset);
         uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
         for (uint64_t w = 0; w != window_size; ++w) {
@@ -118,19 +106,17 @@ struct buckets {
         return contig_query_result();
     }
 
-    template <bool advanced>
     contig_query_result lookup_canonical(uint64_t bucket_id, uint64_t target_kmer,
                                          uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
         auto [begin, end] = locate_bucket(bucket_id);
-        return lookup_canonical<advanced>(begin, end, target_kmer, target_kmer_rc, k, m);
+        return lookup_canonical(begin, end, target_kmer, target_kmer_rc, k, m);
     }
 
-    template <bool advanced>
     contig_query_result lookup_canonical(uint64_t begin, uint64_t end, uint64_t target_kmer,
                                          uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             uint64_t offset = offsets.access(super_kmer_id);
-            auto [res, contig_end] = offset_to_id<advanced>(offset, k);
+            auto [res, contig_end] = offset_to_id(offset, k);
             bit_vector_iterator bv_it(strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
             for (uint64_t w = 0; w != window_size; ++w) {
