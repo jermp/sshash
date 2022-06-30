@@ -162,6 +162,101 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     return true;
 }
 
+bool check_correctness_navigational_query(std::istream& is, dictionary const& dict) {
+    uint64_t k = dict.k();
+    std::string line;
+    uint64_t pos = 0;
+    uint64_t num_kmers = 0;
+
+    std::cout << "checking correctness of navigational queries..." << std::endl;
+    while (appendline(is, line)) {
+        if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
+            // comment or empty line restart the term buffer
+            line.clear();
+            continue;
+        }
+        for (uint64_t i = 0; i + k <= line.size(); ++i) {
+            assert(util::is_valid(line.data() + i, k));
+            if (num_kmers != 0 and num_kmers % 5000000 == 0) {
+                std::cout << "checked " << num_kmers << " kmers" << std::endl;
+            }
+
+            neighbourhood curr = dict.kmer_neighbours(line.data() + i);
+
+            char next_nuc = line[i + k];
+            switch (next_nuc) {
+                case 'A':
+                    if (curr.forward_A.kmer_id == constants::invalid_uint64) {
+                        std::cout << "expected forward_A" << std::endl;
+                    }
+                    assert(curr.forward_A.kmer_id != constants::invalid_uint64);
+                    break;
+                case 'C':
+                    if (curr.forward_C.kmer_id == constants::invalid_uint64) {
+                        std::cout << "expected forward_C" << std::endl;
+                    }
+                    assert(curr.forward_C.kmer_id != constants::invalid_uint64);
+                    break;
+                case 'G':
+                    if (curr.forward_G.kmer_id == constants::invalid_uint64) {
+                        std::cout << "expected forward_G" << std::endl;
+                    }
+                    assert(curr.forward_G.kmer_id != constants::invalid_uint64);
+                    break;
+                case 'T':
+                    if (curr.forward_T.kmer_id == constants::invalid_uint64) {
+                        std::cout << "expected forward_T" << std::endl;
+                    }
+                    assert(curr.forward_T.kmer_id != constants::invalid_uint64);
+                    break;
+            }
+
+            if (i != 0) {
+                char prev_nuc = line[i - 1];
+                switch (prev_nuc) {
+                    case 'A':
+                        if (curr.backward_A.kmer_id == constants::invalid_uint64) {
+                            std::cout << "expected backward_A" << std::endl;
+                        }
+                        assert(curr.backward_A.kmer_id != constants::invalid_uint64);
+                        break;
+                    case 'C':
+                        if (curr.backward_C.kmer_id == constants::invalid_uint64) {
+                            std::cout << "expected backward_C" << std::endl;
+                        }
+                        assert(curr.backward_C.kmer_id != constants::invalid_uint64);
+                        break;
+                    case 'G':
+                        if (curr.backward_G.kmer_id == constants::invalid_uint64) {
+                            std::cout << "expected backward_G" << std::endl;
+                        }
+                        assert(curr.backward_G.kmer_id != constants::invalid_uint64);
+                        break;
+                    case 'T':
+                        if (curr.backward_T.kmer_id == constants::invalid_uint64) {
+                            std::cout << "expected backward_T" << std::endl;
+                        }
+                        assert(curr.backward_T.kmer_id != constants::invalid_uint64);
+                        break;
+                }
+            }
+
+            ++num_kmers;
+        }
+        if (line.size() > k - 1) {
+            std::copy(line.data() + line.size() - (k - 1), line.data() + line.size(), line.data());
+            line.resize(k - 1);
+            pos = line.size();
+        } else {
+            pos = 0;
+        }
+    }
+    std::cout << "checked " << num_kmers << " kmers" << std::endl;
+
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
+
 bool check_correctness_weights(std::istream& is, dictionary const& dict) {
     uint64_t k = dict.k();
     std::string line;
@@ -226,6 +321,24 @@ bool check_correctness_lookup_access(dictionary const& dict, std::string const& 
         good = check_correctness_lookup_access(zis, dict);
     } else {
         good = check_correctness_lookup_access(is, dict);
+    }
+    is.close();
+    return good;
+}
+
+/*
+   The input file must be the one the index was built from.
+   Throughout the code, we assume the input does not contain any duplicate.
+*/
+bool check_correctness_navigational_query(dictionary const& dict, std::string const& filename) {
+    std::ifstream is(filename.c_str());
+    if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
+    bool good = true;
+    if (util::ends_with(filename, ".gz")) {
+        zip_istream zis(is);
+        good = check_correctness_navigational_query(zis, dict);
+    } else {
+        good = check_correctness_navigational_query(is, dict);
     }
     is.close();
     return good;

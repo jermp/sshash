@@ -105,7 +105,26 @@ uint64_t dictionary::contig_size(uint64_t contig_id) const {
     return contig_length - m_k + 1;
 }
 
-// std::vector<uint32_t> contig_neighbours(uint64_t contig_id) const;
+neighbourhood dictionary::kmer_neighbours(char const* string_kmer) const {
+    uint64_t uint64_kmer = util::string_to_uint64_no_reverse(string_kmer, m_k);
+    return kmer_neighbours(uint64_kmer);
+}
+neighbourhood dictionary::kmer_neighbours(uint64_t uint64_kmer) const {
+    neighbourhood res;
+    uint64_t suffix = uint64_kmer >> 2;
+    res.forward_A = lookup_advanced_uint64(suffix + (util::char_to_uint64('A') << (2 * (m_k - 1))));
+    res.forward_C = lookup_advanced_uint64(suffix + (util::char_to_uint64('C') << (2 * (m_k - 1))));
+    res.forward_G = lookup_advanced_uint64(suffix + (util::char_to_uint64('G') << (2 * (m_k - 1))));
+    res.forward_T = lookup_advanced_uint64(suffix + (util::char_to_uint64('T') << (2 * (m_k - 1))));
+    uint64_t prefix = (uint64_kmer << 2) & ((uint64_t(1) << (2 * m_k)) - 1);
+    res.backward_A = lookup_advanced_uint64(prefix + util::char_to_uint64('A'));
+    res.backward_C = lookup_advanced_uint64(prefix + util::char_to_uint64('C'));
+    res.backward_G = lookup_advanced_uint64(prefix + util::char_to_uint64('G'));
+    res.backward_T = lookup_advanced_uint64(prefix + util::char_to_uint64('T'));
+    return res;
+}
+
+neighbourhood dictionary::contig_neighbours(uint64_t contig_id) const {}
 
 uint64_t dictionary::num_bits() const {
     return 8 * (sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +

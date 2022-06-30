@@ -54,6 +54,19 @@ struct lookup_result {
     uint32_t contig_size;
 };
 
+struct neighbourhood {
+    /* forward */
+    lookup_result forward_A;
+    lookup_result forward_C;
+    lookup_result forward_G;
+    lookup_result forward_T;
+    /* backward */
+    lookup_result backward_A;
+    lookup_result backward_C;
+    lookup_result backward_G;
+    lookup_result backward_T;
+};
+
 [[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
     if (expected.kmer_id != got.kmer_id) {
         std::cout << "expected kmer_id " << expected.kmer_id << " but got " << got.kmer_id

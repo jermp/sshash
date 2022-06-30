@@ -80,6 +80,7 @@ int main(int argc, char** argv) {
     bool check = parser.get<bool>("check");
     if (check) {
         check_correctness_lookup_access(dict, input_filename);
+        check_correctness_navigational_query(dict, input_filename);
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
         check_correctness_iterator(dict);
     }

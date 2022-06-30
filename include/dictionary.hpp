@@ -20,9 +20,11 @@ struct dictionary {
     bool canonicalized() const { return m_canonical_parsing; }
     bool weighted() const { return !m_weights.empty(); }
 
+    /* Lookup queries. Return the kmer_id of the kmer or -1 if it is not found in the dictionary. */
     uint64_t lookup(char const* string_kmer, bool check_reverse_complement_too = true) const;
     uint64_t lookup_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
 
+    /* Advanced lookup queries. Return also contig information. */
     lookup_result lookup_advanced(char const* string_kmer,
                                   bool check_reverse_complement_too = true) const;
     lookup_result lookup_advanced_uint64(uint64_t uint64_kmer,
@@ -31,18 +33,25 @@ struct dictionary {
     /* Return the number of kmers in contig. Since contigs do not have duplicates,
        the length of the contig is always size + k - 1. */
     uint64_t contig_size(uint64_t contig_id) const;
-    // std::vector<uint32_t> contig_neighbours(uint64_t contig_id) const;
 
+    /* Navigational queries. */
+    neighbourhood kmer_neighbours(char const* string_kmer) const;
+    neighbourhood kmer_neighbours(uint64_t uint64_kmer) const;
+    neighbourhood contig_neighbours(uint64_t contig_id) const;
+
+    /* Return the weight of the kmer given its id. */
     uint64_t weight(uint64_t kmer_id) const;
 
+    /* Return the string of the kmer whose id is kmer_id. */
     void access(uint64_t kmer_id, char* string_kmer) const;
 
+    /* Membership queries. */
     bool is_member(char const* string_kmer, bool check_reverse_complement_too = true) const;
     bool is_member_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
 
+    /* Streaming queries. */
     friend struct streaming_query_canonical_parsing;
     friend struct streaming_query_regular_parsing;
-
     streaming_query_report streaming_query_from_file(std::string const& filename,
                                                      bool multiline) const;
 
