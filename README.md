@@ -14,6 +14,8 @@ The data structure is described in the following papers:
 
 Please, cite these papers if you use SSHash.
 
+--
+
 For a dictionary of n k-mers,
 two basic queries are supported:
 
@@ -24,11 +26,14 @@ If also the weights of the k-mers (their frequency counts) are stored in the dic
 
 - w = Weight(i), where i is a given k-mer identifier and w is the weight of the k-mer.
 
-A membership query (determine if a given k-mer is present in the dictionary or not) is, therefore, supported by means of the Lookup query.
-The dictionary can also stream through all k-mers of a given DNA file
-(.fasta or .fastq formats) to determine their membership to the dictionary.
+Other supported queries are:
 
-**NOTE**: The Lookup query assumes that two k-mers being the *reverse complement* of each other are the same.
+- Membership queries: determine if a given k-mer is present in the dictionary or not.
+- Streaming queries: stream through all k-mers of a given DNA file
+(.fasta or .fastq formats) to determine their membership to the dictionary.
+- Navigational queries: given a k-mer g[1..k] determine if g[2..k]$\cdot$x is present (forward neighbourhood) and if x$\cdot$g[1..k-1] is present (backward neighbourhood), for x = A, C, G, T. If a contig identifier is specified for a navigational query (rather than a k-mer), than the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the contig are returned.
+
+**NOTE**: It is assumed that two k-mers being the *reverse complement* of each other are the same.
 
 #### Table of contents
 * [Compiling the Code](#compiling-the-code)
@@ -357,7 +362,7 @@ Below the complete query reports.
 Author
 ------
 
-Giulio Ermanno Pibiri - <giulio.ermanno.pibiri@isti.cnr.it>
+[Giulio Ermanno Pibiri](https://jermp.github.io) - <giulioermanno.pibiri@unive.it>
 
 References
 -----
