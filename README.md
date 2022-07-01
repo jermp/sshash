@@ -14,8 +14,6 @@ The data structure is described in the following papers:
 
 Please, cite these papers if you use SSHash.
 
---
-
 For a dictionary of n k-mers,
 two basic queries are supported:
 
@@ -31,7 +29,7 @@ Other supported queries are:
 - Membership queries: determine if a given k-mer is present in the dictionary or not.
 - Streaming queries: stream through all k-mers of a given DNA file
 (.fasta or .fastq formats) to determine their membership to the dictionary.
-- Navigational queries: given a k-mer g[1..k] determine if g[2..k]$\cdot$x is present (forward neighbourhood) and if x$\cdot$g[1..k-1] is present (backward neighbourhood), for x = A, C, G, T. If a contig identifier is specified for a navigational query (rather than a k-mer), than the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the contig are returned.
+- Navigational queries: given a k-mer g[1..k] determine if g[2..k]+x is present (forward neighbourhood) and if x+g[1..k-1] is present (backward neighbourhood), for x = A, C, G, T. If a contig identifier is specified for a navigational query (rather than a k-mer), than the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the contig are returned.
 
 **NOTE**: It is assumed that two k-mers being the *reverse complement* of each other are the same.
 
