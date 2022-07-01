@@ -70,6 +70,7 @@ int main(int argc, char** argv) {
     build_config.verbose = parser.get<bool>("verbose");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
+        essentials::create_directory(build_config.tmp_dirname);
     }
     build_config.print();
 
@@ -79,6 +80,8 @@ int main(int argc, char** argv) {
     bool check = parser.get<bool>("check");
     if (check) {
         check_correctness_lookup_access(dict, input_filename);
+        check_correctness_navigational_kmer_query(dict, input_filename);
+        check_correctness_navigational_contig_query(dict);
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
         check_correctness_iterator(dict);
     }

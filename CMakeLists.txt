@@ -37,7 +37,7 @@ set(Z_LIB_SOURCES
 )
 
 set(SSHASH_SOURCES
-  include/lookup.cpp
+  include/dictionary.cpp
   include/info.cpp
 )
 

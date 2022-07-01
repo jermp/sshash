@@ -85,7 +85,7 @@ struct weights {
             weight_interval_values.resize(
                 m_weight_interval_values.size(),
                 num_distinct_weights == 1 ? 1 : std::ceil(std::log2(num_distinct_weights)));
-            uint64_t prev_weight = constants::invalid;
+            uint64_t prev_weight = constants::invalid_uint64;
             for (uint64_t i = 0; i != m_weight_interval_values.size(); ++i) {
                 uint64_t weight = m_weight_interval_values[i];
                 if (i != 0) {

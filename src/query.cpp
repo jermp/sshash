@@ -2,7 +2,7 @@
 
 #include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "../include/dictionary.hpp"
-#include "../include/query/membership_query.hpp"
+#include "../include/query/streaming_query.hpp"
 
 using namespace sshash;
 
@@ -34,27 +34,24 @@ int main(int argc, char** argv) {
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::microseconds> t;
     t.start();
-    auto result = dict.membership_query_from_file(query_filename, multiline);
+    auto report = dict.streaming_query_from_file(query_filename, multiline);
     t.stop();
     essentials::logger("DONE");
 
     std::cout << "==== query report:\n";
-    std::cout << "num_kmers = " << result.num_kmers << std::endl;
-    std::cout << "num_valid_kmers = " << result.num_valid_kmers << " ("
-              << (result.num_valid_kmers * 100.0) / result.num_kmers << "% of kmers)" << std::endl;
-    std::cout << "num_positive_kmers = " << result.num_positive_kmers << " ("
-              << (result.num_positive_kmers * 100.0) / result.num_valid_kmers << "% of valid kmers)"
+    std::cout << "num_kmers = " << report.num_kmers << std::endl;
+    std::cout << "num_positive_kmers = " << report.num_positive_kmers << " ("
+              << (report.num_positive_kmers * 100.0) / report.num_kmers << "%)" << std::endl;
+    std::cout << "num_searches = " << report.num_searches << "/" << report.num_positive_kmers
+              << " (" << (report.num_searches * 100.0) / report.num_positive_kmers << "%)"
               << std::endl;
-    std::cout << "num_searches = " << result.num_searches << "/" << result.num_positive_kmers
-              << " (" << (result.num_searches * 100.0) / result.num_positive_kmers << "%)"
-              << std::endl;
-    std::cout << "num_extensions = " << result.num_extensions << "/" << result.num_positive_kmers
-              << " (" << (result.num_extensions * 100.0) / result.num_positive_kmers << "%)"
+    std::cout << "num_extensions = " << report.num_extensions << "/" << report.num_positive_kmers
+              << " (" << (report.num_extensions * 100.0) / report.num_positive_kmers << "%)"
               << std::endl;
     std::cout << "elapsed = " << t.elapsed() / 1000 << " millisec / ";
     std::cout << t.elapsed() / 1000000 << " sec / ";
     std::cout << t.elapsed() / 1000000 / 60 << " min / ";
-    std::cout << (t.elapsed() * 1000) / result.num_kmers << " ns/kmer" << std::endl;
+    std::cout << (t.elapsed() * 1000) / report.num_kmers << " ns/kmer" << std::endl;
 
     return 0;
 }

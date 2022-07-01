@@ -70,10 +70,10 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
         bool kmers_have_all_mfw = true;
         bool kmers_have_different_weights = false;
-        uint64_t front = constants::invalid;
-        uint64_t back = constants::invalid;
+        uint64_t front = constants::invalid_uint64;
+        uint64_t back = constants::invalid_uint64;
 
-        for (uint64_t j = 0, prev_weight = constants::invalid; j != seq_len - k + 1; ++j) {
+        for (uint64_t j = 0, prev_weight = constants::invalid_uint64; j != seq_len - k + 1; ++j) {
             uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
             sum_of_weights += weight;
             i = sequence.find_first_of(' ', i) + 1;

@@ -75,6 +75,53 @@ void perf_test_lookup_access(dictionary const& dict) {
         std::cout << "avg_nanosec_per_negative_lookup " << nanosec_per_lookup << std::endl;
     }
     {
+        // perf test positive lookup_advanced
+        std::vector<std::string> lookup_queries;
+        lookup_queries.reserve(num_queries);
+        for (uint64_t i = 0; i != num_queries; ++i) {
+            uint64_t id = distr.gen();
+            dict.access(id, kmer.data());
+            if ((i & 1) == 0) {
+                /* transform 50% of the kmers into their reverse complements */
+                util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+                lookup_queries.push_back(kmer_rc);
+            } else {
+                lookup_queries.push_back(kmer);
+            }
+        }
+        essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+        t.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            for (auto const& string : lookup_queries) {
+                auto res = dict.lookup_advanced(string.c_str());
+                essentials::do_not_optimize_away(res.kmer_id);
+            }
+        }
+        t.stop();
+        double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
+        std::cout << "avg_nanosec_per_positive_lookup_advanced " << nanosec_per_lookup << std::endl;
+    }
+    {
+        // perf test negative lookup_advanced
+        std::vector<std::string> lookup_queries;
+        lookup_queries.reserve(num_queries);
+        for (uint64_t i = 0; i != num_queries; ++i) {
+            random_kmer(kmer.data(), k);
+            lookup_queries.push_back(kmer);
+        }
+        essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+        t.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            for (auto const& string : lookup_queries) {
+                auto res = dict.lookup_advanced(string.c_str());
+                essentials::do_not_optimize_away(res.kmer_id);
+            }
+        }
+        t.stop();
+        double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
+        std::cout << "avg_nanosec_per_negative_lookup_advanced " << nanosec_per_lookup << std::endl;
+    }
+    {
         // perf test access
         std::vector<uint64_t> access_queries;
         access_queries.reserve(num_queries);
