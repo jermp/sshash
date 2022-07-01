@@ -17,6 +17,7 @@ struct dictionary {
     uint64_t seed() const { return m_seed; }
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
+    uint64_t num_contigs() const { return m_buckets.pieces.size() - 1; }
     bool canonicalized() const { return m_canonical_parsing; }
     bool weighted() const { return !m_weights.empty(); }
 
@@ -35,6 +36,12 @@ struct dictionary {
     uint64_t contig_size(uint64_t contig_id) const;
 
     /* Navigational queries. */
+    neighbourhood kmer_forward_neighbours(char const* string_kmer) const;
+    neighbourhood kmer_forward_neighbours(uint64_t uint64_kmer) const;
+    neighbourhood kmer_backward_neighbours(char const* string_kmer) const;
+    neighbourhood kmer_backward_neighbours(uint64_t uint64_kmer) const;
+
+    /* forward and backward */
     neighbourhood kmer_neighbours(char const* string_kmer) const;
     neighbourhood kmer_neighbours(uint64_t uint64_kmer) const;
     neighbourhood contig_neighbours(uint64_t contig_id) const;
@@ -104,6 +111,8 @@ private:
 
     lookup_result lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
     lookup_result lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
+    void forward_neighbours(uint64_t suffix, neighbourhood& res) const;
+    void backward_neighbours(uint64_t prefix, neighbourhood& res) const;
 };
 
 }  // namespace sshash

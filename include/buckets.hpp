@@ -49,6 +49,18 @@ struct buckets {
         return length;
     }
 
+    uint64_t contig_prefix(uint64_t contig_id, uint64_t k) const {
+        uint64_t contig_begin = pieces.access(contig_id);
+        bit_vector_iterator bv_it(strings, 2 * contig_begin);
+        return bv_it.read(2 * (k - 1));
+    }
+
+    uint64_t contig_suffix(uint64_t contig_id, uint64_t k) const {
+        uint64_t contig_end = pieces.access(contig_id + 1);
+        bit_vector_iterator bv_it(strings, 2 * (contig_end - k + 1));
+        return bv_it.read(2 * (k - 1));
+    }
+
     std::pair<uint64_t, uint64_t> locate_bucket(uint64_t bucket_id) const {
         uint64_t begin = num_super_kmers_before_bucket.access(bucket_id) + bucket_id;
         uint64_t end = num_super_kmers_before_bucket.access(bucket_id + 1) + bucket_id + 1;

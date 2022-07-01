@@ -162,13 +162,13 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     return true;
 }
 
-bool check_correctness_navigational_query(std::istream& is, dictionary const& dict) {
+bool check_correctness_navigational_kmer_query(std::istream& is, dictionary const& dict) {
     uint64_t k = dict.k();
     std::string line;
     uint64_t pos = 0;
     uint64_t num_kmers = 0;
 
-    std::cout << "checking correctness of navigational queries..." << std::endl;
+    std::cout << "checking correctness of navigational queries for kmers..." << std::endl;
     while (appendline(is, line)) {
         if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
             // comment or empty line restart the term buffer
@@ -257,6 +257,38 @@ bool check_correctness_navigational_query(std::istream& is, dictionary const& di
     return true;
 }
 
+bool check_correctness_navigational_contig_query(dictionary const& dict) {
+    std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
+    uint64_t num_contigs = dict.num_contigs();
+    uint64_t k = dict.k();
+    uint64_t kmer_id = 0;
+    std::string kmer(k, 0);
+    for (uint64_t contig_id = 0; contig_id != num_contigs; ++contig_id) {
+        auto res = dict.contig_neighbours(contig_id);
+        uint64_t contig_size = dict.contig_size(contig_id);
+
+        uint64_t begin_kmer_id = kmer_id;
+        dict.access(begin_kmer_id, kmer.data());
+        auto backward = dict.kmer_backward_neighbours(kmer.data());
+        equal_lookup_result(backward.backward_A, res.backward_A);
+        equal_lookup_result(backward.backward_C, res.backward_C);
+        equal_lookup_result(backward.backward_G, res.backward_G);
+        equal_lookup_result(backward.backward_T, res.backward_T);
+
+        uint64_t end_kmer_id = kmer_id + contig_size - 1;
+        dict.access(end_kmer_id, kmer.data());
+        auto forward = dict.kmer_forward_neighbours(kmer.data());
+        equal_lookup_result(forward.forward_A, res.forward_A);
+        equal_lookup_result(forward.forward_C, res.forward_C);
+        equal_lookup_result(forward.forward_G, res.forward_G);
+        equal_lookup_result(forward.forward_T, res.forward_T);
+
+        kmer_id += contig_size;
+    }
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
+
 bool check_correctness_weights(std::istream& is, dictionary const& dict) {
     uint64_t k = dict.k();
     std::string line;
@@ -330,15 +362,16 @@ bool check_correctness_lookup_access(dictionary const& dict, std::string const& 
    The input file must be the one the index was built from.
    Throughout the code, we assume the input does not contain any duplicate.
 */
-bool check_correctness_navigational_query(dictionary const& dict, std::string const& filename) {
+bool check_correctness_navigational_kmer_query(dictionary const& dict,
+                                               std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        good = check_correctness_navigational_query(zis, dict);
+        good = check_correctness_navigational_kmer_query(zis, dict);
     } else {
-        good = check_correctness_navigational_query(is, dict);
+        good = check_correctness_navigational_kmer_query(is, dict);
     }
     is.close();
     return good;

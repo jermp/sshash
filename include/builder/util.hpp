@@ -55,7 +55,7 @@ struct compact_string_pool {
         }
 
         void finalize() {
-            /* So pieces will be of size p+1, where p is the number of DNA strings
+            /* So pieces will be of size p+1, where p is the number of DNA sequences
                in the input file. */
             check_contig_size();
             pieces.push_back(bvb_strings.size() / 2);
