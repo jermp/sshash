@@ -261,7 +261,7 @@ struct minimizers_tuples {
     files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
 
     void merge() {
-        if (m_num_files_to_merge == 0) return;
+        if (m_num_files_to_merge == 0 or m_num_files_to_merge == constants::invalid_uint64) return;
 
         if (m_num_files_to_merge == 1) {
             /* just count num. distinct minimizers and do not write twice on disk */
@@ -313,11 +313,9 @@ struct minimizers_tuples {
         }
 
         std::vector<minimizer_tuple>().swap(m_buffer);
-        m_num_files_to_merge = 0;  // any other call to merge() will do nothing
     }
 
     uint64_t num_minimizers() const { return m_num_minimizers; }
-
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
 private:

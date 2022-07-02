@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     dict.print_info();
 
     check_dictionary(dict);
+    check_correctness_navigational_contig_query(dict);
 
     return 0;
 }
