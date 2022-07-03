@@ -15,6 +15,7 @@ struct buckets {
         assert(contig_end >= offset);
 
         bool shift = contig_end > offset;
+        assert(pos >= shift);
         uint64_t contig_id = pos - shift;
 
         if (contig_end == offset) {
@@ -258,9 +259,9 @@ struct buckets {
 
 private:
     bool is_valid(lookup_result res) const {
-        return (res.contig_size == constants::invalid_uint32 or
+        return (res.contig_size != constants::invalid_uint32 and
                 res.kmer_id_in_contig < res.contig_size) and
-               (res.contig_id == constants::invalid_uint32 or res.contig_id < pieces.size());
+               (res.contig_id != constants::invalid_uint32 or res.contig_id < pieces.size());
     }
 };
 

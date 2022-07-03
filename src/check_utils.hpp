@@ -263,7 +263,12 @@ bool check_correctness_navigational_contig_query(dictionary const& dict) {
     uint64_t k = dict.k();
     uint64_t kmer_id = 0;
     std::string kmer(k, 0);
-    for (uint64_t contig_id = 0; contig_id != num_contigs; ++contig_id) {
+    uint64_t contig_id = 0;
+    for (; contig_id != num_contigs; ++contig_id) {
+        if (contig_id != 0 and contig_id % 1000000 == 0) {
+            std::cout << "checked " << contig_id << "/" << num_contigs << " contigs" << std::endl;
+        }
+
         auto res = dict.contig_neighbours(contig_id);
         uint64_t contig_size = dict.contig_size(contig_id);
 
@@ -285,6 +290,7 @@ bool check_correctness_navigational_contig_query(dictionary const& dict) {
 
         kmer_id += contig_size;
     }
+    std::cout << "checked " << contig_id << " contigs" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;
 }
