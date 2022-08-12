@@ -14,7 +14,6 @@ constexpr uint64_t max_k = 31;  // max *odd* size that can be packed into 64 bit
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
 constexpr uint32_t invalid_uint32 = uint32_t(-1);
 constexpr uint64_t seed = 1;
-constexpr uint64_t hashcode_bits = 64;
 constexpr double c = 3.0;  // for PTHash
 constexpr uint64_t min_l = 6;
 constexpr uint64_t max_l = 12;
@@ -24,6 +23,7 @@ constexpr bool backward_orientation = 1;
 }  // namespace constants
 
 typedef pthash::murmurhash2_64 base_hasher_type;
+// typedef pthash::murmurhash2_128 base_hasher_type;
 
 typedef pthash::single_phf<base_hasher_type,               // base hasher
                            pthash::dictionary_dictionary,  // encoder type
@@ -279,7 +279,7 @@ static inline void check_hash_collision_probability(uint64_t size) {
         so small for certain applications.
         For n = 2^30, the probability of collision is ~0.031 (3.1%).
     */
-    if (constants::hashcode_bits == 64 and size > (1ULL << 30)) {
+    if (sizeof(base_hasher_type::hash_type) * 8 == 64 and size > (1ULL << 30)) {
         throw std::runtime_error(
             "Using 64-bit hash codes with more than 2^30 keys can be dangerous due to "
             "collisions: use 128-bit hash codes instead.");
