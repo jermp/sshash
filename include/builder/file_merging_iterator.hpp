@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 namespace sshash {
 
 template <typename FileIterator>
