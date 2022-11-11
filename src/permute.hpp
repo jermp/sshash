@@ -460,7 +460,7 @@ void permute_and_write(std::string const& input_filename, std::string const& out
     is.close();
 }
 
-int main(int argc, char** argv) {
+int permute(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
     /* Required arguments. */

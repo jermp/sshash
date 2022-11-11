@@ -39,6 +39,7 @@ set(Z_LIB_SOURCES
 set(SSHASH_SOURCES
   include/dictionary.cpp
   include/info.cpp
+  include/dump.cpp
 )
 
 # Create a static lib
@@ -48,22 +49,8 @@ add_library(sshash_static STATIC
   include/builder/build.cpp
 )
 
-# build with the lib
-add_executable(build src/build.cpp)
-target_link_libraries(build
+add_executable(sshash src/sshash.cpp)
+target_link_libraries(sshash
   sshash_static
   z
 )
-
-add_executable(bench src/bench.cpp ${SSHASH_SOURCES})
-
-add_executable(check src/check.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
-target_link_libraries(check z)
-
-add_executable(query src/query.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
-target_link_libraries(query z)
-
-add_executable(permute src/permute.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
-target_link_libraries(permute z)
-
-add_executable(dump src/dump.cpp ${SSHASH_SOURCES} include/dump.cpp)
