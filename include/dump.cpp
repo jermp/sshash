@@ -11,7 +11,12 @@ void dictionary::dump(std::string const& filename) {
 
     std::cout << "dumping super-k-mers to file '" << filename << "'..." << std::endl;
 
-    /* Write header and a dummy empty line "N". */
+    /*
+        Write header and a dummy empty line "N".
+        Header is:
+        [k]:[m]:[num_kmers]:[num_minimizers]:[num_super_kmers]
+    */
+
     out << '>' << m_k << ':' << m_m << ':' << num_kmers << ':' << num_minimizers << ':'
         << num_super_kmers << "\nN\n";
 
@@ -33,7 +38,10 @@ void dictionary::dump(std::string const& filename) {
                         minimizer, util::compute_minimizer(kmer_rc, m_k, m_m, m_seed));
                 }
                 if (!super_kmer_header_written) {
-                    /* Write super-kmer header. */
+                    /*
+                        Write super-kmer header:
+                        [minimizer_id]:[super_kmer_id]:[minimizer-string]
+                    */
                     out << '>' << bucket_id << ':' << super_kmer_id - begin << ':'
                         << util::uint64_to_string_no_reverse(minimizer, m_m) << '\n';
                     out << util::uint64_to_string_no_reverse(kmer, m_k);
