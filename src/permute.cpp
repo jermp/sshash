@@ -463,17 +463,18 @@ void permute_and_write(std::string const& input_filename, std::string const& out
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
-    /* mandatory arguments */
+    /* Required arguments. */
     parser.add("input_filename",
                "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
                "\t- without duplicate nor invalid kmers\n"
                "\t- one DNA sequence per line\n"
                "\t- with also kmers' weights.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.");
+               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
+               "-i", true);
+    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
+               true);
 
-    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").");
-
-    /* optional arguments */
+    /* Optional arguments. */
     parser.add("output_filename", "Output file where the permuted collection will be written.",
                "-o", false);
     parser.add("tmp_dirname",

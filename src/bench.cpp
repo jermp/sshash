@@ -8,7 +8,7 @@ using namespace sshash;
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with src/build.cpp");
+    parser.add("index_filename", "Must be a file generated with src/build.cpp.", "-i", true);
     if (!parser.parse()) return 1;
 
     auto index_filename = parser.get<std::string>("index_filename");

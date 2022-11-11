@@ -10,16 +10,18 @@ using namespace sshash;
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
-    /* mandatory arguments */
+    /* Required arguments. */
     parser.add("input_filename",
                "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
                "\t- without duplicate nor invalid kmers\n"
                "\t- one DNA sequence per line.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.");
-    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").");
-    parser.add("m", "Minimizer length (must be < k).");
+               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
+               "-i", true);
+    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
+               true);
+    parser.add("m", "Minimizer length (must be < k).", "-m", true);
 
-    /* optional arguments */
+    /* Optional arguments. */
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
@@ -44,11 +46,12 @@ int main(int argc, char** argv) {
     parser.add("canonical_parsing",
                "Canonical parsing of k-mers. This option changes the parsing and results in a "
                "trade-off between index space and lookup time.",
-               "--canonical-parsing", true);
-    parser.add("weighted", "Also store the weights in compressed format.", "--weighted", true);
-    parser.add("check", "Check correctness after construction.", "--check", true);
-    parser.add("bench", "Run benchmark after construction.", "--bench", true);
-    parser.add("verbose", "Verbose output during construction.", "--verbose", true);
+               "--canonical-parsing", false, true);
+    parser.add("weighted", "Also store the weights in compressed format.", "--weighted", false,
+               true);
+    parser.add("check", "Check correctness after construction.", "--check", false, true);
+    parser.add("bench", "Run benchmark after construction.", "--bench", false, true);
+    parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
 
     if (!parser.parse()) return 1;
 

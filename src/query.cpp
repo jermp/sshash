@@ -8,15 +8,16 @@ using namespace sshash;
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with src/build.cpp");
+    parser.add("index_filename", "Must be a file generated with src/build.cpp.", "-i", true);
     parser.add("query_filename",
                "Must be a FASTA/FASTQ file (.fa/fasta or .fq/fastq extension) compressed with gzip "
-               "or not.");
+               "or not.",
+               "-q", true);
     parser.add("multiline",
                "Use this option if more the one DNA line must be parsed after each header."
                " Only valid for FASTA files (not FASTQ).",
-               "--multiline", true);
-    parser.add("print_index_info", "Print index information.", "--print-index-info", true);
+               "--multiline", false, true);
+    parser.add("print_index_info", "Print index information.", "--print-index-info", false, true);
     if (!parser.parse()) return 1;
 
     auto index_filename = parser.get<std::string>("index_filename");
