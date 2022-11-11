@@ -65,3 +65,5 @@ target_link_libraries(query z)
 
 add_executable(permute src/permute.cpp ${SSHASH_SOURCES} ${Z_LIB_SOURCES})
 target_link_libraries(permute z)
+
+add_executable(dump src/dump.cpp ${SSHASH_SOURCES} include/dump.cpp)

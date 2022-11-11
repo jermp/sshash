@@ -148,6 +148,9 @@ streaming_query_report dictionary::streaming_query_from_file(std::string const& 
         } else {
             report = streaming_query_from_fastq_file<streaming_query_regular_parsing>(this, is);
         }
+
+    } else {
+        std::cerr << "unsupported query file format" << std::endl;
     }
 
     is.close();
