@@ -518,7 +518,7 @@ static uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_
     return minimizer;
 }
 
-/* not used: just for debug */
+/* used in dump.cpp */
 template <typename Hasher = murmurhash2_64>
 static std::pair<uint64_t, uint64_t> compute_minimizer_pos(uint64_t kmer, uint64_t k, uint64_t m,
                                                            uint64_t seed) {

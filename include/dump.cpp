@@ -8,7 +8,6 @@ void dictionary::dump(std::string const& filename) {
     uint64_t num_super_kmers = m_buckets.offsets.size();
 
     std::ofstream out(filename);
-
     std::cout << "dumping super-k-mers to file '" << filename << "'..." << std::endl;
 
     /*
@@ -16,7 +15,6 @@ void dictionary::dump(std::string const& filename) {
         Header is:
         [k]:[m]:[num_kmers]:[num_minimizers]:[num_super_kmers]
     */
-
     out << '>' << m_k << ':' << m_m << ':' << num_kmers << ':' << num_minimizers << ':'
         << num_super_kmers << "\nN\n";
 
@@ -31,19 +29,23 @@ void dictionary::dump(std::string const& filename) {
             bool super_kmer_header_written = false;
             for (uint64_t w = 0; w != window_size; ++w) {
                 uint64_t kmer = bv_it.read_and_advance_by_two(2 * m_k);
-                uint64_t minimizer = util::compute_minimizer(kmer, m_k, m_m, m_seed);
+                auto [minimizer, pos] = util::compute_minimizer_pos(kmer, m_k, m_m, m_seed);
                 if (m_canonical_parsing) {
                     uint64_t kmer_rc = util::compute_reverse_complement(kmer, m_k);
-                    minimizer = std::min<uint64_t>(
-                        minimizer, util::compute_minimizer(kmer_rc, m_k, m_m, m_seed));
+                    auto [minimizer_rc, pos_rc] =
+                        util::compute_minimizer_pos(kmer_rc, m_k, m_m, m_seed);
+                    if (minimizer_rc < minimizer) {
+                        minimizer = minimizer_rc;
+                        pos = pos_rc;
+                    }
                 }
                 if (!super_kmer_header_written) {
                     /*
                         Write super-kmer header:
-                        [minimizer_id]:[super_kmer_id]:[minimizer-string]
+                        [minimizer_id]:[super_kmer_id]:[minimizer_string]:[position_of_minimizer_in_super_kmer]
                     */
                     out << '>' << bucket_id << ':' << super_kmer_id - begin << ':'
-                        << util::uint64_to_string_no_reverse(minimizer, m_m) << '\n';
+                        << util::uint64_to_string_no_reverse(minimizer, m_m) << ':' << pos << '\n';
                     out << util::uint64_to_string_no_reverse(kmer, m_k);
                     super_kmer_header_written = true;
                 } else {
@@ -60,7 +62,6 @@ void dictionary::dump(std::string const& filename) {
     }
 
     out.close();
-
     std::cout << "DONE" << std::endl;
 }
 
