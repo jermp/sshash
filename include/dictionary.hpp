@@ -15,7 +15,7 @@ struct dictionary {
     void build(std::string const& input_filename, build_configuration const& build_config);
 
     /* Write super-k-mers to output file in FASTA format. */
-    void dump(std::string const& output_filename);
+    void dump(std::string const& output_filename) const;
 
     uint64_t size() const { return m_size; }
     uint64_t seed() const { return m_seed; }
@@ -88,6 +88,7 @@ struct dictionary {
     uint64_t num_bits() const;
     void print_info() const;
     void print_space_breakdown() const;
+    void compute_statistics() const;
 
     template <typename Visitor>
     void visit(Visitor& visitor) {

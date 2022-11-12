@@ -40,6 +40,7 @@ set(SSHASH_SOURCES
   include/dictionary.cpp
   include/info.cpp
   include/dump.cpp
+  include/statistics.cpp
 )
 
 # Create a static lib

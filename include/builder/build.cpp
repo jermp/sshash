@@ -102,7 +102,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
 
     print_space_breakdown();
 
-    if (build_config.verbose) buckets_stats.print();
+    if (build_config.verbose) buckets_stats.print_less();
 
     data.minimizers.remove_tmp_file();
 }

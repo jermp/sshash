@@ -106,9 +106,19 @@ int build(int argc, char** argv) {
     return 0;
 }
 
+void load_dictionary(dictionary& dict, std::string const& index_filename, bool verbose) {
+    uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
+    if (verbose) {
+        std::cout << "index size: " << essentials::convert(num_bytes_read, essentials::MB)
+                  << " [MB] (" << (num_bytes_read * 8.0) / dict.size() << " [bits/kmer])"
+                  << std::endl;
+        dict.print_info();
+    }
+}
+
 int query(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with src/build.cpp.", "-i", true);
+    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
     parser.add("query_filename",
                "Must be a FASTA/FASTQ file (.fa/fasta or .fq/fastq extension) compressed with gzip "
                "or not.",
@@ -117,20 +127,16 @@ int query(int argc, char** argv) {
                "Use this option if more the one DNA line must be parsed after each header."
                " Only valid for FASTA files (not FASTQ).",
                "--multiline", false, true);
-    parser.add("print_index_info", "Print index information.", "--print-index-info", false, true);
+    parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 1;
 
     auto index_filename = parser.get<std::string>("index_filename");
     auto query_filename = parser.get<std::string>("query_filename");
+    bool verbose = parser.get<bool>("verbose");
+    bool multiline = parser.get<bool>("multiline");
 
     dictionary dict;
-    essentials::logger("loading index from file '" + index_filename + "'...");
-    uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
-    std::cout << "index size: " << essentials::convert(num_bytes_read, essentials::MB) << " [MB] ("
-              << (num_bytes_read * 8.0) / dict.size() << " [bits/kmer])" << std::endl;
-    if (parser.get<bool>("print_index_info")) dict.print_info();
-
-    bool multiline = parser.get<bool>("multiline");
+    load_dictionary(dict, index_filename, verbose);
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::microseconds> t;
@@ -159,59 +165,58 @@ int query(int argc, char** argv) {
 
 int check(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with src/build.cpp.", "-i", true);
+    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
+    parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 1;
-
     auto index_filename = parser.get<std::string>("index_filename");
-
+    bool verbose = parser.get<bool>("verbose");
     dictionary dict;
-    uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
-    std::cout << "index size: " << essentials::convert(num_bytes_read, essentials::MB) << " [MB] ("
-              << (num_bytes_read * 8.0) / dict.size() << " [bits/kmer])" << std::endl;
-    dict.print_info();
-
+    load_dictionary(dict, index_filename, verbose);
     check_dictionary(dict);
     check_correctness_navigational_contig_query(dict);
-
     return 0;
 }
 
 int bench(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with src/build.cpp.", "-i", true);
+    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
+    parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 1;
-
     auto index_filename = parser.get<std::string>("index_filename");
-
+    bool verbose = parser.get<bool>("verbose");
     dictionary dict;
-    uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
-    std::cout << "index size: " << essentials::convert(num_bytes_read, essentials::MB) << " [MB] ("
-              << (num_bytes_read * 8.0) / dict.size() << " [bits/kmer])" << std::endl;
-    dict.print_info();
-
+    load_dictionary(dict, index_filename, verbose);
     perf_test_lookup_access(dict);
     if (dict.weighted()) perf_test_lookup_weight(dict);
     perf_test_iterator(dict);
-
     return 0;
 }
 
 int dump(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with src/build.cpp.", "-i", true);
+    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
     parser.add("output_filename", "A FASTA file where the output will be saved.", "-o", true);
+    parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 1;
-
     auto index_filename = parser.get<std::string>("index_filename");
     auto output_filename = parser.get<std::string>("output_filename");
-
+    bool verbose = parser.get<bool>("verbose");
     dictionary dict;
-    uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
-    std::cout << "index size: " << essentials::convert(num_bytes_read, essentials::MB) << " [MB] ("
-              << (num_bytes_read * 8.0) / dict.size() << " [bits/kmer])" << std::endl;
-    dict.print_info();
+    load_dictionary(dict, index_filename, verbose);
     dict.dump(output_filename);
+    return 0;
+}
 
+int compute_statistics(int argc, char** argv) {
+    cmd_line_parser::parser parser(argc, argv);
+    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
+    parser.add("verbose", "Verbose output.", "--verbose", false, true);
+    if (!parser.parse()) return 1;
+    auto index_filename = parser.get<std::string>("index_filename");
+    bool verbose = parser.get<bool>("verbose");
+    dictionary dict;
+    load_dictionary(dict, index_filename, verbose);
+    dict.compute_statistics();
     return 0;
 }
 
@@ -219,12 +224,13 @@ int help(char* arg0) {
     std::cout << "(S)parse and (S)kew (Hash)ing of k-mers" << std::endl << std::endl;
     std::cout << "Usage: " << arg0 << " <tool> ...\n\n"
               << "Available tools:\n"
-              << "  build   \t build a dictionary \n"
-              << "  query   \t query a dictionary \n"
-              << "  check   \t check correctness of a dictionary \n"
-              << "  bench   \t run performance tests for a dictionary \n"
-              << "  dump    \t write super-k-mers of a dictionary to a fasta file \n"
-              << "  permute \t permute an weighted input file" << std::endl;
+              << "  build              \t build a dictionary \n"
+              << "  query              \t query a dictionary \n"
+              << "  check              \t check correctness of a dictionary \n"
+              << "  bench              \t run performance tests for a dictionary \n"
+              << "  dump               \t write super-k-mers of a dictionary to a fasta file \n"
+              << "  permute            \t permute an weighted input file \n"
+              << "  compute-statistics \t compute index statistics " << std::endl;
     return 1;
 }
 
@@ -243,6 +249,8 @@ int main(int argc, char** argv) {
         return dump(argc - 1, argv + 1);
     } else if (tool == "permute") {
         return permute(argc - 1, argv + 1);
+    } else if (tool == "compute-statistics") {
+        return compute_statistics(argc - 1, argv + 1);
     }
     std::cout << "Unsupported tool '" << tool << "'.\n" << std::endl;
     return help(argv[0]);
