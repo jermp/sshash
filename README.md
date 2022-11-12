@@ -101,18 +101,18 @@ Tools
 There is one executable called `sshash` after the compilation, which can be used to run a tool.
 Run `./sshash` as follows to see a list of available tools.
 
-    ./sshash
     (S)parse and (S)kew (Hash)ing of k-mers
 
     Usage: ./sshash <tool> ...
 
     Available tools:
-      build      build a dictionary
-      query      query a dictionary
-      check      check correctness of a dictionary
-      bench      run performance tests for a dictionary
-      dump       write super-k-mers of a dictionary to a fasta file
-      permute    permute an weighted input file
+      build                  build a dictionary
+      query                  query a dictionary
+      check                  check correctness of a dictionary
+      bench                  run performance tests for a dictionary
+      dump                   write super-k-mers of a dictionary to a fasta file
+      permute                permute an weighted input file
+      compute-statistics     compute index statistics
 
 
 Build a Dictionary
