@@ -217,8 +217,8 @@ int dump(int argc, char** argv) {
 
 int help(char* arg0) {
     std::cout << "(S)parse and (S)kew (Hash)ing of k-mers" << std::endl << std::endl;
-    std::cout << "Usage: " << arg0 << " <subtool> ...\n\n"
-              << "Available subtools:\n"
+    std::cout << "Usage: " << arg0 << " <tool> ...\n\n"
+              << "Available tools:\n"
               << "  build   \t build a dictionary \n"
               << "  query   \t query a dictionary \n"
               << "  check   \t check correctness of a dictionary \n"
@@ -230,20 +230,20 @@ int help(char* arg0) {
 
 int main(int argc, char** argv) {
     if (argc < 2) return help(argv[0]);
-    auto subtool = std::string(argv[1]);
-    if (subtool == "build") {
+    auto tool = std::string(argv[1]);
+    if (tool == "build") {
         return build(argc - 1, argv + 1);
-    } else if (subtool == "query") {
+    } else if (tool == "query") {
         return query(argc - 1, argv + 1);
-    } else if (subtool == "check") {
+    } else if (tool == "check") {
         return check(argc - 1, argv + 1);
-    } else if (subtool == "bench") {
+    } else if (tool == "bench") {
         return bench(argc - 1, argv + 1);
-    } else if (subtool == "dump") {
+    } else if (tool == "dump") {
         return dump(argc - 1, argv + 1);
-    } else if (subtool == "permute") {
+    } else if (tool == "permute") {
         return permute(argc - 1, argv + 1);
     }
-    std::cout << "Unsupported subtool '" << subtool << "'.\n" << std::endl;
+    std::cout << "Unsupported tool '" << tool << "'.\n" << std::endl;
     return help(argv[0]);
 }
