@@ -4,8 +4,8 @@ echo "input file =" $1
 echo "k =" $2
 echo "m =" $3
 
-./build $1 $2 $3 -o out.index
-./build $1 $2 $3 --canonical-parsing -o out.canon.index
+./sshash build -i $1 -k $2 -m $3 -o index.sshash
+./sshash build -i $1 -k $2 -m $3 --canonical-parsing -o index.canon.sshash
 
-./bench out.index
-./bench out.canon.index
+./sshash bench -i index.sshash
+./sshash bench -i index.canon.sshash

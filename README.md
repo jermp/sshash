@@ -104,7 +104,7 @@ Run `./sshash` as follows to see a list of available tools.
     ./sshash
     (S)parse and (S)kew (Hash)ing of k-mers
 
-    Usage: ./sshash <tools> ...
+    Usage: ./sshash <tool> ...
 
     Available tools:
       build      build a dictionary
