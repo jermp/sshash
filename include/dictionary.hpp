@@ -11,7 +11,11 @@ namespace sshash {
 struct dictionary {
     dictionary() : m_size(0), m_seed(0), m_k(0), m_m(0), m_canonical_parsing(0) {}
 
-    void build(std::string const& filename, build_configuration const& build_config);
+    /* Build from input file. */
+    void build(std::string const& input_filename, build_configuration const& build_config);
+
+    /* Write super-k-mers to output file in FASTA format. */
+    void dump(std::string const& output_filename);
 
     uint64_t size() const { return m_size; }
     uint64_t seed() const { return m_seed; }

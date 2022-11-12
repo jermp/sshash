@@ -40,6 +40,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 #### Table of contents
 * [Compiling the Code](#compiling-the-code)
 * [Dependencies](#dependencies)
+* [Tools](#tools)
 * [Build a Dictionary](#build-a-dictionary)
 * [Examples](#Examples)
 * [Input Files](#input-files)
@@ -94,32 +95,51 @@ if you are on Linux/Ubuntu, or
 
 if you have a Mac.
 
+Tools
+-----
+
+There is one executable called `sshash` after the compilation, which can be used to run a tool.
+Run `./sshash` as follows to see a list of available tools.
+
+    ./sshash
+    (S)parse and (S)kew (Hash)ing of k-mers
+
+    Usage: ./sshash <tool> ...
+
+    Available tools:
+      build      build a dictionary
+      query      query a dictionary
+      check      check correctness of a dictionary
+      bench      run performance tests for a dictionary
+      dump       write super-k-mers of a dictionary to a fasta file
+      permute    permute an weighted input file
+
+
 Build a Dictionary
 ------------------
 
-The driver program
-called `build` can be used to build a dictionary.
+The tool `build` can be used to build a dictionary.
 
 From within the directory
 where the code was compiled (see the section [Compiling the Code](#compiling-the-code)), run the command:
 
-    ./build --help
+    ./sshash build --help
 
-to show the usage of the driver program (reported below for convenience).
+to show the usage of the tool (reported below for convenience).
 
-    Usage: ./build [-h,--help] input_filename k m [-s seed] [-l l] [-c c] [--canonical-parsing] [--weighted] [-o output_filename] [-d tmp_dirname] [--check] [--bench] [--verbose]
+    Usage: build [-h,--help] [-i input_filename] [-k k] [-m m] [-s seed] [-l l] [-c c] [-o output_filename] [-d tmp_dirname] [--canonical-parsing] [--weighted] [--check] [--bench] [--verbose]
 
-     input_filename
-        Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
+     [-i input_filename]
+        REQUIRED: Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
         - without duplicate nor invalid kmers
         - one DNA sequence per line.
         For example, it could be the de Bruijn graph topology output by BCALM.
 
-     k
-        K-mer length (must be <= 31).
+     [-k k]
+        REQUIRED: K-mer length (must be <= 31).
 
-     m
-        Minimizer length (must be < k).
+     [-m m]
+        REQUIRED: Minimizer length (must be < k).
 
      [-s seed]
         Seed for construction (default is 1).
@@ -169,7 +189,7 @@ such collections of stitched unitigs can be obtained from raw FASTA files.
 
 ### Example 1
 
-    ./build ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz 31 13 --check --bench -o salmonella_enterica.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz -k 31 -m 13 --check --bench -o salmonella_enterica.index
 
 This example builds a dictionary for the k-mers read from the file `../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz`,
 with k = 31 and m = 13. It also check the correctness of the dictionary (`--check` option), run a performance benchmark (`--bench` option), and serializes the index on disk to the file `salmonella_enterica.index`.
@@ -177,40 +197,40 @@ with k = 31 and m = 13. It also check the correctness of the dictionary (`--chec
 To run a performance benchmark after construction of the index,
 use:
 
-    ./bench salmonella_enterica.index
+    ./sshash bench -i salmonella_enterica.index
 
 To also store the weights, use the option `--weighted`:
 
-    ./build ../data/unitigs_stitched/with_weights/salmonella_enterica_k31_ust.weights.fa.gz 31 13 --weighted --check --verbose
+    ./sshash build -i ../data/unitigs_stitched/with_weights/salmonella_enterica_k31_ust.weights.fa.gz -k 31 -m 13 --weighted --check --verbose
 
 ### Example 2
 
-    ./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 15 -l 2 -o salmonella_100.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 15 -l 2 -o salmonella_100.index
 
 This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (a pangenome consisting in 100 genomes of *Salmonella Enterica*), with k = 31, m = 15, and l = 2. It also serializes the index on disk to the file `salmonella_100.index`.
 
 To perform some streaming membership queries, use:
 
-    ./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
+    ./sshash query -i salmonella_100.index -q ../data/queries/SRR5833294.10K.fastq.gz
 
 if your queries are meant to be read from a FASTQ file, or
 
-    ./query salmonella_100.index ../data/queries/salmonella_enterica.fasta.gz --multiline
+    ./sshash query -i salmonella_100.index -q ../data/queries/salmonella_enterica.fasta.gz --multiline
 
 if your queries are to be read from a (multi-line) FASTA file.
 
 ### Example 3
 
-    ./build ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz 31 13 -l 4 -s 347692 --canonical-parsing -o salmonella_100.canon.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 13 -l 4 -s 347692 --canonical-parsing -o salmonella_100.canon.index
 
 This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, l = 4, using a seed 347692 for construction (`-s 347692`), and with the canonical parsing modality (option `--canonical-parsing`). The dictionary is serialized on disk to the file `salmonella_100.canon.index`.
 
-The  "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
+The "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
 
 Below a comparison between the dictionary built in Example 2 (not canonical)
 and the one just built (Example 3, canonical).
 
-    ./query salmonella_100.index ../data/queries/SRR5833294.10K.fastq.gz
+    ./sshash query -i salmonella_100.index -q ../data/queries/SRR5833294.10K.fastq.gz
     index size: 10.3981 [MB] (6.36232 [bits/kmer])
     ==== query report:
     num_kmers = 460000
@@ -220,7 +240,7 @@ and the one just built (Example 3, canonical).
     num_extensions = 4/46 (8.69565%)
     elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
 
-    ./query salmonella_100.canon.index ../data/queries/SRR5833294.10K.fastq.gz
+    ./sshash query -i salmonella_100.canon.index -q ../data/queries/SRR5833294.10K.fastq.gz
     index size: 11.0657 [MB] (6.77083 [bits/kmer])
     ==== query report:
     num_kmers = 460000
@@ -236,7 +256,7 @@ even on this tiny example, for only +0.4 bits/k-mer.
 
 ### Example 4
 
-    ./permute ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 -o ecoli_sakai.permuted.fa
+    ./sshash permute -i ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz -k 31 -o ecoli_sakai.permuted.fa
 
 This command re-orders (and possibly reverse-complement) the strings in the collection as to *minimize* the number of runs in the weights and, hence, optimize the encoding of the weights.
 The result is saved to the file `ecoli_sakai.permuted.fa`.
@@ -245,14 +265,14 @@ In this example for the E.Coli collection (Sakai strain) we reduce the number of
 
 Then use the `build` command as usual to build the permuted collection:
 
-    ./build ecoli_sakai.permuted.fa 31 13 --weighted --verbose
+    ./sshash build -i ecoli_sakai.permuted.fa -k 31 -m 13 --weighted --verbose
 
 The index built on the permuted collection
 optimizes the storage space for the weights which results in a 15.1X better space than the empirical entropy of the weights.
 
 For reference, the index built on the original collection:
 
-    ./build ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz 31 13 --weighted --verbose
+    ./sshash build -i ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz -k 31 -m 13 --weighted --verbose
 
 already achieves a 12.4X better space than the empirical entropy.
 
@@ -296,10 +316,10 @@ are some of the largest genome assemblies, respectively counting
 
 After running BCALM2 and UST, we build the indexes as follows.
 
-    ./build ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz 31 20 -l 6 -c 7 -o pinus.m20.index
-    ./build ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz 31 19 -l 6 -c 7 --canonical-parsing -o pinus.m19.canon.index
-    ./build ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz 31 21 -l 6 -c 7 -o axolotl.m21.index
-    ./build ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz 31 20 -l 6 -c 7 --canonical-parsing -o axolotl.m20.canon.index
+    ./sshash build -i ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz -k 31 -m 20 -l 6 -c 7 -o pinus.m20.index
+    ./sshash build -i ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz -k 31 -m 19 -l 6 -c 7 --canonical-parsing -o pinus.m19.canon.index
+    ./sshash build -i ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz -k 31 -m 21 -l 6 -c 7 -o axolotl.m21.index
+    ./sshash build -i ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz -k 31 -m 20 -l 6 -c 7 --canonical-parsing -o axolotl.m20.canon.index
 
 The following table summarizes the space of the dictionaries.
 
@@ -327,7 +347,7 @@ using a single thread.
 
 Below the complete query reports.
 
-    ./query pinus.m20.index ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
+    ./sshash query -i pinus.m20.index -q ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
     ==== query report:
     num_kmers = 2866934040
     num_valid_kmers = 2866783488 (99.9947% of kmers)
@@ -336,7 +356,7 @@ Below the complete query reports.
     num_extensions = 1733040458/2151937575 (80.534%)
     elapsed = 1146.58 sec / 19.1097 min / 399.933 ns/kmer
 
-    ./query pinus.m19.canon.index ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
+    ./sshash query -i pinus.m19.canon.index -q ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
     ==== query report:
     num_kmers = 2866934040
     num_valid_kmers = 2866783488 (99.9947% of kmers)
@@ -345,7 +365,7 @@ Below the complete query reports.
     num_extensions = 1792511271/2151937575 (83.2975%)
     elapsed = 889.779 sec / 14.8297 min / 310.359 ns/kmer
 
-    ./query axolotl.m21.index ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
+    ./sshash query -i axolotl.m21.index -q ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
     ==== query report:
     num_kmers = 931366757
     num_valid_kmers = 748445346 (80.3599% of kmers)
@@ -354,7 +374,7 @@ Below the complete query reports.
     num_extensions = 526459626/650467884 (80.9355%)
     elapsed = 250.173 sec / 4.16955 min / 268.608 ns/kmer
 
-    ./query axolotl.m20.canon.index ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
+    ./sshash query -i axolotl.m20.canon.index -q ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
     ==== query report:
     num_kmers = 931366757
     num_valid_kmers = 748445346 (80.3599% of kmers)

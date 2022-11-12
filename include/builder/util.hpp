@@ -4,7 +4,8 @@
 
 namespace sshash {
 
-void print_time(double time, uint64_t num_kmers, std::string const& message) {
+[[maybe_unused]] static void print_time(double time, uint64_t num_kmers,
+                                        std::string const& message) {
     std::cout << "=== " << message << " " << time / 1000000 << " [sec] ("
               << (time * 1000) / num_kmers << " [ns/kmer])" << std::endl;
 }
@@ -18,7 +19,7 @@ struct parse_runtime_error : public std::runtime_error {
     parse_runtime_error() : std::runtime_error("did you provide an input file with weights?") {}
 };
 
-void expect(char got, char expected) {
+[[maybe_unused]] static void expect(char got, char expected) {
     if (got != expected) {
         std::cout << "got '" << got << "' but expected '" << expected << "'" << std::endl;
         throw parse_runtime_error();
