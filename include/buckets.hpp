@@ -50,13 +50,13 @@ struct buckets {
         return length;
     }
 
-    uint64_t contig_prefix(uint64_t contig_id, uint64_t k) const {
+    kmer_t contig_prefix(uint64_t contig_id, uint64_t k) const {
         uint64_t contig_begin = pieces.access(contig_id);
         bit_vector_iterator bv_it(strings, 2 * contig_begin);
         return bv_it.read(2 * (k - 1));
     }
 
-    uint64_t contig_suffix(uint64_t contig_id, uint64_t k) const {
+    kmer_t contig_suffix(uint64_t contig_id, uint64_t k) const {
         uint64_t contig_end = pieces.access(contig_id + 1);
         bit_vector_iterator bv_it(strings, 2 * (contig_end - k + 1));
         return bv_it.read(2 * (k - 1));
@@ -69,12 +69,12 @@ struct buckets {
         return {begin, end};
     }
 
-    lookup_result lookup(uint64_t bucket_id, uint64_t target_kmer, uint64_t k, uint64_t m) const {
+    lookup_result lookup(uint64_t bucket_id, kmer_t target_kmer, uint64_t k, uint64_t m) const {
         auto [begin, end] = locate_bucket(bucket_id);
         return lookup(begin, end, target_kmer, k, m);
     }
 
-    lookup_result lookup(uint64_t begin, uint64_t end, uint64_t target_kmer, uint64_t k,
+    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t target_kmer, uint64_t k,
                          uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
@@ -86,7 +86,7 @@ struct buckets {
         return lookup_result();
     }
 
-    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, uint64_t target_kmer, uint64_t k,
+    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, kmer_t target_kmer, uint64_t k,
                                        uint64_t m) const {
         uint64_t offset = offsets.access(super_kmer_id);
         auto [res, contig_end] = offset_to_id(offset, k);
@@ -104,14 +104,14 @@ struct buckets {
         return lookup_result();
     }
 
-    lookup_result lookup_canonical(uint64_t bucket_id, uint64_t target_kmer,
-                                   uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
+    lookup_result lookup_canonical(uint64_t bucket_id, kmer_t target_kmer, kmer_t target_kmer_rc,
+                                   uint64_t k, uint64_t m) const {
         auto [begin, end] = locate_bucket(bucket_id);
         return lookup_canonical(begin, end, target_kmer, target_kmer_rc, k, m);
     }
 
-    lookup_result lookup_canonical(uint64_t begin, uint64_t end, uint64_t target_kmer,
-                                   uint64_t target_kmer_rc, uint64_t k, uint64_t m) const {
+    lookup_result lookup_canonical(uint64_t begin, uint64_t end, kmer_t target_kmer,
+                                   kmer_t target_kmer_rc, uint64_t k, uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             uint64_t offset = offsets.access(super_kmer_id);
             auto [res, contig_end] = offset_to_id(offset, k);
@@ -167,8 +167,8 @@ struct buckets {
     void access(uint64_t kmer_id, char* string_kmer, uint64_t k) const {
         uint64_t offset = id_to_offset(kmer_id, k);
         bit_vector_iterator bv_it(strings, 2 * offset);
-        uint64_t read_kmer = bv_it.read(2 * k);
-        util::uint64_to_string_no_reverse(read_kmer, string_kmer, k);
+        kmer_t read_kmer = bv_it.read(2 * k);
+        util::uint_kmer_to_string_no_reverse(read_kmer, string_kmer, k);
     }
 
     struct iterator {
@@ -196,7 +196,7 @@ struct buckets {
             while (offset != next_offset - m_k + 1) {
                 ret.first = m_kmer_id;
                 if (clear) {
-                    util::uint64_to_string_no_reverse(read_kmer, ret.second.data(), m_k);
+                    util::uint_kmer_to_string_no_reverse(read_kmer, ret.second.data(), m_k);
                 } else {
                     memmove(ret.second.data(), ret.second.data() + 1, m_k - 1);
                     ret.second[m_k - 1] = util::uint64_to_char(last_two_bits);
@@ -222,7 +222,7 @@ struct buckets {
         bit_vector_iterator bv_it;
         ef_sequence<true>::iterator pieces_it;
 
-        uint64_t read_kmer;
+        kmer_t read_kmer;
         uint64_t last_two_bits;
         bool clear;
 

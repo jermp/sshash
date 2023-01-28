@@ -20,6 +20,10 @@ void dictionary::build(std::string const& filename, build_configuration const& b
                                  " but got k = " + std::to_string(build_config.k));
     }
     if (build_config.m == 0) throw std::runtime_error("m must be > 0");
+    if (build_config.m > constants::max_m) {
+        throw std::runtime_error("m must be less <= " + std::to_string(constants::max_m) +
+                                 " but got m = " + std::to_string(build_config.m));
+    }
     if (build_config.m > build_config.k) throw std::runtime_error("m must be < k");
     if (build_config.l > constants::max_l) {
         throw std::runtime_error("l must be <= " + std::to_string(constants::max_l));

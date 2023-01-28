@@ -49,7 +49,7 @@ struct compact_string_pool {
                 pieces.push_back(bvb_strings.size() / 2);
             }
             for (uint64_t i = prefix; i != size; ++i) {
-                bvb_strings.append_bits(util::char_to_uint64(string[i]), 2);
+                bvb_strings.append_bits(util::char_to_uint(string[i]), 2);
             }
             num_super_kmers += 1;
             offset = bvb_strings.size() / 2;

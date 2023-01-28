@@ -52,10 +52,10 @@ struct streaming_query_canonical_parsing {
         /* 2. compute kmer and minimizer */
         if (!m_start) {
             m_kmer >>= 2;
-            m_kmer += (util::char_to_uint64(kmer[m_k - 1])) << m_shift;
-            assert(m_kmer == util::string_to_uint64_no_reverse(kmer, m_k));
+            m_kmer += (util::char_to_uint(kmer[m_k - 1])) << m_shift;
+            assert(m_kmer == util::string_to_uint_kmer_no_reverse(kmer, m_k));
         } else {
-            m_kmer = util::string_to_uint64_no_reverse(kmer, m_k);
+            m_kmer = util::string_to_uint_kmer_no_reverse(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
         assert(m_curr_minimizer == util::compute_minimizer(m_kmer, m_k, m_m, m_seed));

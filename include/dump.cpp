@@ -58,10 +58,11 @@ void dictionary::dump(std::string const& filename) const {
                         Write super-kmer header:
                         [minimizer_id]:[super_kmer_id]:[minimizer_string]:[position_of_minimizer_in_super_kmer]
                     */
-                    super_kmer = util::uint64_to_string_no_reverse(kmer, m_k);
+                    super_kmer = util::uint_kmer_to_string_no_reverse(kmer, m_k);
                     p = pos;
                     out << '>' << bucket_id << ':' << super_kmer_id - begin << ':'
-                        << util::uint64_to_string_no_reverse(minimizer, m_m) << ':' << pos << '\n';
+                        << util::uint_kmer_to_string_no_reverse(minimizer, m_m) << ':' << pos
+                        << '\n';
                     out << super_kmer;
                     super_kmer_header_written = true;
                 } else {
@@ -146,11 +147,11 @@ void dictionary::dump(std::string const& filename) const {
 
                 /* bigram */
                 uint16_t sketch =
-                    (util::char_to_uint64(s[pos - 1]) << 2) + (util::char_to_uint64(s[pos]));
+                    (util::char_to_uint(s[pos - 1]) << 2) + (util::char_to_uint(s[pos]));
                 // /* trigram */
-                // uint16_t sketch = (util::char_to_uint64(s[pos - 2]) << 4) +
-                //                   (util::char_to_uint64(s[pos - 1]) << 2) +
-                //                   (util::char_to_uint64(s[pos]));
+                // uint16_t sketch = (util::char_to_uint(s[pos - 2]) << 4) +
+                //                   (util::char_to_uint(s[pos - 1]) << 2) +
+                //                   (util::char_to_uint(s[pos]));
 
                 // std::cout << s[pos - 1] << s[pos] << "(" << sketch << ") ";
                 if (auto it = sketches.find(sketch); it == sketches.cend()) {
@@ -181,11 +182,11 @@ void dictionary::dump(std::string const& filename) const {
                     }
                     /* bigram */
                     uint16_t sketch =
-                        (util::char_to_uint64(s[pos]) << 2) + util::char_to_uint64(s[pos + 1]);
+                        (util::char_to_uint(s[pos]) << 2) + util::char_to_uint(s[pos + 1]);
                     // /* trigram */
-                    // uint16_t sketch = (util::char_to_uint64(s[pos]) << 4) +
-                    //                   (util::char_to_uint64(s[pos + 1]) << 2) +
-                    //                   (util::char_to_uint64(s[pos + 2]));
+                    // uint16_t sketch = (util::char_to_uint(s[pos]) << 4) +
+                    //                   (util::char_to_uint(s[pos + 1]) << 2) +
+                    //                   (util::char_to_uint(s[pos + 2]));
 
                     // std::cout << s[pos] << s[pos + 1] << "(" << sketch << ") ";
                     if (auto it = sketches.find(sketch); it == sketches.cend()) {

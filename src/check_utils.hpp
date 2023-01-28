@@ -28,7 +28,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
         }
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
             assert(util::is_valid(line.data() + i, k));
-            uint64_t uint64_kmer = util::string_to_uint64_no_reverse(line.data() + i, k);
+            uint64_t uint64_kmer = util::string_to_uint_kmer_no_reverse(line.data() + i, k);
             bool orientation = constants::forward_orientation;
 
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
@@ -39,7 +39,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
                 uint64_kmer = util::compute_reverse_complement(uint64_kmer, k);
                 orientation = constants::backward_orientation;
             }
-            util::uint64_to_string_no_reverse(uint64_kmer, expected_kmer_str.data(), k);
+            util::uint_kmer_to_string_no_reverse(uint64_kmer, expected_kmer_str.data(), k);
             uint64_t id = dict.lookup(expected_kmer_str.c_str());
 
             /*
@@ -123,7 +123,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
 
             // check access
             dict.access(id, got_kmer_str.data());
-            uint64_t got_uint64_kmer = util::string_to_uint64_no_reverse(got_kmer_str.data(), k);
+            uint64_t got_uint64_kmer = util::string_to_uint_kmer_no_reverse(got_kmer_str.data(), k);
             uint64_t got_uint64_kmer_rc = util::compute_reverse_complement(got_uint64_kmer, k);
             if (got_uint64_kmer != uint64_kmer and got_uint64_kmer_rc != uint64_kmer) {
                 std::cout << "ERROR: got '" << got_kmer_str << "' but expected '"

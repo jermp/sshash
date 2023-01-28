@@ -9,10 +9,21 @@
 
 namespace sshash {
 
+// typedef uint64_t kmer_t;
+typedef __uint128_t kmer_t;
+
 namespace constants {
-constexpr uint64_t max_k = 31;  // max *odd* size that can be packed into 64 bits
+
+/* max *odd* size that can be packed into sizeof(kmer_t)*8 bits */
+constexpr uint64_t max_k = sizeof(kmer_t) * 4 - 1;
+
+/* max *odd* size that can be packed into 64 bits */
+constexpr uint64_t max_m = 31;
+
+// constexpr kmer_t invalid_uint_kmer = kmer_t(-1);
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
 constexpr uint32_t invalid_uint32 = uint32_t(-1);
+
 constexpr uint64_t seed = 1;
 constexpr double c = 3.0;  // for PTHash
 constexpr uint64_t min_l = 6;
@@ -20,6 +31,7 @@ constexpr uint64_t max_l = 12;
 static const std::string default_tmp_dirname(".");
 constexpr bool forward_orientation = 0;
 constexpr bool backward_orientation = 1;
+
 }  // namespace constants
 
 typedef pthash::murmurhash2_64 base_hasher_type;
@@ -133,133 +145,6 @@ struct build_configuration {
     }
 };
 
-struct buckets_statistics {
-    static const uint64_t max_bucket_size = 4 * 1024;
-    static const uint64_t max_string_size = 256;
-
-    buckets_statistics(uint64_t num_buckets, uint64_t num_kmers, uint64_t num_super_kmers)
-        : m_num_buckets(num_buckets)
-        , m_num_kmers(num_kmers)
-        , m_num_super_kmers(num_super_kmers)
-        , m_max_num_kmers_in_super_kmer(0)
-        , m_max_num_super_kmers_in_bucket(0) {
-        m_bucket_sizes.resize(max_bucket_size + 1, 0);
-        m_total_kmers.resize(max_bucket_size + 1, 0);
-        m_string_sizes.resize(max_string_size + 1, 0);
-    }
-
-    void add_num_super_kmers_in_bucket(uint64_t num_super_kmers_in_bucket) {
-        if (num_super_kmers_in_bucket < max_bucket_size + 1) {
-            m_bucket_sizes[num_super_kmers_in_bucket] += 1;
-        }
-    }
-
-    void add_num_kmers_in_super_kmer(uint64_t num_super_kmers_in_bucket,
-                                     uint64_t num_kmers_in_super_kmer) {
-        if (num_super_kmers_in_bucket < max_bucket_size + 1) {
-            m_total_kmers[num_super_kmers_in_bucket] += num_kmers_in_super_kmer;
-        }
-        if (num_kmers_in_super_kmer > m_max_num_kmers_in_super_kmer) {
-            m_max_num_kmers_in_super_kmer = num_kmers_in_super_kmer;
-        }
-        if (num_super_kmers_in_bucket > m_max_num_super_kmers_in_bucket) {
-            m_max_num_super_kmers_in_bucket = num_super_kmers_in_bucket;
-        }
-        if (num_kmers_in_super_kmer < max_string_size + 1)
-            m_string_sizes[num_kmers_in_super_kmer] += 1;
-    }
-
-    uint64_t num_kmers() const { return m_num_kmers; }
-    uint64_t num_buckets() const { return m_num_buckets; }
-    uint64_t max_num_super_kmers_in_bucket() const { return m_max_num_super_kmers_in_bucket; }
-
-    void print_full() const {
-        std::cout << " === bucket statistics (full) === \n";
-        for (uint64_t bucket_size = 1, prev_bucket_size = 0, prev_kmers_in_buckets = 0,
-                      kmers_in_buckets = 0;
-             bucket_size != max_bucket_size + 1; ++bucket_size) {
-            if (m_bucket_sizes[bucket_size] > 0) {
-                std::cout << "buckets with " << bucket_size
-                          << " super_kmers = " << m_bucket_sizes[bucket_size] << " ("
-                          << (m_bucket_sizes[bucket_size] * 100.0) / m_num_buckets
-                          << "%) | num_kmers = " << m_total_kmers[bucket_size] << " ("
-                          << (m_total_kmers[bucket_size] * 100.0) / m_num_kmers
-                          << "%)"
-                          // << "|avg_num_kmers_per_bucket="
-                          // << static_cast<double>(m_total_kmers[bucket_size]) /
-                          //        m_bucket_sizes[bucket_size]
-                          // << "|avg_num_kmers_per_string="
-                          // << static_cast<double>(m_total_kmers[bucket_size]) /
-                          //        (m_bucket_sizes[bucket_size] * bucket_size)
-                          << std::endl;
-                kmers_in_buckets += m_total_kmers[bucket_size];
-            }
-            if (bucket_size == 4 or bucket_size == 8 or bucket_size == 16 or bucket_size == 32 or
-                bucket_size == 64 or bucket_size == 128 or bucket_size == 256 or
-                bucket_size == 512 or bucket_size == 1024 or bucket_size == max_bucket_size) {
-                assert(kmers_in_buckets >= prev_kmers_in_buckets);
-
-                std::cout << " *** num_kmers in buckets of size > " << prev_bucket_size
-                          << " and <= " << bucket_size << ": "
-                          << kmers_in_buckets - prev_kmers_in_buckets << " ("
-                          << (100.0 * (kmers_in_buckets - prev_kmers_in_buckets)) / m_num_kmers
-                          << "%)" << std::endl;
-                std::cout << " *** num_kmers in buckets of size <= " << bucket_size << ": "
-                          << kmers_in_buckets << " (" << (100.0 * kmers_in_buckets) / m_num_kmers
-                          << "%)" << std::endl;
-
-                prev_bucket_size = bucket_size;
-                prev_kmers_in_buckets = kmers_in_buckets;
-            }
-        }
-
-        std::cout << " === super_kmer statistics === \n";
-        uint64_t total_super_kmers = 0;
-        uint64_t total_kmers = 0;
-        for (uint64_t string_size = 1; string_size != max_string_size + 1; ++string_size) {
-            if (m_string_sizes[string_size] > 0) {
-                std::cout << "super_kmers with " << string_size
-                          << " kmer = " << m_string_sizes[string_size] << " ("
-                          << (m_string_sizes[string_size] * 100.0) / m_num_super_kmers
-                          << "%) | num_kmers = " << (string_size * m_string_sizes[string_size])
-                          << " ("
-                          << (string_size * m_string_sizes[string_size] * 100.0) / m_num_kmers
-                          << "%)" << std::endl;
-                total_super_kmers += m_string_sizes[string_size];
-                total_kmers += string_size * m_string_sizes[string_size];
-            }
-        }
-        std::cout << "total_super_kmers " << total_super_kmers << "/" << m_num_super_kmers << "("
-                  << (total_super_kmers * 100.0) / m_num_super_kmers << "%)" << std::endl;
-        std::cout << "total_kmers " << total_kmers << "/" << m_num_kmers << " ("
-                  << (total_kmers * 100.0) / m_num_kmers << "%)" << std::endl;
-        std::cout << "max_num_kmers_in_super_kmer " << m_max_num_kmers_in_super_kmer << std::endl;
-    }
-
-    void print_less() const {
-        std::cout << " === bucket statistics (less) === \n";
-        for (uint64_t bucket_size = 1; bucket_size != 16 + 1; ++bucket_size) {
-            if (m_bucket_sizes[bucket_size] > 0) {
-                std::cout << "buckets with " << bucket_size << " super_kmers = "
-                          << (m_bucket_sizes[bucket_size] * 100.0) / m_num_buckets << "%"
-                          << std::endl;
-            }
-        }
-        std::cout << "max_num_super_kmers_in_bucket " << m_max_num_super_kmers_in_bucket
-                  << std::endl;
-    }
-
-private:
-    uint64_t m_num_buckets;
-    uint64_t m_num_kmers;
-    uint64_t m_num_super_kmers;
-    uint64_t m_max_num_kmers_in_super_kmer;
-    uint64_t m_max_num_super_kmers_in_bucket;
-    std::vector<uint64_t> m_bucket_sizes;
-    std::vector<uint64_t> m_total_kmers;
-    std::vector<uint64_t> m_string_sizes;
-};
-
 namespace util {
 
 static inline void check_hash_collision_probability(uint64_t size) {
@@ -315,7 +200,7 @@ char decimal  binary
  G     71     01000-11-1 -> 11
  T     84     01010-10-0 -> 10
 */
-static uint64_t char_to_uint64(char c) { return (c >> 1) & 3; }
+static kmer_t char_to_uint(char c) { return (c >> 1) & 3; }
 
 static char uint64_to_char(uint64_t x) {
     assert(x <= 3);
@@ -326,7 +211,7 @@ static char uint64_to_char(uint64_t x) {
 /*
     Traditional mapping.
 */
-// uint64_t char_to_uint64(char c) {
+// uint64_t char_to_uint(char c) {
 //     switch (c) {
 //         case 'A':
 //             return 0;
@@ -360,17 +245,17 @@ static char uint64_to_char(uint64_t x) {
     that is: if g and t are two k-mers and g < t lexicographically,
     then also id(g) < id(t).
 */
-[[maybe_unused]] static uint64_t string_to_uint64(char const* str, uint64_t k) {
-    assert(k <= 32);
-    uint64_t x = 0;
+[[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
+    assert(k <= constants::max_k);
+    kmer_t x = 0;
     for (uint64_t i = 0; i != k; ++i) {
         x <<= 2;
-        x += char_to_uint64(str[i]);
+        x += char_to_uint(str[i]);
     }
     return x;
 }
-[[maybe_unused]] static void uint64_to_string(uint64_t x, char* str, uint64_t k) {
-    assert(k <= 32);
+[[maybe_unused]] static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
+    assert(k <= constants::max_k);
     for (int i = k - 1; i >= 0; --i) {
         str[i] = uint64_to_char(x & 3);
         x >>= 2;
@@ -378,34 +263,34 @@ static char uint64_to_char(uint64_t x) {
 }
 /****************************************************************************/
 
-[[maybe_unused]] static std::string uint64_to_string(uint64_t x, uint64_t k) {
-    assert(k <= 32);
+[[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
+    assert(k <= constants::max_k);
     std::string str;
     str.resize(k);
-    uint64_to_string(x, str.data(), k);
+    uint_kmer_to_string(x, str.data(), k);
     return str;
 }
 
-[[maybe_unused]] static uint64_t string_to_uint64_no_reverse(char const* str, uint64_t k) {
-    assert(k <= 32);
-    uint64_t x = 0;
-    for (uint64_t i = 0; i != k; ++i) x += char_to_uint64(str[i]) << (2 * i);
+[[maybe_unused]] static kmer_t string_to_uint_kmer_no_reverse(char const* str, uint64_t k) {
+    assert(k <= constants::max_k);
+    kmer_t x = 0;
+    for (uint64_t i = 0; i != k; ++i) x += char_to_uint(str[i]) << (2 * i);
     return x;
 }
 
-static void uint64_to_string_no_reverse(uint64_t x, char* str, uint64_t k) {
-    assert(k <= 32);
+static void uint_kmer_to_string_no_reverse(kmer_t x, char* str, uint64_t k) {
+    assert(k <= constants::max_k);
     for (uint64_t i = 0; i != k; ++i) {
         str[i] = uint64_to_char(x & 3);
         x >>= 2;
     }
 }
 
-[[maybe_unused]] static std::string uint64_to_string_no_reverse(uint64_t x, uint64_t k) {
-    assert(k <= 32);
+[[maybe_unused]] static std::string uint_kmer_to_string_no_reverse(kmer_t x, uint64_t k) {
+    assert(k <= constants::max_k);
     std::string str;
     str.resize(k);
-    uint64_to_string_no_reverse(x, str.data(), k);
+    uint_kmer_to_string_no_reverse(x, str.data(), k);
     return str;
 }
 
@@ -477,37 +362,32 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     return true;
 }
 
-// struct byte_range {
-//     char const* begin;
-//     char const* end;
-// };
-
 struct murmurhash2_64 {
-    // generic range of bytes
-    // static inline uint64_t hash(byte_range range, uint64_t seed) {
-    //     return pthash::MurmurHash2_64(range.begin, range.end - range.begin, seed);
-    // }
-
-    // // specialization for std::string
-    // static inline uint64_t hash(std::string const& val, uint64_t seed) {
-    //     return MurmurHash2_64(val.data(), val.size(), seed);
-    // }
-
-    // specialization for uint64_t
-    static inline uint64_t hash(uint64_t val, uint64_t seed) {
-        return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&val), sizeof(val), seed);
+    /* specialization for kmer_t */
+    static inline uint64_t hash(kmer_t x, uint64_t seed) {
+        if constexpr (sizeof(x) == sizeof(uint64_t)) {
+            return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed);
+        } else {
+            uint64_t low = static_cast<uint64_t>(x);
+            uint64_t high = static_cast<uint64_t>(x >> 64);
+            uint64_t hash = pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low),
+                                                   sizeof(uint64_t), seed) ^
+                            pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high),
+                                                   sizeof(uint64_t), seed);
+            return hash;
+        }
     }
 };
 
 template <typename Hasher = murmurhash2_64>
-static uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
-    assert(m < 32);
+uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
+    assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
-    uint64_t minimizer = uint64_t(-1);
-    uint64_t mask = (uint64_t(1) << (2 * m)) - 1;
+    kmer_t minimizer = kmer_t(-1);
+    kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        uint64_t sub_kmer = kmer & mask;
+        kmer_t sub_kmer = kmer & mask;
         uint64_t hash = Hasher::hash(sub_kmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
@@ -520,16 +400,16 @@ static uint64_t compute_minimizer(uint64_t kmer, uint64_t k, uint64_t m, uint64_
 
 /* used in dump.cpp */
 template <typename Hasher = murmurhash2_64>
-static std::pair<uint64_t, uint64_t> compute_minimizer_pos(uint64_t kmer, uint64_t k, uint64_t m,
-                                                           uint64_t seed) {
-    assert(m < 32);
+std::pair<uint64_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
+                                                    uint64_t seed) {
+    assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
-    uint64_t minimizer = uint64_t(-1);
-    uint64_t mask = (uint64_t(1) << (2 * m)) - 1;
+    kmer_t minimizer = kmer_t(-1);
+    kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
     uint64_t pos = 0;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        uint64_t sub_kmer = kmer & mask;
+        kmer_t sub_kmer = kmer & mask;
         uint64_t hash = Hasher::hash(sub_kmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
