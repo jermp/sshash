@@ -58,6 +58,8 @@ lookup_result dictionary::lookup_uint_canonical_parsing(kmer_t uint_kmer) const 
 
 uint64_t dictionary::lookup(char const* string_kmer, bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    // FIXME: generalize later
+    check_reverse_complement = false;
     return lookup_uint(uint_kmer, check_reverse_complement);
 }
 uint64_t dictionary::lookup_uint(kmer_t uint_kmer, bool check_reverse_complement) const {
@@ -68,10 +70,14 @@ uint64_t dictionary::lookup_uint(kmer_t uint_kmer, bool check_reverse_complement
 lookup_result dictionary::lookup_advanced(char const* string_kmer,
                                           bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    // FIXME: generalize later
+    check_reverse_complement = false;
     return lookup_advanced_uint(uint_kmer, check_reverse_complement);
 }
 lookup_result dictionary::lookup_advanced_uint(kmer_t uint_kmer,
                                                bool check_reverse_complement) const {
+    // FIXME: generalize later
+    check_reverse_complement = false;
     if (m_canonical_parsing) return lookup_uint_canonical_parsing(uint_kmer);
     auto res = lookup_uint_regular_parsing(uint_kmer);
     assert(res.kmer_orientation == constants::forward_orientation);

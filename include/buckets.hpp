@@ -93,7 +93,7 @@ struct buckets {
         bit_vector_iterator bv_it(strings, 2 * offset);
         uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
         for (uint64_t w = 0; w != window_size; ++w) {
-            uint64_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
+            kmer_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
             if (read_kmer == target_kmer) {
                 res.kmer_id += w;
                 res.kmer_id_in_contig += w;
@@ -118,7 +118,7 @@ struct buckets {
             bit_vector_iterator bv_it(strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
             for (uint64_t w = 0; w != window_size; ++w) {
-                uint64_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
+                kmer_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
                 if (read_kmer == target_kmer) {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
