@@ -16,11 +16,33 @@ struct kmers_pthash_hasher_64 {
             assert(constants::uint_kmer_bits == 128);
             uint64_t low = static_cast<uint64_t>(x);
             uint64_t high = static_cast<uint64_t>(x >> 64);
-            uint64_t hash = pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low),
-                                                   sizeof(uint64_t), seed) ^
-                            pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high),
-                                                   sizeof(uint64_t), seed);
+            uint64_t hash =
+                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed) ^
+                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high), seed);
             return hash;
+        }
+    }
+};
+
+struct kmers_pthash_hasher_128 {
+    typedef pthash::hash128 hash_type;
+
+    /* specialization for kmer_t */
+    static inline pthash::hash128 hash(kmer_t x, uint64_t seed) {
+        if constexpr (constants::uint_kmer_bits == 64) {
+            return {pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed),
+                    pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), ~seed)};
+        } else {
+            assert(constants::uint_kmer_bits == 128);
+            uint64_t low = static_cast<uint64_t>(x);
+            uint64_t high = static_cast<uint64_t>(x >> 64);
+            return {
+                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed) ^
+                    pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high),
+                                           seed),
+                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), ~seed) ^
+                    pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high),
+                                           ~seed)};
         }
     }
 };
@@ -43,51 +65,12 @@ typedef pthash::single_phf<kmers_base_hasher_type,         // base hasher
                            >
     kmers_pthash_type;
 
+/* used to hash m-mers and determine the minimizer of a k-mer */
 struct murmurhash2_64 {
-    /* specialization for kmer_t */
-    static inline uint64_t hash(kmer_t x, uint64_t seed) {
-        if constexpr (constants::uint_kmer_bits == 64) {
-            return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed);
-        } else {
-            assert(constants::uint_kmer_bits == 128);
-            uint64_t low = static_cast<uint64_t>(x);
-            uint64_t high = static_cast<uint64_t>(x >> 64);
-            uint64_t hash = pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low),
-                                                   sizeof(uint64_t), seed) ^
-                            pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high),
-                                                   sizeof(uint64_t), seed);
-            return hash;
-        }
+    /* specialization for uint64_t */
+    static inline uint64_t hash(uint64_t x, uint64_t seed) {
+        return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed);
     }
 };
-
-namespace util {
-
-// TODO: move in PTHash
-static inline void check_hash_collision_probability(uint64_t size) {
-    /*
-        Adapted from: https://preshing.com/20110504/hash-collision-probabilities.
-        Given a universe of size U (total number of possible hash values),
-        which is U = 2^b for b-bit hash codes,
-        the collision probability for n keys is (approximately):
-            1 - e^{-n(n-1)/(2U)}.
-        For example, for U=2^32 (32-bit hash codes), this probability
-        gets to 50% already for n = 77,163 keys.
-        We can approximate 1-e^{-X} with X when X is sufficiently small.
-        Then our collision probability is
-            n(n-1)/(2U) ~ n^2/(2U).
-        So it can derived that for ~1.97B keys and 64-bit hash codes,
-        the probability of collision is ~0.1 (10%), which may not be
-        so small for some applications.
-        For n = 2^30, the probability of collision is ~0.031 (3.1%).
-    */
-    if (sizeof(minimizers_base_hasher_type::hash_type) * 8 == 64 and size > (1ULL << 30)) {
-        throw std::runtime_error(
-            "Using 64-bit hash codes with more than 2^30 keys can be dangerous due to "
-            "collisions: use 128-bit hash codes instead.");
-    }
-}
-
-}  // namespace util
 
 }  // namespace sshash

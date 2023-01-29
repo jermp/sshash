@@ -89,7 +89,6 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                               << " and <= " << upper << std::endl;
                     throw empty_bucket_runtime_error();
                 }
-                util::check_hash_collision_probability(num_kmers_in_partition[partition_id]);
                 num_kmers_in_skew_index += num_kmers_in_partition[partition_id];
                 partition_id += 1;
 

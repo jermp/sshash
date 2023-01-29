@@ -7,7 +7,6 @@ namespace sshash {
 struct minimizers {
     template <typename ForwardIterator>
     void build(ForwardIterator begin, uint64_t size, build_configuration const& build_config) {
-        util::check_hash_collision_probability(size);
         pthash::build_configuration mphf_config;
         mphf_config.c = 6.0;
         mphf_config.alpha = 0.94;

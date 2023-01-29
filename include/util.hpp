@@ -331,10 +331,10 @@ uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
-    kmer_t minimizer = kmer_t(-1);
+    uint64_t minimizer = uint64_t(-1);
     kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t mmer = kmer & mask;
+        uint64_t mmer = static_cast<uint64_t>(kmer & mask);
         uint64_t hash = Hasher::hash(mmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
@@ -352,11 +352,11 @@ std::pair<uint64_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uin
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
-    kmer_t minimizer = kmer_t(-1);
+    uint64_t minimizer = uint64_t(-1);
     kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
     uint64_t pos = 0;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t mmer = kmer & mask;
+        uint64_t mmer = static_cast<uint64_t>(kmer & mask);
         uint64_t hash = Hasher::hash(mmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
