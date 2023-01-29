@@ -46,33 +46,34 @@ struct neighbourhood {
 };
 
 [[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
+    bool good = true;
     if (expected.kmer_id != got.kmer_id) {
         std::cout << "expected kmer_id " << expected.kmer_id << " but got " << got.kmer_id
                   << std::endl;
-        return false;
+        good = false;
     }
     if (expected.kmer_id_in_contig != got.kmer_id_in_contig) {
         std::cout << "expected kmer_id_in_contig " << expected.kmer_id_in_contig << " but got "
                   << got.kmer_id_in_contig << std::endl;
-        return false;
+        good = false;
     }
     if (got.kmer_id != constants::invalid_uint64 and
         expected.kmer_orientation != got.kmer_orientation) {
         std::cout << "expected kmer_orientation " << expected.kmer_orientation << " but got "
                   << got.kmer_orientation << std::endl;
-        return false;
+        good = false;
     }
     if (expected.contig_id != got.contig_id) {
         std::cout << "expected contig_id " << expected.contig_id << " but got " << got.contig_id
                   << std::endl;
-        return false;
+        good = false;
     }
     if (expected.contig_size != got.contig_size) {
         std::cout << "expected contig_size " << expected.contig_size << " but got "
                   << got.contig_size << std::endl;
-        return false;
+        good = false;
     }
-    return true;
+    return good;
 }
 
 struct build_configuration {

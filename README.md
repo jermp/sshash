@@ -233,8 +233,7 @@ and the one just built (Example 3, canonical).
     index size: 10.3981 [MB] (6.36232 [bits/kmer])
     ==== query report:
     num_kmers = 460000
-    num_valid_kmers = 459143 (99.8137% of kmers)
-    num_positive_kmers = 46 (0.0100187% of valid kmers)
+    num_positive_kmers = 46 (0.01%)
     num_searches = 42/46 (91.3043%)
     num_extensions = 4/46 (8.69565%)
     elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
@@ -243,8 +242,7 @@ and the one just built (Example 3, canonical).
     index size: 11.0657 [MB] (6.77083 [bits/kmer])
     ==== query report:
     num_kmers = 460000
-    num_valid_kmers = 459143 (99.8137% of kmers)
-    num_positive_kmers = 46 (0.0100187% of valid kmers)
+    num_positive_kmers = 46 (0.01%)
     num_searches = 42/46 (91.3043%)
     num_extensions = 4/46 (8.69565%)
     elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer

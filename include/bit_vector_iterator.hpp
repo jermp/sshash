@@ -71,22 +71,6 @@ struct bit_vector_iterator {
         return val;
     }
 
-    // not used
-    // inline kmer_t read_and_advance_by_two_reverse(uint64_t l) {
-    //     assert(l <= constants::uint_kmer_bits);
-    //     if (m_avail < l) fill_buf_reverse();
-    //     kmer_t val = 0;
-    //     if (l != constants::uint_kmer_bits) {
-    //         val = m_buf >> (constants::uint_kmer_bits - l);
-    //         m_buf <<= 2;
-    //     } else {
-    //         val = m_buf;
-    //     }
-    //     m_avail -= 2;
-    //     m_pos -= 2;
-    //     return val;
-    // }
-
     inline kmer_t get_next_two_bits() {
         if (m_avail < 2) fill_buf();
         kmer_t val = m_buf & 3;
@@ -135,14 +119,16 @@ private:
             }
             m_buf = m_bv->get_word64(m_pos - 64);
         } else {
-            // FIXME...
+            assert(constants::uint_kmer_bits == 128);
             if (m_pos < 128) {
-                m_buf = m_bv->get_word64(0);
+                m_buf = static_cast<kmer_t>(m_bv->get_word64(0)) << 64;
+                m_buf += static_cast<kmer_t>(m_bv->get_word64(64));
                 m_avail = m_pos;
                 m_buf <<= (128 - m_pos);
                 return;
             }
-            m_buf = m_bv->get_word64(m_pos - 128);
+            m_buf = static_cast<kmer_t>(m_bv->get_word64(m_pos - 128)) << 64;
+            m_buf += static_cast<kmer_t>(m_bv->get_word64(m_pos - 64));
         }
         m_avail = constants::uint_kmer_bits;
     }

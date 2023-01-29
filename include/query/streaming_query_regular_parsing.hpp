@@ -141,7 +141,7 @@ private:
     bool m_start;
     uint64_t m_curr_minimizer, m_curr_minimizer_rc;
     uint64_t m_prev_minimizer, m_prev_minimizer_rc;
-    uint64_t m_kmer, m_kmer_rc;
+    kmer_t m_kmer, m_kmer_rc;
 
     /* constants */
     uint64_t m_shift, m_k, m_m, m_seed;
@@ -223,7 +223,7 @@ private:
             m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
-                uint64_t val = m_string_iterator.read(2 * m_k);
+                kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
                     uint64_t minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
@@ -265,7 +265,7 @@ private:
             m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
-                uint64_t val = m_string_iterator.read(2 * m_k);
+                kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
                     uint64_t minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
