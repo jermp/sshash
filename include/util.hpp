@@ -5,45 +5,9 @@
 #include <fstream>
 #include <cmath>  // for std::ceil on linux
 
-#include "../external/pthash/include/pthash.hpp"
+#include "hash_util.hpp"
 
 namespace sshash {
-
-// typedef uint64_t kmer_t;
-typedef __uint128_t kmer_t;
-
-namespace constants {
-
-constexpr uint64_t uint_kmer_bits = sizeof(kmer_t) * 8;
-
-/* max *odd* size that can be packed into sizeof(kmer_t)*8 bits */
-constexpr uint64_t max_k = sizeof(kmer_t) * 4 - 1;
-
-/* max *odd* size that can be packed into 64 bits */
-constexpr uint64_t max_m = 31;
-
-// constexpr kmer_t invalid_uint_kmer = kmer_t(-1);
-constexpr uint64_t invalid_uint64 = uint64_t(-1);
-constexpr uint32_t invalid_uint32 = uint32_t(-1);
-
-constexpr uint64_t seed = 1;
-constexpr double c = 3.0;  // for PTHash
-constexpr uint64_t min_l = 6;
-constexpr uint64_t max_l = 12;
-static const std::string default_tmp_dirname(".");
-constexpr bool forward_orientation = 0;
-constexpr bool backward_orientation = 1;
-
-}  // namespace constants
-
-typedef pthash::murmurhash2_64 base_hasher_type;
-// typedef pthash::murmurhash2_128 base_hasher_type;
-
-typedef pthash::single_phf<base_hasher_type,               // base hasher
-                           pthash::dictionary_dictionary,  // encoder type
-                           true                            // minimal output
-                           >
-    pthash_mphf_type;
 
 struct streaming_query_report {
     streaming_query_report()
@@ -149,30 +113,6 @@ struct build_configuration {
 
 namespace util {
 
-static inline void check_hash_collision_probability(uint64_t size) {
-    /*
-        From: https://preshing.com/20110504/hash-collision-probabilities/
-        Given a universe of size U (total number of possible hash values),
-        which is U = 2^b for b-bit hash codes,
-        the collision probability for n keys is (approximately):
-            1 - e^{-n(n-1)/(2U)}.
-        For example, for U=2^32 (32-bit hash codes), this probability
-        gets to 50% already for n = 77,163 keys.
-        We can approximate 1-e^{-X} with X when X is sufficiently small.
-        Then our collision probability is
-            n(n-1)/(2U) ~ n^2/(2U).
-        So it can derived that ~1.97B keys and 64-bit hash codes,
-        we have a probability of collision that is ~0.1 (10%), which may not be
-        so small for certain applications.
-        For n = 2^30, the probability of collision is ~0.031 (3.1%).
-    */
-    if (sizeof(base_hasher_type::hash_type) * 8 == 64 and size > (1ULL << 30)) {
-        throw std::runtime_error(
-            "Using 64-bit hash codes with more than 2^30 keys can be dangerous due to "
-            "collisions: use 128-bit hash codes instead.");
-    }
-}
-
 /* return the position of the most significant bit */
 static inline uint32_t msb(uint32_t x) {
     assert(x > 0);
@@ -184,15 +124,6 @@ static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1
 [[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
     if (pattern.size() > str.size()) return false;
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
-}
-
-// for a sorted list of size n whose universe is u
-[[maybe_unused]] static uint64_t elias_fano_bitsize(uint64_t n, uint64_t u) {
-    // return n * ((u > n ? (std::ceil(std::log2(static_cast<double>(u) / n))) : 0) + 2);
-    uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);
-    uint64_t high_bits = n + (u >> l) + 1;
-    uint64_t low_bits = n * l;
-    return high_bits + low_bits;
 }
 
 /*
@@ -297,26 +228,57 @@ static void uint_kmer_to_string_no_reverse(kmer_t x, char* str, uint64_t k) {
 }
 
 /*
-    taken from Blight:
-    it works with the map
-    A -> 00; C -> 01; G -> 11; T -> 10
-    Example:
-    reverse_complement("ACTCACG") = CGTGAGT
-    in binary:
-    reverse_complement("00011001000111") = 01111011001110
+    This works with the map:
+    A -> 00; C -> 01; G -> 11; T -> 10.
+
+    Example.
+    reverse_complement("ACTCACG") = CGTGAGT, in binary:
+    reverse_complement("00.01.10.01.00.01.11") = 01.11.10.11.00.11.10.
 */
-[[maybe_unused]] static uint64_t compute_reverse_complement(uint64_t x, uint64_t size) {
-    assert(size <= 32);
-    // Complement, swap byte order
+template <bool align>
+[[maybe_unused]] static uint64_t crc(uint64_t x, uint64_t k) {
+    assert(k <= 32);
+
+    /* Complement, swap byte order */
     uint64_t res = __builtin_bswap64(x ^ 0xaaaaaaaaaaaaaaaa);
-    // Swap nuc order in bytes
+
+    /* Swap nuc order in bytes */
     const uint64_t c1 = 0x0f0f0f0f0f0f0f0f;
     const uint64_t c2 = 0x3333333333333333;
     res = ((res & c1) << 4) | ((res & (c1 << 4)) >> 4);  // swap 2-nuc order in bytes
     res = ((res & c2) << 2) | ((res & (c2 << 2)) >> 2);  // swap nuc order in 2-nuc
-    // Realign to the right
-    res >>= 64 - 2 * size;
+
+    /* Realign to the right */
+    if constexpr (align) res >>= 64 - 2 * k;
+
     return res;
+}
+
+[[maybe_unused]] static kmer_t compute_reverse_complement(kmer_t x, uint64_t k) {
+    assert(k <= constants::max_k);
+    if constexpr (constants::uint_kmer_bits == 64) {
+        return crc<true>(x, k);
+    } else {
+        assert(constants::uint_kmer_bits == 128);
+        uint64_t low = static_cast<uint64_t>(x);
+        uint64_t high = static_cast<uint64_t>(x >> 64);
+        uint64_t k_low = 32;
+        uint64_t k_high = k - 32;
+        uint64_t shift = 128 - 2 * k;
+        if (k < 32) {
+            k_low = k;
+            k_high = 0;
+            shift = 64;
+        }
+        kmer_t low_rc = crc<true>(low, k_low);
+        kmer_t high_rc = crc<false>(high, k_high);
+        kmer_t res = (low_rc << 64) + high_rc;
+
+        /* Realign to the right */
+        res >>= shift;
+
+        return res;
+    }
 }
 
 // forward character map. A -> A, C -> C, G -> G, T -> T. rest maps to zero.
@@ -364,23 +326,6 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     return true;
 }
 
-struct murmurhash2_64 {
-    /* specialization for kmer_t */
-    static inline uint64_t hash(kmer_t x, uint64_t seed) {
-        if constexpr (sizeof(x) == sizeof(uint64_t)) {
-            return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed);
-        } else {
-            uint64_t low = static_cast<uint64_t>(x);
-            uint64_t high = static_cast<uint64_t>(x >> 64);
-            uint64_t hash = pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low),
-                                                   sizeof(uint64_t), seed) ^
-                            pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high),
-                                                   sizeof(uint64_t), seed);
-            return hash;
-        }
-    }
-};
-
 template <typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m <= constants::max_m);
@@ -389,11 +334,11 @@ uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     kmer_t minimizer = kmer_t(-1);
     kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t sub_kmer = kmer & mask;
-        uint64_t hash = Hasher::hash(sub_kmer, seed);
+        kmer_t mmer = kmer & mask;
+        uint64_t hash = Hasher::hash(mmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
-            minimizer = sub_kmer;
+            minimizer = mmer;
         }
         kmer >>= 2;
     }
@@ -411,11 +356,11 @@ std::pair<uint64_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uin
     kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
     uint64_t pos = 0;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t sub_kmer = kmer & mask;
-        uint64_t hash = Hasher::hash(sub_kmer, seed);
+        kmer_t mmer = kmer & mask;
+        uint64_t hash = Hasher::hash(mmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
-            minimizer = sub_kmer;
+            minimizer = mmer;
             pos = i;
         }
         kmer >>= 2;

@@ -155,7 +155,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         for (uint64_t i = 0; i != lists.size() + 1; ++i) {
             if (i == lists.size() or lists[i].size() > upper) {
                 std::cout << "lower " << lower << "; upper " << upper << "; num_bits_per_pos "
-                          << num_bits_per_pos << std::endl;
+                          << num_bits_per_pos << "; keys_in_partition.size() "
+                          << keys_in_partition.size() << std::endl;
 
                 auto& mphf = m_skew_index.mphfs[partition_id];
                 assert(num_kmers_in_partition[partition_id] == keys_in_partition.size());

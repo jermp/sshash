@@ -36,7 +36,7 @@ struct minimizers {
     }
 
 private:
-    pthash_mphf_type m_mphf;
+    minimizers_pthash_type m_mphf;
 };
 
 }  // namespace sshash

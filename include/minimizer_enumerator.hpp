@@ -46,7 +46,7 @@ private:
     std::vector<T> m_buffer;
 };
 
-template <typename Hasher = util::murmurhash2_64>
+template <typename Hasher = murmurhash2_64>
 struct minimizer_enumerator {
     minimizer_enumerator() {}
 

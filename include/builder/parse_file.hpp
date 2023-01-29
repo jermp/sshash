@@ -164,12 +164,11 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(kmer, k);
             uint64_t minimizer = util::compute_minimizer(uint_kmer, k, m, seed);
 
-            // TODO: generalize to 128-bit integers
-            // if (build_config.canonical_parsing) {
-            //     uint64_t uint64_kmer_rc = util::compute_reverse_complement(uint64_kmer, k);
-            //     uint64_t minimizer_rc = util::compute_minimizer(uint64_kmer_rc, k, m, seed);
-            //     minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
-            // }
+            if (build_config.canonical_parsing) {
+                kmer_t uint_kmer_rc = util::compute_reverse_complement(uint_kmer, k);
+                uint64_t minimizer_rc = util::compute_minimizer(uint_kmer_rc, k, m, seed);
+                minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
+            }
 
             if (prev_minimizer == constants::invalid_uint64) prev_minimizer = minimizer;
             if (minimizer != prev_minimizer) {
