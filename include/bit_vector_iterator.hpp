@@ -33,8 +33,7 @@ struct bit_vector_iterator {
         if (m_avail < l) fill_buf_reverse();
         kmer_t val = 0;
         if (l != constants::uint_kmer_bits) {
-            uint64_t shift = constants::uint_kmer_bits - l;
-            if (l < 64) shift = 64;
+            uint64_t shift = (l >= 64) ? (constants::uint_kmer_bits - l) : 64;
             val = m_buf >> shift;
         } else {
             val = m_buf;

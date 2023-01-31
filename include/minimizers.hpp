@@ -16,6 +16,12 @@ struct minimizers {
         mphf_config.num_threads = 1;
         uint64_t num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
         if (size >= num_threads) mphf_config.num_threads = num_threads;
+
+        if (build_config.verbose) {
+            std::cout << "building minimizers MPHF (PTHash) with " << mphf_config.num_threads
+                      << " threads..." << std::endl;
+        }
+
         mphf_config.ram = 2 * essentials::GB;
         mphf_config.tmp_dir = build_config.tmp_dirname;
         m_mphf.build_in_external_memory(begin, size, mphf_config);
