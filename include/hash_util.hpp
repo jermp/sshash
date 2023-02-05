@@ -18,7 +18,7 @@ struct kmers_pthash_hasher_64 {
             uint64_t high = static_cast<uint64_t>(x >> 64);
             uint64_t hash =
                 pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed) ^
-                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high), seed);
+                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high), ~seed);
             return hash;
         }
     }
@@ -39,10 +39,10 @@ struct kmers_pthash_hasher_128 {
             return {
                 pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed) ^
                     pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high),
-                                           seed),
-                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), ~seed) ^
+                                           ~seed),
+                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed + 1) ^
                     pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high),
-                                           ~seed)};
+                                           ~(seed + 1))};
         }
     }
 };
