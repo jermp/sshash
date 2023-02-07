@@ -81,4 +81,3 @@ avg_nanosec_per_positive_lookup_advanced 1403.96
 avg_nanosec_per_negative_lookup_advanced 1593.5
 avg_nanosec_per_access 427.162
 iterator: avg_nanosec_per_kmer 20.8628
-
