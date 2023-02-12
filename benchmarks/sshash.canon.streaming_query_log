@@ -1,27 +1,27 @@
-2023-02-07 12:43:51: performing queries from file '/data2/DNA/queries/SRR5901135.fastq.gz'...
-2023-02-07 12:45:27: DONE
+2023-02-07 21:35:42: performing queries from file '/data2/DNA/queries/SRR16288382_1.fastq.gz'...
+2023-02-07 21:42:26: DONE
 ==== query report:
-num_kmers = 792953816
-num_positive_kmers = 11201 (0.00141257%)
-num_searches = 10923/11201 (97.5181%)
-num_extensions = 278/11201 (2.48192%)
-elapsed = 96434.8 millisec / 96.4348 sec / 1.60725 min / 121.615 ns/kmer
-2023-02-07 12:45:27: performing queries from file '/data2/DNA/queries/SRR5901135.fastq.gz'...
-2023-02-07 12:46:29: DONE
+num_kmers = 2849620920
+num_positive_kmers = 2475259037 (86.8627%)
+num_searches = 1340695937/2475259037 (54.1639%)
+num_extensions = 1134563100/2475259037 (45.8361%)
+elapsed = 404175 millisec / 404.175 sec / 6.73625 min / 141.835 ns/kmer
+2023-02-07 21:42:26: performing queries from file '/data2/DNA/queries/SRR16288382_1.fastq.gz'...
+2023-02-07 21:47:40: DONE
 ==== query report:
-num_kmers = 719118597
-num_positive_kmers = 0 (0%)
-num_searches = 0/0 (-nan%)
-num_extensions = 0/0 (-nan%)
-elapsed = 61845.9 millisec / 61.8459 sec / 1.03077 min / 86.0024 ns/kmer
-2023-02-07 12:46:29: performing queries from file '/data2/DNA/queries/SRR5901135.fastq.gz'...
-2023-02-07 12:47:21: DONE
+num_kmers = 2469671464
+num_positive_kmers = 1995797497 (80.8123%)
+num_searches = 1050159375/1995797497 (52.6185%)
+num_extensions = 945638122/1995797497 (47.3815%)
+elapsed = 314614 millisec / 314.614 sec / 5.24357 min / 127.391 ns/kmer
+2023-02-07 21:47:40: performing queries from file '/data2/DNA/queries/SRR16288382_1.fastq.gz'...
+2023-02-07 21:53:39: DONE
 ==== query report:
-num_kmers = 646255023
-num_positive_kmers = 0 (0%)
-num_searches = 0/0 (-nan%)
-num_extensions = 0/0 (-nan%)
-elapsed = 52134 millisec / 52.134 sec / 0.8689 min / 80.6709 ns/kmer
+num_kmers = 2089722008
+num_positive_kmers = 1567619555 (75.0157%)
+num_searches = 814271235/1567619555 (51.9432%)
+num_extensions = 753348320/1567619555 (48.0568%)
+elapsed = 359057 millisec / 359.057 sec / 5.98428 min / 171.82 ns/kmer
 
 2023-02-07 12:47:21: performing queries from file '/data2/DNA/queries/SRR12858649.fastq.gz'...
 2023-02-07 12:47:48: DONE

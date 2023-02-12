@@ -2,9 +2,9 @@
 
 ### regular indexes
 
-./sshash query -i celegans.k31.sshash -q /data2/DNA/queries/SRR5901135.fastq.gz >> sshash.regular.streaming_query_log
-./sshash query -i celegans.k47.sshash -q /data2/DNA/queries/SRR5901135.fastq.gz >> sshash.regular.streaming_query_log
-./sshash query -i celegans.k63.sshash -q /data2/DNA/queries/SRR5901135.fastq.gz >> sshash.regular.streaming_query_log
+./sshash query -i celegans.k31.sshash -q /data2/DNA/queries/SRR16288382_1.fastq.gz >> sshash.regular.streaming_query_log
+./sshash query -i celegans.k47.sshash -q /data2/DNA/queries/SRR16288382_1.fastq.gz >> sshash.regular.streaming_query_log
+./sshash query -i celegans.k63.sshash -q /data2/DNA/queries/SRR16288382_1.fastq.gz >> sshash.regular.streaming_query_log
 
 ./sshash query -i cod.k31.sshash -q /data2/DNA/queries/SRR12858649.fastq.gz >> sshash.regular.streaming_query_log
 ./sshash query -i cod.k47.sshash -q /data2/DNA/queries/SRR12858649.fastq.gz >> sshash.regular.streaming_query_log
@@ -20,9 +20,9 @@
 
 ### canonical indexes
 
-./sshash query -i celegans.k31.canon.sshash -q /data2/DNA/queries/SRR5901135.fastq.gz >> sshash.canon.streaming_query_log
-./sshash query -i celegans.k47.canon.sshash -q /data2/DNA/queries/SRR5901135.fastq.gz >> sshash.canon.streaming_query_log
-./sshash query -i celegans.k63.canon.sshash -q /data2/DNA/queries/SRR5901135.fastq.gz >> sshash.canon.streaming_query_log
+./sshash query -i celegans.k31.canon.sshash -q /data2/DNA/queries/SRR16288382_1.fastq.gz >> sshash.canon.streaming_query_log
+./sshash query -i celegans.k47.canon.sshash -q /data2/DNA/queries/SRR16288382_1.fastq.gz >> sshash.canon.streaming_query_log
+./sshash query -i celegans.k63.canon.sshash -q /data2/DNA/queries/SRR16288382_1.fastq.gz >> sshash.canon.streaming_query_log
 
 ./sshash query -i cod.k31.canon.sshash -q /data2/DNA/queries/SRR12858649.fastq.gz >> sshash.canon.streaming_query_log
 ./sshash query -i cod.k47.canon.sshash -q /data2/DNA/queries/SRR12858649.fastq.gz >> sshash.canon.streaming_query_log
