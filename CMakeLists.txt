@@ -51,13 +51,13 @@ set(SSHASH_SOURCES
   include/info.cpp
   include/dump.cpp
   include/statistics.cpp
+  include/builder/build.cpp
 )
 
 # Create a static lib
 add_library(sshash_static STATIC
   ${Z_LIB_SOURCES}
   ${SSHASH_SOURCES}
-  include/builder/build.cpp
 )
 
 add_executable(sshash src/sshash.cpp)
