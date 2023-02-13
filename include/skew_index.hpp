@@ -18,7 +18,7 @@ struct skew_index {
 
     bool empty() const { return mphfs.empty(); }
 
-    uint64_t lookup(uint64_t uint64_kmer, uint64_t log2_bucket_size) const {
+    uint64_t lookup(kmer_t uint_kmer, uint64_t log2_bucket_size) const {
         assert(log2_bucket_size >= uint64_t(min_log2 + 1));
         assert(log2_bucket_size <= log2_max_num_super_kmers_in_bucket);
         uint64_t partition_id = log2_bucket_size - (min_log2 + 1);
@@ -27,7 +27,7 @@ struct skew_index {
         }
         auto const& mphf = mphfs[partition_id];
         auto const& P = positions[partition_id];
-        uint64_t position = P.access(mphf(uint64_kmer));
+        uint64_t position = P.access(mphf(uint_kmer));
         return position;
     }
 
@@ -54,7 +54,7 @@ struct skew_index {
     uint16_t min_log2;
     uint16_t max_log2;
     uint32_t log2_max_num_super_kmers_in_bucket;
-    std::vector<pthash_mphf_type> mphfs;
+    std::vector<kmers_pthash_type> mphfs;
     std::vector<pthash::compact_vector> positions;
 };
 

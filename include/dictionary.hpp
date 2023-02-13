@@ -26,14 +26,14 @@ struct dictionary {
     bool weighted() const { return !m_weights.empty(); }
 
     /* Lookup queries. Return the kmer_id of the kmer or -1 if it is not found in the dictionary. */
-    uint64_t lookup(char const* string_kmer, bool check_reverse_complement_too = true) const;
-    uint64_t lookup_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
+    uint64_t lookup(char const* string_kmer, bool check_reverse_complement = true) const;
+    uint64_t lookup_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
     /* Advanced lookup queries. Return also contig information. */
     lookup_result lookup_advanced(char const* string_kmer,
-                                  bool check_reverse_complement_too = true) const;
-    lookup_result lookup_advanced_uint64(uint64_t uint64_kmer,
-                                         bool check_reverse_complement_too = true) const;
+                                  bool check_reverse_complement = true) const;
+    lookup_result lookup_advanced_uint(kmer_t uint_kmer,
+                                       bool check_reverse_complement = true) const;
 
     /* Return the number of kmers in contig. Since contigs do not have duplicates,
        the length of the contig is always size + k - 1. */
@@ -41,13 +41,13 @@ struct dictionary {
 
     /* Navigational queries. */
     neighbourhood kmer_forward_neighbours(char const* string_kmer) const;
-    neighbourhood kmer_forward_neighbours(uint64_t uint64_kmer) const;
+    neighbourhood kmer_forward_neighbours(kmer_t uint_kmer) const;
     neighbourhood kmer_backward_neighbours(char const* string_kmer) const;
-    neighbourhood kmer_backward_neighbours(uint64_t uint64_kmer) const;
+    neighbourhood kmer_backward_neighbours(kmer_t uint_kmer) const;
 
     /* forward and backward */
     neighbourhood kmer_neighbours(char const* string_kmer) const;
-    neighbourhood kmer_neighbours(uint64_t uint64_kmer) const;
+    neighbourhood kmer_neighbours(kmer_t uint_kmer) const;
     neighbourhood contig_neighbours(uint64_t contig_id) const;
 
     /* Return the weight of the kmer given its id. */
@@ -57,8 +57,8 @@ struct dictionary {
     void access(uint64_t kmer_id, char* string_kmer) const;
 
     /* Membership queries. */
-    bool is_member(char const* string_kmer, bool check_reverse_complement_too = true) const;
-    bool is_member_uint64(uint64_t uint64_kmer, bool check_reverse_complement_too = true) const;
+    bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
+    bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
     /* Streaming queries. */
     friend struct streaming_query_canonical_parsing;
@@ -114,10 +114,10 @@ private:
     skew_index m_skew_index;
     weights m_weights;
 
-    lookup_result lookup_uint64_regular_parsing(uint64_t uint64_kmer) const;
-    lookup_result lookup_uint64_canonical_parsing(uint64_t uint64_kmer) const;
-    void forward_neighbours(uint64_t suffix, neighbourhood& res) const;
-    void backward_neighbours(uint64_t prefix, neighbourhood& res) const;
+    lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
+    lookup_result lookup_uint_canonical_parsing(kmer_t uint_kmer) const;
+    void forward_neighbours(kmer_t suffix, neighbourhood& res) const;
+    void backward_neighbours(kmer_t prefix, neighbourhood& res) const;
 };
 
 }  // namespace sshash

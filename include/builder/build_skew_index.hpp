@@ -89,7 +89,6 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                               << " and <= " << upper << std::endl;
                     throw empty_bucket_runtime_error();
                 }
-                util::check_hash_collision_probability(num_kmers_in_partition[partition_id]);
                 num_kmers_in_skew_index += num_kmers_in_partition[partition_id];
                 partition_id += 1;
 
@@ -144,7 +143,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         uint64_t num_bits_per_pos = min_log2_size + 1;
 
         /* tmp storage for keys and super_kmer_ids ******/
-        std::vector<uint64_t> keys_in_partition;
+        std::vector<kmer_t> keys_in_partition;
         std::vector<uint32_t> super_kmer_ids_in_partition;
         keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
         super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
@@ -155,7 +154,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         for (uint64_t i = 0; i != lists.size() + 1; ++i) {
             if (i == lists.size() or lists[i].size() > upper) {
                 std::cout << "lower " << lower << "; upper " << upper << "; num_bits_per_pos "
-                          << num_bits_per_pos << std::endl;
+                          << num_bits_per_pos << "; keys_in_partition.size() "
+                          << keys_in_partition.size() << std::endl;
 
                 auto& mphf = m_skew_index.mphfs[partition_id];
                 assert(num_kmers_in_partition[partition_id] == keys_in_partition.size());
@@ -168,7 +168,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                           << static_cast<double>(mphf.num_bits()) / mphf.num_keys() << std::endl;
 
                 for (uint64_t i = 0; i != keys_in_partition.size(); ++i) {
-                    uint64_t kmer = keys_in_partition[i];
+                    kmer_t kmer = keys_in_partition[i];
                     uint64_t pos = mphf(kmer);
                     uint32_t super_kmer_id = super_kmer_ids_in_partition[i];
                     cvb_positions.set(pos, super_kmer_id);
@@ -204,7 +204,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
             for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
                 bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
                 for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
-                    uint64_t kmer = bv_it.read(2 * build_config.k);
+                    kmer_t kmer = bv_it.read(2 * build_config.k);
                     keys_in_partition.push_back(kmer);
                     super_kmer_ids_in_partition.push_back(super_kmer_id);
                     bv_it.eat(2);

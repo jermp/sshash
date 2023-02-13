@@ -52,10 +52,10 @@ struct streaming_query_canonical_parsing {
         /* 2. compute kmer and minimizer */
         if (!m_start) {
             m_kmer >>= 2;
-            m_kmer += (util::char_to_uint64(kmer[m_k - 1])) << m_shift;
-            assert(m_kmer == util::string_to_uint64_no_reverse(kmer, m_k));
+            m_kmer += (util::char_to_uint(kmer[m_k - 1])) << m_shift;
+            assert(m_kmer == util::string_to_uint_kmer_no_reverse(kmer, m_k));
         } else {
-            m_kmer = util::string_to_uint64_no_reverse(kmer, m_k);
+            m_kmer = util::string_to_uint_kmer_no_reverse(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
         assert(m_curr_minimizer == util::compute_minimizer(m_kmer, m_k, m_m, m_seed));
@@ -107,7 +107,7 @@ private:
     bool m_minimizer_not_found;
     bool m_start;
     uint64_t m_curr_minimizer, m_prev_minimizer;
-    uint64_t m_kmer, m_kmer_rc;
+    kmer_t m_kmer, m_kmer_rc;
 
     /* constants */
     uint64_t m_shift, m_k, m_m, m_seed;
@@ -165,10 +165,10 @@ private:
             m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
-                uint64_t val = m_string_iterator.read(2 * m_k);
+                kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    uint64_t val_rc = util::compute_reverse_complement(val, m_k);
+                    kmer_t val_rc = util::compute_reverse_complement(val, m_k);
                     uint64_t minimizer =
                         std::min<uint64_t>(util::compute_minimizer(val, m_k, m_m, m_seed),
                                            util::compute_minimizer(val_rc, m_k, m_m, m_seed));

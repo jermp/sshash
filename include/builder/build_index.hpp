@@ -1,6 +1,7 @@
 #pragma once
 
 #include "file_merging_iterator.hpp"
+#include "../buckets_statistics.hpp"
 
 namespace sshash {
 

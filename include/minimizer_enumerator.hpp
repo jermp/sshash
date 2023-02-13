@@ -2,6 +2,8 @@
 
 #include <vector>
 
+#include "kmer.hpp"
+
 namespace sshash {
 
 template <typename T>
@@ -46,7 +48,7 @@ private:
     std::vector<T> m_buffer;
 };
 
-template <typename Hasher = util::murmurhash2_64>
+template <typename Hasher = murmurhash2_64>
 struct minimizer_enumerator {
     minimizer_enumerator() {}
 
@@ -55,35 +57,35 @@ struct minimizer_enumerator {
         , m_m(m)
         , m_seed(seed)
         , m_position(0)
-        , m_mask((1ULL << (2 * m_m)) - 1)
+        , m_mask((kmer_t(1) << (2 * m_m)) - 1)
         , m_q(k - m + 1) /* deque cannot contain more than k - m + 1 elements  */
     {}
 
     template <bool reverse = false>
-    uint64_t next(uint64_t kmer, bool clear) {
+    uint64_t next(kmer_t kmer, bool clear) {
         if (clear) {
             if constexpr (reverse) {
                 for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
-                    uint64_t minimizer = (kmer >> (2 * (m_k - m_m - i))) & m_mask;
-                    eat(minimizer);
+                    uint64_t mmer = static_cast<uint64_t>((kmer >> (2 * (m_k - m_m - i))) & m_mask);
+                    eat(mmer);
                 }
             } else {
                 for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
-                    uint64_t minimizer = kmer & m_mask;
+                    uint64_t mmer = static_cast<uint64_t>(kmer & m_mask);
                     kmer >>= 2;
-                    eat(minimizer);
+                    eat(mmer);
                 }
             }
         } else {
             if constexpr (reverse) {
-                uint64_t minimizer = kmer & m_mask;
-                eat(minimizer);
+                uint64_t mmer = static_cast<uint64_t>(kmer & m_mask);
+                eat(mmer);
             } else {
-                uint64_t minimizer = kmer >> (2 * (m_k - m_m));
-                eat(minimizer);
+                uint64_t mmer = static_cast<uint64_t>(kmer >> (2 * (m_k - m_m)));
+                eat(mmer);
             }
         }
-        return m_q.front().minimizer;
+        return m_q.front().value;
     }
 
 private:
@@ -93,18 +95,19 @@ private:
     uint64_t m_position;
     uint64_t m_mask;
 
-    struct minimizer_t {
-        minimizer_t() {}
-        minimizer_t(uint64_t h, uint64_t p, uint64_t m) : hash(h), position(p), minimizer(m) {}
-        uint64_t hash, position, minimizer;
+    struct mmer_t {
+        mmer_t() {}
+        mmer_t(uint64_t hash, uint64_t position, uint64_t value)
+            : hash(hash), position(position), value(value) {}
+        uint64_t hash, position, value;
     };
 
-    /* NOTE: we could use a std::deque<minimizer_t> here,
+    /* NOTE: we could use a std::deque<mmer_t> here,
              but std::deque is terribly space-inefficient. */
-    fixed_size_deque<minimizer_t> m_q;
+    fixed_size_deque<mmer_t> m_q;
 
-    void eat(uint64_t minimizer) {
-        uint64_t hash = Hasher::hash(minimizer, m_seed);
+    void eat(uint64_t mmer) {
+        uint64_t hash = Hasher::hash(mmer, m_seed);
 
         /* Removes from front elements which are no longer in the window */
         while (!m_q.empty() and m_position + m_m - 1 >= m_k and
@@ -114,7 +117,7 @@ private:
         /* Removes from back elements which are no longer useful */
         while (!m_q.empty() and hash < m_q.back().hash) m_q.pop_back();
 
-        m_q.push_back({hash, m_position, minimizer});
+        m_q.push_back({hash, m_position, mmer});
         m_position += 1;
     }
 };

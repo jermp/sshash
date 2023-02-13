@@ -43,7 +43,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Build a Dictionary](#build-a-dictionary)
 * [Examples](#Examples)
 * [Input Files](#input-files)
-* [Large-Scale Benchmark](#large-scale-benchmark)
+* [Benchmarks](#benchmarks)
 * [Author](#author)
 * [References](#references)
 
@@ -179,7 +179,13 @@ Examples
 
 For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
-These collections were built for k = 31, so dictionaries should be built with k = 31 as well to ensure correctness.
+The value of k used during the formation of the unitigs
+is indicated in the name of each file and the dictionaries
+should be built with that value as well to ensure correctness.
+
+For example, `data/unitigs_stitched/ecoli4_k31_ust.fa.gz` indicates the value k = 31, whereas `data/unitigs_stitched/se.ust.k63.fa.gz` indicates the value k = 63.
+
+For all the examples below, we are going to use k = 31.
 
 (The subdirectory `../data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
 
@@ -233,8 +239,7 @@ and the one just built (Example 3, canonical).
     index size: 10.3981 [MB] (6.36232 [bits/kmer])
     ==== query report:
     num_kmers = 460000
-    num_valid_kmers = 459143 (99.8137% of kmers)
-    num_positive_kmers = 46 (0.0100187% of valid kmers)
+    num_positive_kmers = 46 (0.01%)
     num_searches = 42/46 (91.3043%)
     num_extensions = 4/46 (8.69565%)
     elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
@@ -243,8 +248,7 @@ and the one just built (Example 3, canonical).
     index size: 11.0657 [MB] (6.77083 [bits/kmer])
     ==== query report:
     num_kmers = 460000
-    num_valid_kmers = 459143 (99.8137% of kmers)
-    num_positive_kmers = 46 (0.0100187% of valid kmers)
+    num_positive_kmers = 46 (0.01%)
     num_searches = 42/46 (91.3043%)
     num_extensions = 4/46 (8.69565%)
     elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer
@@ -305,9 +309,12 @@ the datasets that we used in [1].
 #### Weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
 
+Benchmarks
+----------
 
-Large-Scale Benchmark
----------------------
+For some example benchmarks, see the folder `/benchmarks`.
+
+Some more large-scale benchmarks below.
 
 *Pinus Taeda* ("pine", [GCA_000404065.3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/404/065/GCA_000404065.3_Ptaeda2.0/GCA_000404065.3_Ptaeda2.0_genomic.fna.gz)) and *Ambystoma Mexicanum* ("axolotl", [GCA_002915635.2](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/915/635/GCA_002915635.3_AmbMex60DD/GCA_002915635.3_AmbMex60DD_genomic.fna.gz))
 are some of the largest genome assemblies, respectively counting
