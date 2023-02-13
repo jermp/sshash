@@ -43,7 +43,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Build a Dictionary](#build-a-dictionary)
 * [Examples](#Examples)
 * [Input Files](#input-files)
-* [Large-Scale Benchmark](#large-scale-benchmark)
+* [Benchmarks](#benchmarks)
 * [Author](#author)
 * [References](#references)
 
@@ -303,9 +303,12 @@ the datasets that we used in [1].
 #### Weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
 
+Benchmarks
+----------
 
-Large-Scale Benchmark
----------------------
+For some example benchmarks, see the folder `/benchmarks`.
+
+Some more large-scale benchmarks below.
 
 *Pinus Taeda* ("pine", [GCA_000404065.3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/404/065/GCA_000404065.3_Ptaeda2.0/GCA_000404065.3_Ptaeda2.0_genomic.fna.gz)) and *Ambystoma Mexicanum* ("axolotl", [GCA_002915635.2](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/915/635/GCA_002915635.3_AmbMex60DD/GCA_002915635.3_AmbMex60DD_genomic.fna.gz))
 are some of the largest genome assemblies, respectively counting
