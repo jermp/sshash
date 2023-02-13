@@ -179,7 +179,13 @@ Examples
 
 For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
-These collections were built for k = 31, so dictionaries should be built with k = 31 as well to ensure correctness.
+The value of k used during the formation of the unitigs
+is indicated in the name of each file and the dictionaries
+should be built with that value as well to ensure correctness.
+
+For example, `data/unitigs_stitched/ecoli4_k31_ust.fa.gz` indicates the value k = 31, whereas `data/unitigs_stitched/se.ust.k63.fa.gz` indicates the value k = 63.
+
+For all the examples below, we are going to use k = 31.
 
 (The subdirectory `../data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
 
