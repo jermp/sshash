@@ -110,7 +110,7 @@ Run `./sshash` as follows to see a list of available tools.
       check                  check correctness of a dictionary
       bench                  run performance tests for a dictionary
       dump                   write super-k-mers of a dictionary to a fasta file
-      permute                permute an weighted input file
+      permute                permute a weighted input file
       compute-statistics     compute index statistics
 
 
@@ -259,7 +259,7 @@ even on this tiny example, for only +0.4 bits/k-mer.
 
 ### Example 4
 
-    ./sshash permute -i ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz -k 31 -o ecoli_sakai.permuted.fa
+    ./sshash permute -i ../data/unitigs_stitched/with_weights/ecoli_sakai.ust.k31.fa.gz -k 31 -o ecoli_sakai.permuted.fa
 
 This command re-orders (and possibly reverse-complement) the strings in the collection as to *minimize* the number of runs in the weights and, hence, optimize the encoding of the weights.
 The result is saved to the file `ecoli_sakai.permuted.fa`.
@@ -275,7 +275,7 @@ optimizes the storage space for the weights which results in a 15.1X better spac
 
 For reference, the index built on the original collection:
 
-    ./sshash build -i ../data/unitigs_stitched/with_weights/ecoli_sakai.BA000007.3.k31_ust.weights.fa.gz -k 31 -m 13 --weighted --verbose
+    ./sshash build -i ../data/unitigs_stitched/with_weights/ecoli_sakai.ust.k31.fa.gz -k 31 -m 13 --weighted --verbose
 
 already achieves a 12.4X better space than the empirical entropy.
 

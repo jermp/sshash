@@ -1,12 +1,15 @@
-#include <iostream>
+#pragma once
 
-#include "../include/gz/zip_stream.hpp"
-#include "../external/pthash/external/essentials/include/essentials.hpp"
-#include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
-#include "../include/cover.hpp"
-#include "../include/builder/util.hpp"
+#include "../../external/pthash/include/pthash.hpp"
+#include "../../external/pthash/external/cmd_line_parser/include/parser.hpp"
+#include "../../external/pthash/external/essentials/include/essentials.hpp"
+#include "../gz/zip_stream.hpp"
+#include "../gz/zip_stream.cpp"
+#include "../builder/util.hpp"
 
-using namespace sshash;
+#include "node.hpp"
+
+namespace sshash {
 
 struct permute_data {
     permute_data() : num_runs_weights(0), num_sequences(0) {}
@@ -21,11 +24,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     uint64_t num_bases = 0;
     uint64_t num_kmers = 0;
     uint64_t seq_len = 0;
-
     uint64_t sum_of_weights = 0;
-    uint64_t num_sequences_diff_weights = 0;  // num sequences whose kmers have different weights
-    uint64_t num_sequences_all_mfw = 0;       // num sequences whose kmers have same weight == mfw
-
     data.num_runs_weights = 0;
     data.num_sequences = 0;
 
@@ -38,8 +37,8 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         /*
             Heder format:
             >[id] LN:i:[seq_len] ab:Z:[ab_seq]
-            where [ab_seq] is a space-separated sequence of integer counters (the weights),
-            whose length is equal to [seq_len]-k+1
+            where [ab_seq] is a space-separated sequence of integer counters (the
+           weights), whose length is equal to [seq_len]-k+1
         */
 
         // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
@@ -68,8 +67,6 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
         expect(sequence[i + 4], ':');
         i += 5;
 
-        bool kmers_have_all_mfw = true;
-        bool kmers_have_different_weights = false;
         uint64_t front = constants::invalid_uint64;
         uint64_t back = constants::invalid_uint64;
 
@@ -84,21 +81,13 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
             if (j == 0) front = weight;
             if (j == seq_len - k) back = weight;
 
-            /* accumulate statistics */
-            if (weight != constants::most_frequent_weight) kmers_have_all_mfw = false;
-            if (j > 0 and weight != prev_weight) kmers_have_different_weights = true;
-
             /* count the number of runs */
             if (weight != prev_weight) data.num_runs_weights += 1;
 
             prev_weight = weight;
         }
 
-        num_sequences_diff_weights += kmers_have_different_weights;
-        num_sequences_all_mfw += kmers_have_all_mfw;
-
-        constexpr bool sign = true;
-        data.nodes.emplace_back(data.num_sequences, front, back, sign);
+        data.nodes.emplace_back(data.num_sequences, front, back);
     };
 
     while (!is.eof()) {
@@ -128,94 +117,12 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
 
     std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
               << num_kmers << " kmers" << std::endl;
-    std::cout << "found " << distinct_weights.size() << " distinct weights" << std::endl;
+    std::cout << distinct_weights.size() << " distinct weights" << std::endl;
     std::cout << "sum_of_weights " << sum_of_weights << std::endl;
-    std::cout << "num_sequences whose kmers have different weights: " << num_sequences_diff_weights
-              << "/" << data.num_sequences << " ("
-              << (num_sequences_diff_weights * 100.0) / data.num_sequences << "%)" << std::endl;
-    std::cout << "num_sequences whose kmers all have the same weight != mfw: "
-              << (data.num_sequences - num_sequences_diff_weights) << "/" << data.num_sequences
-              << " ("
-              << ((data.num_sequences - num_sequences_diff_weights) * 100.0) / data.num_sequences
-              << "%)" << std::endl;
-    std::cout << "num_sequences whose kmers all have the same weight == mfw: "
-              << num_sequences_all_mfw << "/" << (data.num_sequences - num_sequences_diff_weights)
-              << " ("
-              << (num_sequences_all_mfw * 100.0) / (data.num_sequences - num_sequences_diff_weights)
-              << "%)" << std::endl;
-
-    /* computation of lower bound to the number of final weight runs */
-    {
-        struct info {
-            /* how many times an end-point weight appears */
-            uint32_t freq;
-
-            /* if this flag is true, then the weight w always appears in nodes of the form
-            (w,w) and its freq is always even. */
-            bool all_equal;
-        };
-
-        std::unordered_map<uint32_t, info> endpoint_weights;
-
-        for (auto const& node : data.nodes) {
-            uint64_t front = node.front;
-            uint64_t back = node.back;
-            {
-                auto it = endpoint_weights.find(front);
-                if (it == endpoint_weights.cend()) {
-                    endpoint_weights[front] = {1, true};
-                } else {
-                    (*it).second.freq += 1;
-                }
-            }
-            {
-                auto it = endpoint_weights.find(back);
-                if (it == endpoint_weights.cend()) {
-                    endpoint_weights[back] = {1, true};
-                } else {
-                    (*it).second.freq += 1;
-                }
-            }
-            if (front != back) {
-                endpoint_weights[back].all_equal = false;
-                endpoint_weights[front].all_equal = false;
-            }
-        }
-
-        uint64_t sum_of_freqs = 0;
-        uint64_t num_endpoints = 0;
-        for (auto const& p : endpoint_weights) {
-            uint64_t freq = p.second.freq;
-            sum_of_freqs += freq;
-
-            /* special case: weight will appear as singleton, so count twice */
-            if (p.second.all_equal) {
-                num_endpoints += 2;
-                continue;
-            }
-
-            /* if the excess of frequency is odd, then the weight will appear as end-point */
-            if (freq % 2 == 1) num_endpoints += 1;
-        }
-
-        assert(sum_of_freqs == 2 * data.num_sequences);
-        assert(num_endpoints % 2 == 0);
-        (void)sum_of_freqs;
-        uint64_t num_distinct_weights = distinct_weights.size();
-        uint64_t num_switch_points = data.num_runs_weights - data.nodes.size();
-        uint64_t num_walks = num_endpoints / 2;
-        std::cout << "(estimated) num_walks = " << num_walks << std::endl;
-        std::cout << "num_runs_weights = " << data.num_runs_weights << std::endl;
-        std::cout << "num_switch_points = " << num_switch_points << std::endl;
-
-        uint64_t R_lo = std::max<uint64_t>(num_distinct_weights, num_switch_points + 1);
-        uint64_t R_hi = num_switch_points + num_walks;
-        std::cout << "R_lo = " << R_lo << std::endl;
-        std::cout << "R_hi = " << R_hi << std::endl;
-    }
 }
 
-permute_data parse_file(std::string const& filename, build_configuration const& build_config) {
+permute_data parse_weighted_file(std::string const& filename,
+                                 build_configuration const& build_config) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     std::cout << "reading file '" << filename << "'..." << std::endl;
@@ -261,9 +168,9 @@ private:
 
 void reverse_header(std::string const& input, std::string& output, uint64_t k) {
     // Example header:
-    // >2 LN:i:61 ab:Z:4 4 4 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 1
-    // Expected output:
-    // >2 LN:i:61 ab:Z:1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 4 4 4
+    // >2 LN:i:61 ab:Z:4 4 4 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    // 1 Expected output: >2 LN:i:61 ab:Z:1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2
+    // 2 2 2 2 2 2 2 2 4 4 4
 
     /* skip validation of input string */
 
@@ -362,7 +269,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         buffer.emplace_back(header_sequence, dna_sequence);
         num_bases += dna_sequence.size();
 
-        if (i != 0 and i % 100000 == 0) {
+        if (i != 0 and i % 1000000 == 0) {
             std::cout << "read " << i << " sequences, " << num_bases << " bases" << std::endl;
         }
     }
@@ -425,7 +332,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
             auto const& it = iterators[idx_heap.front()];
             out << it.header() << '\n' << it.sequence() << '\n';
             num_written_sequences += 1;
-            if (num_written_sequences % 100000 == 0) {
+            if (num_written_sequences % 1000000 == 0) {
                 std::cout << "written sequences = " << num_written_sequences << "/" << num_sequences
                           << std::endl;
             }
@@ -460,84 +367,4 @@ void permute_and_write(std::string const& input_filename, std::string const& out
     is.close();
 }
 
-int permute(int argc, char** argv) {
-    cmd_line_parser::parser parser(argc, argv);
-
-    /* Required arguments. */
-    parser.add("input_filename",
-               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
-               "\t- without duplicate nor invalid kmers\n"
-               "\t- one DNA sequence per line\n"
-               "\t- with also kmers' weights.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
-               "-i", true);
-    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
-               true);
-
-    /* Optional arguments. */
-    parser.add("output_filename", "Output file where the permuted collection will be written.",
-               "-o", false);
-    parser.add("tmp_dirname",
-               "Temporary directory used for merging in external memory. Default is directory '" +
-                   constants::default_tmp_dirname + "'.",
-               "-d", false);
-
-    if (!parser.parse()) return 1;
-
-    auto input_filename = parser.get<std::string>("input_filename");
-    auto k = parser.get<uint64_t>("k");
-
-    build_configuration build_config;
-    build_config.k = k;
-
-    std::string output_filename = input_filename + ".permuted";
-    if (parser.parsed("output_filename")) {
-        output_filename = parser.get<std::string>("output_filename");
-    }
-
-    std::string tmp_dirname = constants::default_tmp_dirname;
-    if (parser.parsed("tmp_dirname")) tmp_dirname = parser.get<std::string>("tmp_dirname");
-
-    std::string permutation_filename = tmp_dirname + "/tmp.permutation";
-
-    auto data = parse_file(input_filename, build_config);
-
-    {
-        /* compute cover */
-        cover c(data.num_sequences, data.num_runs_weights);
-        assert(data.nodes.size() == data.num_sequences);
-        c.compute(data.nodes);
-        c.save(permutation_filename);
-        std::vector<node>().swap(data.nodes);
-    }
-
-    pthash::compact_vector permutation;
-    pthash::bit_vector signs;
-    {
-        std::ifstream is(permutation_filename.c_str());
-        if (!is.good()) {
-            throw std::runtime_error("error in opening the file '" + permutation_filename + "'");
-        }
-        pthash::compact_vector::builder cv_builder(
-            data.num_sequences,
-            data.num_sequences == 1 ? 1 : std::ceil(std::log2(data.num_sequences)));
-        pthash::bit_vector_builder bv_builder(data.num_sequences);
-        for (uint64_t i = 0; i != data.num_sequences; ++i) {
-            uint64_t position = 0;
-            bool sign = 0;
-            is >> position;
-            is >> sign;
-            cv_builder.set(position, i);
-            bv_builder.set(position, sign);
-        }
-        is.close();
-        cv_builder.build(permutation);
-        signs.build(&bv_builder);
-    }
-
-    /* permute and save to output file */
-    permute_and_write(input_filename, output_filename, tmp_dirname, permutation, signs, k);
-    std::remove(permutation_filename.c_str());
-
-    return 0;
-}
+}  // namespace sshash

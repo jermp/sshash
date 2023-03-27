@@ -1,8 +1,5 @@
 #pragma once
 
-#include "../external/pthash/external/essentials/include/essentials.hpp"
-#include "common.hpp"
-
 namespace sshash {
 
 void perf_test_iterator(dictionary const& dict) {
