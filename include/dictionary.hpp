@@ -102,7 +102,9 @@ struct dictionary {
         visitor.visit(m_skew_index);
         visitor.visit(m_weights);
     }
-
+    
+    const pthash::bit_vector& strings() const { return m_buckets.strings; }
+    
 private:
     uint64_t m_size;
     uint64_t m_seed;
