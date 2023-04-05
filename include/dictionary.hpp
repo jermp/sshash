@@ -85,6 +85,8 @@ struct dictionary {
         return iterator(this, kmer_id);
     }
 
+    pthash::bit_vector const& strings() const { return m_buckets.strings; }
+
     uint64_t num_bits() const;
     void print_info() const;
     void print_space_breakdown() const;
@@ -102,9 +104,7 @@ struct dictionary {
         visitor.visit(m_skew_index);
         visitor.visit(m_weights);
     }
-    
-    const pthash::bit_vector& strings() const { return m_buckets.strings; }
-    
+
 private:
     uint64_t m_size;
     uint64_t m_seed;
