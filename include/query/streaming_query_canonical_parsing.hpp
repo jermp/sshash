@@ -13,8 +13,6 @@ struct streaming_query_canonical_parsing {
 
         , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
         , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
-        , m_minimizer_not_found(false)
-        , m_start(true)
         , m_curr_minimizer(constants::invalid_uint64)
         , m_prev_minimizer(constants::invalid_uint64)
         , m_kmer(constants::invalid_uint64)
@@ -36,16 +34,20 @@ struct streaming_query_canonical_parsing {
         , m_num_extensions(0)
 
     {
+        start();
         assert(m_dict->m_canonical_parsing);
     }
 
-    inline void start() { m_start = true; }
+    inline void start() {
+        m_start = true;
+        m_minimizer_not_found = false;
+    }
 
     lookup_result lookup_advanced(const char* kmer) {
         /* 1. validation */
         bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
-            m_start = true;
+            start();
             return lookup_result();
         }
 
@@ -66,7 +68,10 @@ struct streaming_query_canonical_parsing {
         m_curr_minimizer = std::min<uint64_t>(m_curr_minimizer, minimizer_rc);
 
         /* 3. compute result */
-        if (same_minimizer()) {
+        if (m_start) {
+            locate_bucket();
+            lookup_advanced();
+        } else if (same_minimizer()) {
             if (!m_minimizer_not_found) {
                 if (extends()) {
                     extend();
