@@ -67,7 +67,9 @@ int compute_statistics(int argc, char** argv) {
 }
 
 int help(char* arg0) {
-    std::cout << "(S)parse and (S)kew (Hash)ing of k-mers" << std::endl << std::endl;
+    std::cout << "== SSHash: (S)parse and (S)kew (Hash)ing of k-mers ========================="
+              << std::endl
+              << std::endl;
     std::cout << "Usage: " << arg0 << " <tool> ...\n\n"
               << "Available tools:\n"
               << "  build              \t build a dictionary \n"
