@@ -152,7 +152,7 @@ bool basic_zip_streambuf<CharT, Traits>::zip_to_stream(char* buffer, std::stream
     // LOG << "basic_zip_streambuf::zip_to_stream()"
     //     << " buffer_size=" << buffer_size;
 
-    std::streamsize written_byte_size = 0, total_written_byte_size = 0;
+    std::streamsize written_byte_size = 0;  //, total_written_byte_size = 0;
 
     zip_stream_.next_in = reinterpret_cast<byte_type*>(buffer);
     zip_stream_.avail_in = static_cast<uInt>(buffer_size);
@@ -168,7 +168,7 @@ bool basic_zip_streambuf<CharT, Traits>::zip_to_stream(char* buffer, std::stream
         if (err_ == Z_OK || err_ == Z_STREAM_END) {
             written_byte_size =
                 static_cast<std::streamsize>(output_buffer_.size()) - zip_stream_.avail_out;
-            total_written_byte_size += written_byte_size;
+            // total_written_byte_size += written_byte_size;
 
             // output buffer is full, dumping to ostream
             ostream_.write(reinterpret_cast<const char*>(output_buffer_.data()),

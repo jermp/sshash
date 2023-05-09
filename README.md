@@ -100,7 +100,7 @@ Tools
 There is one executable called `sshash` after the compilation, which can be used to run a tool.
 Run `./sshash` as follows to see a list of available tools.
 
-    (S)parse and (S)kew (Hash)ing of k-mers
+    == SSHash: (S)parse and (S)kew (Hash)ing of k-mers =========================
 
     Usage: ./sshash <tool> ...
 
