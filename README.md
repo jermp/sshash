@@ -206,7 +206,7 @@ use:
 
 To also store the weights, use the option `--weighted`:
 
-    ./sshash build -i ../data/unitigs_stitched/with_weights/salmonella_enterica_k31_ust.weights.fa.gz -k 31 -m 13 --weighted --check --verbose
+    ./sshash build -i ../data/unitigs_stitched/with_weights/salmonella_enterica.ust.k31.fa.gz -k 31 -m 13 --weighted --check --verbose
 
 ### Example 2
 
