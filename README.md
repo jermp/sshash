@@ -1,4 +1,6 @@
 [![CodeQL](https://github.com/jermp/sshash/actions/workflows/codeql.yml/badge.svg)](https://github.com/jermp/sshash/actions/workflows/codeql.yml)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7772316.svg)](https://doi.org/10.5281/zenodo.7772316)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7239205.svg)](https://doi.org/10.5281/zenodo.7239205)
 
 SSHash
 ======
@@ -9,9 +11,9 @@ This is a compressed dictionary data structure for k-mers
 The data structure is described in the following papers:
 
 * [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245) [1]
-* [On Weighted K-Mers Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043) [2]
+* [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
 
-Please, cite these papers if you use SSHash.
+**Please, cite these papers if you use SSHash.**
 
 For a dictionary of n k-mers,
 two basic queries are supported:
@@ -302,9 +304,12 @@ Below we provide a complete example (assuming both BCALM2 and UST are installed 
     rm ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
 
 #### Datasets
+
 The script `scripts/download_and_preprocess_datasets.sh`
 contains all the needed steps to download and pre-process
 the datasets that we used in [1].
+
+For the experiments in [2] and [3], we used the datasets available on [Zenodo](https://doi.org/10.5281/zenodo.7772316).
 
 #### Weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
@@ -398,3 +403,4 @@ References
 -----
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
 * [2] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
+* [3] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.

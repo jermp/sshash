@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7239205.svg)](https://doi.org/10.5281/zenodo.7239205)
+
 Benchmarks
 ----------
 
@@ -11,7 +13,7 @@ of the following organisms:
 
 for k = 31, 47, and 63.
 
-The datasets can be downloaded from [zenodo](https://zenodo.org/record/7239205#.Y-K61OzMI-Q).
+The datasets can be downloaded from [Zenodo](https://zenodo.org/record/7239205).
 
 For streaming queries we used FASTQ files downloaded from [ENA](https://www.ebi.ac.uk/ena/browser/home), using accession numbers:
 
