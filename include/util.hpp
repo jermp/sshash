@@ -21,10 +21,10 @@ struct streaming_query_report {
 struct lookup_result {
     lookup_result()
         : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint32)
+        , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint32)
-        , contig_size(constants::invalid_uint32) {}
+        , contig_id(constants::invalid_uint64)
+        , contig_size(constants::invalid_uint64) {}
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
     uint64_t kmer_orientation;
