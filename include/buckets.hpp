@@ -259,11 +259,11 @@ struct buckets {
 
 private:
     bool is_valid(lookup_result res) const {
-        return true
+        return true;
     //     return (res.contig_size != constants::invalid_uint32 and
     //             res.kmer_id_in_contig < res.contig_size) and
     //            (res.contig_id != constants::invalid_uint32 or res.contig_id < pieces.size());
-    // }
+    }
 };
 
 }  // namespace sshash
