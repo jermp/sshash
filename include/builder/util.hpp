@@ -76,17 +76,17 @@ struct compact_string_pool {
     private:
         void check_contig_size() const {
             /* Support a max of 2^32-1 contigs, or "pieces", whose
-               max length must also be < 2^32. */
-            if (!pieces.empty()) {
-                uint64_t contig_length = bvb_strings.size() / 2 - pieces.back();
-                if (contig_length >= 1ULL << 32) {
-                    throw std::runtime_error("contig_length " + std::to_string(contig_length) +
-                                             " does not fit into 32 bits");
-                }
-                if (pieces.size() == 1ULL << 32) {
-                    throw std::runtime_error("num_contigs must be less than 2^32");
-                }
-            }
+            //    max length must also be < 2^32. */
+            // if (!pieces.empty()) {
+            //     uint64_t contig_length = bvb_strings.size() / 2 - pieces.back();
+            //     if (contig_length >= 1ULL << 32) {
+            //         throw std::runtime_error("contig_length " + std::to_string(contig_length) +
+            //                                  " does not fit into 32 bits");
+            //     }
+            //     if (pieces.size() == 1ULL << 32) {
+            //         throw std::runtime_error("num_contigs must be less than 2^32");
+            //     }
+            // }
         }
     };
 
