@@ -285,7 +285,9 @@ struct minimizers_tuples {
                                                                m_num_files_to_merge);
 
         std::ofstream out(get_minimizers_filename().c_str());
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        if (!out.is_open()) {
+            throw std::runtime_error("Cannot open file: " + get_minimizers_filename());
+        }
 
         uint64_t num_written_tuples = 0;
         uint64_t prev_minimizer = constants::invalid_uint64;
