@@ -65,7 +65,7 @@ struct bucket_pairs {
         auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        if (!out.is_open()) throw std::runtime_error("build_index.hpp: 68, cannot open file: " + tmp_output_filename);
         out.write(reinterpret_cast<char const*>(m_buffer.data()),
                   m_buffer.size() * sizeof(bucket_pair));
         out.close();
@@ -110,7 +110,7 @@ struct bucket_pairs {
                                                                m_num_files_to_merge);
 
         std::ofstream out(get_bucket_pairs_filename().c_str());
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        if (!out.is_open()) throw std::runtime_error("builder.hpp: 113, cannot open file: " + get_bucket_pairs_filename());
 
         uint64_t num_written_pairs = 0;
         while (fm_iterator.has_next()) {

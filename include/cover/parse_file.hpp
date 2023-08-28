@@ -237,7 +237,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         auto tmp_output_filename = get_tmp_output_filename(num_files_to_merge);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str());
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        if (!out.is_open()) throw std::runtime_error("parse_file.hpp: 240, cannot open file: " + tmp_output_filename);
         for (auto const& seq : buffer) out << seq.first << '\n' << seq.second << '\n';
         out.close();
 
@@ -325,7 +325,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         std::make_heap(idx_heap.begin(), idx_heap.end(), heap_idx_comparator);
 
         std::ofstream out(output_filename.c_str());
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        if (!out.is_open()) throw std::runtime_error("parse_file.hpp: 328, cannot open file: " + output_filename);
 
         uint64_t num_written_sequences = 0;
         while (!idx_heap.empty()) {

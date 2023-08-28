@@ -228,7 +228,7 @@ struct minimizers_tuples {
         auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
-        if (!out.is_open()) throw std::runtime_error("cannot open file (line 321): " + tmp_output_filename);
+        if (!out.is_open()) throw std::runtime_error("util.hpp: 231 cannot open file " + tmp_output_filename);
         out.write(reinterpret_cast<char const*>(m_buffer.data()),
                   m_buffer.size() * sizeof(minimizer_tuple));
         out.close();
@@ -286,7 +286,7 @@ struct minimizers_tuples {
 
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) {
-            throw std::runtime_error("Cannot open file (line 289): " + get_minimizers_filename());
+            throw std::runtime_error("util.hpp: 289 cannot open file: " + get_minimizers_filename());
         }
 
         uint64_t num_written_tuples = 0;
