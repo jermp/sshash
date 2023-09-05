@@ -9,13 +9,14 @@ struct minimizers {
     void build(ForwardIterator begin, uint64_t size, build_configuration const& build_config) {
         pthash::build_configuration mphf_config;
         mphf_config.c = 6.0;
+        mphf_config.num_partitions = 8;
         mphf_config.alpha = 0.94;
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = 1;
-        uint64_t num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
-        if (size >= num_threads) mphf_config.num_threads = num_threads;
+        mphf_config.num_threads = 90;
+        //uint64_t num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        //if (size >= num_threads) mphf_config.num_threads = num_threads;
 
         if (build_config.verbose) {
             std::cout << "building minimizers MPHF (PTHash) with " << mphf_config.num_threads
