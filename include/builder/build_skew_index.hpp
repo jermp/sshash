@@ -61,7 +61,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
     std::sort(lists.begin(), lists.end(),
               [](list_type const& x, list_type const& y) { return x.size() < y.size(); });
 
-    uint64_t num_partitions = max_log2_size - min_log2_size + 1;
+    uint64_t num_partitions = max_log2_size - min_log2_size + 1; // 12 - 6 + 1 = 7
     if (buckets_stats.max_num_super_kmers_in_bucket() < (1ULL << max_log2_size)) {
         num_partitions = m_skew_index.log2_max_num_super_kmers_in_bucket - min_log2_size;
     }
@@ -132,9 +132,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_partitions = 8;
-        mphf_config.num_threads = 48;
-        //mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        mphf_config.num_partitions = std::thread::hardware_concurrency(); 
+        mphf_config.num_threads = std::thread::hardware_concurrency();
 
         std::cout << "building PTHash mphfs (with " << mphf_config.num_threads
                   << " threads) and positions..." << std::endl;
