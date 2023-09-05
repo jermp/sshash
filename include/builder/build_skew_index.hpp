@@ -132,7 +132,9 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
+        mphf_config.num_partitions = 8;
+        mphf_config.num_threads = 48;
+        //mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
 
         std::cout << "building PTHash mphfs (with " << mphf_config.num_threads
                   << " threads) and positions..." << std::endl;

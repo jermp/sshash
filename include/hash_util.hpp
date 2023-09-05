@@ -59,7 +59,7 @@ typedef pthash::single_phf<minimizers_base_hasher_type,    // base hasher
                            >
     minimizers_pthash_type;
 
-typedef pthash::single_phf<kmers_base_hasher_type,         // base hasher
+typedef pthash::partitioned_phf<kmers_base_hasher_type,         // base hasher
                            pthash::dictionary_dictionary,  // encoder type
                            true                            // minimal output
                            >
