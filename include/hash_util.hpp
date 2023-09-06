@@ -53,13 +53,13 @@ typedef pthash::murmurhash2_128 minimizers_base_hasher_type;
 //typedef kmers_pthash_hasher_64 kmers_base_hasher_type;
 typedef kmers_pthash_hasher_128 kmers_base_hasher_type;
 
-typedef pthash::single_phf<minimizers_base_hasher_type,    // base hasher
-                           pthash::dictionary_dictionary,  // encoder type
-                           true                            // minimal output
+typedef pthash::partitioned_phf<minimizers_base_hasher_type, // base hasher
+                           pthash::dictionary_dictionary,    // encoder type
+                           true                              // minimal output
                            >
     minimizers_pthash_type;
 
-typedef pthash::partitioned_phf<kmers_base_hasher_type,         // base hasher
+typedef pthash::single_phf<kmers_base_hasher_type,         // base hasher
                            pthash::dictionary_dictionary,  // encoder type
                            true                            // minimal output
                            >
