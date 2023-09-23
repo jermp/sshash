@@ -65,3 +65,6 @@ target_link_libraries(sshash
   sshash_static
   z
 )
+
+# tests
+add_executable(test_alphabet test/test_alphabet.cpp)

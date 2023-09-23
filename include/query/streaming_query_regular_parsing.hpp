@@ -59,9 +59,9 @@ struct streaming_query_regular_parsing {
         if (!m_start) {
             m_kmer >>= 2;
             m_kmer += (util::char_to_uint(kmer[m_k - 1])) << m_shift;
-            assert(m_kmer == util::string_to_uint_kmer_no_reverse(kmer, m_k));
+            assert(m_kmer == util::string_to_uint_kmer(kmer, m_k));
         } else {
-            m_kmer = util::string_to_uint_kmer_no_reverse(kmer, m_k);
+            m_kmer = util::string_to_uint_kmer(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
         assert(m_curr_minimizer == util::compute_minimizer(m_kmer, m_k, m_m, m_seed));

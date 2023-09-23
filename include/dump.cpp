@@ -46,9 +46,8 @@ void dictionary::dump(std::string const& filename) const {
                         [minimizer_id]:[super_kmer_id]:[minimizer_string]:[position_of_minimizer_in_super_kmer]
                     */
                     out << '>' << bucket_id << ':' << super_kmer_id - begin << ':'
-                        << util::uint_kmer_to_string_no_reverse(minimizer, m_m) << ':' << pos
-                        << '\n';
-                    out << util::uint_kmer_to_string_no_reverse(kmer, m_k);
+                        << util::uint_kmer_to_string(minimizer, m_m) << ':' << pos << '\n';
+                    out << util::uint_kmer_to_string(kmer, m_k);
                     super_kmer_header_written = true;
                 } else {
                     if (minimizer != prev_minimizer) {

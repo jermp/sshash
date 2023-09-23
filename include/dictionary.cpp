@@ -56,7 +56,7 @@ lookup_result dictionary::lookup_uint_canonical_parsing(kmer_t uint_kmer) const 
 }
 
 uint64_t dictionary::lookup(char const* string_kmer, bool check_reverse_complement) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return lookup_uint(uint_kmer, check_reverse_complement);
 }
 uint64_t dictionary::lookup_uint(kmer_t uint_kmer, bool check_reverse_complement) const {
@@ -66,7 +66,7 @@ uint64_t dictionary::lookup_uint(kmer_t uint_kmer, bool check_reverse_complement
 
 lookup_result dictionary::lookup_advanced(char const* string_kmer,
                                           bool check_reverse_complement) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return lookup_advanced_uint(uint_kmer, check_reverse_complement);
 }
 lookup_result dictionary::lookup_advanced_uint(kmer_t uint_kmer,
@@ -120,7 +120,7 @@ void dictionary::backward_neighbours(kmer_t prefix, neighbourhood& res) const {
 }
 
 neighbourhood dictionary::kmer_forward_neighbours(char const* string_kmer) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return kmer_forward_neighbours(uint_kmer);
 }
 neighbourhood dictionary::kmer_forward_neighbours(kmer_t uint_kmer) const {
@@ -131,7 +131,7 @@ neighbourhood dictionary::kmer_forward_neighbours(kmer_t uint_kmer) const {
 }
 
 neighbourhood dictionary::kmer_backward_neighbours(char const* string_kmer) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return kmer_backward_neighbours(uint_kmer);
 }
 neighbourhood dictionary::kmer_backward_neighbours(kmer_t uint_kmer) const {
@@ -142,7 +142,7 @@ neighbourhood dictionary::kmer_backward_neighbours(kmer_t uint_kmer) const {
 }
 
 neighbourhood dictionary::kmer_neighbours(char const* string_kmer) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(string_kmer, m_k);
+    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return kmer_neighbours(uint_kmer);
 }
 neighbourhood dictionary::kmer_neighbours(kmer_t uint_kmer) const {
