@@ -34,7 +34,7 @@ Other supported queries are:
 SSHash internally stores a set of strings, called *contigs* in the following, each associated to a distinct identifier.
 If a contig identifier is specified for a navigational query (rather than a k-mer), then the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the contig are returned.
 
-If you are interested in a **membership-only** version of SSHash, have a look at [SSHash-Lite](https://github.com/jermp/sshash-lite). It also works for input files with duplicate k-mers (e.g., [matchtigs](https://github.com/algbio/matchtigs)). For a query sequence S and a given coverage threshold E in [0,1], the sequence is considered to be present in the dictionary if at least E*(|S|-k+1) of the k-mers of S are positive.
+If you are interested in a **membership-only** version of SSHash, have a look at [SSHash-Lite](https://github.com/jermp/sshash-lite). It also works for input files with duplicate k-mers (e.g., [matchtigs](https://github.com/algbio/matchtigs) [4]). For a query sequence S and a given coverage threshold E in [0,1], the sequence is considered to be present in the dictionary if at least E*(|S|-k+1) of the k-mers of S are positive.
 
 **NOTE**: It is assumed that two k-mers being the *reverse complement* of each other are the same.
 
@@ -42,7 +42,6 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Compiling the Code](#compiling-the-code)
 * [Dependencies](#dependencies)
 * [Tools](#tools)
-* [Build a Dictionary](#build-a-dictionary)
 * [Examples](#Examples)
 * [Input Files](#input-files)
 * [Benchmarks](#benchmarks)
@@ -114,67 +113,6 @@ Run `./sshash` as follows to see a list of available tools.
       dump                   write super-k-mers of a dictionary to a fasta file
       permute                permute a weighted input file
       compute-statistics     compute index statistics
-
-
-Build a Dictionary
-------------------
-
-The tool `build` can be used to build a dictionary.
-
-From within the directory
-where the code was compiled (see the section [Compiling the Code](#compiling-the-code)), run the command:
-
-    ./sshash build --help
-
-to show the usage of the tool (reported below for convenience).
-
-    Usage: build [-h,--help] [-i input_filename] [-k k] [-m m] [-s seed] [-l l] [-c c] [-o output_filename] [-d tmp_dirname] [--canonical-parsing] [--weighted] [--check] [--bench] [--verbose]
-
-     [-i input_filename]
-        REQUIRED: Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:
-        - without duplicate nor invalid kmers
-        - one DNA sequence per line.
-        For example, it could be the de Bruijn graph topology output by BCALM.
-
-     [-k k]
-        REQUIRED: K-mer length (must be <= 31).
-
-     [-m m]
-        REQUIRED: Minimizer length (must be < k).
-
-     [-s seed]
-        Seed for construction (default is 1).
-
-     [-l l]
-        A (integer) constant that controls the space/time trade-off of the dictionary. A reasonable values lies between 2 and 12 (default is 6).
-
-     [-c c]
-        A (floating point) constant that trades construction speed for space effectiveness of minimal perfect hashing. A reasonable value lies between 3.0 and 10.0 (default is 3.000000).
-
-     [-o output_filename]
-        Output file name where the data structure will be serialized.
-
-     [-d tmp_dirname]
-        Temporary directory used for construction in external memory. Default is directory '.'.
-
-     [--canonical-parsing]
-        Canonical parsing of k-mers. This option changes the parsing and results in a trade-off between index space and lookup time.
-
-     [--weighted]
-        Also store the weights in compressed format.
-
-     [--check]
-        Check correctness after construction.
-
-     [--bench]
-        Run benchmark after construction.
-
-     [--verbose]
-        Verbose output during construction.
-
-     [-h,--help]
-        Print this help text and silently exits.
-
 
 Examples
 --------
@@ -404,3 +342,4 @@ References
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
 * [2] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
 * [3] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
+* [4] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.

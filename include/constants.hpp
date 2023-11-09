@@ -18,8 +18,11 @@ constexpr uint32_t invalid_uint32 = uint32_t(-1);
 
 constexpr uint64_t seed = 1;
 constexpr double c = 3.0;  // for PTHash
+
 constexpr uint64_t min_l = 6;
 constexpr uint64_t max_l = 12;
+static_assert(min_l < max_l);
+
 static const std::string default_tmp_dirname(".");
 constexpr bool forward_orientation = 0;
 constexpr bool backward_orientation = 1;
