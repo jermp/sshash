@@ -134,14 +134,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         }
     };
 
-    // uint64_t less = 0;
-    // uint64_t total = 0;
-    // std::ofstream arrows("arrows.txt");
-
-    // std::vector<uint64_t> minimizers;
-
-    std::vector<uint64_t> num_minimizers_per_unitigs(100 + 1, 0);
-
     while (!is.eof()) {
         std::getline(is, sequence);  // header sequence
         if (build_config.weighted) parse_header();
@@ -166,8 +158,6 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             throw std::runtime_error("file is malformed");
         }
 
-        uint64_t num_minimizers_per_unitig = 1;
-
         while (end != sequence.size() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid(kmer, k));
@@ -184,63 +174,16 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             if (minimizer != prev_minimizer) {
                 append_super_kmer();
                 begin = end;
-                // minimizers.push_back(prev_minimizer);
-                // if (minimizer < prev_minimizer) {
-                //     // arrows << "<";
-                //     less += 1;
-                // } else {  // minimizer > prev_minimizer
-                //     // arrows << ">";
-                // }
                 prev_minimizer = minimizer;
                 glue = true;
-
-                num_minimizers_per_unitig += 1;
-                // total += 1;
             }
-            // else {
-            //     std::cerr << "=";
-            // }
 
             ++data.num_kmers;
             ++end;
         }
 
         append_super_kmer();
-
-        if (num_minimizers_per_unitig <= 16) {
-            num_minimizers_per_unitigs[num_minimizers_per_unitig] += 1;
-            // total += 1;
-        }
     }
-
-    std::cout << "k=" << k << " m=" << m << std::endl;
-    for (uint64_t i = 1; i <= 16; ++i) {
-        std::cout << "num. unitigs with " << i << " minimizers: " << num_minimizers_per_unitigs[i]
-                  << "/" << num_sequences << "("
-                  << (num_minimizers_per_unitigs[i] * 100.0) / num_sequences << "%)" << std::endl;
-    }
-
-    // std::cout << "total " << total << std::endl;
-    // std::cout << "less " << less << std::endl;
-    // std::cout << "greater " << total - less << std::endl;
-
-    // std::sort(minimizers.begin(), minimizers.end());
-    // for (auto x : minimizers) { arrows << x << '\n'; }
-    // prev_minimizer = uint64_t(-1);
-    // uint64_t count = 0;
-    // for (uint64_t i = 0; i != minimizers.size(); ++i) {
-    //     if (minimizers[i] != prev_minimizer) {
-    //         if (prev_minimizer != uint64_t(-1)) {
-    //             arrows << prev_minimizer << ' ' << count << '\n';
-    //         }
-    //         count = 1;
-    //         prev_minimizer = minimizers[i];
-    //     } else {
-    //         count += 1;
-    //     }
-    // }
-
-    // arrows.close();
 
     data.minimizers.finalize();
     builder.finalize();
