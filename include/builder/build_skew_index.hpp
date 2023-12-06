@@ -132,10 +132,8 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         mphf_config.seed = 1234567890;  // my favourite seed
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
-
-        std::cout << "building PTHash mphfs (with " << mphf_config.num_threads
-                  << " threads) and positions..." << std::endl;
+        mphf_config.num_threads = std::thread::hardware_concurrency();
+        mphf_config.num_partitions = 4 * mphf_config.num_threads;
 
         uint64_t partition_id = 0;
         uint64_t lower = 1ULL << min_log2_size;
@@ -160,8 +158,23 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                 auto& mphf = m_skew_index.mphfs[partition_id];
                 assert(num_kmers_in_partition[partition_id] == keys_in_partition.size());
                 assert(num_kmers_in_partition[partition_id] == super_kmer_ids_in_partition.size());
+
+                if (keys_in_partition.size() / mphf_config.num_partitions <
+                    pthash::constants::min_partition_size) {
+                    mphf_config.num_partitions = std::max<uint64_t>(
+                        1, keys_in_partition.size() / (2 * pthash::constants::min_partition_size));
+                }
+
+                if (build_config.verbose) {
+                    std::cout << "  building minimizers MPHF with " << mphf_config.num_threads
+                              << " threads and " << mphf_config.num_partitions << " partitions..."
+                              << std::endl;
+                }
+
                 mphf.build_in_internal_memory(keys_in_partition.begin(), keys_in_partition.size(),
                                               mphf_config);
+
+                mphf_config.num_partitions = 4 * mphf_config.num_threads;  // restore default value
 
                 std::cout << "  built mphs[" << partition_id << "] for " << keys_in_partition.size()
                           << " keys; bits/key = "
