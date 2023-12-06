@@ -6,7 +6,8 @@
 
 namespace sshash {
 
-bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
+template<class kmer_t>
+bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const& dict) {
     uint64_t k = dict.k();
     uint64_t n = dict.size();
 
@@ -41,7 +42,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
             assert(util::is_valid(line.data() + i, k));
 
-            kmer_t uint_kmer = util::string_to_uint_kmer(line.data() + i, k);
+            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(line.data() + i, k);
             bool orientation = constants::forward_orientation;
 
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
@@ -138,8 +139,8 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
 
             // check access
             dict.access(id, got_kmer_str.data());
-            kmer_t got_uint_kmer = util::string_to_uint_kmer(got_kmer_str.data(), k);
-            kmer_t got_uint_kmer_rc = util::compute_reverse_complement(got_uint_kmer, k);
+            kmer_t got_uint_kmer = util::string_to_uint_kmer<kmer_t>(got_kmer_str.data(), k);
+            kmer_t got_uint_kmer_rc = util::compute_reverse_complement<kmer_t>(got_uint_kmer, k);
             if (got_uint_kmer != uint_kmer and got_uint_kmer_rc != uint_kmer) {
                 std::cout << "ERROR: got '" << got_kmer_str << "' but expected '"
                           << expected_kmer_str << "'" << std::endl;
@@ -176,7 +177,8 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     return true;
 }
 
-bool check_correctness_navigational_kmer_query(std::istream& is, dictionary const& dict) {
+template<class kmer_t>
+bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer_t> const& dict) {
     uint64_t k = dict.k();
     std::string line;
     uint64_t pos = 0;
@@ -271,7 +273,8 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary cons
     return true;
 }
 
-bool check_correctness_navigational_contig_query(dictionary const& dict) {
+template<class kmer_t>
+bool check_correctness_navigational_contig_query(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
     uint64_t num_contigs = dict.num_contigs();
     uint64_t k = dict.k();
@@ -309,7 +312,8 @@ bool check_correctness_navigational_contig_query(dictionary const& dict) {
     return true;
 }
 
-bool check_correctness_weights(std::istream& is, dictionary const& dict) {
+template<class kmer_t>
+bool check_correctness_weights(std::istream& is, dictionary<kmer_t> const& dict) {
     uint64_t k = dict.k();
     std::string line;
     uint64_t kmer_id = 0;
@@ -364,7 +368,8 @@ bool check_correctness_weights(std::istream& is, dictionary const& dict) {
    The input file must be the one the index was built from.
    Throughout the code, we assume the input does not contain any duplicate.
 */
-bool check_correctness_lookup_access(dictionary const& dict, std::string const& filename) {
+template<class kmer_t>
+bool check_correctness_lookup_access(dictionary<kmer_t> const& dict, std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;
@@ -382,7 +387,8 @@ bool check_correctness_lookup_access(dictionary const& dict, std::string const& 
    The input file must be the one the index was built from.
    Throughout the code, we assume the input does not contain any duplicate.
 */
-bool check_correctness_navigational_kmer_query(dictionary const& dict,
+template<class kmer_t>
+bool check_correctness_navigational_kmer_query(dictionary<kmer_t> const& dict,
                                                std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
@@ -400,7 +406,8 @@ bool check_correctness_navigational_kmer_query(dictionary const& dict,
 /*
    The input file must be the one the index was built from.
 */
-bool check_correctness_weights(dictionary const& dict, std::string const& filename) {
+template<class kmer_t>
+bool check_correctness_weights(dictionary<kmer_t> const& dict, std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;
@@ -414,7 +421,8 @@ bool check_correctness_weights(dictionary const& dict, std::string const& filena
     return good;
 }
 
-bool check_dictionary(dictionary const& dict) {
+template<class kmer_t>
+bool check_dictionary(dictionary<kmer_t> const& dict) {
     uint64_t k = dict.k();
     uint64_t n = dict.size();
     std::cout << "checking correctness of access and positive lookup..." << std::endl;
@@ -442,7 +450,8 @@ bool check_dictionary(dictionary const& dict) {
     return true;
 }
 
-bool check_correctness_iterator(dictionary const& dict) {
+template<class kmer_t>
+bool check_correctness_iterator(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
     constexpr uint64_t runs = 3;

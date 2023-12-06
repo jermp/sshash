@@ -1,9 +1,9 @@
-#include "dictionary.hpp"
 #include "buckets_statistics.hpp"
 
 namespace sshash {
 
-void dictionary::compute_statistics() const {
+template<class kmer_t>
+void dictionary<kmer_t>::compute_statistics() const {
     uint64_t num_kmers = size();
     uint64_t num_minimizers = m_minimizers.size();
     uint64_t num_super_kmers = m_buckets.offsets.size();
@@ -20,7 +20,7 @@ void dictionary::compute_statistics() const {
             uint64_t offset = m_buckets.offsets.access(super_kmer_id);
             auto [_, contig_end] = m_buckets.offset_to_id(offset, m_k);
             (void)_;
-            bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
+            bit_vector_iterator<kmer_t> bv_it(m_buckets.strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(m_k - m_m + 1, contig_end - offset - m_k + 1);
             uint64_t prev_minimizer = constants::invalid_uint64;
             uint64_t w = 0;

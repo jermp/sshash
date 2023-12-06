@@ -1,4 +1,3 @@
-#include "../dictionary.hpp"
 #include "../../external/pthash/external/essentials/include/essentials.hpp"
 #include "util.hpp"
 
@@ -12,7 +11,8 @@
 
 namespace sshash {
 
-void dictionary::build(std::string const& filename, build_configuration const& build_config) {
+template<class kmer_t>
+void dictionary<kmer_t>::build(std::string const& filename, build_configuration const& build_config) {
     /* Validate the build configuration. */
     if (build_config.k == 0) throw std::runtime_error("k must be > 0");
     if (build_config.k > constants::max_k) {
@@ -41,7 +41,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
 
     /* step 1: parse the input file and build compact string pool ***/
     timer.start();
-    parse_data data = parse_file(filename, build_config);
+    parse_data<kmer_t> data = parse_file<kmer_t>(filename, build_config);
     m_size = data.num_kmers;
     timer.stop();
     timings.push_back(timer.elapsed());

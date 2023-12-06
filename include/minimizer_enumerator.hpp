@@ -48,7 +48,7 @@ private:
     std::vector<T> m_buffer;
 };
 
-template <typename Hasher = murmurhash2_64>
+template <class kmer_t, typename Hasher = murmurhash2_64>
 struct minimizer_enumerator {
     minimizer_enumerator() {}
 
@@ -61,10 +61,9 @@ struct minimizer_enumerator {
         , m_q(k - m + 1) /* deque cannot contain more than k - m + 1 elements  */
     {}
 
-    template <bool reverse = false>
-    uint64_t next(kmer_t kmer, bool clear) {
+    uint64_t next(kmer_t kmer, bool clear, bool reverse = false) {
         if (clear) {
-            if constexpr (reverse) {
+            if (reverse) {
                 for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
                     uint64_t mmer = static_cast<uint64_t>((kmer >> (2 * (m_k - m_m - i))) & m_mask);
                     eat(mmer);
@@ -77,7 +76,7 @@ struct minimizer_enumerator {
                 }
             }
         } else {
-            if constexpr (reverse) {
+            if (reverse) {
                 uint64_t mmer = static_cast<uint64_t>(kmer & m_mask);
                 eat(mmer);
             } else {

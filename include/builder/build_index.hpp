@@ -155,7 +155,8 @@ private:
     }
 };
 
-buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers, buckets& m_buckets,
+template<class kmer_t>
+buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_minimizers, buckets<kmer_t>& m_buckets,
                                build_configuration const& build_config) {
     uint64_t num_buckets = m_minimizers.size();
     uint64_t num_kmers = data.num_kmers;

@@ -9,6 +9,8 @@
 
 using namespace sshash;
 
+using kmer_t = default_kmer_t;
+
 int check(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
@@ -16,7 +18,7 @@ int check(int argc, char** argv) {
     if (!parser.parse()) return 1;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary dict;
+    dictionary<kmer_t> dict;
     load_dictionary(dict, index_filename, verbose);
     check_dictionary(dict);
     check_correctness_navigational_contig_query(dict);
@@ -30,7 +32,7 @@ int bench(int argc, char** argv) {
     if (!parser.parse()) return 1;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary dict;
+    dictionary<kmer_t> dict;
     load_dictionary(dict, index_filename, verbose);
     perf_test_lookup_access(dict);
     if (dict.weighted()) perf_test_lookup_weight(dict);
@@ -47,7 +49,7 @@ int dump(int argc, char** argv) {
     auto index_filename = parser.get<std::string>("index_filename");
     auto output_filename = parser.get<std::string>("output_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary dict;
+    dictionary<kmer_t> dict;
     load_dictionary(dict, index_filename, verbose);
     dict.dump(output_filename);
     return 0;
@@ -60,7 +62,7 @@ int compute_statistics(int argc, char** argv) {
     if (!parser.parse()) return 1;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary dict;
+    dictionary<kmer_t> dict;
     load_dictionary(dict, index_filename, verbose);
     dict.compute_statistics();
     return 0;

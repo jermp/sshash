@@ -139,6 +139,7 @@ char decimal  binary
  g    103     01100-11-1 -> 11
  t    116     01110-10-0 -> 10
 */
+template<class kmer_t>
 static kmer_t char_to_uint(char c) { return (c >> 1) & 3; }
 
 static char uint64_to_char(uint64_t x) {
@@ -147,13 +148,15 @@ static char uint64_to_char(uint64_t x) {
     return nucleotides[x];
 }
 
+template<class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= constants::max_k);
     kmer_t x = 0;
-    for (uint64_t i = 0; i != k; ++i) x += char_to_uint(str[i]) << (2 * i);
+    for (uint64_t i = 0; i != k; ++i) x += char_to_uint<kmer_t>(str[i]) << (2 * i);
     return x;
 }
 
+template<class kmer_t>
 static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     assert(k <= constants::max_k);
     for (uint64_t i = 0; i != k; ++i) {
@@ -162,6 +165,7 @@ static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     }
 }
 
+template<class kmer_t>
 [[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
     assert(k <= constants::max_k);
     std::string str;
@@ -197,6 +201,7 @@ template <bool align>
     return res;
 }
 
+template<class kmer_t>
 [[maybe_unused]] static kmer_t compute_reverse_complement(kmer_t x, uint64_t k) {
     assert(k <= constants::max_k);
     if constexpr (constants::uint_kmer_bits == 64) {
@@ -288,7 +293,7 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     return true;
 }
 
-template <typename Hasher = murmurhash2_64>
+template <class kmer_t, typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
@@ -308,7 +313,7 @@ uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
 }
 
 /* used in dump.cpp */
-template <typename Hasher = murmurhash2_64>
+template <class kmer_t, typename Hasher = murmurhash2_64>
 std::pair<uint64_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
                                                     uint64_t seed) {
     assert(m <= constants::max_m);

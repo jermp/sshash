@@ -6,8 +6,9 @@
 
 namespace sshash {
 
+template<class kmer_t>
 struct streaming_query_regular_parsing {
-    streaming_query_regular_parsing(dictionary const* dict)
+    streaming_query_regular_parsing(dictionary<kmer_t> const* dict)
 
         : m_dict(dict)
 
@@ -58,17 +59,17 @@ struct streaming_query_regular_parsing {
         /* 2. compute kmer and minimizer */
         if (!m_start) {
             m_kmer >>= 2;
-            m_kmer += (util::char_to_uint(kmer[m_k - 1])) << m_shift;
-            assert(m_kmer == util::string_to_uint_kmer(kmer, m_k));
+            m_kmer += (util::char_to_uint<kmer_t>(kmer[m_k - 1])) << m_shift;
+            assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
         } else {
-            m_kmer = util::string_to_uint_kmer(kmer, m_k);
+            m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
-        assert(m_curr_minimizer == util::compute_minimizer(m_kmer, m_k, m_m, m_seed));
-        m_kmer_rc = util::compute_reverse_complement(m_kmer, m_k);
+        assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
+        m_kmer_rc = util::compute_reverse_complement<kmer_t>(m_kmer, m_k);
         constexpr bool reverse = true;
-        m_curr_minimizer_rc = m_minimizer_enum_rc.next<reverse>(m_kmer_rc, m_start);
-        assert(m_curr_minimizer_rc == util::compute_minimizer(m_kmer_rc, m_k, m_m, m_seed));
+        m_curr_minimizer_rc = m_minimizer_enum_rc.next(m_kmer_rc, m_start, reverse);
+        assert(m_curr_minimizer_rc == util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_seed));
 
         bool both_minimizers_not_found = (same_minimizer() and m_minimizer_not_found) and
                                          (same_minimizer_rc() and m_minimizer_rc_not_found);
@@ -129,14 +130,14 @@ struct streaming_query_regular_parsing {
     uint64_t num_extensions() const { return m_num_extensions; }
 
 private:
-    dictionary const* m_dict;
+    dictionary<kmer_t> const* m_dict;
 
     /* result */
     lookup_result m_res;
 
     /* (kmer,minimizer) state */
-    minimizer_enumerator<> m_minimizer_enum;
-    minimizer_enumerator<> m_minimizer_enum_rc;
+    minimizer_enumerator<kmer_t> m_minimizer_enum;
+    minimizer_enumerator<kmer_t> m_minimizer_enum_rc;
     bool m_minimizer_not_found, m_minimizer_rc_not_found;
     bool m_start;
     uint64_t m_curr_minimizer, m_curr_minimizer_rc;
@@ -147,7 +148,7 @@ private:
     uint64_t m_shift, m_k, m_m, m_seed;
 
     /* string state */
-    bit_vector_iterator m_string_iterator;
+    bit_vector_iterator<kmer_t> m_string_iterator;
     uint64_t m_begin, m_end;
     uint64_t m_pos_in_window, m_window_size;
     bool m_reverse;

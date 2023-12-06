@@ -8,6 +8,14 @@
 
 namespace sshash {
 
+// Forward declarations of the friend template classes
+template<class kmer_t>
+struct streaming_query_canonical_parsing;
+
+template<class kmer_t>
+struct streaming_query_regular_parsing;
+
+template<class kmer_t = default_kmer_t>
 struct dictionary {
     dictionary() : m_size(0), m_seed(0), m_k(0), m_m(0), m_canonical_parsing(0) {}
 
@@ -61,8 +69,8 @@ struct dictionary {
     bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
     /* Streaming queries. */
-    friend struct streaming_query_canonical_parsing;
-    friend struct streaming_query_regular_parsing;
+    friend struct streaming_query_canonical_parsing<kmer_t>;
+    friend struct streaming_query_regular_parsing<kmer_t>;
     streaming_query_report streaming_query_from_file(std::string const& filename,
                                                      bool multiline) const;
 
@@ -75,7 +83,7 @@ struct dictionary {
         std::pair<uint64_t, std::string> next() { return it.next(); }
 
     private:
-        typename buckets::iterator it;
+        typename buckets<kmer_t>::iterator it;
     };
 
     iterator begin() const { return iterator(this); }
@@ -112,8 +120,8 @@ private:
     uint16_t m_m;
     uint16_t m_canonical_parsing;
     minimizers m_minimizers;
-    buckets m_buckets;
-    skew_index m_skew_index;
+    buckets<kmer_t> m_buckets;
+    skew_index<kmer_t> m_skew_index;
     weights m_weights;
 
     lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
@@ -123,3 +131,9 @@ private:
 };
 
 }  // namespace sshash
+
+#include "builder/build.impl"
+#include "dictionary.impl"
+#include "dump.impl"
+#include "info.impl"
+#include "statistics.impl"

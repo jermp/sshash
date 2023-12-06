@@ -4,6 +4,7 @@
 
 namespace sshash {
 
+template<class kmer_t>
 struct skew_index {
     skew_index()
         : min_log2(constants::min_l)
@@ -14,7 +15,25 @@ struct skew_index {
     }
 
     /* Returns the number of k-mers in the index. */
-    uint64_t print_info() const;
+    uint64_t print_info() const {
+        uint64_t num_partitions = mphfs.size();
+        uint64_t lower = 1ULL << min_log2;
+        uint64_t upper = 2 * lower;
+        uint64_t num_kmers_in_skew_index = 0;
+        for (uint64_t partition_id = 0; partition_id != num_partitions; ++partition_id) {
+            uint64_t n = mphfs[partition_id].num_keys();
+            assert(n == positions[partition_id].size());
+            std::cout << "num_kmers belonging to buckets of size > " << lower << " and <= " << upper
+                    << ": " << n << "; ";
+            std::cout << "bits/kmer = " << static_cast<double>(mphfs[partition_id].num_bits()) / n
+                    << " (mphf) + " << (positions[partition_id].bytes() * 8.0) / n
+                    << " (positions)\n";
+            num_kmers_in_skew_index += n;
+            lower = upper;
+            upper = 2 * lower;
+        }
+        return num_kmers_in_skew_index;
+    }
 
     bool empty() const { return mphfs.empty(); }
 
@@ -54,7 +73,7 @@ struct skew_index {
     uint16_t min_log2;
     uint16_t max_log2;
     uint32_t log2_max_num_super_kmers_in_bucket;
-    std::vector<kmers_pthash_type> mphfs;
+    std::vector<kmers_pthash_type<kmer_t>> mphfs;
     std::vector<pthash::compact_vector> positions;
 };
 

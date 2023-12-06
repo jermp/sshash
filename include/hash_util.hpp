@@ -5,6 +5,7 @@
 
 namespace sshash {
 
+template<class kmer_t>
 struct kmers_pthash_hasher_64 {
     typedef pthash::hash64 hash_type;
 
@@ -24,6 +25,7 @@ struct kmers_pthash_hasher_64 {
     }
 };
 
+template<class kmer_t>
 struct kmers_pthash_hasher_128 {
     typedef pthash::hash128 hash_type;
 
@@ -50,8 +52,8 @@ struct kmers_pthash_hasher_128 {
 // typedef pthash::murmurhash2_64 minimizers_base_hasher_type;
 typedef pthash::murmurhash2_128 minimizers_base_hasher_type;
 
-// typedef kmers_pthash_hasher_64 kmers_base_hasher_type;
-typedef kmers_pthash_hasher_128 kmers_base_hasher_type;
+template<class kmer_t>
+using kmers_base_hasher_type = kmers_pthash_hasher_128<kmer_t>;
 
 typedef pthash::single_phf<minimizers_base_hasher_type,    // base hasher
                            pthash::dictionary_dictionary,  // encoder type
@@ -59,11 +61,12 @@ typedef pthash::single_phf<minimizers_base_hasher_type,    // base hasher
                            >
     minimizers_pthash_type;
 
-typedef pthash::single_phf<kmers_base_hasher_type,         // base hasher
-                           pthash::dictionary_dictionary,  // encoder type
-                           true                            // minimal output
-                           >
-    kmers_pthash_type;
+template<class kmer_t>
+using kmers_pthash_type = pthash::single_phf<
+                          kmers_base_hasher_type<kmer_t>, // base hasher
+                          pthash::dictionary_dictionary,  // encoder type
+                          true>;                          // minimal output
+
 
 /* used to hash m-mers and determine the minimizer of a k-mer */
 struct murmurhash2_64 {

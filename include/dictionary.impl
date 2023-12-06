@@ -1,8 +1,7 @@
-#include "dictionary.hpp"
-
 namespace sshash {
 
-lookup_result dictionary::lookup_uint_regular_parsing(kmer_t uint_kmer) const {
+template<class kmer_t>
+lookup_result dictionary<kmer_t>::lookup_uint_regular_parsing(kmer_t uint_kmer) const {
     uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
@@ -23,7 +22,8 @@ lookup_result dictionary::lookup_uint_regular_parsing(kmer_t uint_kmer) const {
     return m_buckets.lookup(begin, end, uint_kmer, m_k, m_m);
 }
 
-lookup_result dictionary::lookup_uint_canonical_parsing(kmer_t uint_kmer) const {
+template<class kmer_t>
+lookup_result dictionary<kmer_t>::lookup_uint_canonical_parsing(kmer_t uint_kmer) const {
     kmer_t uint_kmer_rc = util::compute_reverse_complement(uint_kmer, m_k);
     uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
     uint64_t minimizer_rc = util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_seed);
@@ -55,21 +55,25 @@ lookup_result dictionary::lookup_uint_canonical_parsing(kmer_t uint_kmer) const 
     return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, m_k, m_m);
 }
 
-uint64_t dictionary::lookup(char const* string_kmer, bool check_reverse_complement) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
+template<class kmer_t>
+uint64_t dictionary<kmer_t>::lookup(char const* string_kmer, bool check_reverse_complement) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return lookup_uint(uint_kmer, check_reverse_complement);
 }
-uint64_t dictionary::lookup_uint(kmer_t uint_kmer, bool check_reverse_complement) const {
+template<class kmer_t>
+uint64_t dictionary<kmer_t>::lookup_uint(kmer_t uint_kmer, bool check_reverse_complement) const {
     auto res = lookup_advanced_uint(uint_kmer, check_reverse_complement);
     return res.kmer_id;
 }
 
-lookup_result dictionary::lookup_advanced(char const* string_kmer,
+template<class kmer_t>
+lookup_result dictionary<kmer_t>::lookup_advanced(char const* string_kmer,
                                           bool check_reverse_complement) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return lookup_advanced_uint(uint_kmer, check_reverse_complement);
 }
-lookup_result dictionary::lookup_advanced_uint(kmer_t uint_kmer,
+template<class kmer_t>
+lookup_result dictionary<kmer_t>::lookup_advanced_uint(kmer_t uint_kmer,
                                                bool check_reverse_complement) const {
     if (m_canonical_parsing) return lookup_uint_canonical_parsing(uint_kmer);
     auto res = lookup_uint_regular_parsing(uint_kmer);
@@ -82,70 +86,83 @@ lookup_result dictionary::lookup_advanced_uint(kmer_t uint_kmer,
     return res;
 }
 
-bool dictionary::is_member(char const* string_kmer, bool check_reverse_complement) const {
+template<class kmer_t>
+bool dictionary<kmer_t>::is_member(char const* string_kmer, bool check_reverse_complement) const {
     return lookup(string_kmer, check_reverse_complement) != constants::invalid_uint64;
 }
-bool dictionary::is_member_uint(kmer_t uint_kmer, bool check_reverse_complement) const {
+template<class kmer_t>
+bool dictionary<kmer_t>::is_member_uint(kmer_t uint_kmer, bool check_reverse_complement) const {
     return lookup_uint(uint_kmer, check_reverse_complement) != constants::invalid_uint64;
 }
 
-void dictionary::access(uint64_t kmer_id, char* string_kmer) const {
+template<class kmer_t>
+void dictionary<kmer_t>::access(uint64_t kmer_id, char* string_kmer) const {
     assert(kmer_id < size());
     m_buckets.access(kmer_id, string_kmer, m_k);
 }
 
-uint64_t dictionary::weight(uint64_t kmer_id) const {
+template<class kmer_t>
+uint64_t dictionary<kmer_t>::weight(uint64_t kmer_id) const {
     assert(kmer_id < size());
     return m_weights.weight(kmer_id);
 }
 
-uint64_t dictionary::contig_size(uint64_t contig_id) const {
+template<class kmer_t>
+uint64_t dictionary<kmer_t>::contig_size(uint64_t contig_id) const {
     assert(contig_id < num_contigs());
     uint64_t contig_length = m_buckets.contig_length(contig_id);
     assert(contig_length >= m_k);
     return contig_length - m_k + 1;
 }
 
-void dictionary::forward_neighbours(kmer_t suffix, neighbourhood& res) const {
-    res.forward_A = lookup_advanced_uint(suffix + (util::char_to_uint('A') << (2 * (m_k - 1))));
-    res.forward_C = lookup_advanced_uint(suffix + (util::char_to_uint('C') << (2 * (m_k - 1))));
-    res.forward_G = lookup_advanced_uint(suffix + (util::char_to_uint('G') << (2 * (m_k - 1))));
-    res.forward_T = lookup_advanced_uint(suffix + (util::char_to_uint('T') << (2 * (m_k - 1))));
+template<class kmer_t>
+void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood& res) const {
+    res.forward_A = lookup_advanced_uint(suffix + (util::char_to_uint<kmer_t>('A') << (2 * (m_k - 1))));
+    res.forward_C = lookup_advanced_uint(suffix + (util::char_to_uint<kmer_t>('C') << (2 * (m_k - 1))));
+    res.forward_G = lookup_advanced_uint(suffix + (util::char_to_uint<kmer_t>('G') << (2 * (m_k - 1))));
+    res.forward_T = lookup_advanced_uint(suffix + (util::char_to_uint<kmer_t>('T') << (2 * (m_k - 1))));
 }
-void dictionary::backward_neighbours(kmer_t prefix, neighbourhood& res) const {
-    res.backward_A = lookup_advanced_uint(prefix + util::char_to_uint('A'));
-    res.backward_C = lookup_advanced_uint(prefix + util::char_to_uint('C'));
-    res.backward_G = lookup_advanced_uint(prefix + util::char_to_uint('G'));
-    res.backward_T = lookup_advanced_uint(prefix + util::char_to_uint('T'));
+template<class kmer_t>
+void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood& res) const {
+    res.backward_A = lookup_advanced_uint(prefix + util::char_to_uint<kmer_t>('A'));
+    res.backward_C = lookup_advanced_uint(prefix + util::char_to_uint<kmer_t>('C'));
+    res.backward_G = lookup_advanced_uint(prefix + util::char_to_uint<kmer_t>('G'));
+    res.backward_T = lookup_advanced_uint(prefix + util::char_to_uint<kmer_t>('T'));
 }
 
-neighbourhood dictionary::kmer_forward_neighbours(char const* string_kmer) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::kmer_forward_neighbours(char const* string_kmer) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_forward_neighbours(uint_kmer);
 }
-neighbourhood dictionary::kmer_forward_neighbours(kmer_t uint_kmer) const {
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::kmer_forward_neighbours(kmer_t uint_kmer) const {
     neighbourhood res;
     kmer_t suffix = uint_kmer >> 2;
     forward_neighbours(suffix, res);
     return res;
 }
 
-neighbourhood dictionary::kmer_backward_neighbours(char const* string_kmer) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::kmer_backward_neighbours(char const* string_kmer) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_backward_neighbours(uint_kmer);
 }
-neighbourhood dictionary::kmer_backward_neighbours(kmer_t uint_kmer) const {
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::kmer_backward_neighbours(kmer_t uint_kmer) const {
     neighbourhood res;
     kmer_t prefix = (uint_kmer << 2) & ((kmer_t(1) << (2 * m_k)) - 1);
     backward_neighbours(prefix, res);
     return res;
 }
 
-neighbourhood dictionary::kmer_neighbours(char const* string_kmer) const {
-    kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::kmer_neighbours(char const* string_kmer) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_neighbours(uint_kmer);
 }
-neighbourhood dictionary::kmer_neighbours(kmer_t uint_kmer) const {
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer) const {
     neighbourhood res;
     kmer_t suffix = uint_kmer >> 2;
     forward_neighbours(suffix, res);
@@ -154,7 +171,8 @@ neighbourhood dictionary::kmer_neighbours(kmer_t uint_kmer) const {
     return res;
 }
 
-neighbourhood dictionary::contig_neighbours(uint64_t contig_id) const {
+template<class kmer_t>
+neighbourhood dictionary<kmer_t>::contig_neighbours(uint64_t contig_id) const {
     assert(contig_id < num_contigs());
     neighbourhood res;
     kmer_t suffix = m_buckets.contig_suffix(contig_id, m_k);
@@ -164,7 +182,8 @@ neighbourhood dictionary::contig_neighbours(uint64_t contig_id) const {
     return res;
 }
 
-uint64_t dictionary::num_bits() const {
+template<class kmer_t>
+uint64_t dictionary<kmer_t>::num_bits() const {
     return 8 * (sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
                 sizeof(m_canonical_parsing)) +
            m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits() +

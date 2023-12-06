@@ -1,29 +1,7 @@
-#include "dictionary.hpp"
-#include "skew_index.hpp"
-
 namespace sshash {
 
-uint64_t skew_index::print_info() const {
-    uint64_t num_partitions = mphfs.size();
-    uint64_t lower = 1ULL << min_log2;
-    uint64_t upper = 2 * lower;
-    uint64_t num_kmers_in_skew_index = 0;
-    for (uint64_t partition_id = 0; partition_id != num_partitions; ++partition_id) {
-        uint64_t n = mphfs[partition_id].num_keys();
-        assert(n == positions[partition_id].size());
-        std::cout << "num_kmers belonging to buckets of size > " << lower << " and <= " << upper
-                  << ": " << n << "; ";
-        std::cout << "bits/kmer = " << static_cast<double>(mphfs[partition_id].num_bits()) / n
-                  << " (mphf) + " << (positions[partition_id].bytes() * 8.0) / n
-                  << " (positions)\n";
-        num_kmers_in_skew_index += n;
-        lower = upper;
-        upper = 2 * lower;
-    }
-    return num_kmers_in_skew_index;
-}
-
-void dictionary::print_space_breakdown() const {
+template<class kmer_t>
+void dictionary<kmer_t>::print_space_breakdown() const {
     std::cout << "total index size: " << essentials::convert((num_bits() + 7) / 8, essentials::MB)
               << " [MB]" << '\n';
     std::cout << "SPACE BREAKDOWN:\n";
@@ -48,7 +26,8 @@ void dictionary::print_space_breakdown() const {
               << std::endl;
 }
 
-void dictionary::print_info() const {
+template<class kmer_t>
+void dictionary<kmer_t>::print_info() const {
     std::cout << "=== dictionary info:\n";
     std::cout << "num_kmers = " << size() << '\n';
     std::cout << "k = " << k() << '\n';

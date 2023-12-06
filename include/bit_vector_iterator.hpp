@@ -5,6 +5,7 @@
 
 namespace sshash {
 
+template<class kmer_t>
 struct bit_vector_iterator {
     bit_vector_iterator() : m_bv(nullptr) {}
 
