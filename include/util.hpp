@@ -27,9 +27,9 @@ struct lookup_result {
         , contig_size(constants::invalid_uint64) {}
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
+    uint32_t kmer_orientation;
     uint64_t contig_id;
     uint64_t contig_size;
-    uint32_t kmer_orientation;
 };
 
 struct neighbourhood {
