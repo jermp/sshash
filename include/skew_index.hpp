@@ -4,7 +4,7 @@
 
 namespace sshash {
 
-template<class kmer_t>
+template <class kmer_t>
 struct skew_index {
     skew_index()
         : min_log2(constants::min_l)
@@ -24,10 +24,10 @@ struct skew_index {
             uint64_t n = mphfs[partition_id].num_keys();
             assert(n == positions[partition_id].size());
             std::cout << "num_kmers belonging to buckets of size > " << lower << " and <= " << upper
-                    << ": " << n << "; ";
+                      << ": " << n << "; ";
             std::cout << "bits/kmer = " << static_cast<double>(mphfs[partition_id].num_bits()) / n
-                    << " (mphf) + " << (positions[partition_id].bytes() * 8.0) / n
-                    << " (positions)\n";
+                      << " (mphf) + " << (positions[partition_id].bytes() * 8.0) / n
+                      << " (positions)\n";
             num_kmers_in_skew_index += n;
             lower = upper;
             upper = 2 * lower;

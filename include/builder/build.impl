@@ -11,8 +11,9 @@
 
 namespace sshash {
 
-template<class kmer_t>
-void dictionary<kmer_t>::build(std::string const& filename, build_configuration const& build_config) {
+template <class kmer_t>
+void dictionary<kmer_t>::build(std::string const& filename,
+                               build_configuration const& build_config) {
     /* Validate the build configuration. */
     if (build_config.k == 0) throw std::runtime_error("k must be > 0");
     if (build_config.k > constants::max_k) {

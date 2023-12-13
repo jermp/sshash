@@ -1,6 +1,6 @@
 namespace sshash {
 
-template<class kmer_t>
+template <class kmer_t>
 void dictionary<kmer_t>::dump(std::string const& filename) const {
     uint64_t num_kmers = size();
     uint64_t num_minimizers = m_minimizers.size();

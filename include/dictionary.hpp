@@ -9,13 +9,13 @@
 namespace sshash {
 
 // Forward declarations of the friend template classes
-template<class kmer_t>
+template <class kmer_t>
 struct streaming_query_canonical_parsing;
 
-template<class kmer_t>
+template <class kmer_t>
 struct streaming_query_regular_parsing;
 
-template<class kmer_t = default_kmer_t>
+template <class kmer_t = default_kmer_t>
 struct dictionary {
     dictionary() : m_size(0), m_seed(0), m_k(0), m_m(0), m_canonical_parsing(0) {}
 

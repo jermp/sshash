@@ -6,7 +6,7 @@
 
 namespace sshash {
 
-template<class kmer_t>
+template <class kmer_t>
 struct buckets {
     std::pair<lookup_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
         auto [pos, contig_begin, contig_end] = pieces.locate(offset);
