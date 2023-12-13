@@ -25,8 +25,8 @@ void dictionary::build(std::string const& filename, build_configuration const& b
                                  " but got m = " + std::to_string(build_config.m));
     }
     if (build_config.m > build_config.k) throw std::runtime_error("m must be < k");
-    if (build_config.l > constants::max_l) {
-        throw std::runtime_error("l must be <= " + std::to_string(constants::max_l));
+    if (build_config.l >= constants::max_l) {
+        throw std::runtime_error("l must be < " + std::to_string(constants::max_l));
     }
 
     m_k = build_config.k;

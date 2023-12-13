@@ -168,7 +168,7 @@ struct buckets {
         uint64_t offset = id_to_offset(kmer_id, k);
         bit_vector_iterator bv_it(strings, 2 * offset);
         kmer_t read_kmer = bv_it.read(2 * k);
-        util::uint_kmer_to_string_no_reverse(read_kmer, string_kmer, k);
+        util::uint_kmer_to_string(read_kmer, string_kmer, k);
     }
 
     struct iterator {
@@ -196,7 +196,7 @@ struct buckets {
             while (offset != next_offset - m_k + 1) {
                 ret.first = m_kmer_id;
                 if (clear) {
-                    util::uint_kmer_to_string_no_reverse(read_kmer, ret.second.data(), m_k);
+                    util::uint_kmer_to_string(read_kmer, ret.second.data(), m_k);
                 } else {
                     memmove(ret.second.data(), ret.second.data() + 1, m_k - 1);
                     ret.second[m_k - 1] = util::uint64_to_char(last_two_bits);

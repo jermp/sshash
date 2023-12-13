@@ -47,10 +47,10 @@ struct kmers_pthash_hasher_128 {
     }
 };
 
-//typedef pthash::murmurhash2_64 minimizers_base_hasher_type;
+// typedef pthash::murmurhash2_64 minimizers_base_hasher_type;
 typedef pthash::murmurhash2_128 minimizers_base_hasher_type;
 
-//typedef kmers_pthash_hasher_64 kmers_base_hasher_type;
+// typedef kmers_pthash_hasher_64 kmers_base_hasher_type;
 typedef kmers_pthash_hasher_128 kmers_base_hasher_type;
 
 typedef pthash::partitioned_phf<minimizers_base_hasher_type, // base hasher

@@ -161,7 +161,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         while (end != sequence.size() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid(kmer, k));
-            kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(kmer, k);
+            kmer_t uint_kmer = util::string_to_uint_kmer(kmer, k);
             uint64_t minimizer = util::compute_minimizer(uint_kmer, k, m, seed);
 
             if (build_config.canonical_parsing) {

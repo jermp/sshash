@@ -133,6 +133,11 @@ char decimal  binary
  C     67     01000-01-1 -> 01
  G     71     01000-11-1 -> 11
  T     84     01010-10-0 -> 10
+
+ a     97     01100-00-1 -> 00
+ c     99     01100-01-1 -> 01
+ g    103     01100-11-1 -> 11
+ t    116     01110-10-0 -> 10
 */
 static kmer_t char_to_uint(char c) { return (c >> 1) & 3; }
 
@@ -142,77 +147,14 @@ static char uint64_to_char(uint64_t x) {
     return nucleotides[x];
 }
 
-/*
-    Traditional mapping.
-*/
-// uint64_t char_to_uint(char c) {
-//     switch (c) {
-//         case 'A':
-//             return 0;
-//         case 'C':
-//             return 1;
-//         case 'G':
-//             return 2;
-//         case 'T':
-//             return 3;
-//     }
-//     assert(false);
-//     return -1;
-// }
-// char uint64_to_char(uint64_t x) {
-//     switch (x) {
-//         case 0:
-//             return 'A';
-//         case 1:
-//             return 'C';
-//         case 2:
-//             return 'G';
-//         case 3:
-//             return 'T';
-//     }
-//     assert(false);
-//     return 0;
-// }
-
-/****************************************************************************
-    The following two functions preserves the lexicographic order of k-mers,
-    that is: if g and t are two k-mers and g < t lexicographically,
-    then also id(g) < id(t).
-*/
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
-    assert(k <= constants::max_k);
-    kmer_t x = 0;
-    for (uint64_t i = 0; i != k; ++i) {
-        x <<= 2;
-        x += char_to_uint(str[i]);
-    }
-    return x;
-}
-[[maybe_unused]] static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
-    assert(k <= constants::max_k);
-    for (int i = k - 1; i >= 0; --i) {
-        str[i] = uint64_to_char(x & 3);
-        x >>= 2;
-    }
-}
-/****************************************************************************/
-
-[[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
-    assert(k <= constants::max_k);
-    std::string str;
-    str.resize(k);
-    uint_kmer_to_string(x, str.data(), k);
-    return str;
-}
-
-[[maybe_unused]] static kmer_t string_to_uint_kmer_no_reverse(char const* str, uint64_t k) {
     assert(k <= constants::max_k);
     kmer_t x = 0;
     for (uint64_t i = 0; i != k; ++i) x += char_to_uint(str[i]) << (2 * i);
     return x;
 }
 
-static void uint_kmer_to_string_no_reverse(kmer_t x, char* str, uint64_t k) {
+static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     assert(k <= constants::max_k);
     for (uint64_t i = 0; i != k; ++i) {
         str[i] = uint64_to_char(x & 3);
@@ -220,11 +162,11 @@ static void uint_kmer_to_string_no_reverse(kmer_t x, char* str, uint64_t k) {
     }
 }
 
-[[maybe_unused]] static std::string uint_kmer_to_string_no_reverse(kmer_t x, uint64_t k) {
+[[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
     assert(k <= constants::max_k);
     std::string str;
     str.resize(k);
-    uint_kmer_to_string_no_reverse(x, str.data(), k);
+    uint_kmer_to_string(x, str.data(), k);
     return str;
 }
 
@@ -282,31 +224,51 @@ template <bool align>
     }
 }
 
-// forward character map. A -> A, C -> C, G -> G, T -> T. rest maps to zero.
+/*
+    Forward character map:
+        A -> A    65
+        C -> C    67
+        G -> G    71
+        T -> T    84
+        a -> a    97
+        c -> c    99
+        g -> g   103
+        t -> t   116
+    All other chars map to zero.
+*/
 static const char canonicalize_basepair_forward_map[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 65, 0, 67, 0, 0, 0, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 84, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,   0, 0, 0, 0, 0, 0, 65, 0, 67, 0,  0, 0,  71, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 84, 0, 0,
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  97, 0, 99, 0,  0, 0, 103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    116, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0};
 
-// reverse character map. A -> T, C -> G, G -> C, T -> A. rest maps to zero.
+/*
+    Reverse character map:
+    65    A -> T    84
+    67    C -> G    71
+    71    G -> C    67
+    84    T -> A    65
+    97    a -> t   116
+    99    c -> g   103
+   103    g -> c    99
+   116    t -> a    97
+    All other chars map to zero.
+*/
 static const char canonicalize_basepair_reverse_map[256] = {
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 84, 0, 71, 0, 0, 0, 67, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-};
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,  0, 0, 0, 0, 0, 0, 84, 0, 71, 0,   0, 0,   67, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 0,
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  116, 0, 103, 0,  0, 0, 99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    97, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
+    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0};
 
 [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
                                                         uint64_t size) {
@@ -322,7 +284,6 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     for (uint64_t i = 0; i != size; ++i) {
         int c = str[i];
         if (canonicalize_basepair_forward_map[c] == 0) return false;
-        // if (c != 'A' and c != 'C' and c != 'G' and c != 'T') return false;
     }
     return true;
 }

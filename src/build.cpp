@@ -20,8 +20,9 @@ int build(int argc, char** argv) {
                false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
-               "A reasonable values lies between 2 and 12 (default is " +
-                   std::to_string(constants::min_l) + ").",
+               "A reasonable values lies in [2.." +
+                   std::to_string(constants::max_l) + "). The default value is " +
+                   std::to_string(constants::min_l) + ".",
                "-l", false);
     parser.add("c",
                "A (floating point) constant that trades construction speed for space effectiveness "

@@ -7,8 +7,8 @@ namespace sshash {
 void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const& m_buckets,
                       build_configuration const& build_config,
                       buckets_statistics const& buckets_stats) {
-    uint64_t min_log2_size = m_skew_index.min_log2;
-    uint64_t max_log2_size = m_skew_index.max_log2;
+    const uint64_t min_log2_size = m_skew_index.min_log2;
+    const uint64_t max_log2_size = m_skew_index.max_log2;
 
     uint64_t max_num_super_kmers_in_bucket = buckets_stats.max_num_super_kmers_in_bucket();
     m_skew_index.log2_max_num_super_kmers_in_bucket =

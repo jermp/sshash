@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>  // for std::transform
+
 #include "../include/gz/zip_stream.hpp"
 
 namespace sshash {
@@ -11,6 +13,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
     std::string line;
     uint64_t pos = 0;
     uint64_t num_kmers = 0;
+    uint64_t num_lines = 0;
     lookup_result prev;
     prev.contig_id = 0;
 
@@ -25,22 +28,33 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
             line.clear();
             continue;
         }
+
+        /* transform 50% of the read nucleotides into lower-case letters
+           (assuming the input is upper-case):
+           lower-case kmers must be found anyway in the index */
+        if ((num_lines & 1) == 0) {
+            std::transform(line.begin(), line.end(), line.begin(),
+                           [](char c) { return std::tolower(c); });
+        }
+        ++num_lines;
+
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
             assert(util::is_valid(line.data() + i, k));
-            kmer_t uint_kmer = util::string_to_uint_kmer_no_reverse(line.data() + i, k);
+
+            kmer_t uint_kmer = util::string_to_uint_kmer(line.data() + i, k);
             bool orientation = constants::forward_orientation;
 
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
                 std::cout << "checked " << num_kmers << " kmers" << std::endl;
             }
 
+            /* transform 50% of the kmers into their reverse complements */
             if ((num_kmers & 1) == 0) {
-                /* transform 50% of the kmers into their reverse complements */
                 uint_kmer = util::compute_reverse_complement(uint_kmer, k);
                 orientation = constants::backward_orientation;
             }
 
-            util::uint_kmer_to_string_no_reverse(uint_kmer, expected_kmer_str.data(), k);
+            util::uint_kmer_to_string(uint_kmer, expected_kmer_str.data(), k);
             uint64_t id = dict.lookup(expected_kmer_str.c_str());
 
             /*
@@ -124,7 +138,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
 
             // check access
             dict.access(id, got_kmer_str.data());
-            kmer_t got_uint_kmer = util::string_to_uint_kmer_no_reverse(got_kmer_str.data(), k);
+            kmer_t got_uint_kmer = util::string_to_uint_kmer(got_kmer_str.data(), k);
             kmer_t got_uint_kmer_rc = util::compute_reverse_complement(got_uint_kmer, k);
             if (got_uint_kmer != uint_kmer and got_uint_kmer_rc != uint_kmer) {
                 std::cout << "ERROR: got '" << got_kmer_str << "' but expected '"
