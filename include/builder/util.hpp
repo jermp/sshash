@@ -83,9 +83,6 @@ struct compact_string_pool {
                     throw std::runtime_error("contig_length " + std::to_string(contig_length) +
                                              " does not fit into 32 bits");
                 }
-                if (pieces.size() == 1ULL << 32) {
-                    throw std::runtime_error("num_contigs must be less than 2^32");
-                }
             }
         }
     };
