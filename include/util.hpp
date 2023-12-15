@@ -114,6 +114,11 @@ struct build_configuration {
 
 namespace util {
 
+static uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
+    static const uint64_t my_favourite_seed = 1234567890;
+    return build_config.seed != my_favourite_seed ? my_favourite_seed : ~my_favourite_seed;
+}
+
 /* return the position of the most significant bit */
 static inline uint32_t msb(uint32_t x) {
     assert(x > 0);

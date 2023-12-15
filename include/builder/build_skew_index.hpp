@@ -129,7 +129,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         pthash::build_configuration mphf_config;
         mphf_config.c = build_config.c;
         mphf_config.alpha = 0.94;
-        mphf_config.seed = 1234567890;  // my favourite seed
+        mphf_config.seed = util::get_seed_for_hash_function(build_config);
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
         mphf_config.num_threads = std::thread::hardware_concurrency();
