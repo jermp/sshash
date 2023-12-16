@@ -77,6 +77,35 @@ For a testing environment, use the following instead:
     cmake .. -D CMAKE_BUILD_TYPE=Debug -D SSHASH_USE_SANITIZERS=On
     make -j
 
+### Encoding of Nucleotides
+
+SSHash uses by default the following 2-bit encoding of nucleotides.
+
+	 A     65     01000.00.1 -> 00
+	 C     67     01000.01.1 -> 01
+	 G     71     01000.11.1 -> 11
+	 T     84     01010.10.0 -> 10
+	
+	 a     97     01100.00.1 -> 00
+	 c     99     01100.01.1 -> 01
+	 g    103     01100.11.1 -> 11
+	 t    116     01110.10.0 -> 10
+
+If you want to use the "traditional" encoding
+
+	 A     65     01000001 -> 00
+	 C     67     01000011 -> 01
+	 G     71     01000111 -> 10
+	 T     84     01010100 -> 11
+	
+	 a     97     01100001 -> 00
+	 c     99     01100011 -> 01
+	 g    103     01100111 -> 10
+	 t    116     01110100 -> 11
+
+for compatibility issues with other software, then
+compile SSHash with the flag `-DSSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING=On`.
+
 Dependencies
 ------------
 
