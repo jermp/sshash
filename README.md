@@ -41,7 +41,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 #### Table of contents
 * [Compiling the Code](#compiling-the-code)
 * [Dependencies](#dependencies)
-* [Tools](#tools)
+* [Tools and Usage](#tools-and-usage)
 * [Examples](#Examples)
 * [Input Files](#input-files)
 * [Benchmarks](#benchmarks)
@@ -95,8 +95,8 @@ if you are on Linux/Ubuntu, or
 
 if you have a Mac.
 
-Tools
------
+Tools and Usage
+---------------
 
 There is one executable called `sshash` after the compilation, which can be used to run a tool.
 Run `./sshash` as follows to see a list of available tools.
@@ -114,14 +114,19 @@ Run `./sshash` as follows to see a list of available tools.
       permute                permute a weighted input file
       compute-statistics     compute index statistics
 
+For large-scale indexing, it could be necessary to increase the number of file descriptors that can be opened simultaneously:
+
+	ulimit -n 2048
+
 Examples
 --------
 
 For the examples, we are going to use some collections
 of *stitched unitigs* from the directory `../data/unitigs_stitched`.
-The value of k used during the formation of the unitigs
+
+**Important note:** The value of k used during the formation of the unitigs
 is indicated in the name of each file and the dictionaries
-should be built with that value as well to ensure correctness.
+**must** be built with that value as well to ensure correctness.
 
 For example, `data/unitigs_stitched/ecoli4_k31_ust.fa.gz` indicates the value k = 31, whereas `data/unitigs_stitched/se.ust.k63.fa.gz` indicates the value k = 63.
 
