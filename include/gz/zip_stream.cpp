@@ -514,7 +514,7 @@ void basic_zip_istream<CharT, Traits>::read_footer() {
 
         gzip_data_size_ = 0;
         for (int n = 0; n < 4; ++n)
-            gzip_data_size_ += (static_cast<uint32_t>(this->get_istream().get()) & 0xff) << (8 * n);
+            gzip_data_size_ += (static_cast<uint64_t>(this->get_istream().get()) & 0xff) << (8 * n);
     }
 }
 
