@@ -283,7 +283,7 @@ protected:
 
     bool is_gzip_;
     uint32_t gzip_crc_;
-    uint32_t gzip_data_size_;
+    uint64_t gzip_data_size_;
 };
 
 /******************************************************************************/
