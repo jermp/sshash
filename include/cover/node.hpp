@@ -9,30 +9,30 @@ namespace sshash {
 
 struct node {
     node()
-        : id(constants::invalid_uint32)
-        , front(constants::invalid_uint32)
-        , back(constants::invalid_uint32)
+        : id(constants::invalid_uint64)
+        , front(constants::invalid_uint64)
+        , back(constants::invalid_uint64)
         , sign(true)
-        , chain_id(constants::invalid_uint32)
-        , left(constants::invalid_uint32)
-        , right(constants::invalid_uint32) {}
+        , chain_id(constants::invalid_uint64)
+        , left(constants::invalid_uint64)
+        , right(constants::invalid_uint64) {}
 
-    node(uint32_t i, uint32_t f, uint32_t b, bool s = true)
+    node(uint64_t i, uint64_t f, uint64_t b, bool s = true)
         : id(i)
         , front(f)
         , back(b)
         , sign(s)
-        , chain_id(constants::invalid_uint32)
-        , left(constants::invalid_uint32)
-        , right(constants::invalid_uint32) {}
+        , chain_id(constants::invalid_uint64)
+        , left(constants::invalid_uint64)
+        , right(constants::invalid_uint64) {}
 
-    uint32_t id, front, back;
+    uint64_t id, front, back;
 
     bool sign;  // '+' --> forward
                 // '-' --> backward
 
-    uint32_t chain_id;
-    uint32_t left, right;
+    uint64_t chain_id;
+    uint64_t left, right;
 
     void print() const {
         std::cout << id << ":[" << front << "," << back << "," << (sign ? '+' : '-') << "]"

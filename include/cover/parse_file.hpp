@@ -29,7 +29,7 @@ void parse_file(std::istream& is, permute_data& data, build_configuration const&
     data.num_sequences = 0;
 
     /* count number of distinct weights */
-    std::unordered_set<uint32_t> distinct_weights;
+    std::unordered_set<uint64_t> distinct_weights;
 
     auto parse_header = [&]() {
         if (sequence.empty()) return;
@@ -186,7 +186,7 @@ void reverse_header(std::string const& input, std::string& output, uint64_t k) {
     i = j + 6;  // skip ' ab:Z:'
     output.append(input.data(), input.data() + i);
 
-    std::vector<uint32_t> weights;
+    std::vector<uint64_t> weights;
     weights.reserve(seq_len - k + 1);
     for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
         uint64_t weight = std::strtoull(input.data() + i, nullptr, 10);
@@ -283,12 +283,12 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         std::cout << "files to merge = " << num_files_to_merge << std::endl;
 
         std::vector<lines_iterator> iterators;
-        std::vector<uint32_t> idx_heap;
+        std::vector<uint64_t> idx_heap;
         iterators.reserve(num_files_to_merge);
         idx_heap.reserve(num_files_to_merge);
         std::vector<mm::file_source<uint8_t>> mm_files(num_files_to_merge);
 
-        auto heap_idx_comparator = [&](uint32_t i, uint32_t j) {
+        auto heap_idx_comparator = [&](uint64_t i, uint64_t j) {
             assert(iterators[i].header().front() == '>');
             assert(iterators[j].header().front() == '>');
             uint64_t seq_id_x = std::strtoull(iterators[i].header().data() + 1, nullptr, 10);

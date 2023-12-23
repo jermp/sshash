@@ -120,12 +120,19 @@ static uint64_t get_seed_for_hash_function(build_configuration const& build_conf
 }
 
 /* return the position of the most significant bit */
-static inline uint32_t msb(uint32_t x) {
+static inline uint32_t msb_uint32(uint32_t x) {
     assert(x > 0);
     return 31 - __builtin_clz(x);
 }
 
-static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1) + 1 : 0; }
+static inline uint64_t msb_uint64(uint64_t x) {
+    assert(x > 0);
+    return 63 - __builtin_clzll(x);
+}
+
+static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb_uint32(x - 1) + 1 : 0; }
+static inline uint64_t ceil_log2_uint64(uint64_t x) { return (x > 1) ? msb_uint64(x - 1) + 1 : 0;
+
 
 [[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
     if (pattern.size() > str.size()) return false;

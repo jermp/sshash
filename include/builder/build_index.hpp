@@ -5,15 +5,15 @@
 
 namespace sshash {
 
-#pragma pack(push, 4)
+
 struct bucket_pair {
-    bucket_pair(uint64_t id, uint32_t size) : id(id), size(size) {}
+    bucket_pair(uint64_t id, uint64_t size) : id(id), size(size) {}
     uint64_t id;
-    uint32_t size;
+    uint64_t size;
 
     bool operator>(bucket_pair other) const { return id > other.id; }
 };
-#pragma pack(pop)
+
 
 struct bucket_pairs_iterator : std::forward_iterator_tag {
     bucket_pairs_iterator(bucket_pair const* begin, bucket_pair const* end)
@@ -52,7 +52,7 @@ struct bucket_pairs {
         std::cout << "m_buffer_size " << m_buffer_size << std::endl;
     }
 
-    void emplace_back(uint64_t id, uint32_t size) {
+    void emplace_back(uint64_t id, uint64_t size) {
         if (m_buffer.size() == m_buffer_size) sort_and_flush();
         m_buffer.emplace_back(id, size);
     }
@@ -174,7 +174,7 @@ buckets_statistics build_index(parse_data& data, minimizers const& m_minimizers,
     uint64_t num_singletons = 0;
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
          it.next()) {
-        uint32_t list_size = it.list().size();
+        uint64_t list_size = it.list().size();
         assert(list_size > 0);
         if (list_size != 1) {
             uint64_t bucket_id = m_minimizers.lookup(it.minimizer());

@@ -142,7 +142,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
         /* tmp storage for keys and super_kmer_ids ******/
         std::vector<kmer_t> keys_in_partition;
-        std::vector<uint32_t> super_kmer_ids_in_partition;
+        std::vector<uint64_t> super_kmer_ids_in_partition;
         keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
         super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
         pthash::compact_vector::builder cvb_positions;
@@ -183,7 +183,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
                 for (uint64_t i = 0; i != keys_in_partition.size(); ++i) {
                     kmer_t kmer = keys_in_partition[i];
                     uint64_t pos = mphf(kmer);
-                    uint32_t super_kmer_id = super_kmer_ids_in_partition[i];
+                    uint64_t super_kmer_id = super_kmer_ids_in_partition[i];
                     cvb_positions.set(pos, super_kmer_id);
                 }
                 auto& positions = m_skew_index.positions[partition_id];

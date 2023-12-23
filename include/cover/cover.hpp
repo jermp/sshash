@@ -43,12 +43,12 @@ struct cover {
         std::ofstream out(filename.c_str());
         uint64_t num_sequences = 0;
         for (auto& walk : m_walks) {
-            uint32_t prev_back = walk.front().front;
+            uint64_t prev_back = walk.front().front;
             for (auto& u : walk) {
-                if (u.chain_id != constants::invalid_uint32) {
+                if (u.chain_id != constants::invalid_uint64) {
                     num_sequences += save_chain(true, u, out, prev_back);
-                } else if (u.left != constants::invalid_uint32 and
-                           u.right != constants::invalid_uint32) {
+                } else if (u.left != constants::invalid_uint64 and
+                           u.right != constants::invalid_uint64) {
                     num_sequences += save_tree(true, u, out, prev_back);
                 } else {
                     num_sequences += save_leaf(u, out, prev_back);
@@ -77,12 +77,12 @@ private:
     std::vector<node> m_nodes;
 
     /* (w, set of ids of nodes where w appears as front or back) */
-    std::unordered_map<uint32_t, std::unordered_set<uint32_t>> m_incidence;
+    std::unordered_map<uint64_t, std::unordered_set<uint64_t>> m_incidence;
 
     /* set of unvisited nodes */
-    std::unordered_set<uint32_t> m_unvisited;
+    std::unordered_set<uint64_t> m_unvisited;
 
-    void check_link_and_update(node const& u, uint32_t& prev_back) {
+    void check_link_and_update(node const& u, uint64_t& prev_back) {
         if (u.front != prev_back) std::cout << "ERROR: path is broken." << std::endl;
         prev_back = u.back;
     }
@@ -92,29 +92,29 @@ private:
         u.sign = !u.sign;
     }
 
-    void insert_node(node const& u, uint32_t offset) {
+    void insert_node(node const& u, uint64_t offset) {
         m_unvisited.insert(offset);
         m_incidence[u.front].insert(offset);
         m_incidence[u.back].insert(offset);
     }
 
-    void erase_node(node const& u, uint32_t offset) {
+    void erase_node(node const& u, uint64_t offset) {
         m_unvisited.erase(offset);
         m_incidence[u.front].erase(offset);
         m_incidence[u.back].erase(offset);
     }
 
-    uint64_t save_leaf(node const& u, std::ofstream& out, uint32_t& prev_back) {
-        assert(u.left == constants::invalid_uint32 and u.right == constants::invalid_uint32);
-        assert(u.chain_id == constants::invalid_uint32);
+    uint64_t save_leaf(node const& u, std::ofstream& out, uint64_t& prev_back) {
+        assert(u.left == constants::invalid_uint64 and u.right == constants::invalid_uint64);
+        assert(u.chain_id == constants::invalid_uint64);
         check_link_and_update(u, prev_back);
         out << u.id;
         out << (u.sign ? " 1\n" : " 0\n");
         return 1;
     }
 
-    uint64_t save_chain(bool parent_sign, node const& v, std::ofstream& out, uint32_t& prev_back) {
-        assert(v.chain_id != constants::invalid_uint32);
+    uint64_t save_chain(bool parent_sign, node const& v, std::ofstream& out, uint64_t& prev_back) {
+        assert(v.chain_id != constants::invalid_uint64);
         assert(v.chain_id < m_chains.size());
         auto& chain = m_chains[v.chain_id];
         bool new_sign = parent_sign == v.sign;
@@ -130,9 +130,9 @@ private:
         return chain.size();
     }
 
-    uint64_t save_tree(bool parent_sign, node& u, std::ofstream& out, uint32_t& prev_back) {
-        if (u.left == constants::invalid_uint32 and u.right == constants::invalid_uint32) {  // leaf
-            if (u.chain_id != constants::invalid_uint32) {
+    uint64_t save_tree(bool parent_sign, node& u, std::ofstream& out, uint64_t& prev_back) {
+        if (u.left == constants::invalid_uint64 and u.right == constants::invalid_uint64) {  // leaf
+            if (u.chain_id != constants::invalid_uint64) {
                 return save_chain(parent_sign, u, out, prev_back);
             }
             if (parent_sign == false) change_orientation(u);
@@ -170,8 +170,8 @@ private:
         });
 
         walk_t chain;
-        uint32_t front = m_nodes.front().front;
-        uint32_t back = m_nodes.front().back;
+        uint64_t front = m_nodes.front().front;
+        uint64_t back = m_nodes.front().back;
 
         node dummy;
         dummy.front = 0;
@@ -180,8 +180,8 @@ private:
 
         for (auto& u : m_nodes) {
             /* copy front and back */
-            uint32_t u_front = u.front;
-            uint32_t u_back = u.back;
+            uint64_t u_front = u.front;
+            uint64_t u_back = u.back;
 
             if (u.front != front or u.back != back) {
                 assert(!chain.empty());
@@ -226,7 +226,7 @@ private:
         std::vector<node>().swap(tmp);
 
         /* fill m_unvisited and m_incidence */
-        uint32_t offset_u = 0;
+        uint64_t offset_u = 0;
         for (auto const& u : m_nodes) {
             insert_node(u, offset_u);
             offset_u += 1;
@@ -239,7 +239,7 @@ private:
         offset_u = 0;
         for (auto& u : m_nodes) {
             if (u.front == u.back) {
-                uint32_t w = u.front;
+                uint64_t w = u.front;
                 auto const& incidence_w = m_incidence[w];
                 if (incidence_w.size() == 1) {
                     offset_u += 1;
@@ -247,11 +247,11 @@ private:
                 }
                 erase_node(u, offset_u);
                 assert(incidence_w.size() >= 1);
-                uint32_t offset_x = *incidence_w.begin();
+                uint64_t offset_x = *incidence_w.begin();
                 auto& x = m_nodes[offset_x];
                 erase_node(x, offset_x);
                 auto p = merge(x, u, w, offset_x, offset_u);
-                uint32_t offset_p = m_nodes.size();
+                uint64_t offset_p = m_nodes.size();
                 m_nodes.push_back(p);
                 insert_node(p, offset_p);
             }
@@ -263,8 +263,8 @@ private:
         even_frequency_weights efw;
 
         {
-            std::unordered_map<uint32_t, uint32_t> freq;  // (w, frequency of w)
-            uint32_t offset_u = 0;
+            std::unordered_map<uint64_t, uint64_t> freq;  // (w, frequency of w)
+            uint64_t offset_u = 0;
             for (auto const& u : m_nodes) {
                 if (m_unvisited.find(offset_u) != m_unvisited.cend()) {
                     if (auto it = freq.find(u.front); it == freq.cend()) {
@@ -285,7 +285,7 @@ private:
 
         while (efw.has_next()) {
             /* 1. take weight w of lowest even frequency */
-            uint32_t w = efw.min();
+            uint64_t w = efw.min();
             auto const& incidence_w = m_incidence[w];
             assert(!incidence_w.empty());
 
@@ -295,9 +295,9 @@ private:
             /* 2. take two nodes x and y from m_incidence[w] and merge them into a parent node p */
             assert(incidence_w.size() >= 2);
             auto it = incidence_w.begin();
-            uint32_t offset_x = *it;
+            uint64_t offset_x = *it;
             ++it;
-            uint32_t offset_y = *it;
+            uint64_t offset_y = *it;
 
             auto& x = m_nodes[offset_x];
             auto& y = m_nodes[offset_y];
@@ -305,19 +305,19 @@ private:
             erase_node(x, offset_x);
             erase_node(y, offset_y);
 
-            uint32_t offset_p = m_nodes.size();
+            uint64_t offset_p = m_nodes.size();
             m_nodes.push_back(p);
 
             /* 3. if parent node p is (ww,ww), then merge it with a node from m_incidence[ww] */
             if (p.front == p.back) {
-                uint32_t ww = p.front;
+                uint64_t ww = p.front;
                 efw.decrease_freq(ww);
                 auto const& incidence_ww = m_incidence[ww];
                 if (!incidence_ww.empty()) {
-                    uint32_t offset_xx = *(incidence_ww.begin());
+                    uint64_t offset_xx = *(incidence_ww.begin());
                     auto& xx = m_nodes[offset_xx];
                     insert_node(p, offset_p);
-                    uint32_t offset_yy = offset_p;
+                    uint64_t offset_yy = offset_p;
                     auto& yy = m_nodes[offset_p];
                     p = merge(xx, yy, ww, offset_xx, offset_yy);
                     erase_node(xx, offset_xx);
@@ -346,7 +346,7 @@ private:
 
         while (!m_unvisited.empty()) {
             /* 1. take an unvisited node's offset */
-            uint32_t offset_u = *(m_unvisited.begin());
+            uint64_t offset_u = *(m_unvisited.begin());
 
             /* 2. create a new walk */
             walk.clear();
@@ -358,7 +358,7 @@ private:
                 append_node_to_walk(u, walk);
                 erase_node(u, offset_u);
 
-                auto try_to_extend = [&](uint32_t w) {
+                auto try_to_extend = [&](uint64_t w) {
                     auto const& incidence_w = m_incidence[w];
                     if (incidence_w.empty()) return false;
                     offset_u = *(incidence_w.begin());
@@ -395,7 +395,7 @@ private:
     }
 
     /* merge nodes x and y on weight w and return a parent node p */
-    node merge(node& x, node& y, uint32_t w, uint32_t offset_x, uint32_t offset_y) {
+    node merge(node& x, node& y, uint64_t w, uint64_t offset_x, uint64_t offset_y) {
         if (x.front == w) change_orientation(x);
         if (y.back == w) change_orientation(y);
         node p;
@@ -408,7 +408,7 @@ private:
 
     void compute_lower_bound() {
         struct info {
-            uint32_t freq; /* freq of weight */
+            uint64_t freq; /* freq of weight */
 
             /*
                 If this flag is true, then w always appears in nodes of the
@@ -417,9 +417,9 @@ private:
             bool all_equal;
         };
 
-        std::unordered_map<uint32_t, info> weights;
+        std::unordered_map<uint64_t, info> weights;
 
-        uint32_t offset_u = 0;
+        uint64_t offset_u = 0;
         for (auto const& u : m_nodes) {
             if (m_unvisited.find(offset_u) != m_unvisited.cend()) {  // if not visited
                 uint64_t front = u.front;

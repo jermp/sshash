@@ -38,15 +38,15 @@ struct file_merging_iterator {
 
 private:
     std::vector<FileIterator> m_iterators;
-    std::vector<uint32_t> m_idx_heap;
+    std::vector<uint64_t> m_idx_heap;
     std::vector<mm::file_source<uint8_t>> m_mm_files;
 
-    std::function<bool(uint32_t, uint32_t)> heap_idx_comparator = [&](uint32_t i, uint32_t j) {
+    std::function<bool(uint64_t, uint64_t)> heap_idx_comparator = [&](uint64_t i, uint64_t j) {
         return (*m_iterators[i]) > (*m_iterators[j]);
     };
 
     void advance_heap_head() {
-        uint32_t idx = m_idx_heap.front();
+        uint64_t idx = m_idx_heap.front();
         m_iterators[idx].next();
         if (m_iterators[idx].has_next()) {  // percolate down the head
             uint64_t pos = 0;

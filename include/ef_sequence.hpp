@@ -15,7 +15,7 @@ struct ef_sequence {
         if (n == 0) return;
         m_universe = u;
 
-        uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0);
+        uint64_t l = uint64_t((n && u / n) ? pthash::util::msb(u / n) : 0); // Do we need msb_uint64 here?
         pthash::bit_vector_builder bvb_high_bits(n + (u >> l) + 1);
         pthash::compact_vector::builder cv_builder_low_bits(n, l);
 

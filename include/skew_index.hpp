@@ -53,7 +53,7 @@ struct skew_index {
 
     uint16_t min_log2;
     uint16_t max_log2;
-    uint32_t log2_max_num_super_kmers_in_bucket;
+    uint64_t log2_max_num_super_kmers_in_bucket;
     std::vector<kmers_pthash_type> mphfs;
     std::vector<pthash::compact_vector> positions;
 };
