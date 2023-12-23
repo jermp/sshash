@@ -138,8 +138,8 @@ uint32_t basic_zip_streambuf<CharT, Traits>::get_crc() const {
 }
 
 template <typename CharT, typename Traits>
-uint32_t basic_zip_streambuf<CharT, Traits>::get_in_size() const {
-    return static_cast<uint32_t>(zip_stream_.total_in);
+uint64_t basic_zip_streambuf<CharT, Traits>::get_in_size() const {
+    return static_cast<uint64_t>(zip_stream_.total_in);
 }
 
 template <typename CharT, typename Traits>
@@ -266,8 +266,8 @@ unsigned long basic_unzip_streambuf<CharT, Traits>::get_out_size() const {
 }
 
 template <typename CharT, typename Traits>
-uint32_t basic_unzip_streambuf<CharT, Traits>::get_in_size() const {
-    return static_cast<uint32_t>(zip_stream_.total_in);
+uint64_t basic_unzip_streambuf<CharT, Traits>::get_in_size() const {
+    return static_cast<uint64_t>(zip_stream_.total_in);
 }
 
 template <typename CharT, typename Traits>
@@ -394,7 +394,7 @@ basic_zip_ostream<CharT, Traits>& basic_zip_ostream<CharT, Traits>::add_footer()
         crc >>= 8;
     }
 
-    uint32_t length = this->get_in_size();
+    uint64_t length = this->get_in_size();
     for (int m = 0; m < 4; ++m) {
         this->get_ostream().put(static_cast<char>(length & 0xff));
         length >>= 8;

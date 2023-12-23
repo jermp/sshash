@@ -121,7 +121,7 @@ public:
     uint32_t get_crc() const;
 
     //! returns the size (bytes) of the input data compressed so far.
-    uint32_t get_in_size() const;
+    uint64_t get_in_size() const;
 
     //! returns the size (bytes) of the compressed data so far.
     unsigned long get_out_size() const;
@@ -183,7 +183,7 @@ public:
     unsigned long get_out_size() const;
 
     //! returns the number of read compressed bytes
-    uint32_t get_in_size() const;
+    uint64_t get_in_size() const;
 
 private:
     void put_back_from_zip_stream();
