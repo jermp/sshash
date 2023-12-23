@@ -131,7 +131,7 @@ static inline uint64_t msb_uint64(uint64_t x) {
 }
 
 static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb_uint32(x - 1) + 1 : 0; }
-static inline uint64_t ceil_log2_uint64(uint64_t x) { return (x > 1) ? msb_uint64(x - 1) + 1 : 0;
+static inline uint64_t ceil_log2_uint64(uint64_t x) { return (x > 1) ? msb_uint64(x - 1) + 1 : 0; }
 
 
 [[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
