@@ -27,7 +27,7 @@ struct lookup_result {
         , contig_size(constants::invalid_uint64) {}
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint32_t kmer_orientation;
+    uint64_t kmer_orientation;
     uint64_t contig_id;
     uint64_t contig_size;
 };
@@ -120,17 +120,11 @@ static uint64_t get_seed_for_hash_function(build_configuration const& build_conf
 }
 
 /* return the position of the most significant bit */
-static inline uint32_t msb_uint32(uint32_t x) {
-    assert(x > 0);
-    return 31 - __builtin_clz(x);
-}
-
 static inline uint64_t msb_uint64(uint64_t x) {
     assert(x > 0);
     return 63 - __builtin_clzll(x);
 }
 
-static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb_uint32(x - 1) + 1 : 0; }
 static inline uint64_t ceil_log2_uint64(uint64_t x) { return (x > 1) ? msb_uint64(x - 1) + 1 : 0; }
 
 

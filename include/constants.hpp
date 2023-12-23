@@ -14,7 +14,6 @@ constexpr uint64_t max_m = 31;
 
 // constexpr kmer_t invalid_uint_kmer = kmer_t(-1);
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
-constexpr uint32_t invalid_uint32 = uint32_t(-1);
 
 constexpr uint64_t seed = 1;
 constexpr double c = 3.0;  // for PTHash
