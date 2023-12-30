@@ -85,7 +85,7 @@ SSHash uses by default the following 2-bit encoding of nucleotides.
 	 C     67     01000.01.1 -> 01
 	 G     71     01000.11.1 -> 11
 	 T     84     01010.10.0 -> 10
-	
+
 	 a     97     01100.00.1 -> 00
 	 c     99     01100.01.1 -> 01
 	 g    103     01100.11.1 -> 11
@@ -97,7 +97,7 @@ If you want to use the "traditional" encoding
 	 C     67     01000011 -> 01
 	 G     71     01000111 -> 10
 	 T     84     01010100 -> 11
-	
+
 	 a     97     01100001 -> 00
 	 c     99     01100011 -> 01
 	 g    103     01100111 -> 10

@@ -16,7 +16,11 @@ void expect(T got, T expected) {
     }
 }
 
-int main(int /*argc*/, char** argv) {
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        std::cout << "Usage " << argv[0] << " k" << std::endl;
+        return 1;
+    }
     uint64_t k = std::stoull(argv[1]);
     if (k > constants::max_k) {
         std::cerr << "k must be less <= " << constants::max_k << " but got k = " << k << '\n';
