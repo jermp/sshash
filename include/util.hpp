@@ -32,17 +32,11 @@ struct lookup_result {
     uint32_t contig_size;
 };
 
+template <class kmer_t>
 struct neighbourhood {
     /* forward */
-    lookup_result forward_A;
-    lookup_result forward_C;
-    lookup_result forward_G;
-    lookup_result forward_T;
-    /* backward */
-    lookup_result backward_A;
-    lookup_result backward_C;
-    lookup_result backward_G;
-    lookup_result backward_T;
+    std::array<lookup_result, kmer_t::alphabet_size> forward;
+    std::array<lookup_result, kmer_t::alphabet_size> backward;
 };
 
 [[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
@@ -127,108 +121,32 @@ static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
 }
 
-/*
-char decimal  binary
- A     65     01000-00-1 -> 00
- C     67     01000-01-1 -> 01
- G     71     01000-11-1 -> 11
- T     84     01010-10-0 -> 10
-
- a     97     01100-00-1 -> 00
- c     99     01100-01-1 -> 01
- g    103     01100-11-1 -> 11
- t    116     01110-10-0 -> 10
-*/
-template <class kmer_t>
-static kmer_t char_to_uint(char c) {
-    return (c >> 1) & 3;
-}
-
-static char uint64_to_char(uint64_t x) {
-    assert(x <= 3);
-    static char nucleotides[4] = {'A', 'C', 'T', 'G'};
-    return nucleotides[x];
-}
-
 template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
-    assert(k <= constants::max_k);
+    assert(k <= kmer_t::max_k);
     kmer_t x = 0;
-    for (uint64_t i = 0; i != k; ++i) x += char_to_uint<kmer_t>(str[i]) << (2 * i);
+    for (int i = k - 1; i >= 0; i--) { x.append_char(kmer_t::char_to_uint(str[i])); }
     return x;
 }
 
 template <class kmer_t>
 static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
-    assert(k <= constants::max_k);
+    assert(k <= kmer_t::max_k);
     for (uint64_t i = 0; i != k; ++i) {
-        str[i] = uint64_to_char(x & 3);
-        x >>= 2;
+        auto first_char = x;
+        first_char.take_char();
+        str[i] = kmer_t::uint64_to_char(uint64_t(first_char));
+        x.drop_char();
     }
 }
 
 template <class kmer_t>
 [[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
-    assert(k <= constants::max_k);
+    assert(k <= kmer_t::max_k);
     std::string str;
     str.resize(k);
     uint_kmer_to_string(x, str.data(), k);
     return str;
-}
-
-/*
-    This works with the map:
-    A -> 00; C -> 01; G -> 11; T -> 10.
-
-    Example.
-    reverse_complement("ACTCACG") = CGTGAGT, in binary:
-    reverse_complement("00.01.10.01.00.01.11") = 01.11.10.11.00.11.10.
-*/
-template <bool align>
-[[maybe_unused]] static uint64_t crc(uint64_t x, uint64_t k) {
-    assert(k <= 32);
-
-    /* Complement, swap byte order */
-    uint64_t res = __builtin_bswap64(x ^ 0xaaaaaaaaaaaaaaaa);
-
-    /* Swap nuc order in bytes */
-    const uint64_t c1 = 0x0f0f0f0f0f0f0f0f;
-    const uint64_t c2 = 0x3333333333333333;
-    res = ((res & c1) << 4) | ((res & (c1 << 4)) >> 4);  // swap 2-nuc order in bytes
-    res = ((res & c2) << 2) | ((res & (c2 << 2)) >> 2);  // swap nuc order in 2-nuc
-
-    /* Realign to the right */
-    if constexpr (align) res >>= 64 - 2 * k;
-
-    return res;
-}
-
-template <class kmer_t>
-[[maybe_unused]] static kmer_t compute_reverse_complement(kmer_t x, uint64_t k) {
-    assert(k <= constants::max_k);
-    if constexpr (constants::uint_kmer_bits == 64) {
-        return crc<true>(x, k);
-    } else {
-        assert(constants::uint_kmer_bits == 128);
-        uint64_t low = static_cast<uint64_t>(x);
-        uint64_t high = static_cast<uint64_t>(x >> 64);
-        uint64_t k_low = 32;
-        uint64_t k_high = k - 32;
-        uint64_t shift = 128 - 2 * k;
-        if (k < 32) {
-            k_low = k;
-            k_high = 0;
-            shift = 64;
-        }
-        kmer_t low_rc = crc<true>(low, k_low);
-        kmer_t high_rc = crc<false>(high, k_high);
-        kmer_t res = (low_rc << 64) + high_rc;
-
-        /* Realign to the right */
-        res >>= shift;
-
-        return res;
-    }
 }
 
 /*
@@ -296,43 +214,43 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
 }
 
 template <class kmer_t, typename Hasher = murmurhash2_64>
-uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
+kmer_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
-    uint64_t minimizer = uint64_t(-1);
-    kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
+    kmer_t minimizer = kmer_t(-1);
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        uint64_t mmer = static_cast<uint64_t>(kmer & mask);
-        uint64_t hash = Hasher::hash(mmer, seed);
+        kmer_t mmer = kmer;
+        mmer.take_chars(m);
+        uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
         if (hash < min_hash) {
             min_hash = hash;
             minimizer = mmer;
         }
-        kmer >>= 2;
+        kmer.drop_char();
     }
     return minimizer;
 }
 
 /* used in dump.cpp */
 template <class kmer_t, typename Hasher = murmurhash2_64>
-std::pair<uint64_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
-                                                    uint64_t seed) {
+std::pair<kmer_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
+                                                  uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
-    uint64_t minimizer = uint64_t(-1);
-    kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
+    kmer_t minimizer = kmer_t(-1);
     uint64_t pos = 0;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
-        uint64_t mmer = static_cast<uint64_t>(kmer & mask);
-        uint64_t hash = Hasher::hash(mmer, seed);
+        kmer_t mmer = kmer;
+        mmer.take_chars(m);
+        uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
         if (hash < min_hash) {
             min_hash = hash;
             minimizer = mmer;
             pos = i;
         }
-        kmer >>= 2;
+        kmer.drop_char();
     }
     return {minimizer, pos};
 }

@@ -94,7 +94,7 @@ struct buckets {
         bit_vector_iterator<kmer_t> bv_it(strings, 2 * offset);
         uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
         for (uint64_t w = 0; w != window_size; ++w) {
-            kmer_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
+            kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
             if (read_kmer == target_kmer) {
                 res.kmer_id += w;
                 res.kmer_id_in_contig += w;
@@ -119,7 +119,7 @@ struct buckets {
             bit_vector_iterator<kmer_t> bv_it(strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
             for (uint64_t w = 0; w != window_size; ++w) {
-                kmer_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
+                kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
                 if (read_kmer == target_kmer) {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
@@ -200,12 +200,12 @@ struct buckets {
                     util::uint_kmer_to_string(read_kmer, ret.second.data(), m_k);
                 } else {
                     memmove(ret.second.data(), ret.second.data() + 1, m_k - 1);
-                    ret.second[m_k - 1] = util::uint64_to_char(last_two_bits);
+                    ret.second[m_k - 1] = kmer_t::uint64_to_char(last_char);
                 }
                 clear = false;
-                read_kmer >>= 2;
-                last_two_bits = bv_it.get_next_two_bits();
-                read_kmer += last_two_bits << (2 * (m_k - 1));
+                read_kmer.drop_char();
+                last_char = bv_it.get_next_char();
+                read_kmer.add_kth_char(m_k - 1, last_char);
                 ++m_kmer_id;
                 ++offset;
                 return ret;
@@ -224,7 +224,7 @@ struct buckets {
         ef_sequence<true>::iterator pieces_it;
 
         kmer_t read_kmer;
-        uint64_t last_two_bits;
+        uint64_t last_char;
         bool clear;
 
         void next_piece() {

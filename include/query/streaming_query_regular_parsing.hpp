@@ -6,7 +6,7 @@
 
 namespace sshash {
 
-template<class kmer_t>
+template <class kmer_t>
 struct streaming_query_regular_parsing {
     streaming_query_regular_parsing(dictionary<kmer_t> const* dict)
 
@@ -26,7 +26,7 @@ struct streaming_query_regular_parsing {
 
         , m_kmer(constants::invalid_uint64)
 
-        , m_shift(2 * (dict->m_k - 1))
+        , m_shift(dict->m_k - 1)
         , m_k(dict->m_k)
         , m_m(dict->m_m)
         , m_seed(dict->m_seed)
@@ -58,15 +58,15 @@ struct streaming_query_regular_parsing {
 
         /* 2. compute kmer and minimizer */
         if (!m_start) {
-            m_kmer >>= 2;
-            m_kmer += (util::char_to_uint<kmer_t>(kmer[m_k - 1])) << m_shift;
+            m_kmer.drop_char();
+            m_kmer.add_kth_char(m_shift, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
         assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
-        m_kmer_rc = util::compute_reverse_complement<kmer_t>(m_kmer, m_k);
+        m_kmer_rc = m_kmer.reverse_complement(m_k);
         constexpr bool reverse = true;
         m_curr_minimizer_rc = m_minimizer_enum_rc.next(m_kmer_rc, m_start, reverse);
         assert(m_curr_minimizer_rc == util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_seed));
@@ -227,7 +227,7 @@ private:
                 kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    uint64_t minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
+                    auto minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
                     if (minimizer != m_curr_minimizer) {
                         m_minimizer_not_found = true;
                         m_res = lookup_result();
@@ -269,7 +269,7 @@ private:
                 kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    uint64_t minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
+                    auto minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
                     if (minimizer != m_curr_minimizer_rc) {
                         m_minimizer_rc_not_found = true;
                         m_res = lookup_result();

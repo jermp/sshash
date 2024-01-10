@@ -2,7 +2,7 @@
 
 namespace sshash {
 
-template<class kmer_t>
+template <class kmer_t>
 void perf_test_iterator(dictionary<kmer_t> const& dict) {
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
     t.start();
@@ -17,7 +17,7 @@ void perf_test_iterator(dictionary<kmer_t> const& dict) {
     std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
 }
 
-template<class kmer_t>
+template <class kmer_t>
 void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     constexpr uint64_t num_queries = 1000000;
     constexpr uint64_t runs = 5;
@@ -140,7 +140,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     }
 }
 
-template<class kmer_t>
+template <class kmer_t>
 void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
     if (!dict.weighted()) {
         std::cerr << "ERROR: the dictionary does not store weights" << std::endl;

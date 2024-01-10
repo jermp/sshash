@@ -4,7 +4,7 @@
 
 namespace sshash {
 
-template<class kmer_t>
+template <class kmer_t>
 struct parse_data {
     parse_data(std::string const& tmp_dirname) : num_kmers(0), minimizers(tmp_dirname) {}
     uint64_t num_kmers;
@@ -13,8 +13,9 @@ struct parse_data {
     weights::builder weights_builder;
 };
 
-template<class kmer_t>
-void parse_file(std::istream& is, parse_data<kmer_t>& data, build_configuration const& build_config) {
+template <class kmer_t>
+void parse_file(std::istream& is, parse_data<kmer_t>& data,
+                build_configuration const& build_config) {
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
@@ -34,7 +35,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data, build_configuration 
     typename compact_string_pool<kmer_t>::builder builder(k);
 
     std::string sequence;
-    uint64_t prev_minimizer = constants::invalid_uint64;
+    kmer_t prev_minimizer = constants::invalid_uint64;
 
     uint64_t begin = 0;  // begin of parsed super_kmer in sequence
     uint64_t end = 0;    // end of parsed super_kmer in sequence
@@ -43,7 +44,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data, build_configuration 
     bool glue = false;
 
     auto append_super_kmer = [&]() {
-        if (sequence.empty() or prev_minimizer == constants::invalid_uint64 or begin == end) {
+        if (sequence.empty() or prev_minimizer == kmer_t(constants::invalid_uint64) or
+            begin == end) {
             return;
         }
 
@@ -62,7 +64,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data, build_configuration 
             if (i == num_blocks - 1) n = size;
             uint64_t num_kmers_in_block = n - k + 1;
             assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-            data.minimizers.emplace_back(prev_minimizer, builder.offset, num_kmers_in_block);
+            data.minimizers.emplace_back(uint64_t(prev_minimizer), builder.offset,
+                                         num_kmers_in_block);
             builder.append(super_kmer + i * max_num_kmers_in_super_kmer, n, glue);
             if (glue) {
                 assert(data.minimizers.back().offset > k - 1);
@@ -164,15 +167,15 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data, build_configuration 
             char const* kmer = sequence.data() + end;
             assert(util::is_valid(kmer, k));
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
-            uint64_t minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
+            auto minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
 
             if (build_config.canonical_parsing) {
-                kmer_t uint_kmer_rc = util::compute_reverse_complement<kmer_t>(uint_kmer, k);
-                uint64_t minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
-                minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
+                kmer_t uint_kmer_rc = uint_kmer.reverse_complement(k);
+                auto minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
+                minimizer = std::min(minimizer, minimizer_rc);
             }
 
-            if (prev_minimizer == constants::invalid_uint64) prev_minimizer = minimizer;
+            if (prev_minimizer == kmer_t(constants::invalid_uint64)) prev_minimizer = minimizer;
             if (minimizer != prev_minimizer) {
                 append_super_kmer();
                 begin = end;
@@ -207,8 +210,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data, build_configuration 
     }
 }
 
-template<class kmer_t>
-parse_data<kmer_t> parse_file(std::string const& filename, build_configuration const& build_config) {
+template <class kmer_t>
+parse_data<kmer_t> parse_file(std::string const& filename,
+                              build_configuration const& build_config) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     std::cout << "reading file '" << filename << "'..." << std::endl;

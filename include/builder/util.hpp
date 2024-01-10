@@ -26,7 +26,7 @@ struct parse_runtime_error : public std::runtime_error {
     }
 }
 
-template<class kmer_t>
+template <class kmer_t>
 struct compact_string_pool {
     compact_string_pool() {}
 
@@ -47,25 +47,25 @@ struct compact_string_pool {
             } else {
                 /* otherwise, start a new piece */
                 check_contig_size();
-                pieces.push_back(bvb_strings.size() / 2);
+                pieces.push_back(bvb_strings.size() / kmer_t::bits_per_char);
             }
             for (uint64_t i = prefix; i != size; ++i) {
-                bvb_strings.append_bits(util::char_to_uint<kmer_t>(string[i]), 2);
+                bvb_strings.append_bits(kmer_t::char_to_uint(string[i]), kmer_t::bits_per_char);
             }
             num_super_kmers += 1;
-            offset = bvb_strings.size() / 2;
+            offset = bvb_strings.size() / kmer_t::bits_per_char;
         }
 
         void finalize() {
             /* So pieces will be of size p+1, where p is the number of DNA sequences
                in the input file. */
             check_contig_size();
-            pieces.push_back(bvb_strings.size() / 2);
+            pieces.push_back(bvb_strings.size() / kmer_t::bits_per_char);
             assert(pieces.front() == 0);
 
             /* Push a final sentinel (dummy) kmer to avoid bounds' checking in
                bit_vector_iterator::fill_buf(). */
-            bvb_strings.append_bits(0, 2 * k);
+            bvb_strings.append_bits(0, k * kmer_t::bits_per_char);
         }
 
         uint64_t k;
@@ -79,7 +79,7 @@ struct compact_string_pool {
             /* Support a max of 2^32-1 contigs, or "pieces", whose
                max length must also be < 2^32. */
             if (!pieces.empty()) {
-                uint64_t contig_length = bvb_strings.size() / 2 - pieces.back();
+                uint64_t contig_length = bvb_strings.size() / kmer_t::bits_per_char - pieces.back();
                 if (contig_length >= 1ULL << 32) {
                     throw std::runtime_error("contig_length " + std::to_string(contig_length) +
                                              " does not fit into 32 bits");

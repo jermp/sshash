@@ -4,11 +4,6 @@
 
 namespace sshash::constants {
 
-constexpr uint64_t uint_kmer_bits = sizeof(default_kmer_t) * 8;
-
-/* max *odd* size that can be packed into sizeof(kmer_t)*8 bits */
-constexpr uint64_t max_k = sizeof(default_kmer_t) * 4 - 1;
-
 /* max *odd* size that can be packed into 64 bits */
 constexpr uint64_t max_m = 31;
 

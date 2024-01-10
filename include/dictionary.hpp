@@ -15,7 +15,7 @@ struct streaming_query_canonical_parsing;
 template <class kmer_t>
 struct streaming_query_regular_parsing;
 
-template <class kmer_t = default_kmer_t>
+template <class kmer_t>
 struct dictionary {
     dictionary() : m_size(0), m_seed(0), m_k(0), m_m(0), m_canonical_parsing(0) {}
 
@@ -48,15 +48,15 @@ struct dictionary {
     uint64_t contig_size(uint64_t contig_id) const;
 
     /* Navigational queries. */
-    neighbourhood kmer_forward_neighbours(char const* string_kmer) const;
-    neighbourhood kmer_forward_neighbours(kmer_t uint_kmer) const;
-    neighbourhood kmer_backward_neighbours(char const* string_kmer) const;
-    neighbourhood kmer_backward_neighbours(kmer_t uint_kmer) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer) const;
 
     /* forward and backward */
-    neighbourhood kmer_neighbours(char const* string_kmer) const;
-    neighbourhood kmer_neighbours(kmer_t uint_kmer) const;
-    neighbourhood contig_neighbours(uint64_t contig_id) const;
+    neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer) const;
+    neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer) const;
+    neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id) const;
 
     /* Return the weight of the kmer given its id. */
     uint64_t weight(uint64_t kmer_id) const;
@@ -126,8 +126,10 @@ private:
 
     lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
     lookup_result lookup_uint_canonical_parsing(kmer_t uint_kmer) const;
-    void forward_neighbours(kmer_t suffix, neighbourhood& res) const;
-    void backward_neighbours(kmer_t prefix, neighbourhood& res) const;
+    void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res) const;
+    void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res) const;
+    kmer_t get_prefix(kmer_t kmer) const;
+    kmer_t get_suffix(kmer_t kmer) const;
 };
 
 }  // namespace sshash

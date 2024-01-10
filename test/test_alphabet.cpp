@@ -35,24 +35,24 @@ int main(int /*argc*/, char** argv) {
                       << std::endl;
         }
         std::cout << "read: '" << std::string(read.data() + i, k) << "'; ";
-        default_kmer_t x = util::string_to_uint_kmer<kmer_t>(read.data() + i, k);
+        kmer_t x = util::string_to_uint_kmer<kmer_t>(read.data() + i, k);
         std::string kmer = util::uint_kmer_to_string<kmer_t>(x, k);
         std::cout << "capitalized: '" << kmer << "'" << std::endl;
     }
 
     /****/
 
-    expect(util::char_to_uint<kmer_t>('A'), kmer_t(0));
-    expect(util::char_to_uint<kmer_t>('a'), kmer_t(0));
+    expect(kmer_t::char_to_uint('A'), uint64_t(0));
+    expect(kmer_t::char_to_uint('a'), uint64_t(0));
 
-    expect(util::char_to_uint<kmer_t>('C'), kmer_t(1));
-    expect(util::char_to_uint<kmer_t>('c'), kmer_t(1));
+    expect(kmer_t::char_to_uint('C'), uint64_t(1));
+    expect(kmer_t::char_to_uint('c'), uint64_t(1));
 
-    expect(util::char_to_uint<kmer_t>('T'), kmer_t(2));
-    expect(util::char_to_uint<kmer_t>('t'), kmer_t(2));
+    expect(kmer_t::char_to_uint('T'), uint64_t(2));
+    expect(kmer_t::char_to_uint('t'), uint64_t(2));
 
-    expect(util::char_to_uint<kmer_t>('G'), kmer_t(3));
-    expect(util::char_to_uint<kmer_t>('g'), kmer_t(3));
+    expect(kmer_t::char_to_uint('G'), uint64_t(3));
+    expect(kmer_t::char_to_uint('g'), uint64_t(3));
 
     /****/
 

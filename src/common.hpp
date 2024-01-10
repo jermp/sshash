@@ -11,7 +11,7 @@ void random_kmer(char* kmer, uint64_t k) {
     for (uint64_t i = 0; i != k; ++i) kmer[i] = "ACGT"[rand() % 4];
 }
 
-template<class kmer_t>
+template <class kmer_t>
 void load_dictionary(dictionary<kmer_t>& dict, std::string const& index_filename, bool verbose) {
     uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
     if (verbose) {

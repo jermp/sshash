@@ -18,79 +18,67 @@ struct bit_vector_iterator {
     }
 
     inline kmer_t read(uint64_t l) {
-        assert(l <= constants::uint_kmer_bits);
+        assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
-        kmer_t val = 0;
-        if (l != constants::uint_kmer_bits) {
-            val = m_buf & ((kmer_t(1) << l) - 1);
-        } else {
-            val = m_buf;
-        }
+        kmer_t val = m_buf;
+        val.take(l);
         return val;
     }
 
     inline kmer_t read_reverse(uint64_t l) {
-        assert(l <= constants::uint_kmer_bits);
+        assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf_reverse();
-        kmer_t val = 0;
-        if (l != constants::uint_kmer_bits) {
-            uint64_t shift = (l >= 64) ? (constants::uint_kmer_bits - l) : 64;
-            val = m_buf >> shift;
-        } else {
-            val = m_buf;
-        }
+        kmer_t val = m_buf;
+        val.drop(kmer_t::uint_kmer_bits - l);
         return val;
     }
 
     inline void eat(uint64_t l) {
-        assert(l <= constants::uint_kmer_bits);
+        assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
-        if (l != constants::uint_kmer_bits) m_buf >>= l;
+        if (l != kmer_t::uint_kmer_bits) m_buf.drop(l);
         m_avail -= l;
         m_pos += l;
     }
 
     inline void eat_reverse(uint64_t l) {
-        assert(l <= constants::uint_kmer_bits);
+        assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf_reverse();
-        if (l != constants::uint_kmer_bits) m_buf <<= l;
+        if (l != kmer_t::uint_kmer_bits) m_buf.pad(l);
         m_avail -= l;
         m_pos -= l;
     }
 
-    inline kmer_t read_and_advance_by_two(uint64_t l) {
-        assert(l <= constants::uint_kmer_bits);
+    inline kmer_t read_and_advance_by_char(uint64_t l) {
+        assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
-        kmer_t val = 0;
-        if (l != constants::uint_kmer_bits) {
-            val = m_buf & ((kmer_t(1) << l) - 1);
-            m_buf >>= 2;
-        } else {
-            val = m_buf;
+        kmer_t val = m_buf;
+        if (l != kmer_t::uint_kmer_bits) {
+            val.take(l);
+            m_buf.drop_char();
         }
         m_avail -= 2;
         m_pos += 2;
         return val;
     }
 
-    inline kmer_t get_next_two_bits() {
-        if (m_avail < 2) fill_buf();
-        kmer_t val = m_buf & 3;
-        m_buf >>= 2;
+    inline uint64_t get_next_char() {
+        if (m_avail < kmer_t::bits_per_char) fill_buf();
+        kmer_t val = m_buf;
+        val.take_char();
+        m_buf.drop_char();
         m_avail -= 2;
         m_pos += 2;
-        return val;
+        return uint64_t(val);
     }
 
     inline kmer_t take(uint64_t l) {
-        assert(l <= constants::uint_kmer_bits);
+        assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
-        kmer_t val = 0;
-        if (l != constants::uint_kmer_bits) {
-            val = m_buf & ((kmer_t(1) << l) - 1);
-            m_buf >>= l;
-        } else {
-            val = m_buf;
+        kmer_t val = m_buf;
+        if (l != kmer_t::uint_kmer_bits) {
+            val.take(l);
+            m_buf.drop(l);
         }
         m_avail -= l;
         m_pos += l;
@@ -101,38 +89,20 @@ struct bit_vector_iterator {
 
 private:
     inline void fill_buf() {
-        if constexpr (constants::uint_kmer_bits == 64) {
-            m_buf = m_bv->get_word64(m_pos);
-        } else {
-            assert(constants::uint_kmer_bits == 128);
-            m_buf = static_cast<kmer_t>(m_bv->get_word64(m_pos));
-            m_buf += static_cast<kmer_t>(m_bv->get_word64(m_pos + 64)) << 64;
+        static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+        for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
+            m_buf.append64(m_bv->get_word64(m_pos + i));
         }
-        m_avail = constants::uint_kmer_bits;
+        m_avail = kmer_t::uint_kmer_bits;
     }
 
     inline void fill_buf_reverse() {
-        if constexpr (constants::uint_kmer_bits == 64) {
-            if (m_pos < 64) {
-                m_buf = m_bv->get_word64(0);
-                m_avail = m_pos;
-                m_buf <<= (64 - m_pos);
-                return;
-            }
-            m_buf = m_bv->get_word64(m_pos - 64);
-        } else {
-            assert(constants::uint_kmer_bits == 128);
-            if (m_pos < 128) {
-                m_buf = static_cast<kmer_t>(m_bv->get_word64(0)) << 64;
-                m_buf += static_cast<kmer_t>(m_bv->get_word64(64));
-                m_avail = m_pos;
-                m_buf <<= (128 - m_pos);
-                return;
-            }
-            m_buf = static_cast<kmer_t>(m_bv->get_word64(m_pos - 128)) << 64;
-            m_buf += static_cast<kmer_t>(m_bv->get_word64(m_pos - 64));
+        static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+        for (int i = kmer_t::uint_kmer_bits; i > 0; i -= 64) {
+            m_buf.append64(m_bv->get_word64(std::max<uint64_t>(m_pos, kmer_t::uint_kmer_bits) - i));
         }
-        m_avail = constants::uint_kmer_bits;
+        m_avail = std::min<uint64_t>(m_pos, kmer_t::uint_kmer_bits);
+        m_buf.pad(kmer_t::uint_kmer_bits - m_avail);
     }
 
     pthash::bit_vector const* m_bv;
