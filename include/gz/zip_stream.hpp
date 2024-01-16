@@ -64,6 +64,7 @@ zran.c
 #include <ostream>
 #include <streambuf>
 #include <vector>
+#include <cstdint>
 
 //! default gzip buffer size, change this to suite your needs
 static const size_t zstream_default_buffer_size = 4096;
