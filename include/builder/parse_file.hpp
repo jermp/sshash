@@ -35,7 +35,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     typename compact_string_pool<kmer_t>::builder builder(k);
 
     std::string sequence;
-    kmer_t prev_minimizer = constants::invalid_uint64;
+    uint64_t prev_minimizer = constants::invalid_uint64;
 
     uint64_t begin = 0;  // begin of parsed super_kmer in sequence
     uint64_t end = 0;    // end of parsed super_kmer in sequence
@@ -44,8 +44,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     bool glue = false;
 
     auto append_super_kmer = [&]() {
-        if (sequence.empty() or prev_minimizer == kmer_t(constants::invalid_uint64) or
-            begin == end) {
+        if (sequence.empty() or prev_minimizer == constants::invalid_uint64 or begin == end) {
             return;
         }
 
@@ -167,15 +166,15 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             char const* kmer = sequence.data() + end;
             assert(util::is_valid(kmer, k));
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
-            auto minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
+            uint64_t minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
 
             if (build_config.canonical_parsing) {
                 kmer_t uint_kmer_rc = uint_kmer.reverse_complement(k);
-                auto minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
+                uint64_t minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
                 minimizer = std::min(minimizer, minimizer_rc);
             }
 
-            if (prev_minimizer == kmer_t(constants::invalid_uint64)) prev_minimizer = minimizer;
+            if (prev_minimizer == constants::invalid_uint64) prev_minimizer = minimizer;
             if (minimizer != prev_minimizer) {
                 append_super_kmer();
                 begin = end;

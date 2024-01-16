@@ -209,7 +209,7 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
 }
 
 template <class kmer_t, typename Hasher = murmurhash2_64>
-kmer_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
+uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
@@ -224,7 +224,7 @@ kmer_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
         }
         kmer.drop_char();
     }
-    return minimizer;
+    return uint64_t(minimizer);
 }
 
 /* used in dump.cpp */

@@ -196,16 +196,16 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
                 std::cout << "checked " << num_kmers << " kmers" << std::endl;
             }
-
             neighbourhood<kmer_t> curr = dict.kmer_neighbours(line.data() + i);
-
-            char next_nuc = line[i + k];
-            bool next_nuc_not_found =
-                curr.forward[kmer_t::char_to_uint(next_nuc)].kmer_id == constants::invalid_uint64;
-            if (next_nuc_not_found) {
-                std::cout << "expected forward[" << next_nuc << "]" << std::endl;
+            if (i + k < line.size()) {
+                char next_nuc = line[i + k];
+                bool next_nuc_not_found = curr.forward[kmer_t::char_to_uint(next_nuc)].kmer_id ==
+                                          constants::invalid_uint64;
+                if (next_nuc_not_found) {
+                    std::cout << "expected forward[" << next_nuc << "]" << std::endl;
+                }
+                assert(!next_nuc_not_found);
             }
-            assert(!next_nuc_not_found);
 
             if (i != 0) {
                 char prev_nuc = line[i - 1];

@@ -89,6 +89,8 @@ template <typename Int>
 struct dna_uint_kmer_t : alpha_kmer_t<Int, 2, dna_alphabet> {
     using base = alpha_kmer_t<Int, 2, dna_alphabet>;
     using base::uint_kmer_bits;
+    using base::bits_per_char;
+    using base::max_k;
     using base::base;
     /*
         This works with the map:
@@ -117,7 +119,7 @@ struct dna_uint_kmer_t : alpha_kmer_t<Int, 2, dna_alphabet> {
         dna_uint_kmer_t res(0);
         for (uint16_t i = 0; i < uint_kmer_bits; i += 64) { res.append64(crc64(x.pop64())); }
         // res is full reverse-complement to x
-        res.drop(uint_kmer_bits - k);
+        res.drop(uint_kmer_bits - k * bits_per_char);
         return res;
     }
 
@@ -136,6 +138,6 @@ struct dna_uint_kmer_t : alpha_kmer_t<Int, 2, dna_alphabet> {
     static uint64_t char_to_uint(char c) { return (c >> 1) & 3; }
 };
 
-using default_kmer_t = dna_uint_kmer_t<__uint128_t>;
+using default_kmer_t = dna_uint_kmer_t<uint64_t>;
 
 }  // namespace sshash
