@@ -1,4 +1,5 @@
 #include "../include/util.hpp"
+#include <cctype>
 
 using namespace sshash;
 
@@ -34,10 +35,11 @@ int main(int /*argc*/, char** argv) {
             std::cerr << "ERROR: '" << std::string(read.data() + i, k) << "' is valid!"
                       << std::endl;
         }
-        std::cout << "read: '" << std::string(read.data() + i, k) << "'; ";
         kmer_t x = util::string_to_uint_kmer<kmer_t>(read.data() + i, k);
         std::string kmer = util::uint_kmer_to_string<kmer_t>(x, k);
-        std::cout << "capitalized: '" << kmer << "'" << std::endl;
+        std::transform(kmer.begin(), kmer.end(), kmer.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+        expect(std::string(read.data() + i, k), kmer);
     }
 
     /****/

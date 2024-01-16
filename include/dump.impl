@@ -54,7 +54,7 @@ void dictionary<kmer_t>::dump(std::string const& filename) const {
                     } else {
                         kmer_t last_char = kmer;
                         last_char.drop_chars(m_k - 1);
-                        out << kmer_t::uint64_to_char(uint64_t(last_char));
+                        out << kmer_t::uint64_to_char(last_char.pop_char());
                     }
                 }
                 prev_minimizer = minimizer;

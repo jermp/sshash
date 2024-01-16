@@ -132,12 +132,7 @@ template <class kmer_t>
 template <class kmer_t>
 static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
-    for (uint64_t i = 0; i != k; ++i) {
-        auto first_char = x;
-        first_char.take_char();
-        str[i] = kmer_t::uint64_to_char(uint64_t(first_char));
-        x.drop_char();
-    }
+    for (uint64_t i = 0; i != k; ++i) { str[i] = kmer_t::uint64_to_char(x.pop_char()); }
 }
 
 template <class kmer_t>

@@ -11,17 +11,13 @@ struct kmers_pthash_hasher_64 {
 
     /* specialization for kmer_t */
     static inline pthash::hash64 hash(kmer_t x, uint64_t seed) {
-        if constexpr (kmer_t::uint_kmer_bits == 64) {
-            return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed);
-        } else {
-            assert(kmer_t::uint_kmer_bits == 128);
-            uint64_t low = static_cast<uint64_t>(x);
-            uint64_t high = static_cast<uint64_t>(x >> 64);
-            uint64_t hash =
-                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed) ^
-                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high), ~seed);
-            return hash;
+        uint64_t hash = 0;
+        for (int i = 0; i < kmer_t::uint_kmer_bits; i += 64) {
+            uint64_t block = x.pop64();
+            hash ^= pthash::MurmurHash2_64(reinterpret_cast<char const*>(&block), sizeof(block),
+                                           seed + i);
         }
+        return hash;
     }
 };
 
@@ -31,21 +27,16 @@ struct kmers_pthash_hasher_128 {
 
     /* specialization for kmer_t */
     static inline pthash::hash128 hash(kmer_t x, uint64_t seed) {
-        if constexpr (kmer_t::uint_kmer_bits == 64) {
-            return {pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed),
-                    pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), ~seed)};
-        } else {
-            assert(kmer_t::uint_kmer_bits == 128);
-            uint64_t low = static_cast<uint64_t>(x);
-            uint64_t high = static_cast<uint64_t>(x >> 64);
-            return {
-                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed) ^
-                    pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high),
-                                           ~seed),
-                pthash::MurmurHash2_64(reinterpret_cast<char const*>(&low), sizeof(low), seed + 1) ^
-                    pthash::MurmurHash2_64(reinterpret_cast<char const*>(&high), sizeof(high),
-                                           ~(seed + 1))};
+        uint64_t hash_first = 0;
+        uint64_t hash_second = 0;
+        for (int i = 0; i < kmer_t::uint_kmer_bits; i += 64) {
+            uint64_t block = x.pop64();
+            hash_first ^= pthash::MurmurHash2_64(reinterpret_cast<char const*>(&block),
+                                                 sizeof(block), seed + i);
+            hash_second ^= pthash::MurmurHash2_64(reinterpret_cast<char const*>(&block),
+                                                  sizeof(block), ~seed + i);
         }
+        return {hash_first, hash_second};
     }
 };
 

@@ -36,7 +36,7 @@ struct bit_vector_iterator {
     inline void eat(uint64_t l) {
         assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
-        if (l != kmer_t::uint_kmer_bits) m_buf.drop(l);
+        m_buf.drop(l);
         m_avail -= l;
         m_pos += l;
     }
@@ -44,7 +44,7 @@ struct bit_vector_iterator {
     inline void eat_reverse(uint64_t l) {
         assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf_reverse();
-        if (l != kmer_t::uint_kmer_bits) m_buf.pad(l);
+        m_buf.pad(l);
         m_avail -= l;
         m_pos -= l;
     }
@@ -53,10 +53,8 @@ struct bit_vector_iterator {
         assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
         kmer_t val = m_buf;
-        if (l != kmer_t::uint_kmer_bits) {
-            val.take(l);
-            m_buf.drop_char();
-        }
+        val.take(l);
+        m_buf.drop_char();
         m_avail -= 2;
         m_pos += 2;
         return val;
@@ -64,22 +62,17 @@ struct bit_vector_iterator {
 
     inline uint64_t get_next_char() {
         if (m_avail < kmer_t::bits_per_char) fill_buf();
-        kmer_t val = m_buf;
-        val.take_char();
-        m_buf.drop_char();
         m_avail -= 2;
         m_pos += 2;
-        return uint64_t(val);
+        return m_buf.pop_char();
     }
 
     inline kmer_t take(uint64_t l) {
         assert(l <= kmer_t::uint_kmer_bits);
         if (m_avail < l) fill_buf();
         kmer_t val = m_buf;
-        if (l != kmer_t::uint_kmer_bits) {
-            val.take(l);
-            m_buf.drop(l);
-        }
+        val.take(l);
+        m_buf.drop(l);
         m_avail -= l;
         m_pos += l;
         return val;

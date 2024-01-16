@@ -81,7 +81,7 @@ struct minimizer_enumerator {
             }
             eat(uint64_t(mmer));
         }
-        return uint64_t(m_q.front().value);
+        return m_q.front().value;
     }
 
 private:
@@ -93,10 +93,10 @@ private:
 
     struct mmer_t {
         mmer_t() {}
-        mmer_t(uint64_t hash, uint64_t position, kmer_t value)
+        mmer_t(uint64_t hash, uint64_t position, uint64_t value)
             : hash(hash), position(position), value(value) {}
         uint64_t hash, position;
-        kmer_t value;
+        uint64_t value;
     };
 
     /* NOTE: we could use a std::deque<mmer_t> here,
