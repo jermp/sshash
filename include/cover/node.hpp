@@ -7,6 +7,10 @@
 
 namespace sshash {
 
+namespace constants {
+constexpr uint32_t invalid_uint32 = uint32_t(-1);
+}
+
 struct node {
     node()
         : id(constants::invalid_uint32)
