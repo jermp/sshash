@@ -11,7 +11,7 @@ This is a compressed dictionary data structure for k-mers
 The data structure is described in the following papers:
 
 * [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245) [1]
-* [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
+* [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
 
 **Please, cite these papers if you use SSHash.**
 
@@ -105,6 +105,12 @@ If you want to use the "traditional" encoding
 
 for compatibility issues with other software, then
 compile SSHash with the flag `-DSSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING=On`.
+
+### K-mer Length
+
+By default, SSHash uses a maximum k-mer length of 31.
+If you want to support k-mer lengths up to (and including) 63,
+compile the library with the flag `-DSSHASH_USE_MAX_KMER_LENGTH_63=On`.
 
 Dependencies
 ------------
@@ -374,6 +380,6 @@ Author
 References
 -----
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
-* [2] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
-* [3] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
+* [2] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
+* [3] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
 * [4] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.
