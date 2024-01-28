@@ -363,8 +363,9 @@ template <typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
+    assert(m >= (k + 2) / 2);
+    const uint64_t t = 2 * m - k - 1;
 
-    uint64_t t = (m >= (k + 2) / 2) ? (2 * m - k - 1) : (k - 2 * m + 1);
     kmer_t copy = kmer;
     const kmer_t tmer_mask = (kmer_t(1) << (2 * t)) - 1;
     const kmer_t mmer_mask = (kmer_t(1) << (2 * m)) - 1;
@@ -382,9 +383,15 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
     }
 
     const uint64_t w = k - m + 1;
-    if (p <= w - 1)  // same as p <= (k-t)/2, for t = 2 * m - k - 1;
-        return (copy >> (2 * p)) & mmer_mask;
 
+    /*
+        The following code is equivalent to:
+            p = p % w;
+            return (copy >> (2 * p)) & mmer_mask;
+        but it avoids the modulo.
+    */
+
+    if (p <= w - 1) return (copy >> (2 * p)) & mmer_mask;
     assert(p + t >= m);
     return (copy >> (2 * (p + t - m))) & mmer_mask;
 }
