@@ -363,13 +363,14 @@ template <typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
-    assert(m >= (k + 2) / 2);
-    const uint64_t t = 2 * m - k - 1;
 
+    uint64_t t = (m >= (k + 2) / 2) ? (2 * m - k - 1) : (k - 2 * m + 1);
     kmer_t copy = kmer;
+    const kmer_t tmer_mask = (kmer_t(1) << (2 * t)) - 1;
+    const kmer_t mmer_mask = (kmer_t(1) << (2 * m)) - 1;
+
     uint64_t min_hash = uint64_t(-1);
     uint64_t p = 0;  // position of minimum tmer
-    kmer_t tmer_mask = (kmer_t(1) << (2 * t)) - 1;
     for (uint64_t i = 0; i != k - t + 1; ++i) {
         uint64_t tmer = static_cast<uint64_t>(kmer & tmer_mask);
         uint64_t hash = Hasher::hash(tmer, seed);
@@ -380,8 +381,9 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
         kmer >>= 2;
     }
 
-    kmer_t mmer_mask = (kmer_t(1) << (2 * m)) - 1;
-    if (p <= (k - t) / 2) return (copy >> (2 * p)) & mmer_mask;
+    const uint64_t w = k - m + 1;
+    if (p <= w - 1)  // same as p <= (k-t)/2, for t = 2 * m - k - 1;
+        return (copy >> (2 * p)) & mmer_mask;
 
     assert(p + t >= m);
     return (copy >> (2 * (p + t - m))) & mmer_mask;
