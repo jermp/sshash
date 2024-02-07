@@ -119,7 +119,7 @@ template <class kmer_t>
 void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res) const {
     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
         kmer_t new_kmer = suffix;
-        new_kmer.add_kth_char(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
+        new_kmer.kth_char_or(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
         res.forward[i] = lookup_advanced_uint(new_kmer);
     }
 }
@@ -127,7 +127,7 @@ template <class kmer_t>
 void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res) const {
     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
         kmer_t new_kmer = prefix;
-        new_kmer.add_kth_char(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
+        new_kmer.kth_char_or(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
         res.backward[i] = lookup_advanced_uint(new_kmer);
     }
 }

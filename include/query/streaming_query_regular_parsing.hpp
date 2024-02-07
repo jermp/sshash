@@ -59,7 +59,7 @@ struct streaming_query_regular_parsing {
         /* 2. compute kmer and minimizer */
         if (!m_start) {
             m_kmer.drop_char();
-            m_kmer.add_kth_char(m_shift, kmer_t::char_to_uint(kmer[m_k - 1]));
+            m_kmer.kth_char_or(m_shift, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);

@@ -1,21 +1,28 @@
 #pragma once
 
-namespace sshash {
+#include "bitpack.hpp"
 
-template <typename Int, uint8_t BitsPerChar>
+namespace sshash {
+namespace impl {
+template <typename Kmer>
+auto pref(uint16_t b) -> std::enable_if_t<std::is_integral_v<Kmer>, Kmer> {
+    return (Kmer(1) << b) - 1;
+}
+template <typename Kmer>
+auto pref(uint16_t b) -> std::enable_if_t<!std::is_integral_v<Kmer>, Kmer> {
+    return Kmer::pref(b);
+}
+}  // namespace impl
+
+template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
-    using uint_t = Int;
-    Int kmer;
+    using uint_t = Kmer;
+    Kmer kmer;
 
     uint_kmer_t() {}
-    uint_kmer_t(Int kmer) : kmer(kmer) {}
+    uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
 
-    // Only if you're sure the result is uint64_t
-    // e.g. with minimizers
-    explicit operator uint64_t() const {
-        assert(uint64_t(kmer) == kmer);
-        return kmer;
-    }
+    explicit operator uint64_t() const { return kmer; }
 
     // TODO: change to <=> when switching to C++20
     bool operator==(uint_kmer_t const& t) const { return kmer == t.kmer; }
@@ -23,43 +30,39 @@ struct uint_kmer_t {
     bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }
 
     void pad(uint16_t b) { kmer <<= b; }
-    void pad_char() { kmer <<= bits_per_char; }
+    void pad_char() { pad(bits_per_char); }
 
     void drop(uint16_t b) { kmer >>= b; }
     void drop64() { drop(64); }
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
-    void take(uint16_t b) { kmer &= (Int(1) << b) - 1; }
-    void take64() { kmer = uint64_t(kmer); }
+    void take(uint16_t b) { kmer &= impl::pref<Kmer>(b); }
+    void take64() { kmer = static_cast<uint64_t>(kmer); }
     void take_char() { take(bits_per_char); }
     void take_chars(uint16_t k) { take(k * bits_per_char); }
 
     uint64_t pop64() {
-        uint64_t res(kmer);
+        uint64_t res = kmer;
         drop64();
         return res;
     }
     uint64_t pop_char() {
-        uint64_t res(kmer);
+        uint64_t res = kmer;
         res &= (uint64_t(1) << bits_per_char) - 1;
         drop_char();
         return res;
     }
 
-    void append_bits(uint64_t n, uint16_t b) {
-        pad(b);
-        kmer |= n;
-    }
-    void append64(uint64_t n) { append_bits(n, 64); }
-    void append_char(uint64_t c) { append_bits(c, bits_per_char); }
+    void append(uint16_t b, uint64_t n) { kmer = (kmer << b) | Kmer(n); }
+    void append64(uint64_t n) { append(64, n); }
+    void append_char(uint64_t c) { append(bits_per_char, c); }
 
     // assigns a character at k-th position
     // assuming that the position is empty
-    // use append_char instead, if possible
-    void add_kth_char(uint16_t k, uint64_t c) { kmer |= Int(c) << (k * bits_per_char); }
+    void kth_char_or(uint16_t k, uint64_t c) { kmer |= Kmer(c) << (k * bits_per_char); }
 
-    static constexpr uint16_t uint_kmer_bits = sizeof(Int) * 8;
+    static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);
     static constexpr uint8_t bits_per_char = BitsPerChar;
     // max *odd* size that can be packed into uint_kmer_bits bits
     static constexpr uint16_t max_k = []() {
@@ -67,13 +70,13 @@ struct uint_kmer_t {
         return max_k_any % 2 == 0 ? max_k_any - 1 : max_k_any;
     }();
 
-    static_assert(uint_kmer_bits % 64 == 0, "Int must use 64*k bits");
-    static_assert(bits_per_char <= 64, "At most 64 bits per character");
+    static_assert(uint_kmer_bits % 64 == 0, "Kmer must use 64*k bits");
+    static_assert(bits_per_char < 64, "Less than 64 bits per character");
 };
 
-template <typename Int, uint8_t BitsPerChar, char const* Alphabet>
-struct alpha_kmer_t : uint_kmer_t<Int, BitsPerChar> {
-    using base = uint_kmer_t<Int, BitsPerChar>;
+template <typename Kmer, uint8_t BitsPerChar, char const* Alphabet>
+struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
+    using base = uint_kmer_t<Kmer, BitsPerChar>;
     using base::base;
     static constexpr char const* alphabet = Alphabet;
     static constexpr uint8_t alphabet_size = strlen(Alphabet);
@@ -85,9 +88,9 @@ struct alpha_kmer_t : uint_kmer_t<Int, BitsPerChar> {
 
 constexpr char dna_alphabet[] = "ACTG";
 
-template <typename Int>
-struct dna_uint_kmer_t : alpha_kmer_t<Int, 2, dna_alphabet> {
-    using base = alpha_kmer_t<Int, 2, dna_alphabet>;
+template <typename Kmer>
+struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
+    using base = alpha_kmer_t<Kmer, 2, dna_alphabet>;
     using base::uint_kmer_bits;
     using base::bits_per_char;
     using base::max_k;
@@ -138,6 +141,7 @@ struct dna_uint_kmer_t : alpha_kmer_t<Int, 2, dna_alphabet> {
     static uint64_t char_to_uint(char c) { return (c >> 1) & 3; }
 };
 
+// also consider __uint128_t, bitpack<__uint128_t, 1>
 using default_kmer_t = dna_uint_kmer_t<uint64_t>;
 
 }  // namespace sshash

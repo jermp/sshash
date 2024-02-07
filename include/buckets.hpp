@@ -205,7 +205,7 @@ struct buckets {
                 clear = false;
                 read_kmer.drop_char();
                 last_char = bv_it.get_next_char();
-                read_kmer.add_kth_char(m_k - 1, last_char);
+                read_kmer.kth_char_or(m_k - 1, last_char);
                 ++m_kmer_id;
                 ++offset;
                 return ret;
