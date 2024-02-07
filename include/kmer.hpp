@@ -22,7 +22,7 @@ struct uint_kmer_t {
     uint_kmer_t() {}
     uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
 
-    explicit operator uint64_t() const { return kmer; }
+    explicit operator uint64_t() const { return static_cast<uint64_t>(kmer); }
 
     // TODO: change to <=> when switching to C++20
     bool operator==(uint_kmer_t const& t) const { return kmer == t.kmer; }
@@ -142,6 +142,6 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
 };
 
 // also consider __uint128_t, bitpack<__uint128_t, 1>
-using default_kmer_t = dna_uint_kmer_t<uint64_t>;
+using default_kmer_t = dna_uint_kmer_t<bitpack<__uint128_t, 1>>;
 
 }  // namespace sshash
