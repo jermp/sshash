@@ -1,19 +1,14 @@
 #pragma once
 
 #include "bitpack.hpp"
+#include <bitset>
+
+template <size_t N>
+bool operator<(std::bitset<N> const& a, std::bitset<N> const& b) {
+    return a.to_string() < b.to_string();
+}
 
 namespace sshash {
-namespace impl {
-template <typename Kmer>
-auto pref(uint16_t b) -> std::enable_if_t<std::is_integral_v<Kmer>, Kmer> {
-    return (Kmer(1) << b) - 1;
-}
-template <typename Kmer>
-auto pref(uint16_t b) -> std::enable_if_t<!std::is_integral_v<Kmer>, Kmer> {
-    return Kmer::pref(b);
-}
-}  // namespace impl
-
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
     using uint_t = Kmer;
@@ -22,7 +17,13 @@ struct uint_kmer_t {
     uint_kmer_t() {}
     uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
 
-    explicit operator uint64_t() const { return static_cast<uint64_t>(kmer); }
+    explicit operator uint64_t() const {
+        if constexpr (std::is_constructible_v<uint64_t, Kmer>) {
+            return static_cast<uint64_t>(kmer);
+        } else {  // std::bitset?
+            return (kmer & Kmer(uint64_t(-1))).to_ulong();
+        }
+    }
 
     // TODO: change to <=> when switching to C++20
     bool operator==(uint_kmer_t const& t) const { return kmer == t.kmer; }
@@ -37,18 +38,18 @@ struct uint_kmer_t {
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
-    void take(uint16_t b) { kmer &= impl::pref<Kmer>(b); }
-    void take64() { kmer = static_cast<uint64_t>(kmer); }
+    void take(uint16_t b) { kmer &= ~(~Kmer(0) << b); }
+    void take64() { kmer &= Kmer(uint64_t(-1)); }
     void take_char() { take(bits_per_char); }
     void take_chars(uint16_t k) { take(k * bits_per_char); }
 
     uint64_t pop64() {
-        uint64_t res = kmer;
+        uint64_t res = *this;
         drop64();
         return res;
     }
     uint64_t pop_char() {
-        uint64_t res = kmer;
+        uint64_t res = *this;
         res &= (uint64_t(1) << bits_per_char) - 1;
         drop_char();
         return res;
@@ -141,7 +142,7 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
     static uint64_t char_to_uint(char c) { return (c >> 1) & 3; }
 };
 
-// also consider __uint128_t, bitpack<__uint128_t, 1>
-using default_kmer_t = dna_uint_kmer_t<bitpack<__uint128_t, 1>>;
+// also supports __uint128_t, bitpack<__uint128_t, 1>, std::bitset<256>, etc
+using default_kmer_t = dna_uint_kmer_t<uint64_t>;
 
 }  // namespace sshash

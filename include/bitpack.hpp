@@ -56,15 +56,6 @@ struct bitpack {
     bitpack operator|(bitpack const& t) const { return bitpack(*this) |= t; }
     bitpack operator&(bitpack const& t) const { return bitpack(*this) &= t; }
 
-    static bitpack pref(uint16_t b) {
-        uint16_t h = std::min(b, hsize);
-        if constexpr (height > 1) {
-            return {halfpack::pref(h), halfpack::pref(b - h)};
-        } else if (b < hsize) {
-            return {(Int(1) << b) - 1, Int(0)};
-        } else {
-            return {Int(-1), (Int(1) << (b - hsize)) - 1};
-        }
-    }
+    bitpack operator~() const { return {~a, ~b}; }
 };
 }  // namespace sshash
