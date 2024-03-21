@@ -106,42 +106,57 @@ uint64_t dictionary::contig_size(uint64_t contig_id) const {
     return contig_length - m_k + 1;
 }
 
-void dictionary::forward_neighbours(kmer_t suffix, neighbourhood& res, bool check_reverse_complement) const {
-    res.forward_A = lookup_advanced_uint(suffix + (util::char_to_uint('A') << (2 * (m_k - 1))), check_reverse_complement);
-    res.forward_C = lookup_advanced_uint(suffix + (util::char_to_uint('C') << (2 * (m_k - 1))), check_reverse_complement);
-    res.forward_G = lookup_advanced_uint(suffix + (util::char_to_uint('G') << (2 * (m_k - 1))), check_reverse_complement);
-    res.forward_T = lookup_advanced_uint(suffix + (util::char_to_uint('T') << (2 * (m_k - 1))), check_reverse_complement);
+void dictionary::forward_neighbours(kmer_t suffix, neighbourhood& res,
+                                    bool check_reverse_complement) const {
+    res.forward_A = lookup_advanced_uint(suffix + (util::char_to_uint('A') << (2 * (m_k - 1))),
+                                         check_reverse_complement);
+    res.forward_C = lookup_advanced_uint(suffix + (util::char_to_uint('C') << (2 * (m_k - 1))),
+                                         check_reverse_complement);
+    res.forward_G = lookup_advanced_uint(suffix + (util::char_to_uint('G') << (2 * (m_k - 1))),
+                                         check_reverse_complement);
+    res.forward_T = lookup_advanced_uint(suffix + (util::char_to_uint('T') << (2 * (m_k - 1))),
+                                         check_reverse_complement);
 }
-void dictionary::backward_neighbours(kmer_t prefix, neighbourhood& res, bool check_reverse_complement) const {
-    res.backward_A = lookup_advanced_uint(prefix + util::char_to_uint('A'), check_reverse_complement);
-    res.backward_C = lookup_advanced_uint(prefix + util::char_to_uint('C'), check_reverse_complement);
-    res.backward_G = lookup_advanced_uint(prefix + util::char_to_uint('G'), check_reverse_complement);
-    res.backward_T = lookup_advanced_uint(prefix + util::char_to_uint('T'), check_reverse_complement);
+void dictionary::backward_neighbours(kmer_t prefix, neighbourhood& res,
+                                     bool check_reverse_complement) const {
+    res.backward_A =
+        lookup_advanced_uint(prefix + util::char_to_uint('A'), check_reverse_complement);
+    res.backward_C =
+        lookup_advanced_uint(prefix + util::char_to_uint('C'), check_reverse_complement);
+    res.backward_G =
+        lookup_advanced_uint(prefix + util::char_to_uint('G'), check_reverse_complement);
+    res.backward_T =
+        lookup_advanced_uint(prefix + util::char_to_uint('T'), check_reverse_complement);
 }
 
-neighbourhood dictionary::kmer_forward_neighbours(char const* string_kmer, bool check_reverse_complement) const {
+neighbourhood dictionary::kmer_forward_neighbours(char const* string_kmer,
+                                                  bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return kmer_forward_neighbours(uint_kmer, check_reverse_complement);
 }
-neighbourhood dictionary::kmer_forward_neighbours(kmer_t uint_kmer, bool check_reverse_complement) const {
+neighbourhood dictionary::kmer_forward_neighbours(kmer_t uint_kmer,
+                                                  bool check_reverse_complement) const {
     neighbourhood res;
     kmer_t suffix = uint_kmer >> 2;
     forward_neighbours(suffix, res, check_reverse_complement);
     return res;
 }
 
-neighbourhood dictionary::kmer_backward_neighbours(char const* string_kmer, bool check_reverse_complement) const {
+neighbourhood dictionary::kmer_backward_neighbours(char const* string_kmer,
+                                                   bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return kmer_backward_neighbours(uint_kmer, check_reverse_complement);
 }
-neighbourhood dictionary::kmer_backward_neighbours(kmer_t uint_kmer, bool check_reverse_complement) const {
+neighbourhood dictionary::kmer_backward_neighbours(kmer_t uint_kmer,
+                                                   bool check_reverse_complement) const {
     neighbourhood res;
     kmer_t prefix = (uint_kmer << 2) & ((kmer_t(1) << (2 * m_k)) - 1);
     backward_neighbours(prefix, res, check_reverse_complement);
     return res;
 }
 
-neighbourhood dictionary::kmer_neighbours(char const* string_kmer, bool check_reverse_complement) const {
+neighbourhood dictionary::kmer_neighbours(char const* string_kmer,
+                                          bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer(string_kmer, m_k);
     return kmer_neighbours(uint_kmer, check_reverse_complement);
 }
@@ -154,7 +169,8 @@ neighbourhood dictionary::kmer_neighbours(kmer_t uint_kmer, bool check_reverse_c
     return res;
 }
 
-neighbourhood dictionary::contig_neighbours(uint64_t contig_id, bool check_reverse_complement) const {
+neighbourhood dictionary::contig_neighbours(uint64_t contig_id,
+                                            bool check_reverse_complement) const {
     assert(contig_id < num_contigs());
     neighbourhood res;
     kmer_t suffix = m_buckets.contig_suffix(contig_id, m_k);

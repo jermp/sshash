@@ -40,13 +40,18 @@ struct dictionary {
     uint64_t contig_size(uint64_t contig_id) const;
 
     /* Navigational queries. */
-    neighbourhood kmer_forward_neighbours(char const* string_kmer, bool check_reverse_complement = true) const;
-    neighbourhood kmer_forward_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
-    neighbourhood kmer_backward_neighbours(char const* string_kmer, bool check_reverse_complement = true) const;
-    neighbourhood kmer_backward_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
+    neighbourhood kmer_forward_neighbours(char const* string_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood kmer_forward_neighbours(kmer_t uint_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood kmer_backward_neighbours(char const* string_kmer,
+                                           bool check_reverse_complement = true) const;
+    neighbourhood kmer_backward_neighbours(kmer_t uint_kmer,
+                                           bool check_reverse_complement = true) const;
 
     /* forward and backward */
-    neighbourhood kmer_neighbours(char const* string_kmer, bool check_reverse_complement = true) const;
+    neighbourhood kmer_neighbours(char const* string_kmer,
+                                  bool check_reverse_complement = true) const;
     neighbourhood kmer_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
     neighbourhood contig_neighbours(uint64_t contig_id, bool check_reverse_complement = true) const;
 
@@ -119,7 +124,8 @@ private:
     lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
     lookup_result lookup_uint_canonical_parsing(kmer_t uint_kmer) const;
     void forward_neighbours(kmer_t suffix, neighbourhood& res, bool check_reverse_complement) const;
-    void backward_neighbours(kmer_t prefix, neighbourhood& res, bool check_reverse_complement) const;
+    void backward_neighbours(kmer_t prefix, neighbourhood& res,
+                             bool check_reverse_complement) const;
 };
 
 }  // namespace sshash
