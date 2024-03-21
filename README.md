@@ -11,7 +11,7 @@ This is a compressed dictionary data structure for k-mers
 The data structure is described in the following papers:
 
 * [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245) [1]
-* [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
+* [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
 
 **Please, cite these papers if you use SSHash.**
 
@@ -41,7 +41,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 #### Table of contents
 * [Compiling the Code](#compiling-the-code)
 * [Dependencies](#dependencies)
-* [Tools](#tools)
+* [Tools and Usage](#tools-and-usage)
 * [Examples](#Examples)
 * [Input Files](#input-files)
 * [Benchmarks](#benchmarks)
@@ -77,6 +77,41 @@ For a testing environment, use the following instead:
     cmake .. -D CMAKE_BUILD_TYPE=Debug -D SSHASH_USE_SANITIZERS=On
     make -j
 
+### Encoding of Nucleotides
+
+SSHash uses by default the following 2-bit encoding of nucleotides.
+
+	 A     65     01000.00.1 -> 00
+	 C     67     01000.01.1 -> 01
+	 G     71     01000.11.1 -> 11
+	 T     84     01010.10.0 -> 10
+
+	 a     97     01100.00.1 -> 00
+	 c     99     01100.01.1 -> 01
+	 g    103     01100.11.1 -> 11
+	 t    116     01110.10.0 -> 10
+
+If you want to use the "traditional" encoding
+
+	 A     65     01000001 -> 00
+	 C     67     01000011 -> 01
+	 G     71     01000111 -> 10
+	 T     84     01010100 -> 11
+
+	 a     97     01100001 -> 00
+	 c     99     01100011 -> 01
+	 g    103     01100111 -> 10
+	 t    116     01110100 -> 11
+
+for compatibility issues with other software, then
+compile SSHash with the flag `-DSSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING=On`.
+
+### K-mer Length
+
+By default, SSHash uses a maximum k-mer length of 31.
+If you want to support k-mer lengths up to (and including) 63,
+compile the library with the flag `-DSSHASH_USE_MAX_KMER_LENGTH_63=On`.
+
 Dependencies
 ------------
 
@@ -95,8 +130,8 @@ if you are on Linux/Ubuntu, or
 
 if you have a Mac.
 
-Tools
------
+Tools and Usage
+---------------
 
 There is one executable called `sshash` after the compilation, which can be used to run a tool.
 Run `./sshash` as follows to see a list of available tools.
@@ -114,20 +149,25 @@ Run `./sshash` as follows to see a list of available tools.
       permute                permute a weighted input file
       compute-statistics     compute index statistics
 
+For large-scale indexing, it could be necessary to increase the number of file descriptors that can be opened simultaneously:
+
+	ulimit -n 2048
+
 Examples
 --------
 
 For the examples, we are going to use some collections
-of *stitched unitigs* from the directory `../data/unitigs_stitched`.
-The value of k used during the formation of the unitigs
+of *stitched unitigs* from the directory `data/unitigs_stitched`.
+
+**Important note:** The value of k used during the formation of the unitigs
 is indicated in the name of each file and the dictionaries
-should be built with that value as well to ensure correctness.
+**must** be built with that value as well to ensure correctness.
 
 For example, `data/unitigs_stitched/ecoli4_k31_ust.fa.gz` indicates the value k = 31, whereas `data/unitigs_stitched/se.ust.k63.fa.gz` indicates the value k = 63.
 
 For all the examples below, we are going to use k = 31.
 
-(The subdirectory `../data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
+(The directory `data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
 
 In the section [Input Files](#input-files), we explain how
 such collections of stitched unitigs can be obtained from raw FASTA files.
@@ -340,6 +380,6 @@ Author
 References
 -----
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
-* [2] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
-* [3] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
+* [2] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
+* [3] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
 * [4] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../external/pthash/include/encoders/bit_vector.hpp"
-#include "../external/pthash/include/encoders/compact_vector.hpp"
-#include "../external/pthash/include/encoders/darray.hpp"
+#include "external/pthash/include/encoders/bit_vector.hpp"
+#include "external/pthash/include/encoders/compact_vector.hpp"
+#include "external/pthash/include/encoders/darray.hpp"
 
 namespace sshash {
 

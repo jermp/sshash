@@ -21,15 +21,15 @@ struct streaming_query_report {
 struct lookup_result {
     lookup_result()
         : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint32)
+        , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint32)
-        , contig_size(constants::invalid_uint32) {}
+        , contig_id(constants::invalid_uint64)
+        , contig_size(constants::invalid_uint64) {}
     uint64_t kmer_id;            // "absolute" kmer-id
-    uint32_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint32_t kmer_orientation;
-    uint32_t contig_id;
-    uint32_t contig_size;
+    uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
+    uint64_t kmer_orientation;
+    uint64_t contig_id;
+    uint64_t contig_size;
 };
 
 struct neighbourhood {
@@ -114,6 +114,11 @@ struct build_configuration {
 
 namespace util {
 
+static uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
+    static const uint64_t my_favourite_seed = 1234567890;
+    return build_config.seed != my_favourite_seed ? my_favourite_seed : ~my_favourite_seed;
+}
+
 /* return the position of the most significant bit */
 static inline uint32_t msb(uint32_t x) {
     assert(x > 0);
@@ -127,23 +132,64 @@ static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
 }
 
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
 /*
 char decimal  binary
- A     65     01000-00-1 -> 00
- C     67     01000-01-1 -> 01
- G     71     01000-11-1 -> 11
- T     84     01010-10-0 -> 10
+ A     65     01000001 -> 00
+ C     67     01000011 -> 01
+ G     71     01000111 -> 10
+ T     84     01010100 -> 11
 
- a     97     01100-00-1 -> 00
- c     99     01100-01-1 -> 01
- g    103     01100-11-1 -> 11
- t    116     01110-10-0 -> 10
+ a     97     01100001 -> 00
+ c     99     01100011 -> 01
+ g    103     01100111 -> 10
+ t    116     01110100 -> 11
+*/
+static inline kmer_t char_to_uint(char c) {
+    switch (c) {
+        case 'A':
+            return 0;
+        case 'a':
+            return 0;
+        case 'C':
+            return 1;
+        case 'c':
+            return 1;
+        case 'G':
+            return 2;
+        case 'g':
+            return 2;
+        case 'T':
+            return 3;
+        case 't':
+            return 3;
+    }
+    assert(false);
+    return -1;
+}
+#else
+/*
+char decimal  binary
+ A     65     01000.00.1 -> 00
+ C     67     01000.01.1 -> 01
+ G     71     01000.11.1 -> 11
+ T     84     01010.10.0 -> 10
+
+ a     97     01100.00.1 -> 00
+ c     99     01100.01.1 -> 01
+ g    103     01100.11.1 -> 11
+ t    116     01110.10.0 -> 10
 */
 static kmer_t char_to_uint(char c) { return (c >> 1) & 3; }
+#endif
 
 static char uint64_to_char(uint64_t x) {
     assert(x <= 3);
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+    static char nucleotides[4] = {'A', 'C', 'G', 'T'};
+#else
     static char nucleotides[4] = {'A', 'C', 'T', 'G'};
+#endif
     return nucleotides[x];
 }
 
@@ -170,24 +216,23 @@ static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     return str;
 }
 
-/*
-    This works with the map:
-    A -> 00; C -> 01; G -> 11; T -> 10.
-
-    Example.
-    reverse_complement("ACTCACG") = CGTGAGT, in binary:
-    reverse_complement("00.01.10.01.00.01.11") = 01.11.10.11.00.11.10.
-*/
 template <bool align>
 [[maybe_unused]] static uint64_t crc(uint64_t x, uint64_t k) {
     assert(k <= 32);
 
-    /* Complement, swap byte order */
-    uint64_t res = __builtin_bswap64(x ^ 0xaaaaaaaaaaaaaaaa);
+    /* complement */
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+    uint64_t c = ~x;
+#else
+    uint64_t c = x ^ 0xaaaaaaaaaaaaaaaa;  // ...1010.1010.1010.1010
+#endif
+
+    /* swap byte order */
+    uint64_t res = __builtin_bswap64(c);
 
     /* Swap nuc order in bytes */
-    const uint64_t c1 = 0x0f0f0f0f0f0f0f0f;
-    const uint64_t c2 = 0x3333333333333333;
+    const uint64_t c1 = 0x0f0f0f0f0f0f0f0f;              // ...0000.1111.0000.1111
+    const uint64_t c2 = 0x3333333333333333;              // ...0011.0011.0011.0011
     res = ((res & c1) << 4) | ((res & (c1 << 4)) >> 4);  // swap 2-nuc order in bytes
     res = ((res & c2) << 2) | ((res & (c2 << 2)) >> 2);  // swap nuc order in 2-nuc
 
@@ -288,8 +333,11 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     return true;
 }
 
+/*
+    This implements the random minimizer.
+*/
 template <typename Hasher = murmurhash2_64>
-uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
+uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
