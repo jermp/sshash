@@ -157,7 +157,7 @@ Examples
 --------
 
 For the examples, we are going to use some collections
-of *stitched unitigs* from the directory `../data/unitigs_stitched`.
+of *stitched unitigs* from the directory `data/unitigs_stitched`.
 
 **Important note:** The value of k used during the formation of the unitigs
 is indicated in the name of each file and the dictionaries
@@ -167,7 +167,7 @@ For example, `data/unitigs_stitched/ecoli4_k31_ust.fa.gz` indicates the value k 
 
 For all the examples below, we are going to use k = 31.
 
-(The subdirectory `../data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
+(The directory `data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
 
 In the section [Input Files](#input-files), we explain how
 such collections of stitched unitigs can be obtained from raw FASTA files.
