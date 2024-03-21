@@ -1,5 +1,5 @@
-#include "../dictionary.hpp"
-#include "../../external/pthash/external/essentials/include/essentials.hpp"
+#include "include/dictionary.hpp"
+#include "external/pthash/external/essentials/include/essentials.hpp"
 #include "util.hpp"
 
 /** build steps **/

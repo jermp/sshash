@@ -56,6 +56,8 @@ if (UNIX)
 
 endif()
 
+include_directories(.) # all include paths relative to parent directory
+
 set(Z_LIB_SOURCES
   include/gz/zip_stream.cpp
 )

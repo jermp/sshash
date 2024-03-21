@@ -2,7 +2,7 @@
 
 #include <algorithm>  // for std::transform
 
-#include "../include/gz/zip_stream.hpp"
+#include "include/gz/zip_stream.hpp"
 
 namespace sshash {
 
