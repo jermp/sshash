@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../external/pthash/include/encoders/bit_vector.hpp"
+#include "external/pthash/include/encoders/bit_vector.hpp"
 #include "util.hpp"
 
 namespace sshash {

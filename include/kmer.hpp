@@ -83,11 +83,14 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
     static constexpr uint8_t alphabet_size = strlen(Alphabet);
 
     static uint64_t char_to_uint(char c);
-
     static char uint64_to_char(uint64_t x) { return alphabet[x]; }
 };
 
-constexpr char dna_alphabet[] = "ACTG";
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+constexpr char nucleotides[] = "ACGT";
+#else
+constexpr char nucleotides[] = "ACTG";
+#endif
 
 template <typename Kmer>
 struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
@@ -105,8 +108,14 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
         reverse_complement("00.01.10.01.00.01.11") = 01.11.10.11.00.11.10.
     */
     [[maybe_unused]] static uint64_t crc64(uint64_t x) {
-        /* Complement, swap byte order */
-        uint64_t res = __builtin_bswap64(x ^ 0xaaaaaaaaaaaaaaaa);
+        /* complement */
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+        uint64_t c = ~x;
+#else
+        uint64_t c = x ^ 0xaaaaaaaaaaaaaaaa;  // ...1010.1010.1010.1010
+#endif
+        /* swap byte order */
+        uint64_t res = __builtin_bswap64(c);
 
         /* Swap nuc order in bytes */
         const uint64_t c1 = 0x0f0f0f0f0f0f0f0f;
@@ -127,22 +136,42 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
         return res;
     }
 
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
     /*
     char decimal  binary
-    A     65     01000-00-1 -> 00
-    C     67     01000-01-1 -> 01
-    G     71     01000-11-1 -> 11
-    T     84     01010-10-0 -> 10
+    A     65     01000001 -> 00
+    C     67     01000011 -> 01
+    G     71     01000111 -> 10
+    T     84     01010100 -> 11
 
-    a     97     01100-00-1 -> 00
-    c     99     01100-01-1 -> 01
-    g    103     01100-11-1 -> 11
-    t    116     01110-10-0 -> 10
+    a     97     01100001 -> 00
+    c     99     01100011 -> 01
+    g    103     01100111 -> 10
+    t    116     01110100 -> 11
+    */
+    static inline uint64_t char_to_uint(char c) { return (((c >> 1) ^ (c >> 2)) & 3); }
+#else
+    /*
+    char decimal  binary
+    A     65     01000.00.1 -> 00
+    C     67     01000.01.1 -> 01
+    G     71     01000.11.1 -> 11
+    T     84     01010.10.0 -> 10
+
+    a     97     01100.00.1 -> 00
+    c     99     01100.01.1 -> 01
+    g    103     01100.11.1 -> 11
+    t    116     01110.10.0 -> 10
     */
     static uint64_t char_to_uint(char c) { return (c >> 1) & 3; }
+#endif
 };
 
-// also supports __uint128_t, bitpack<__uint128_t, 1>, std::bitset<256>, etc
+// also supports bitpack<__uint128_t, 1>, std::bitset<256>, etc
+#ifdef SSHASH_USE_MAX_KMER_LENGTH_63
+using default_kmer_t = dna_uint_kmer_t<__uint128_t>;
+#else
 using default_kmer_t = dna_uint_kmer_t<uint64_t>;
+#endif
 
 }  // namespace sshash

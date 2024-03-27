@@ -1,5 +1,5 @@
-#include "../include/cover/parse_file.hpp"
-#include "../include/cover/cover.hpp"
+#include "include/cover/parse_file.hpp"
+#include "include/cover/cover.hpp"
 
 using namespace sshash;
 

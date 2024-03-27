@@ -21,15 +21,15 @@ struct streaming_query_report {
 struct lookup_result {
     lookup_result()
         : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint32)
+        , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint32)
-        , contig_size(constants::invalid_uint32) {}
+        , contig_id(constants::invalid_uint64)
+        , contig_size(constants::invalid_uint64) {}
     uint64_t kmer_id;            // "absolute" kmer-id
-    uint32_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint32_t kmer_orientation;
-    uint32_t contig_id;
-    uint32_t contig_size;
+    uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
+    uint64_t kmer_orientation;
+    uint64_t contig_id;
+    uint64_t contig_size;
 };
 
 template <class kmer_t>
@@ -107,6 +107,11 @@ struct build_configuration {
 };
 
 namespace util {
+
+static uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
+    static const uint64_t my_favourite_seed = 1234567890;
+    return build_config.seed != my_favourite_seed ? my_favourite_seed : ~my_favourite_seed;
+}
 
 /* return the position of the most significant bit */
 static inline uint32_t msb(uint32_t x) {
@@ -208,8 +213,11 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
     return true;
 }
 
+/*
+    This implements the random minimizer.
+*/
 template <class kmer_t, typename Hasher = murmurhash2_64>
-uint64_t compute_minimizer(kmer_t kmer, uint64_t k, uint64_t m, uint64_t seed) {
+uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);

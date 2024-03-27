@@ -10,19 +10,24 @@ struct minimizers {
         pthash::build_configuration mphf_config;
         mphf_config.c = 6.0;
         mphf_config.alpha = 0.94;
-        mphf_config.seed = 1234567890;  // my favourite seed
+        mphf_config.seed = util::get_seed_for_hash_function(build_config);
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = 1;
-        uint64_t num_threads = std::thread::hardware_concurrency() >= 8 ? 8 : 1;
-        if (size >= num_threads) mphf_config.num_threads = num_threads;
+        mphf_config.num_threads = std::thread::hardware_concurrency();
+        mphf_config.num_partitions = 4 * mphf_config.num_threads;
 
-        if (build_config.verbose) {
-            std::cout << "building minimizers MPHF (PTHash) with " << mphf_config.num_threads
-                      << " threads..." << std::endl;
+        if (size / mphf_config.num_partitions < pthash::constants::min_partition_size) {
+            mphf_config.num_partitions =
+                std::max<uint64_t>(1, size / (2 * pthash::constants::min_partition_size));
         }
 
-        mphf_config.ram = 2 * essentials::GB;
+        if (build_config.verbose) {
+            std::cout << "building minimizers MPHF with " << mphf_config.num_threads
+                      << " threads and " << mphf_config.num_partitions << " partitions..."
+                      << std::endl;
+        }
+
+        mphf_config.ram = 4 * essentials::GB;
         mphf_config.tmp_dir = build_config.tmp_dirname;
         m_mphf.build_in_external_memory(begin, size, mphf_config);
     }

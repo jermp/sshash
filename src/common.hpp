@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../external/pthash/external/cmd_line_parser/include/parser.hpp"
-#include "../include/dictionary.hpp"
+#include "external/pthash/external/cmd_line_parser/include/parser.hpp"
+#include "include/dictionary.hpp"
 
 #include <vector>
 

@@ -2,7 +2,7 @@
 
 #include <algorithm>  // for std::transform
 
-#include "../include/gz/zip_stream.hpp"
+#include "include/gz/zip_stream.hpp"
 
 namespace sshash {
 
@@ -408,14 +408,14 @@ bool check_dictionary(dictionary<kmer_t> const& dict) {
 }
 
 template <class kmer_t>
-bool check_correctness_iterator(dictionary<kmer_t> const& dict) {
-    std::cout << "checking correctness of iterator..." << std::endl;
+bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
+    std::cout << "checking correctness of kmer iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
     constexpr uint64_t runs = 3;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
     for (uint64_t run = 0; run != runs; ++run) {
         uint64_t from_kmer_id = distr.gen();
-        auto it = dict.at(from_kmer_id);
+        auto it = dict.at_kmer_id(from_kmer_id);
         while (it.has_next()) {
             auto [kmer_id, kmer] = it.next();
             dict.access(kmer_id, expected_kmer.data());
@@ -429,6 +429,30 @@ bool check_correctness_iterator(dictionary<kmer_t> const& dict) {
             ++from_kmer_id;
         }
         assert(from_kmer_id == dict.size());
+    }
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
+
+bool check_correctness_contig_iterator(dictionary const& dict) {
+    std::cout << "checking correctness of contig iterator..." << std::endl;
+    std::string expected_kmer(dict.k(), 0);
+    for (uint64_t contig_id = 0; contig_id != dict.num_contigs(); ++contig_id) {
+        auto [begin, _] = dict.contig_offsets(contig_id);
+        uint64_t from_kmer_id = begin - contig_id * (dict.k() - 1);
+        auto it = dict.at_contig_id(contig_id);
+        while (it.has_next()) {
+            auto [kmer_id, kmer] = it.next();
+            dict.access(kmer_id, expected_kmer.data());
+            if (kmer != expected_kmer or kmer_id != from_kmer_id) {
+                std::cout << "got (" << kmer_id << ",'" << kmer << "')";
+                std::cout << " but ";
+                std::cout << "expected (" << from_kmer_id << ",'" << expected_kmer << "')"
+                          << std::endl;
+                return false;
+            }
+            ++from_kmer_id;
+        }
     }
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;

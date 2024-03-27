@@ -48,15 +48,22 @@ struct dictionary {
     uint64_t contig_size(uint64_t contig_id) const;
 
     /* Navigational queries. */
-    neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer, bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer, bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer,
+                                                  bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer,
+                                                  bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer,
+                                                   bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer,
+                                                   bool check_reverse_complement = true) const;
 
     /* forward and backward */
-    neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer, bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id, bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id,
+                                            bool check_reverse_complement = true) const;
 
     /* Return the weight of the kmer given its id. */
     uint64_t weight(uint64_t kmer_id) const;
@@ -75,22 +82,42 @@ struct dictionary {
                                                      bool multiline) const;
 
     struct iterator {
-        iterator(dictionary const* ptr, uint64_t kmer_id = 0) {
-            it = ptr->m_buckets.at(kmer_id, ptr->m_k, ptr->m_size);
+        iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id) {
+            it = ptr->m_buckets.at(begin_kmer_id, end_kmer_id, ptr->m_k);
         }
 
         bool has_next() const { return it.has_next(); }
-        std::pair<uint64_t, std::string> next() { return it.next(); }
+
+        std::pair<uint64_t, std::string>  // (kmer-id, kmer)
+        next() {
+            return it.next();
+        }
 
     private:
         typename buckets<kmer_t>::iterator it;
     };
 
-    iterator begin() const { return iterator(this); }
+    iterator begin() const { return iterator(this, 0, size()); }
 
-    iterator at(uint64_t kmer_id) const {
+    iterator at_kmer_id(const uint64_t kmer_id) const {
         assert(kmer_id < size());
-        return iterator(this, kmer_id);
+        return iterator(this, kmer_id, size());
+    }
+
+    std::pair<uint64_t, uint64_t>  // [begin, end)
+    contig_offsets(const uint64_t contig_id) const {
+        return m_buckets.contig_offsets(contig_id);
+    }
+
+    iterator at_contig_id(const uint64_t contig_id) const {
+        assert(contig_id < num_contigs());
+        auto [begin, end] = contig_offsets(contig_id);
+        uint64_t contig_length = end - begin;  // in bases
+        assert(contig_length >= m_k);
+        uint64_t contig_size = contig_length - m_k + 1;  // in kmers
+        uint64_t begin_kmer_id = begin - contig_id * (m_k - 1);
+        uint64_t end_kmer_id = begin_kmer_id + contig_size;
+        return iterator(this, begin_kmer_id, end_kmer_id);
     }
 
     pthash::bit_vector const& strings() const { return m_buckets.strings; }
@@ -126,8 +153,10 @@ private:
 
     lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
     lookup_result lookup_uint_canonical_parsing(kmer_t uint_kmer) const;
-    void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res, bool check_reverse_complement) const;
-    void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res, bool check_reverse_complement) const;
+    void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
+                            bool check_reverse_complement) const;
+    void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
+                             bool check_reverse_complement) const;
     kmer_t get_prefix(kmer_t kmer) const;
     kmer_t get_suffix(kmer_t kmer) const;
 };
