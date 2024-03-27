@@ -48,7 +48,7 @@ private:
     std::vector<T> m_buffer;
 };
 
-template <typename Hasher = murmurhash2_64>
+template <class kmer_t, typename Hasher = murmurhash2_64>
 struct minimizer_enumerator {
     minimizer_enumerator() {}
 
@@ -57,33 +57,29 @@ struct minimizer_enumerator {
         , m_m(m)
         , m_seed(seed)
         , m_position(0)
-        , m_mask((kmer_t(1) << (2 * m_m)) - 1)
         , m_q(k - m + 1) /* deque cannot contain more than k - m + 1 elements  */
     {}
 
-    template <bool reverse = false>
-    uint64_t next(kmer_t kmer, bool clear) {
+    uint64_t next(kmer_t kmer, bool clear, bool reverse = false) {
         if (clear) {
-            if constexpr (reverse) {
-                for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
-                    uint64_t mmer = static_cast<uint64_t>((kmer >> (2 * (m_k - m_m - i))) & m_mask);
-                    eat(mmer);
+            for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
+                kmer_t mmer = kmer;
+                if (reverse) {
+                    mmer.drop_chars(m_k - m_m - i);
+                } else {
+                    kmer.drop_char();
                 }
-            } else {
-                for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
-                    uint64_t mmer = static_cast<uint64_t>(kmer & m_mask);
-                    kmer >>= 2;
-                    eat(mmer);
-                }
+                mmer.take_chars(m_m);
+                eat(uint64_t(mmer));
             }
         } else {
-            if constexpr (reverse) {
-                uint64_t mmer = static_cast<uint64_t>(kmer & m_mask);
-                eat(mmer);
+            kmer_t mmer = kmer;
+            if (reverse) {
+                mmer.take_chars(m_m);
             } else {
-                uint64_t mmer = static_cast<uint64_t>(kmer >> (2 * (m_k - m_m)));
-                eat(mmer);
+                mmer.drop_chars(m_k - m_m);
             }
+            eat(uint64_t(mmer));
         }
         return m_q.front().value;
     }
@@ -99,7 +95,8 @@ private:
         mmer_t() {}
         mmer_t(uint64_t hash, uint64_t position, uint64_t value)
             : hash(hash), position(position), value(value) {}
-        uint64_t hash, position, value;
+        uint64_t hash, position;
+        uint64_t value;
     };
 
     /* NOTE: we could use a std::deque<mmer_t> here,

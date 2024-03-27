@@ -3,6 +3,7 @@
 
 using namespace sshash;
 
+template <class kmer_t>
 int query(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
@@ -22,7 +23,7 @@ int query(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     bool multiline = parser.get<bool>("multiline");
 
-    dictionary dict;
+    dictionary<kmer_t> dict;
     load_dictionary(dict, index_filename, verbose);
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
