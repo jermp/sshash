@@ -434,7 +434,7 @@ bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
     return true;
 }
 
-template<class kmer_t>
+template <class kmer_t>
 bool check_correctness_contig_iterator(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of contig iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);

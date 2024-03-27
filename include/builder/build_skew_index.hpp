@@ -216,7 +216,8 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
             assert(lists[i].size() > lower and lists[i].size() <= upper);
             uint64_t super_kmer_id = 0;
             for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
-                bit_vector_iterator<kmer_t> bv_it(m_buckets.strings, kmer_t::bits_per_char * offset);
+                bit_vector_iterator<kmer_t> bv_it(m_buckets.strings,
+                                                  kmer_t::bits_per_char * offset);
                 for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
                     kmer_t kmer = bv_it.read(kmer_t::bits_per_char * build_config.k);
                     keys_in_partition.push_back(kmer);

@@ -2,6 +2,7 @@
 
 #include "bitpack.hpp"
 #include <bitset>
+#include <string>
 
 template <size_t N>
 bool operator<(std::bitset<N> const& a, std::bitset<N> const& b) {
@@ -44,12 +45,12 @@ struct uint_kmer_t {
     void take_chars(uint16_t k) { take(k * bits_per_char); }
 
     uint64_t pop64() {
-        uint64_t res = *this;
+        uint64_t res(*this);
         drop64();
         return res;
     }
     uint64_t pop_char() {
-        uint64_t res = *this;
+        uint64_t res(*this);
         res &= (uint64_t(1) << bits_per_char) - 1;
         drop_char();
         return res;
@@ -80,7 +81,7 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
     using base = uint_kmer_t<Kmer, BitsPerChar>;
     using base::base;
     static constexpr char const* alphabet = Alphabet;
-    static constexpr uint8_t alphabet_size = strlen(Alphabet);
+    static constexpr uint8_t alphabet_size = std::char_traits<char>::length(Alphabet);
 
     static uint64_t char_to_uint(char c);
     static char uint64_to_char(uint64_t x) { return alphabet[x]; }
