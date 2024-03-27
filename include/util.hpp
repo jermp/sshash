@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vector>
+#include <array>
 #include <cassert>
 #include <fstream>
 #include <cmath>  // for std::ceil on linux
@@ -34,7 +34,6 @@ struct lookup_result {
 
 template <class kmer_t>
 struct neighbourhood {
-    /* forward */
     std::array<lookup_result, kmer_t::alphabet_size> forward;
     std::array<lookup_result, kmer_t::alphabet_size> backward;
 };
