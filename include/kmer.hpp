@@ -93,8 +93,8 @@ constexpr char nucleotides[] = "ACTG";
 #endif
 
 template <typename Kmer>
-struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
-    using base = alpha_kmer_t<Kmer, 2, dna_alphabet>;
+struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
+    using base = alpha_kmer_t<Kmer, 2, nucleotides>;
     using base::uint_kmer_bits;
     using base::bits_per_char;
     using base::max_k;
@@ -149,7 +149,7 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, dna_alphabet> {
     g    103     01100111 -> 10
     t    116     01110100 -> 11
     */
-    static inline uint64_t char_to_uint(char c) { return (((c >> 1) ^ (c >> 2)) & 3); }
+    static uint64_t char_to_uint(char c) { return (((c >> 1) ^ (c >> 2)) & 3); }
 #else
     /*
     char decimal  binary

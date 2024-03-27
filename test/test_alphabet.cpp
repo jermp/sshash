@@ -25,8 +25,8 @@ int main(int argc, char** argv) {
         return 1;
     }
     uint64_t k = std::stoull(argv[1]);
-    if (k > constants::max_k) {
-        std::cerr << "k must be less <= " << constants::max_k << " but got k = " << k << '\n';
+    if (k > kmer_t::max_k) {
+        std::cerr << "k must be less <= " << kmer_t::max_k << " but got k = " << k << '\n';
         return 1;
     }
     std::string read(
@@ -54,23 +54,23 @@ int main(int argc, char** argv) {
     /****/
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
-    expect(kmer_t::char_to_int('A'), kmer_t(0));
-    expect(kmer_t::char_to_int('a'), kmer_t(0));
-    expect(kmer_t::char_to_int('C'), kmer_t(1));
-    expect(kmer_t::char_to_int('c'), kmer_t(1));
-    expect(kmer_t::char_to_int('G'), kmer_t(2));
-    expect(kmer_t::char_to_int('g'), kmer_t(2));
-    expect(kmer_t::char_to_int('T'), kmer_t(3));
-    expect(kmer_t::char_to_int('t'), kmer_t(3));
+    expect(kmer_t::char_to_uint('A'), 0);
+    expect(kmer_t::char_to_uint('a'), 0);
+    expect(kmer_t::char_to_uint('C'), 1);
+    expect(kmer_t::char_to_uint('c'), 1);
+    expect(kmer_t::char_to_uint('G'), 2);
+    expect(kmer_t::char_to_uint('g'), 2);
+    expect(kmer_t::char_to_uint('T'), 3);
+    expect(kmer_t::char_to_uint('t'), 3);
 #else
-    expect(kmer_t::char_to_int('A'), kmer_t(0));
-    expect(kmer_t::char_to_int('a'), kmer_t(0));
-    expect(kmer_t::char_to_int('C'), kmer_t(1));
-    expect(kmer_t::char_to_int('c'), kmer_t(1));
-    expect(kmer_t::char_to_int('T'), kmer_t(2));
-    expect(kmer_t::char_to_int('t'), kmer_t(2));
-    expect(kmer_t::char_to_int('G'), kmer_t(3));
-    expect(kmer_t::char_to_int('g'), kmer_t(3));
+    expect(kmer_t::char_to_uint('A'), 0);
+    expect(kmer_t::char_to_uint('a'), 0);
+    expect(kmer_t::char_to_uint('C'), 1);
+    expect(kmer_t::char_to_uint('c'), 1);
+    expect(kmer_t::char_to_uint('T'), 2);
+    expect(kmer_t::char_to_uint('t'), 2);
+    expect(kmer_t::char_to_uint('G'), 3);
+    expect(kmer_t::char_to_uint('g'), 3);
 #endif
 
     for (uint64_t kmer_len = 1; kmer_len <= k; ++kmer_len) {
@@ -80,10 +80,10 @@ int main(int argc, char** argv) {
         for (uint64_t i = 0; i != 1000; ++i) {
             // generate a random kmer of length kmer_len
             random_kmer(kmer.data(), kmer_len);
-            kmer_t::compute_reverse_complement(kmer.data(), rc.data(), kmer_len);
-            kmer_t uint_kmer = kmer_t::string_to_uint_kmer(kmer.data(), kmer_len);
-            uint_kmer = kmer_t::compute_reverse_complement(uint_kmer, kmer_len);
-            expect(kmer_t::uint_kmer_to_string(uint_kmer, kmer_len), rc);
+            util::compute_reverse_complement(kmer.data(), rc.data(), kmer_len);
+            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer.data(), kmer_len);
+            uint_kmer = uint_kmer.reverse_complement(kmer_len);
+            expect(util::uint_kmer_to_string(uint_kmer, kmer_len), rc);
         }
     }
 
