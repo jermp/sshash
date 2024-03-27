@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "../util.hpp"
+#include "include/util.hpp"
 #include "node.hpp"
 #include "even_frequency_weights.hpp"
 

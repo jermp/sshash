@@ -110,13 +110,15 @@ uint64_t dictionary<kmer_t>::weight(uint64_t kmer_id) const {
 template <class kmer_t>
 uint64_t dictionary<kmer_t>::contig_size(uint64_t contig_id) const {
     assert(contig_id < num_contigs());
-    uint64_t contig_length = m_buckets.contig_length(contig_id);
+    auto [begin, end] = m_buckets.contig_offsets(contig_id);
+    uint64_t contig_length = end - begin;
     assert(contig_length >= m_k);
     return contig_length - m_k + 1;
 }
 
 template <class kmer_t>
-void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res, bool check_reverse_complement) const {
+void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
+                                            bool check_reverse_complement) const {
     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
         kmer_t new_kmer = suffix;
         new_kmer.kth_char_or(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
@@ -124,7 +126,8 @@ void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>
     }
 }
 template <class kmer_t>
-void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res, bool check_reverse_complement) const {
+void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
+                                             bool check_reverse_complement) const {
     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
         kmer_t new_kmer = prefix;
         new_kmer.kth_char_or(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
@@ -133,7 +136,8 @@ void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t
 }
 
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(char const* string_kmer, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(
+    char const* string_kmer, bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_forward_neighbours(uint_kmer, check_reverse_complement);
 }
@@ -145,14 +149,16 @@ kmer_t dictionary<kmer_t>::get_suffix(kmer_t kmer) const {
     return suffix;
 }
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(kmer_t uint_kmer, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(
+    kmer_t uint_kmer, bool check_reverse_complement) const {
     neighbourhood<kmer_t> res;
     forward_neighbours(get_suffix(uint_kmer), res, check_reverse_complement);
     return res;
 }
 
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(char const* string_kmer, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
+    char const* string_kmer, bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_backward_neighbours(uint_kmer, check_reverse_complement);
 }
@@ -165,19 +171,22 @@ kmer_t dictionary<kmer_t>::get_prefix(kmer_t kmer) const {
     return prefix;
 }
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(kmer_t uint_kmer, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
+    kmer_t uint_kmer, bool check_reverse_complement) const {
     neighbourhood<kmer_t> res;
     backward_neighbours(get_prefix(uint_kmer), res, check_reverse_complement);
     return res;
 }
 
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(char const* string_kmer, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(char const* string_kmer,
+                                                          bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_neighbours(uint_kmer, check_reverse_complement);
 }
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer,
+                                                          bool check_reverse_complement) const {
     neighbourhood<kmer_t> res;
     forward_neighbours(get_suffix(uint_kmer), res, check_reverse_complement);
     backward_neighbours(get_prefix(uint_kmer), res, check_reverse_complement);
@@ -185,7 +194,8 @@ neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer, bool
 }
 
 template <class kmer_t>
-neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id, bool check_reverse_complement) const {
+neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id,
+                                                            bool check_reverse_complement) const {
     assert(contig_id < num_contigs());
     neighbourhood<kmer_t> res;
     kmer_t suffix = m_buckets.contig_suffix(contig_id, m_k);

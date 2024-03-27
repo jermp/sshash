@@ -1,11 +1,15 @@
 #pragma once
 
-#include "../util.hpp"
+#include "include/util.hpp"
 
 #include <vector>
 #include <deque>
 
 namespace sshash {
+
+namespace constants {
+constexpr uint32_t invalid_uint32 = uint32_t(-1);
+}
 
 struct node {
     node()

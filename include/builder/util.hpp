@@ -44,9 +44,7 @@ struct compact_string_pool {
             uint64_t prefix = 0;
             if (glue) {
                 prefix = k - 1;
-            } else {
-                /* otherwise, start a new piece */
-                check_contig_size();
+            } else { /* otherwise, start a new piece */
                 pieces.push_back(bvb_strings.size() / kmer_t::bits_per_char);
             }
             for (uint64_t i = prefix; i != size; ++i) {
@@ -59,7 +57,6 @@ struct compact_string_pool {
         void finalize() {
             /* So pieces will be of size p+1, where p is the number of DNA sequences
                in the input file. */
-            check_contig_size();
             pieces.push_back(bvb_strings.size() / kmer_t::bits_per_char);
             assert(pieces.front() == 0);
 
@@ -73,22 +70,6 @@ struct compact_string_pool {
         uint64_t num_super_kmers;
         std::vector<uint64_t> pieces;
         pthash::bit_vector_builder bvb_strings;
-
-    private:
-        void check_contig_size() const {
-            /* Support a max of 2^32-1 contigs, or "pieces", whose
-               max length must also be < 2^32. */
-            if (!pieces.empty()) {
-                uint64_t contig_length = bvb_strings.size() / kmer_t::bits_per_char - pieces.back();
-                if (contig_length >= 1ULL << 32) {
-                    throw std::runtime_error("contig_length " + std::to_string(contig_length) +
-                                             " does not fit into 32 bits");
-                }
-                if (pieces.size() == 1ULL << 32) {
-                    throw std::runtime_error("num_contigs must be less than 2^32");
-                }
-            }
-        }
     };
 
     uint64_t num_bits() const { return strings.size(); }

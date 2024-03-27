@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../../external/pthash/include/pthash.hpp"
-#include "../../external/pthash/external/cmd_line_parser/include/parser.hpp"
-#include "../../external/pthash/external/essentials/include/essentials.hpp"
-#include "../gz/zip_stream.hpp"
-#include "../gz/zip_stream.cpp"
-#include "../builder/util.hpp"
+#include "external/pthash/include/pthash.hpp"
+#include "external/pthash/external/cmd_line_parser/include/parser.hpp"
+#include "external/pthash/external/essentials/include/essentials.hpp"
+#include "include/gz/zip_stream.hpp"
+#include "include/gz/zip_stream.cpp"
+#include "include/builder/util.hpp"
 
 #include "node.hpp"
 
