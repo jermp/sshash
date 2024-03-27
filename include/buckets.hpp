@@ -57,14 +57,14 @@ struct buckets {
 
     kmer_t contig_prefix(uint64_t contig_id, uint64_t k) const {
         uint64_t contig_begin = pieces.access(contig_id);
-        bit_vector_iterator<kmer_t> bv_it(strings, 2 * contig_begin);
-        return bv_it.read(2 * (k - 1));
+        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * contig_begin);
+        return bv_it.read(kmer_t::bits_per_char * (k - 1));
     }
 
     kmer_t contig_suffix(uint64_t contig_id, uint64_t k) const {
         uint64_t contig_end = pieces.access(contig_id + 1);
-        bit_vector_iterator<kmer_t> bv_it(strings, 2 * (contig_end - k + 1));
-        return bv_it.read(2 * (k - 1));
+        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * (contig_end - k + 1));
+        return bv_it.read(kmer_t::bits_per_char * (k - 1));
     }
 
     std::pair<uint64_t, uint64_t> locate_bucket(uint64_t bucket_id) const {
@@ -95,7 +95,7 @@ struct buckets {
                                        uint64_t m) const {
         uint64_t offset = offsets.access(super_kmer_id);
         auto [res, contig_end] = offset_to_id(offset, k);
-        bit_vector_iterator<kmer_t> bv_it(strings, 2 * offset);
+        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
         uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
         for (uint64_t w = 0; w != window_size; ++w) {
             kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
@@ -120,7 +120,7 @@ struct buckets {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             uint64_t offset = offsets.access(super_kmer_id);
             auto [res, contig_end] = offset_to_id(offset, k);
-            bit_vector_iterator<kmer_t> bv_it(strings, 2 * offset);
+            bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
             for (uint64_t w = 0; w != window_size; ++w) {
                 kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
@@ -171,8 +171,8 @@ struct buckets {
 
     void access(uint64_t kmer_id, char* string_kmer, uint64_t k) const {
         uint64_t offset = id_to_offset(kmer_id, k);
-        bit_vector_iterator<kmer_t> bv_it(strings, 2 * offset);
-        kmer_t read_kmer = bv_it.read(2 * k);
+        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
+        kmer_t read_kmer = bv_it.read(kmer_t::bits_per_char * k);
         util::uint_kmer_to_string(read_kmer, string_kmer, k);
     }
 
@@ -239,10 +239,10 @@ struct buckets {
         bool m_clear;
 
         void next_piece() {
-            m_bv_it.at(2 * m_offset);
+            m_bv_it.at(kmer_t::bits_per_char * m_offset);
             m_next_offset = m_pieces_it.next();
             assert(m_next_offset > m_offset);
-            m_read_kmer = m_bv_it.take(2 * m_k);
+            m_read_kmer = m_bv_it.take(kmer_t::bits_per_char * m_k);
             m_clear = true;
         }
     };
