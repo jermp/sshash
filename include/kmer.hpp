@@ -31,11 +31,23 @@ struct uint_kmer_t {
     bool operator!=(uint_kmer_t const& t) const { return kmer != t.kmer; }
     bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }
 
-    void pad(uint16_t b) { kmer <<= b; }
+    void pad(uint16_t b) {
+        assert(b < uint_kmer_bits);
+        kmer <<= b;
+    }
     void pad_char() { pad(bits_per_char); }
 
-    void drop(uint16_t b) { kmer >>= b; }
-    void drop64() { drop(64); }
+    void drop(uint16_t b) {
+        assert(b < uint_kmer_bits);
+        kmer >>= b;
+    }
+    void drop64() {
+        if constexpr (uint_kmer_bits == 64) {
+            kmer = 0;
+        } else {
+            drop(64);
+        }
+    }
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
@@ -56,8 +68,17 @@ struct uint_kmer_t {
         return res;
     }
 
-    void append(uint16_t b, uint64_t n) { kmer = (kmer << b) | Kmer(n); }
-    void append64(uint64_t n) { append(64, n); }
+    void append(uint16_t b, uint64_t n) {
+        assert(b < uint_kmer_bits);
+        kmer = (kmer << b) | Kmer(n);
+    }
+    void append64(uint64_t n) {
+        if constexpr (uint_kmer_bits == 64) {
+            kmer = n;
+        } else {
+            append(64, n);
+        }
+    }
     void append_char(uint64_t c) { append(bits_per_char, c); }
 
     // assigns a character at k-th position
@@ -123,7 +144,6 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
         const uint64_t c2 = 0x3333333333333333;
         res = ((res & c1) << 4) | ((res & (c1 << 4)) >> 4);  // swap 2-nuc order in bytes
         res = ((res & c2) << 2) | ((res & (c2 << 2)) >> 2);  // swap nuc order in 2-nuc
-
         return res;
     }
 
