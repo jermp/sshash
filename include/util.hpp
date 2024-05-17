@@ -334,25 +334,69 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
 }
 
 /*
-    This implements the random minimizer.
+    This implements the "classic" minimizer.
+*/
+// template <typename Hasher = murmurhash2_64>
+// uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed)
+// {
+//     assert(m <= constants::max_m);
+//     assert(m <= k);
+//     uint64_t min_hash = uint64_t(-1);
+//     uint64_t minimizer = uint64_t(-1);
+//     kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
+//     for (uint64_t i = 0; i != k - m + 1; ++i) {
+//         uint64_t mmer = static_cast<uint64_t>(kmer & mask);
+//         uint64_t hash = Hasher::hash(mmer, seed);
+//         if (hash < min_hash) {
+//             min_hash = hash;
+//             minimizer = mmer;
+//         }
+//         kmer >>= 2;
+//     }
+//     return minimizer;
+// }
+
+/*
+    This implements the (mod/lr)-minimizer.
 */
 template <typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= constants::max_m);
     assert(m <= k);
+    assert(m >= constants::r);
+
+    const uint64_t w = k - m + 1;
+
+    /* "classic" minimizer */
+    const uint64_t t = m;
+
+    /* lr-minimizer */
+    // const uint64_t t = 2 * m - k - 1;
+
+    /* mod-minimizer */
+    // const uint64_t t = constants::r + (m - constants::r) % w;
+    // const uint64_t t = m % w;
+
+    assert(t == m or m > (k + 2) / 2);
+
+    kmer_t copy = kmer;
+    const kmer_t tmer_mask = (kmer_t(1) << (2 * t)) - 1;
+    const kmer_t mmer_mask = (kmer_t(1) << (2 * m)) - 1;
+
     uint64_t min_hash = uint64_t(-1);
-    uint64_t minimizer = uint64_t(-1);
-    kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
-    for (uint64_t i = 0; i != k - m + 1; ++i) {
-        uint64_t mmer = static_cast<uint64_t>(kmer & mask);
-        uint64_t hash = Hasher::hash(mmer, seed);
+    uint64_t p = 0;  // position of minimum tmer
+    for (uint64_t i = 0; i != k - t + 1; ++i) {
+        uint64_t tmer = static_cast<uint64_t>(kmer & tmer_mask);
+        uint64_t hash = Hasher::hash(tmer, seed);
         if (hash < min_hash) {
             min_hash = hash;
-            minimizer = mmer;
+            p = i;
         }
         kmer >>= 2;
     }
-    return minimizer;
+
+    p = p % w;
+    return (copy >> (2 * p)) & mmer_mask;
 }
 
 /* used in dump.cpp */

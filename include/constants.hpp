@@ -12,6 +12,9 @@ constexpr uint64_t max_k = sizeof(kmer_t) * 4 - 1;
 /* max *odd* size that can be packed into 64 bits */
 constexpr uint64_t max_m = 31;
 
+/* lower bound on t when computing minimizers */
+constexpr uint64_t r = 3;
+
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
 
 constexpr uint64_t seed = 1;
