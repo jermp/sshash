@@ -5,8 +5,7 @@
 using namespace sshash;
 
 std::ostream& operator<<(std::ostream& os, __uint128_t x) {
-    os << *(reinterpret_cast<uint64_t*>(&x) + 0);
-    os << *(reinterpret_cast<uint64_t*>(&x) + 1);
+    os << static_cast<uint64_t>(x) << static_cast<uint64_t>(x >> 64);
     return os;
 }
 
