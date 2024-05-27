@@ -109,9 +109,9 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
 };
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
-constexpr char nucleotides[] = "ACGT";
+inline constexpr char nucleotides[] = "ACGT";
 #else
-constexpr char nucleotides[] = "ACTG";
+inline constexpr char nucleotides[] = "ACTG";
 #endif
 
 template <typename Kmer>
