@@ -3,6 +3,7 @@
 #include <array>
 #include <cassert>
 #include <fstream>
+#include <thread>
 #include <cmath>  // for std::ceil on linux
 
 #include "hash_util.hpp"
@@ -74,6 +75,7 @@ struct build_configuration {
         : k(31)
         , m(17)
         , seed(constants::seed)
+        , num_threads(std::thread::hardware_concurrency())
 
         , l(constants::min_l)
         , c(constants::c)
@@ -87,6 +89,7 @@ struct build_configuration {
     uint64_t k;  // kmer size
     uint64_t m;  // minimizer size
     uint64_t seed;
+    uint64_t num_threads;
 
     uint64_t l;  // drive dictionary trade-off
     double c;    // drive PTHash trade-off
