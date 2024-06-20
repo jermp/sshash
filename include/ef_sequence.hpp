@@ -187,15 +187,24 @@ struct ef_sequence {
     }
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
     void visit(Visitor& visitor) {
-        visitor.visit(m_universe);
-        visitor.visit(m_high_bits);
-        visitor.visit(m_high_bits_d1);
-        visitor.visit(m_high_bits_d0);
-        visitor.visit(m_low_bits);
+        visit_impl(visitor, *this);
     }
 
 private:
+    template <typename Visitor, typename T>
+    static void visit_impl(Visitor& visitor, T&& t) {
+        visitor.visit(t.m_universe);
+        visitor.visit(t.m_high_bits);
+        visitor.visit(t.m_high_bits_d1);
+        visitor.visit(t.m_high_bits_d0);
+        visitor.visit(t.m_low_bits);
+    }
     uint64_t m_universe;
     pthash::bit_vector m_high_bits;
     pthash::darray1 m_high_bits_d1;

@@ -118,19 +118,29 @@ struct dictionary {
     void compute_statistics() const;
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
     void visit(Visitor& visitor) {
-        visitor.visit(m_size);
-        visitor.visit(m_seed);
-        visitor.visit(m_k);
-        visitor.visit(m_m);
-        visitor.visit(m_canonical_parsing);
-        visitor.visit(m_minimizers);
-        visitor.visit(m_buckets);
-        visitor.visit(m_skew_index);
-        visitor.visit(m_weights);
+        visit_impl(visitor, *this);
     }
 
 private:
+    template <typename Visitor, typename T>
+    static void visit_impl(Visitor& visitor, T&& t) {
+        visitor.visit(t.m_size);
+        visitor.visit(t.m_seed);
+        visitor.visit(t.m_k);
+        visitor.visit(t.m_m);
+        visitor.visit(t.m_canonical_parsing);
+        visitor.visit(t.m_minimizers);
+        visitor.visit(t.m_buckets);
+        visitor.visit(t.m_skew_index);
+        visitor.visit(t.m_weights);
+    }
+
     uint64_t m_size;
     uint64_t m_seed;
     uint16_t m_k;
