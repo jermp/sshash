@@ -87,14 +87,12 @@ struct uint_kmer_t {
 
     static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);
     static constexpr uint8_t bits_per_char = BitsPerChar;
-    // max *odd* size that can be packed into uint_kmer_bits bits
-    static constexpr uint16_t max_k = []() {
-        uint16_t max_k_any = uint_kmer_bits / bits_per_char;
-        return max_k_any % 2 == 0 ? max_k_any - 1 : max_k_any;
-    }();
 
     static_assert(uint_kmer_bits % 64 == 0, "Kmer must use 64*k bits");
-    static_assert(bits_per_char < 64, "Less than 64 bits per character");
+    static_assert(bits_per_char < 64, "BitsPerChar must be less than 64");
+
+    static constexpr uint16_t max_k = uint_kmer_bits / bits_per_char;
+    static constexpr uint16_t max_m = 64 / bits_per_char;
 };
 
 template <typename Kmer, uint8_t BitsPerChar, char const* Alphabet>
@@ -104,8 +102,16 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
     static constexpr char const* alphabet = Alphabet;
     static constexpr uint8_t alphabet_size = std::char_traits<char>::length(Alphabet);
 
+    static bool is_valid(char c);
     static uint64_t char_to_uint(char c);
     static char uint64_to_char(uint64_t x) { return alphabet[x]; }
+
+    // Revcompl only makes sense for DNA, fallback to noop otherwise
+    [[maybe_unused]] virtual void reverse_complement_inplace(uint64_t) {}
+    [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
+                                                            uint64_t size) {
+        for (uint64_t i = 0; i != size; ++i) { output[i] = input[i]; }
+    }
 };
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
@@ -119,8 +125,10 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
     using base = alpha_kmer_t<Kmer, 2, nucleotides>;
     using base::uint_kmer_bits;
     using base::bits_per_char;
-    using base::max_k;
     using base::base;
+    // Use odd lengths for DNA to avoid dealing with self-complements
+    static constexpr uint16_t max_k = base::max_k - !(base::max_k % 2);
+    static constexpr uint16_t max_m = base::max_m - !(base::max_m % 2);
     /*
         This works with the map:
         A -> 00; C -> 01; G -> 11; T -> 10.
@@ -147,14 +155,13 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
         return res;
     }
 
-    [[maybe_unused]] dna_uint_kmer_t reverse_complement(uint64_t k) {
-        dna_uint_kmer_t x(*this);
+    [[maybe_unused]] void reverse_complement_inplace(uint64_t k) override {
         assert(k <= max_k);
-        dna_uint_kmer_t res(0);
-        for (uint16_t i = 0; i < uint_kmer_bits; i += 64) { res.append64(crc64(x.pop64())); }
+        dna_uint_kmer_t rev(0);
+        for (uint16_t i = 0; i < uint_kmer_bits; i += 64) { rev.append64(crc64(base::pop64())); }
         // res is full reverse-complement to x
-        res.drop(uint_kmer_bits - k * bits_per_char);
-        return res;
+        rev.drop(uint_kmer_bits - k * bits_per_char);
+        *this = rev;
     }
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
@@ -186,6 +193,92 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
     */
     static uint64_t char_to_uint(char c) { return (c >> 1) & 3; }
 #endif
+
+    /*
+        Forward character map:
+            A -> A    65
+            C -> C    67
+            G -> G    71
+            T -> T    84
+            a -> a    97
+            c -> c    99
+            g -> g   103
+            t -> t   116
+        All other chars map to zero.
+    */
+    static constexpr char canonicalize_basepair_forward_map[256] = {
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   65, 0, 67, 0, 0, 0, 71, 0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 97, 0, 99, 0, 0, 0, 103,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 116, 0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0,  0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,   0,  0, 0,  0, 0, 0, 0,  0, 0};
+
+    /*
+        Reverse character map:
+        65    A -> T    84
+        67    C -> G    71
+        71    G -> C    67
+        84    T -> A    65
+        97    a -> t   116
+        99    c -> g   103
+    103    g -> c    99
+    116    t -> a    97
+        All other chars map to zero.
+    */
+    static constexpr char canonicalize_basepair_reverse_map[256] = {
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  84, 0, 71, 0, 0, 0, 67,  0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 65, 0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 116, 0, 103, 0, 0, 0, 99,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 97, 0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0,   0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0,  0,  0, 0,  0, 0, 0, 0,   0, 0};
+
+    [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
+                                                            uint64_t size) {
+        for (uint64_t i = 0; i != size; ++i) {
+            int c = input[i];
+            output[size - i - 1] = canonicalize_basepair_reverse_map[c];
+        }
+    }
+
+    static inline bool is_valid(char c) {
+        return canonicalize_basepair_forward_map[static_cast<size_t>(c)];
+    }
+};
+
+inline constexpr char amino_acids[] = "ABCDEFGHIJKLMNOPQRSTUVWYZX";
+template <typename Kmer>
+struct aa_uint_kmer_t : alpha_kmer_t<Kmer, 5, amino_acids> {
+    using base = alpha_kmer_t<Kmer, 5, amino_acids>;
+    using base::uint_kmer_bits;
+    using base::bits_per_char;
+    using base::base;
+
+    static constexpr int8_t char_to_aa[256] = {
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0,
+        1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+        25, 23, 24, -1, -1, -1, -1, -1, -1, 0,  1,  2,  3,  4,  5,  6,  7,  8,  9,  10, 11, 12,
+        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 25, 23, 24, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+        -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+
+    static bool is_valid(char c) { return ~char_to_aa[static_cast<size_t>(c)]; }
+    static uint64_t char_to_uint(char c) { return char_to_aa[static_cast<size_t>(c)]; }
 };
 
 // also supports bitpack<__uint128_t, 1>, std::bitset<256>, etc

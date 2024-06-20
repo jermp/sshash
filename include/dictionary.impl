@@ -24,7 +24,8 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular_parsing(kmer_t uint_kmer) 
 
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_canonical_parsing(kmer_t uint_kmer) const {
-    kmer_t uint_kmer_rc = uint_kmer.reverse_complement(m_k);
+    kmer_t uint_kmer_rc = uint_kmer;
+    uint_kmer_rc.reverse_complement_inplace(m_k);
     auto minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
     auto minimizer_rc = util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_seed);
     uint64_t bucket_id = m_minimizers.lookup(uint64_t(std::min(minimizer, minimizer_rc)));
@@ -79,7 +80,8 @@ lookup_result dictionary<kmer_t>::lookup_advanced_uint(kmer_t uint_kmer,
     auto res = lookup_uint_regular_parsing(uint_kmer);
     assert(res.kmer_orientation == constants::forward_orientation);
     if (check_reverse_complement and res.kmer_id == constants::invalid_uint64) {
-        kmer_t uint_kmer_rc = uint_kmer.reverse_complement(m_k);
+        kmer_t uint_kmer_rc = uint_kmer;
+        uint_kmer_rc.reverse_complement_inplace(m_k);
         res = lookup_uint_regular_parsing(uint_kmer_rc);
         res.kmer_orientation = constants::backward_orientation;
     }

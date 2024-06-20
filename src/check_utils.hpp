@@ -40,7 +40,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
         ++num_lines;
 
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
-            assert(util::is_valid(line.data() + i, k));
+            assert(util::is_valid<kmer_t>(line.data() + i, k));
 
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(line.data() + i, k);
             bool orientation = constants::forward_orientation;
@@ -51,7 +51,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
 
             /* transform 50% of the kmers into their reverse complements */
             if ((num_kmers & 1) == 0) {
-                uint_kmer = uint_kmer.reverse_complement(k);
+                uint_kmer.reverse_complement_inplace(k);
                 orientation = constants::backward_orientation;
             }
 
@@ -140,7 +140,8 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
             // check access
             dict.access(id, got_kmer_str.data());
             kmer_t got_uint_kmer = util::string_to_uint_kmer<kmer_t>(got_kmer_str.data(), k);
-            kmer_t got_uint_kmer_rc = got_uint_kmer.reverse_complement(k);
+            kmer_t got_uint_kmer_rc = got_uint_kmer;
+            got_uint_kmer_rc.reverse_complement_inplace(k);
             if (got_uint_kmer != uint_kmer and got_uint_kmer_rc != uint_kmer) {
                 std::cout << "ERROR: got '" << got_kmer_str << "' but expected '"
                           << expected_kmer_str << "'" << std::endl;
@@ -192,7 +193,7 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer
             continue;
         }
         for (uint64_t i = 0; i + k <= line.size(); ++i) {
-            assert(util::is_valid(line.data() + i, k));
+            assert(util::is_valid<kmer_t>(line.data() + i, k));
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
                 std::cout << "checked " << num_kmers << " kmers" << std::endl;
             }

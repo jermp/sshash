@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
         "c");
 
     for (uint64_t i = 0; i != read.length() - k + 1; ++i) {
-        bool is_valid = util::is_valid(read.data() + i, k);
+        bool is_valid = util::is_valid<kmer_t>(read.data() + i, k);
         if (!is_valid) {
             std::cerr << "ERROR: '" << std::string(read.data() + i, k) << "' is NOT valid!"
                       << std::endl;
@@ -79,40 +79,40 @@ int main(int argc, char** argv) {
         for (uint64_t i = 0; i != 1000; ++i) {
             // generate a random kmer of length kmer_len
             random_kmer(kmer.data(), kmer_len);
-            util::compute_reverse_complement(kmer.data(), rc.data(), kmer_len);
+            kmer_t::compute_reverse_complement(kmer.data(), rc.data(), kmer_len);
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer.data(), kmer_len);
-            uint_kmer = uint_kmer.reverse_complement(kmer_len);
+            uint_kmer.reverse_complement_inplace(kmer_len);
             expect(util::uint_kmer_to_string(uint_kmer, kmer_len), rc);
         }
     }
 
     /****/
 
-    expect(util::canonicalize_basepair_forward_map[int('A')], 'A');
-    expect(util::canonicalize_basepair_forward_map[int('a')], 'a');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('A')], 'A');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('a')], 'a');
 
-    expect(util::canonicalize_basepair_forward_map[int('C')], 'C');
-    expect(util::canonicalize_basepair_forward_map[int('c')], 'c');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('C')], 'C');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('c')], 'c');
 
-    expect(util::canonicalize_basepair_forward_map[int('T')], 'T');
-    expect(util::canonicalize_basepair_forward_map[int('t')], 't');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('T')], 'T');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('t')], 't');
 
-    expect(util::canonicalize_basepair_forward_map[int('G')], 'G');
-    expect(util::canonicalize_basepair_forward_map[int('g')], 'g');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('G')], 'G');
+    expect(kmer_t::canonicalize_basepair_forward_map[int('g')], 'g');
 
     /****/
 
-    expect(util::canonicalize_basepair_reverse_map[int('A')], 'T');
-    expect(util::canonicalize_basepair_reverse_map[int('a')], 't');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('A')], 'T');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('a')], 't');
 
-    expect(util::canonicalize_basepair_reverse_map[int('C')], 'G');
-    expect(util::canonicalize_basepair_reverse_map[int('c')], 'g');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('C')], 'G');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('c')], 'g');
 
-    expect(util::canonicalize_basepair_reverse_map[int('T')], 'A');
-    expect(util::canonicalize_basepair_reverse_map[int('t')], 'a');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('T')], 'A');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('t')], 'a');
 
-    expect(util::canonicalize_basepair_reverse_map[int('G')], 'C');
-    expect(util::canonicalize_basepair_reverse_map[int('g')], 'c');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('G')], 'C');
+    expect(kmer_t::canonicalize_basepair_reverse_map[int('g')], 'c');
 
     return 0;
 }

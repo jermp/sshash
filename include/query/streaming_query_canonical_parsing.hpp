@@ -46,7 +46,8 @@ struct streaming_query_canonical_parsing {
 
     lookup_result lookup_advanced(const char* kmer) {
         /* 1. validation */
-        bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
+        bool is_valid =
+            m_start ? util::is_valid<kmer_t>(kmer, m_k) : kmer_t::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             start();
             return lookup_result();
@@ -62,7 +63,8 @@ struct streaming_query_canonical_parsing {
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
         assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
-        m_kmer_rc = m_kmer.reverse_complement(m_k);
+        m_kmer_rc = m_kmer;
+        m_kmer_rc.reverse_complement_inplace(m_k);
         constexpr bool reverse = true;
         uint64_t minimizer_rc = m_minimizer_enum_rc.next(m_kmer_rc, m_start, reverse);
         assert(minimizer_rc == util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_seed));
@@ -174,7 +176,8 @@ private:
                 kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    kmer_t val_rc = val.reverse_complement(m_k);
+                    kmer_t val_rc = val;
+                    val_rc.reverse_complement_inplace(m_k);
                     uint64_t minimizer =
                         std::min(util::compute_minimizer(val, m_k, m_m, m_seed),
                                  util::compute_minimizer(val_rc, m_k, m_m, m_seed));

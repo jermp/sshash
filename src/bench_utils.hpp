@@ -35,7 +35,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
             dict.access(id, kmer.data());
             if ((i & 1) == 0) {
                 /* transform 50% of the kmers into their reverse complements */
-                util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+                kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
                 lookup_queries.push_back(kmer_rc);
             } else {
                 lookup_queries.push_back(kmer);
@@ -82,7 +82,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
             dict.access(id, kmer.data());
             if ((i & 1) == 0) {
                 /* transform 50% of the kmers into their reverse complements */
-                util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+                kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
                 lookup_queries.push_back(kmer_rc);
             } else {
                 lookup_queries.push_back(kmer);
@@ -161,7 +161,7 @@ void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
         dict.access(id, kmer.data());
         if ((i & 1) == 0) {
             /* transform 50% of the kmers into their reverse complements */
-            util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+            kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
             lookup_queries.push_back(kmer_rc);
         } else {
             lookup_queries.push_back(kmer);

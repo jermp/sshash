@@ -148,66 +148,10 @@ template <class kmer_t>
     return str;
 }
 
-/*
-    Forward character map:
-        A -> A    65
-        C -> C    67
-        G -> G    71
-        T -> T    84
-        a -> a    97
-        c -> c    99
-        g -> g   103
-        t -> t   116
-    All other chars map to zero.
-*/
-static const char canonicalize_basepair_forward_map[256] = {
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,   0, 0, 0, 0, 0, 0, 65, 0, 67, 0,  0, 0,  71, 0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 84, 0, 0,
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  97, 0, 99, 0,  0, 0, 103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    116, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,   0, 0, 0, 0, 0, 0, 0,  0, 0,  0,  0, 0,  0,  0, 0, 0,   0, 0, 0, 0, 0, 0, 0};
-
-/*
-    Reverse character map:
-    65    A -> T    84
-    67    C -> G    71
-    71    G -> C    67
-    84    T -> A    65
-    97    a -> t   116
-    99    c -> g   103
-   103    g -> c    99
-   116    t -> a    97
-    All other chars map to zero.
-*/
-static const char canonicalize_basepair_reverse_map[256] = {
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,  0, 0, 0, 0, 0, 0, 84, 0, 71, 0,   0, 0,   67, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 65, 0, 0,
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  116, 0, 103, 0,  0, 0, 99, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    97, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,
-    0,  0, 0, 0, 0, 0, 0, 0,  0, 0,  0,   0, 0,   0,  0, 0, 0,  0, 0, 0, 0, 0, 0, 0};
-
-[[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
-                                                        uint64_t size) {
-    for (uint64_t i = 0; i != size; ++i) {
-        int c = input[i];
-        output[size - i - 1] = canonicalize_basepair_reverse_map[c];
-    }
-}
-
-static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]; }
-
+template <class kmer_t>
 [[maybe_unused]] static bool is_valid(char const* str, uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
-        int c = str[i];
-        if (canonicalize_basepair_forward_map[c] == 0) return false;
+        if (!kmer_t::is_valid(str[i])) { return false; }
     }
     return true;
 }
@@ -217,7 +161,7 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
 */
 template <class kmer_t, typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
-    assert(m <= constants::max_m);
+    assert(m <= kmer_t::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
     kmer_t minimizer = kmer_t(-1);
@@ -238,7 +182,7 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
 template <class kmer_t, typename Hasher = murmurhash2_64>
 std::pair<kmer_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
                                                   uint64_t seed) {
-    assert(m <= constants::max_m);
+    assert(m <= kmer_t::max_m);
     assert(m <= k);
     uint64_t min_hash = uint64_t(-1);
     kmer_t minimizer = kmer_t(-1);

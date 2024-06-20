@@ -51,7 +51,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         assert(end > begin);
         char const* super_kmer = sequence.data() + begin;
         uint64_t size = (end - begin) + k - 1;
-        assert(util::is_valid(super_kmer, size));
+        assert(util::is_valid<kmer_t>(super_kmer, size));
 
         /* if num_kmers_in_super_kmer > k - m + 1, then split the super_kmer into blocks */
         uint64_t num_kmers_in_super_kmer = end - begin;
@@ -164,12 +164,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
         while (end != sequence.size() - k + 1) {
             char const* kmer = sequence.data() + end;
-            assert(util::is_valid(kmer, k));
+            assert(util::is_valid<kmer_t>(kmer, k));
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
             uint64_t minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
 
             if (build_config.canonical_parsing) {
-                kmer_t uint_kmer_rc = uint_kmer.reverse_complement(k);
+                kmer_t uint_kmer_rc = uint_kmer;
+                uint_kmer_rc.reverse_complement_inplace(k);
                 uint64_t minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
                 minimizer = std::min(minimizer, minimizer_rc);
             }

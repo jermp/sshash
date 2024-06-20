@@ -22,8 +22,8 @@ void dictionary<kmer_t>::build(std::string const& filename,
                                  " but got k = " + std::to_string(build_config.k));
     }
     if (build_config.m == 0) throw std::runtime_error("m must be > 0");
-    if (build_config.m > constants::max_m) {
-        throw std::runtime_error("m must be less <= " + std::to_string(constants::max_m) +
+    if (build_config.m > kmer_t::max_m) {
+        throw std::runtime_error("m must be less <= " + std::to_string(kmer_t::max_m) +
                                  " but got m = " + std::to_string(build_config.m));
     }
     if (build_config.m > build_config.k) throw std::runtime_error("m must be < k");

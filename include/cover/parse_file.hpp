@@ -198,6 +198,7 @@ void reverse_header(std::string const& input, std::string& output, uint64_t k) {
     for (auto weight : weights) output.append(std::to_string(weight) + " ");
 }
 
+template <typename kmer_t>
 void permute_and_write(std::istream& is, std::string const& output_filename,
                        std::string const& tmp_dirname, pthash::compact_vector const& permutation,
                        pthash::bit_vector const& signs, uint64_t k) {
@@ -255,8 +256,8 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
                and reverse the weights in header_sequence */
             dna_sequence_rc.resize(dna_sequence.size());
             header_sequence_r.clear();
-            util::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
-                                             dna_sequence.size());
+            kmer_t::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
+                                               dna_sequence.size());
             reverse_header(header_sequence, header_sequence_r, k);
             dna_sequence.swap(dna_sequence_rc);
             header_sequence.swap(header_sequence_r);
@@ -352,6 +353,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
     }
 }
 
+template <typename kmer_t>
 void permute_and_write(std::string const& input_filename, std::string const& output_filename,
                        std::string const& tmp_dirname, pthash::compact_vector const& permutation,
                        pthash::bit_vector const& signs, uint64_t k) {
@@ -360,9 +362,9 @@ void permute_and_write(std::string const& input_filename, std::string const& out
     std::cout << "reading file '" << input_filename << "'..." << std::endl;
     if (util::ends_with(input_filename, ".gz")) {
         zip_istream zis(is);
-        permute_and_write(zis, output_filename, tmp_dirname, permutation, signs, k);
+        permute_and_write<kmer_t>(zis, output_filename, tmp_dirname, permutation, signs, k);
     } else {
-        permute_and_write(is, output_filename, tmp_dirname, permutation, signs, k);
+        permute_and_write<kmer_t>(is, output_filename, tmp_dirname, permutation, signs, k);
     }
     is.close();
 }

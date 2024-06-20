@@ -3,10 +3,6 @@
 #include "kmer.hpp"
 
 namespace sshash::constants {
-
-/* max *odd* size that can be packed into 64 bits */
-constexpr uint64_t max_m = 31;
-
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
 
 constexpr uint64_t seed = 1;

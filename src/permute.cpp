@@ -94,7 +94,7 @@ int permute(int argc, char** argv) {
     }
 
     /* permute and save to output file */
-    permute_and_write(input_filename, output_filename, tmp_dirname, permutation, signs, k);
+    permute_and_write<kmer_t>(input_filename, output_filename, tmp_dirname, permutation, signs, k);
     std::remove(permutation_filename.c_str());
 
     return 0;

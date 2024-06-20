@@ -31,7 +31,8 @@ void dictionary<kmer_t>::dump(std::string const& filename) const {
                 kmer_t kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * m_k);
                 auto [minimizer, pos] = util::compute_minimizer_pos(kmer, m_k, m_m, m_seed);
                 if (m_canonical_parsing) {
-                    kmer_t kmer_rc = kmer.reverse_complement(m_k);
+                    kmer_t kmer_rc = kmer;
+                    kmer_rc.reverse_complement_inplace(m_k);
                     auto [minimizer_rc, pos_rc] =
                         util::compute_minimizer_pos(kmer_rc, m_k, m_m, m_seed);
                     if (minimizer_rc < minimizer) {
