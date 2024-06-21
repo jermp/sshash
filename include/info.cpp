@@ -24,8 +24,9 @@ uint64_t skew_index::print_info() const {
 }
 
 void dictionary::print_space_breakdown() const {
-    std::cout << "total index size: " << essentials::convert((num_bits() + 7) / 8, essentials::MB)
-              << " [MB]" << '\n';
+    const uint64_t num_bytes = (num_bits() + 7) / 8;
+    std::cout << "total index size: " << num_bytes << " [B] -- "
+              << essentials::convert(num_bytes, essentials::MB) << " [MB]" << '\n';
     std::cout << "SPACE BREAKDOWN:\n";
     std::cout << "  minimizers: " << static_cast<double>(m_minimizers.num_bits()) / size()
               << " [bits/kmer]\n";

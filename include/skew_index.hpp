@@ -33,7 +33,9 @@ struct skew_index {
 
     uint64_t num_bits() const {
         uint64_t n =
-            (sizeof(min_log2) + sizeof(max_log2) + sizeof(log2_max_num_super_kmers_in_bucket)) * 8;
+            (sizeof(min_log2) + sizeof(max_log2) + sizeof(log2_max_num_super_kmers_in_bucket) +
+             2 * sizeof(size_t) /* for std::vector::size */) *
+            8;
         for (uint64_t partition_id = 0; partition_id != mphfs.size(); ++partition_id) {
             auto const& mphf = mphfs[partition_id];
             auto const& P = positions[partition_id];
