@@ -30,7 +30,7 @@ The query times are relative to the following configuration:
 
 ### Space in bits/kmer
 
-| Dictionary |elegans ||| cod   ||| kesterl ||| human |||
+| Dictionary |elegans ||| cod   ||| kestrel ||| human |||
 |:------------------|:------:|:------:|:------:|:------:|:------:|:------:|:------:|:------:|:------:|:-----:|:-------:|:-----:|
 |                   | k=31 | k=47 | k=63 | k=31 | k=47 | k=63 | k=31 | k=47 | k=63 | k=31 | k=47 | k=63 |
 | SSHash, **regular**   | 5.86 | 4.29 | 3.51 | 7.84 | 5.17 | 4.26 | 7.53 | 4.67 | 3.76 | 8.70 | 5.65 | 4.64 |
