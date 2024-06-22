@@ -45,12 +45,13 @@ struct skew_index {
     }
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
     void visit(Visitor& visitor) {
-        visitor.visit(min_log2);
-        visitor.visit(max_log2);
-        visitor.visit(log2_max_num_super_kmers_in_bucket);
-        visitor.visit(mphfs);
-        visitor.visit(positions);
+        visit_impl(visitor, *this);
     }
 
     uint16_t min_log2;
@@ -58,6 +59,16 @@ struct skew_index {
     uint32_t log2_max_num_super_kmers_in_bucket;
     std::vector<kmers_pthash_type> mphfs;
     std::vector<pthash::compact_vector> positions;
+
+private:
+    template <typename Visitor, typename T>
+    static void visit_impl(Visitor& visitor, T&& t) {
+        visitor.visit(t.min_log2);
+        visitor.visit(t.max_log2);
+        visitor.visit(t.log2_max_num_super_kmers_in_bucket);
+        visitor.visit(t.mphfs);
+        visitor.visit(t.positions);
+    }
 };
 
 }  // namespace sshash

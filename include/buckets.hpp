@@ -256,11 +256,13 @@ struct buckets {
     }
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
     void visit(Visitor& visitor) {
-        visitor.visit(pieces);
-        visitor.visit(num_super_kmers_before_bucket);
-        visitor.visit(offsets);
-        visitor.visit(strings);
+        visit_impl(visitor, *this);
     }
 
     ef_sequence<true> pieces;
@@ -269,6 +271,13 @@ struct buckets {
     pthash::bit_vector strings;
 
 private:
+    template <typename Visitor, typename T>
+    static void visit_impl(Visitor& visitor, T&& t) {
+        visitor.visit(t.pieces);
+        visitor.visit(t.num_super_kmers_before_bucket);
+        visitor.visit(t.offsets);
+        visitor.visit(t.strings);
+    }
     bool is_valid(lookup_result res) const {
         return (res.contig_size != constants::invalid_uint64 and
                 res.kmer_id_in_contig < res.contig_size) and

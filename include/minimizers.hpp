@@ -41,6 +41,11 @@ struct minimizers {
     uint64_t num_bits() const { return m_mphf.num_bits(); }
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visitor.visit(m_mphf);
+    }
+
+    template <typename Visitor>
     void visit(Visitor& visitor) {
         visitor.visit(m_mphf);
     }
