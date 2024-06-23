@@ -23,8 +23,9 @@ struct skew_index {
         assert(log2_bucket_size <= log2_max_num_super_kmers_in_bucket);
         uint64_t partition_id = log2_bucket_size - (min_log2 + 1);
         if (log2_bucket_size == log2_max_num_super_kmers_in_bucket or log2_bucket_size > max_log2) {
-            partition_id = positions.size() - 1;
+            partition_id = mphfs.size() - 1;
         }
+        assert(partition_id < mphfs.size());
         auto const& mphf = mphfs[partition_id];
         auto const& P = positions[partition_id];
         uint64_t position = P.access(mphf(uint_kmer));

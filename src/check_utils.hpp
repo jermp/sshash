@@ -6,10 +6,27 @@
 
 namespace sshash {
 
-bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
-    uint64_t k = dict.k();
-    uint64_t n = dict.size();
+bool check_correctness_negative_lookup(dictionary const& dict) {
+    std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
+    const uint64_t num_lookups = std::min<uint64_t>(1000000, dict.size());
+    std::string kmer(dict.k(), 0);
+    for (uint64_t i = 0; i != num_lookups; ++i) {
+        random_kmer(kmer.data(), dict.k());
+        /*
+            We could use a std::unordered_set to check if kmer is really absent,
+            but that would take much more memory...
+        */
+        uint64_t id = dict.lookup(kmer.c_str());
+        if (id != constants::invalid_uint64) {
+            std::cout << "kmer '" << kmer << "' found!" << std::endl;
+        }
+    }
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
 
+bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
+    const uint64_t k = dict.k();
     std::string line;
     uint64_t pos = 0;
     uint64_t num_kmers = 0;
@@ -155,25 +172,9 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
         }
     }
     std::cout << "checked " << num_kmers << " kmers" << std::endl;
-
     std::cout << "EVERYTHING OK!" << std::endl;
 
-    std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
-    uint64_t num_lookups = std::min<uint64_t>(1000000, n);
-    for (uint64_t i = 0; i != num_lookups; ++i) {
-        random_kmer(got_kmer_str.data(), k);
-        /*
-            We could use a std::unordered_set to check if kmer is really absent,
-            but that would take much more memory...
-        */
-        uint64_t id = dict.lookup(got_kmer_str.c_str());
-        if (id != constants::invalid_uint64) {
-            std::cout << "kmer '" << got_kmer_str << "' found!" << std::endl;
-        }
-    }
-
-    std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
+    return check_correctness_negative_lookup(dict);
 }
 
 bool check_correctness_navigational_kmer_query(std::istream& is, dictionary const& dict) {
@@ -439,7 +440,8 @@ bool check_dictionary(dictionary const& dict) {
     }
     std::cout << "checked " << id << " kmers" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
+
+    return check_correctness_negative_lookup(dict);
 }
 
 bool check_correctness_kmer_iterator(dictionary const& dict) {
