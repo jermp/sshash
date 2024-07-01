@@ -169,13 +169,23 @@ struct weights {
     }
 
     template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+
+    template <typename Visitor>
     void visit(Visitor& visitor) {
-        visitor.visit(m_weight_interval_values);
-        visitor.visit(m_weight_interval_lengths);
-        visitor.visit(m_weight_dictionary);
+        visit_impl(visitor, *this);
     }
 
 private:
+    template <typename Visitor, typename T>
+    static void visit_impl(Visitor& visitor, T&& t) {
+        visitor.visit(t.m_weight_interval_values);
+        visitor.visit(t.m_weight_interval_lengths);
+        visitor.visit(t.m_weight_dictionary);
+    }
+
     pthash::compact_vector m_weight_interval_values;
     ef_sequence<true> m_weight_interval_lengths;
     pthash::compact_vector m_weight_dictionary;

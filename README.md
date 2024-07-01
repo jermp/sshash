@@ -216,26 +216,11 @@ Below a comparison between the dictionary built in Example 2 (not canonical)
 and the one just built (Example 3, canonical).
 
     ./sshash query -i salmonella_100.index -q ../data/queries/SRR5833294.10K.fastq.gz
-    index size: 10.3981 [MB] (6.36232 [bits/kmer])
-    ==== query report:
-    num_kmers = 460000
-    num_positive_kmers = 46 (0.01%)
-    num_searches = 42/46 (91.3043%)
-    num_extensions = 4/46 (8.69565%)
-    elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
 
     ./sshash query -i salmonella_100.canon.index -q ../data/queries/SRR5833294.10K.fastq.gz
-    index size: 11.0657 [MB] (6.77083 [bits/kmer])
-    ==== query report:
-    num_kmers = 460000
-    num_positive_kmers = 46 (0.01%)
-    num_searches = 42/46 (91.3043%)
-    num_extensions = 4/46 (8.69565%)
-    elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer
 
-We see that the canonical dictionary is twice as fast as the regular dictionary
-for low-hit workloads,
-even on this tiny example, for only +0.4 bits/k-mer.
+The canonical dictionary can be twice as fast as the regular dictionary
+for low-hit workloads, even on this tiny example, for only +0.4 bits/k-mer.
 
 ### Example 4
 
