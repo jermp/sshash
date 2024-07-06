@@ -6,7 +6,10 @@ lookup_result dictionary::lookup_uint_regular_parsing(kmer_t uint_kmer) const {
     uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
-    if (m_skew_index.empty()) return m_buckets.lookup(bucket_id, uint_kmer, m_k, m_m);
+    if (m_skew_index.empty()) {
+        return m_buckets.lookup(bucket_id, uint_kmer, m_k, minimizer, m_m, m_seed,  //
+                                true);  // check minimizer
+    }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
     uint64_t num_super_kmers_in_bucket = end - begin;
@@ -15,22 +18,30 @@ lookup_result dictionary::lookup_uint_regular_parsing(kmer_t uint_kmer) const {
         uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
         /* It must hold pos < num_super_kmers_in_bucket for the kmer to exist. */
         if (pos < num_super_kmers_in_bucket) {
-            return m_buckets.lookup_in_super_kmer(begin + pos, uint_kmer, m_k, m_m);
+            return m_buckets.lookup_in_super_kmer(begin + pos,             //
+                                                  uint_kmer, m_k,          //
+                                                  minimizer, m_m, m_seed,  //
+                                                  true);                   // check minimizer
         }
         return lookup_result();
     }
 
-    return m_buckets.lookup(begin, end, uint_kmer, m_k, m_m);
+    return m_buckets.lookup(begin, end, uint_kmer, m_k, minimizer, m_m, m_seed,  //
+                            true);                                               // check minimizer
 }
 
 lookup_result dictionary::lookup_uint_canonical_parsing(kmer_t uint_kmer) const {
     kmer_t uint_kmer_rc = util::compute_reverse_complement(uint_kmer, m_k);
     uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
     uint64_t minimizer_rc = util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_seed);
-    uint64_t bucket_id = m_minimizers.lookup(std::min<uint64_t>(minimizer, minimizer_rc));
+    uint64_t min_minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
+    uint64_t bucket_id = m_minimizers.lookup(min_minimizer);
 
     if (m_skew_index.empty()) {
-        return m_buckets.lookup_canonical(bucket_id, uint_kmer, uint_kmer_rc, m_k, m_m);
+        return m_buckets.lookup_canonical(bucket_id,                     //
+                                          uint_kmer, uint_kmer_rc, m_k,  //
+                                          min_minimizer, m_m, m_seed,    //
+                                          true);                         // check minimizer
     }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
@@ -39,20 +50,28 @@ lookup_result dictionary::lookup_uint_canonical_parsing(kmer_t uint_kmer) const 
     if (log2_bucket_size > m_skew_index.min_log2) {
         uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
         if (pos < num_super_kmers_in_bucket) {
-            auto res = m_buckets.lookup_in_super_kmer(begin + pos, uint_kmer, m_k, m_m);
-            assert(res.kmer_orientation == constants::forward_orientation);
+            auto res = m_buckets.lookup_in_super_kmer(begin + pos,                             //
+                                                      uint_kmer, m_k,                          //
+                                                      constants::invalid_uint64, m_m, m_seed,  //
+                                                      false);  // don't check minimizer
+            res.kmer_orientation = constants::forward_orientation;
             if (res.kmer_id != constants::invalid_uint64) return res;
         }
         uint64_t pos_rc = m_skew_index.lookup(uint_kmer_rc, log2_bucket_size);
         if (pos_rc < num_super_kmers_in_bucket) {
-            auto res = m_buckets.lookup_in_super_kmer(begin + pos_rc, uint_kmer_rc, m_k, m_m);
+            auto res = m_buckets.lookup_in_super_kmer(begin + pos_rc,                          //
+                                                      uint_kmer_rc, m_k,                       //
+                                                      constants::invalid_uint64, m_m, m_seed,  //
+                                                      false);  // don't check minimizer
             res.kmer_orientation = constants::backward_orientation;
             return res;
         }
         return lookup_result();
     }
 
-    return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, m_k, m_m);
+    return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, m_k,  //
+                                      min_minimizer, m_m, m_seed,                //
+                                      true);                                     // check minimizer
 }
 
 uint64_t dictionary::lookup(char const* string_kmer, bool check_reverse_complement) const {
@@ -73,7 +92,7 @@ lookup_result dictionary::lookup_advanced_uint(kmer_t uint_kmer,
                                                bool check_reverse_complement) const {
     if (m_canonical_parsing) return lookup_uint_canonical_parsing(uint_kmer);
     auto res = lookup_uint_regular_parsing(uint_kmer);
-    assert(res.kmer_orientation == constants::forward_orientation);
+    res.kmer_orientation = constants::forward_orientation;
     if (check_reverse_complement and res.kmer_id == constants::invalid_uint64) {
         kmer_t uint_kmer_rc = util::compute_reverse_complement(uint_kmer, m_k);
         res = lookup_uint_regular_parsing(uint_kmer_rc);

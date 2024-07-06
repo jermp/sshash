@@ -73,15 +73,32 @@ struct buckets {
         return {begin, end};
     }
 
-    lookup_result lookup(uint64_t bucket_id, kmer_t target_kmer, uint64_t k, uint64_t m) const {
-        auto [begin, end] = locate_bucket(bucket_id);
-        return lookup(begin, end, target_kmer, k, m);
+    lookup_result lookup(uint64_t bucket_id,                         //
+                         kmer_t target_kmer, uint64_t k,             //
+                         uint64_t target_minimizer, uint64_t m,      //
+                         uint64_t seed, bool check_minimizer) const  //
+    {
+        assert(target_minimizer == util::compute_minimizer(target_kmer, k, m, seed));
+        auto [begin_super_kmer_id, end_super_kmer_id] = locate_bucket(bucket_id);
+        return lookup(begin_super_kmer_id, end_super_kmer_id,  //
+                      target_kmer, k, target_minimizer, m, seed, check_minimizer);
     }
 
-    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t target_kmer, uint64_t k,
-                         uint64_t m) const {
-        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
+    lookup_result lookup(uint64_t begin_super_kmer_id, uint64_t end_super_kmer_id,  //
+                         kmer_t target_kmer, uint64_t k,                            //
+                         uint64_t target_minimizer, uint64_t m,                     //
+                         uint64_t seed, bool check_minimizer) const                 //
+    {
+        for (uint64_t super_kmer_id = begin_super_kmer_id;         //
+             super_kmer_id != end_super_kmer_id; ++super_kmer_id)  //
+        {
+            auto res = lookup_in_super_kmer(super_kmer_id,   //
+                                            target_kmer, k,  //
+                                            target_minimizer, m, seed, check_minimizer);
+
+            /* minimizer did not match */
+            if (check_minimizer and res.kmer_orientation == constants::invalid_uint64) break;
+
             if (res.kmer_id != constants::invalid_uint64) {
                 assert(is_valid(res));
                 return res;
@@ -90,14 +107,27 @@ struct buckets {
         return lookup_result();
     }
 
-    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, kmer_t target_kmer, uint64_t k,
-                                       uint64_t m) const {
+    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id,                     //
+                                       kmer_t target_kmer, uint64_t k,             //
+                                       uint64_t target_minimizer, uint64_t m,      //
+                                       uint64_t seed, bool check_minimizer) const  //
+    {
         uint64_t offset = offsets.access(super_kmer_id);
         auto [res, contig_end] = offset_to_id(offset, k);
         bit_vector_iterator bv_it(strings, 2 * offset);
         uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
         for (uint64_t w = 0; w != window_size; ++w) {
             kmer_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
+
+            if (check_minimizer) {
+                if (target_minimizer != util::compute_minimizer(read_kmer, k, m, seed)) {
+                    res = lookup_result();
+                    res.kmer_orientation = constants::invalid_uint64;
+                    return res;
+                }
+                check_minimizer = false;
+            }
+
             if (read_kmer == target_kmer) {
                 res.kmer_id += w;
                 res.kmer_id_in_contig += w;
@@ -108,21 +138,49 @@ struct buckets {
         return lookup_result();
     }
 
-    lookup_result lookup_canonical(uint64_t bucket_id, kmer_t target_kmer, kmer_t target_kmer_rc,
-                                   uint64_t k, uint64_t m) const {
-        auto [begin, end] = locate_bucket(bucket_id);
-        return lookup_canonical(begin, end, target_kmer, target_kmer_rc, k, m);
+    lookup_result lookup_canonical(uint64_t bucket_id,                                     //
+                                   kmer_t target_kmer, kmer_t target_kmer_rc, uint64_t k,  //
+                                   uint64_t target_minimizer, uint64_t m, uint64_t seed,   //
+                                   bool check_minimizer) const                             //
+    {
+        assert(target_minimizer ==
+               std::min<uint64_t>(util::compute_minimizer(target_kmer, k, m, seed),
+                                  util::compute_minimizer(target_kmer_rc, k, m, seed)));
+        auto [begin_super_kmer_id, end_super_kmer_id] = locate_bucket(bucket_id);
+        return lookup_canonical(begin_super_kmer_id, end_super_kmer_id,  //
+                                target_kmer, target_kmer_rc, k,          //
+                                target_minimizer, m, seed, check_minimizer);
     }
 
-    lookup_result lookup_canonical(uint64_t begin, uint64_t end, kmer_t target_kmer,
-                                   kmer_t target_kmer_rc, uint64_t k, uint64_t m) const {
-        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
+    lookup_result lookup_canonical(uint64_t begin_super_kmer_id, uint64_t end_super_kmer_id,
+                                   kmer_t target_kmer, kmer_t target_kmer_rc, uint64_t k,
+                                   uint64_t target_minimizer, uint64_t m, uint64_t seed,
+                                   bool check_minimizer) const  //
+    {
+        for (uint64_t super_kmer_id = begin_super_kmer_id;         //
+             super_kmer_id != end_super_kmer_id; ++super_kmer_id)  //
+        {
             uint64_t offset = offsets.access(super_kmer_id);
             auto [res, contig_end] = offset_to_id(offset, k);
             bit_vector_iterator bv_it(strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
             for (uint64_t w = 0; w != window_size; ++w) {
                 kmer_t read_kmer = bv_it.read_and_advance_by_two(2 * k);
+
+                if (check_minimizer) {
+                    uint64_t read_minimizer = util::compute_minimizer(read_kmer, k, m, seed);
+                    uint64_t read_minimizer_rc = util::compute_minimizer(
+                        util::compute_reverse_complement(read_kmer, k), k, m, seed);
+                    if (target_minimizer !=
+                        std::min<uint64_t>(read_minimizer, read_minimizer_rc))  //
+                    {
+                        res = lookup_result();
+                        res.kmer_orientation = constants::invalid_uint64;
+                        return res;
+                    }
+                    check_minimizer = false;
+                }
+
                 if (read_kmer == target_kmer) {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
@@ -278,6 +336,7 @@ private:
         visitor.visit(t.offsets);
         visitor.visit(t.strings);
     }
+
     bool is_valid(lookup_result res) const {
         return (res.contig_size != constants::invalid_uint64 and
                 res.kmer_id_in_contig < res.contig_size) and
