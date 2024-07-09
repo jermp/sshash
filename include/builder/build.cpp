@@ -24,7 +24,7 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         throw std::runtime_error("m must be less <= " + std::to_string(constants::max_m) +
                                  " but got m = " + std::to_string(build_config.m));
     }
-    if (build_config.m > build_config.k) throw std::runtime_error("m must be < k");
+    if (build_config.m > build_config.k) throw std::runtime_error("m must be <= k");
     if (build_config.l >= constants::max_l) {
         throw std::runtime_error("l must be < " + std::to_string(constants::max_l));
     }
@@ -74,6 +74,11 @@ void dictionary::build(std::string const& filename, build_configuration const& b
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
+
+        if (build_config.verbose) {
+            std::cout << "num_minimizers " << data.minimizers.num_minimizers() << std::endl;
+        }
+
         m_minimizers.build(iterator, data.minimizers.num_minimizers(), build_config);
         input.close();
     }
