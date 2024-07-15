@@ -29,10 +29,6 @@ struct minimizers {
 
         mphf_config.ram = 4 * essentials::GB;
         mphf_config.tmp_dir = build_config.tmp_dirname;
-        if (size <= 1) {
-            throw std::runtime_error(
-                "each partition must contain more than one key: use less partitions");
-        }
         m_mphf.build_in_external_memory(begin, size, mphf_config);
     }
 
