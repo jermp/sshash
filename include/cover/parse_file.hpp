@@ -159,8 +159,7 @@ private:
 
     std::string read_line() {
         uint8_t const* begin = m_begin;
-        while (m_begin != m_end and *m_begin++ != '\n')
-            ;
+        while (m_begin != m_end and *m_begin++ != '\n');
         if (begin == m_begin) return std::string("");
         return std::string(reinterpret_cast<const char*>(begin), m_begin - begin - 1);
     }
