@@ -289,12 +289,12 @@ void parse_file_from_cuttlefish(std::istream& is, parse_data& data, build_config
         while (end != sequence.size() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid(kmer, k));
-            uint64_t uint64_kmer = util::string_to_uint64_no_reverse(kmer, k);
-            uint64_t minimizer = util::compute_minimizer(uint64_kmer, k, m, seed);
+            kmer_t uint_kmer = util::string_to_uint_kmer(kmer, k);
+            uint64_t minimizer = util::compute_minimizer(uint_kmer, k, m, seed);
 
             if (build_config.canonical_parsing) {
-                uint64_t uint64_kmer_rc = util::compute_reverse_complement(uint64_kmer, k);
-                uint64_t minimizer_rc = util::compute_minimizer(uint64_kmer_rc, k, m, seed);
+                kmer_t uint_kmer_rc = util::compute_reverse_complement(uint_kmer, k);
+                uint64_t minimizer_rc = util::compute_minimizer(uint_kmer_rc, k, m, seed);
                 minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
             }
 

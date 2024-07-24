@@ -13,6 +13,7 @@ int build(int argc, char** argv) {
     parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
                true);
     parser.add("m", "Minimizer length (must be < k).", "-m", true);
+    parser.add("f", "Format of input (must be fasta | cuttlefish).", "-f", true);
 
     /* Optional arguments. */
     parser.add("seed",
@@ -52,12 +53,25 @@ int build(int argc, char** argv) {
     auto input_filename = parser.get<std::string>("input_filename");
     auto k = parser.get<uint64_t>("k");
     auto m = parser.get<uint64_t>("m");
+    auto fmt = parser.get<std::string>("f");
+
+    if (fmt != "fasta" && fmt != "cuttlefish") {
+	std::cerr << "unknown input format selected\n";
+	std::cerr << "[" << fmt << "]\n";
+	std::exit(1);
+    }
 
     dictionary dict;
 
     build_configuration build_config;
     build_config.k = k;
     build_config.m = m;
+
+    if (fmt == "fasta") {
+	build_config.input_type = sshash::input_build_type::fasta;
+    } else if (fmt == "cuttlefish") {
+	build_config.input_type = sshash::input_build_type::cfseg;
+    }
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
