@@ -76,6 +76,8 @@ struct neighbourhood {
     return good;
 }
 
+enum input_build_type {fasta, cfseg};
+
 struct build_configuration {
     build_configuration()
         : k(31)
@@ -89,7 +91,9 @@ struct build_configuration {
         , weighted(false)
         , verbose(true)
 
-        , tmp_dirname(constants::default_tmp_dirname) {}
+        , tmp_dirname(constants::default_tmp_dirname)
+        , input_type(input_build_type::fasta) {}
+        
 
     uint64_t k;  // kmer size
     uint64_t m;  // minimizer size
@@ -103,12 +107,14 @@ struct build_configuration {
     bool verbose;
 
     std::string tmp_dirname;
+    input_build_type input_type;
 
     void print() const {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
                   << ", c = " << c
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
+                  << ", weighted = " << (weighted ? "true" : "false")
+                  << ", file type = " << (input_type==input_build_type::fasta ? "fasta" : "cfseg")  << std::endl;
     }
 };
 
@@ -206,6 +212,28 @@ static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
         str[i] = uint64_to_char(x & 3);
         x >>= 2;
     }
+}
+
+static inline uint64_t char_to_uint64(char c) {
+    switch (c) {
+        case 'A':
+            return 0;
+        case 'C':
+            return 1;
+        case 'G':
+            return 2;
+        case 'T':
+            return 3;
+    }
+    assert(false);
+    return -1;
+}
+
+[[maybe_unused]] static uint64_t string_to_uint64_no_reverse(char const* str, uint64_t k) {
+    assert(k <= 32);
+    uint64_t x = 0;
+    for (uint64_t i = 0; i != k; ++i) x += char_to_uint64(str[i]) << (2 * i);
+    return x;
 }
 
 [[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
