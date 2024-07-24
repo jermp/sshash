@@ -317,9 +317,17 @@ void parse_file_from_cuttlefish(std::istream& is, parse_data& data, build_config
     builder.finalize();
     builder.build(data.strings);
 
+    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
+              << data.num_kmers << " kmers" << std::endl;
+    std::cout << "num_kmers " << data.num_kmers << std::endl;
+    std::cout << "num_super_kmers " << data.strings.num_super_kmers() << std::endl;
+    std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
+              << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
+              << std::endl;
     assert(data.strings.pieces.size() == num_sequences + 1);
 
     if (build_config.weighted) {
+        std::cout << "sum_of_weights " << sum_of_weights << std::endl;
         data.weights_builder.push_weight_interval(weight_value, weight_length);
         data.weights_builder.finalize(data.num_kmers);
     }   
