@@ -41,25 +41,10 @@ double bits_per_kmer_formula(uint64_t k, /* kmer length */
 
     const uint64_t N = n + M * (k - 1);  // num. characters in SPSS
 
-    /* summing (M-1) provides an upper bound */
-    double num_minimizers =
-        (2.0 * n) / (k - m + 2) + (M - 1);  // not distinct, hence num. of super-kmers
+    /* summing (M-1) provides an upper bound to the num. of super-kmers */
+    double Z = (2.0 * n) / (k - m + 2) + (M - 1);
 
-    // std::cout << "num_minimizers = " << num_minimizers << std::endl;
-    // std::cout << "minimizers: " << (3.0 * num_minimizers) / n << " [bits/kmer]" << std::endl;
-    // std::cout << "pieces: " << (M * (2.0 + std::ceil(std::log2(static_cast<double>(N) / M)))) / n
-    //           << " [bits/kmer]" << std::endl;
-    // std::cout << "num_super_kmers_before_bucket: " << (2.0 * num_minimizers) / n << " [bits/kmer]
-    // "
-    //           << std::endl;
-    // std::cout << "offsets: " << (std::ceil(std::log2(N)) * num_minimizers) / n << " [bits/kmer]"
-    //           << std::endl;
-    // std::cout << "strings: " << (2.0 * N) / n << " [bits/kmer]" << std::endl;
-
-    // double num_bits = 2 * n * (1.0 + (5.0 + std::ceil(std::log2(N))) / (k - m + 2)) +
-    //                   M * (2 * k + std::ceil(std::log2(static_cast<double>(n) / M + k - 1)));
-
-    double num_bits = 2 * N + num_minimizers * (5.0 + std::ceil(std::log2(N))) +
+    double num_bits = 2 * N + Z * (5.0 + std::ceil(std::log2(N))) +
                       M * (2.0 + std::ceil(std::log2(static_cast<double>(N) / M)));
 
     return num_bits / n;
