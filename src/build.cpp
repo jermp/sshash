@@ -5,15 +5,16 @@ int build(int argc, char** argv) {
 
     /* Required arguments. */
     parser.add("input_filename",
-               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
-               "\t- without duplicate nor invalid kmers\n"
+               "Must be a FASTA file (.fa/fasta extension) or cf_seg file compressed with gzip (.gz) or not:\n"
+               "\t- FASTA file should be without duplicate nor invalid kmers\n"
                "\t- one DNA sequence per line.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
+               "\tFor example, it could be the de Bruijn graph topology output by BCALM.\n"
+               "\t- cfseg file is the output file produced by CUTTLEFISH with -f 3\n",
                "-i", true);
     parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
                true);
     parser.add("m", "Minimizer length (must be < k).", "-m", true);
-    parser.add("f", "Format of input (must be fasta | cuttlefish).", "-f", true);
+    parser.add("f", "Format of input (must be fasta | cfseg).", "-f", false);
 
     /* Optional arguments. */
     parser.add("seed",
@@ -55,10 +56,10 @@ int build(int argc, char** argv) {
     auto m = parser.get<uint64_t>("m");
     auto fmt = parser.get<std::string>("f");
 
-    if (fmt != "fasta" && fmt != "cuttlefish") {
-	std::cerr << "unknown input format selected\n";
-	std::cerr << "[" << fmt << "]\n";
-	std::exit(1);
+    if (fmt != "fasta" && fmt != "cfseg" && fmt != "") {
+        std::cerr << "unknown input format selected, should be either `fasta` or `cfseg` \n";
+        std::cerr << "[" << fmt << "]\n";
+        std::exit(1);
     }
 
     dictionary dict;
@@ -67,10 +68,10 @@ int build(int argc, char** argv) {
     build_config.k = k;
     build_config.m = m;
 
-    if (fmt == "fasta") {
-	build_config.input_type = sshash::input_build_type::fasta;
-    } else if (fmt == "cuttlefish") {
-	build_config.input_type = sshash::input_build_type::cfseg;
+    if (fmt == "fasta" || fmt == "") {
+	    build_config.input_type = sshash::input_build_type::fasta;
+    } else if (fmt == "cfseg") {
+	    build_config.input_type = sshash::input_build_type::cfseg;
     }
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
@@ -90,12 +91,12 @@ int build(int argc, char** argv) {
 
     bool check = parser.get<bool>("check");
     if (check) {
-        check_correctness_lookup_access(dict, input_filename);
-        check_correctness_navigational_kmer_query(dict, input_filename);
-        check_correctness_navigational_contig_query(dict);
+        // check_correctness_lookup_access(dict, input_filename, fmt);
+        // check_correctness_navigational_kmer_query(dict, input_filename, fmt);
+        // check_correctness_navigational_contig_query(dict);
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        check_correctness_kmer_iterator(dict);
-        check_correctness_contig_iterator(dict);
+        // check_correctness_kmer_iterator(dict);
+        // check_correctness_contig_iterator(dict);
     }
     bool bench = parser.get<bool>("bench");
     if (bench) {

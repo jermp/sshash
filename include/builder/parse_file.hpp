@@ -205,7 +205,7 @@ void parse_file_from_fasta(std::istream& is, parse_data& data, build_configurati
     }
 }
 
-void parse_file_from_cuttlefish(std::istream& is, parse_data& data, build_configuration const& build_config) {
+void parse_file_from_cfseg(std::istream& is, parse_data& data, build_configuration const& build_config) {
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
@@ -276,6 +276,10 @@ void parse_file_from_cuttlefish(std::istream& is, parse_data& data, build_config
         sequence = sequence.substr(tsep + 1);
         if (sequence.size() < k) continue;
 
+        if (++num_sequences % 100000 == 0) {
+            std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
+                    << data.num_kmers << " kmers" << std::endl;
+        }
         begin = 0;
         end = 0;
         glue = false;  // start a new piece
@@ -335,7 +339,7 @@ void parse_file_from_cuttlefish(std::istream& is, parse_data& data, build_config
 
 void parse_file(std::istream& is, parse_data& data, build_configuration const& build_config) {
     if (build_config.input_type == input_build_type::cfseg) {
-        parse_file_from_cuttlefish(is, data, build_config);
+        parse_file_from_cfseg(is, data, build_config);
     }
     else {
         parse_file_from_fasta(is, data, build_config);
