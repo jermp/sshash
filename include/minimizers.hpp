@@ -13,7 +13,7 @@ struct minimizers {
         mphf_config.seed = util::get_seed_for_hash_function(build_config);
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = std::thread::hardware_concurrency();
+        mphf_config.num_threads = build_config.num_threads;
         mphf_config.num_partitions = 4 * mphf_config.num_threads;
 
         if (size / mphf_config.num_partitions < pthash::constants::min_partition_size) {

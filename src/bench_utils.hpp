@@ -2,7 +2,8 @@
 
 namespace sshash {
 
-void perf_test_iterator(dictionary const& dict) {
+template <class kmer_t>
+void perf_test_iterator(dictionary<kmer_t> const& dict) {
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
     t.start();
     auto it = dict.begin();
@@ -16,7 +17,8 @@ void perf_test_iterator(dictionary const& dict) {
     std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
 }
 
-void perf_test_lookup_access(dictionary const& dict) {
+template <class kmer_t>
+void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     constexpr uint64_t num_queries = 1000000;
     constexpr uint64_t runs = 5;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
@@ -33,7 +35,7 @@ void perf_test_lookup_access(dictionary const& dict) {
             dict.access(id, kmer.data());
             if ((i & 1) == 0) {
                 /* transform 50% of the kmers into their reverse complements */
-                util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+                kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
                 lookup_queries.push_back(kmer_rc);
             } else {
                 lookup_queries.push_back(kmer);
@@ -80,7 +82,7 @@ void perf_test_lookup_access(dictionary const& dict) {
             dict.access(id, kmer.data());
             if ((i & 1) == 0) {
                 /* transform 50% of the kmers into their reverse complements */
-                util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+                kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
                 lookup_queries.push_back(kmer_rc);
             } else {
                 lookup_queries.push_back(kmer);
@@ -138,7 +140,8 @@ void perf_test_lookup_access(dictionary const& dict) {
     }
 }
 
-void perf_test_lookup_weight(dictionary const& dict) {
+template <class kmer_t>
+void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
     if (!dict.weighted()) {
         std::cerr << "ERROR: the dictionary does not store weights" << std::endl;
         return;
@@ -158,7 +161,7 @@ void perf_test_lookup_weight(dictionary const& dict) {
         dict.access(id, kmer.data());
         if ((i & 1) == 0) {
             /* transform 50% of the kmers into their reverse complements */
-            util::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+            kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
             lookup_queries.push_back(kmer_rc);
         } else {
             lookup_queries.push_back(kmer);

@@ -21,6 +21,7 @@ struct parse_runtime_error : public std::runtime_error {
     }
 }
 
+template <class kmer_t>
 struct compact_string_pool {
     compact_string_pool() {}
 
@@ -39,24 +40,24 @@ struct compact_string_pool {
             if (glue) {
                 prefix = k - 1;
             } else { /* otherwise, start a new piece */
-                pieces.push_back(bvb_strings.size() / 2);
+                pieces.push_back(bvb_strings.size() / kmer_t::bits_per_char);
             }
             for (uint64_t i = prefix; i != size; ++i) {
-                bvb_strings.append_bits(util::char_to_uint(string[i]), 2);
+                bvb_strings.append_bits(kmer_t::char_to_uint(string[i]), kmer_t::bits_per_char);
             }
             num_super_kmers += 1;
-            offset = bvb_strings.size() / 2;
+            offset = bvb_strings.size() / kmer_t::bits_per_char;
         }
 
         void finalize() {
             /* So pieces will be of size p+1, where p is the number of DNA sequences
                in the input file. */
-            pieces.push_back(bvb_strings.size() / 2);
+            pieces.push_back(bvb_strings.size() / kmer_t::bits_per_char);
             assert(pieces.front() == 0);
 
             /* Push a final sentinel (dummy) kmer to avoid bounds' checking in
                bit_vector_iterator::fill_buf(). */
-            bvb_strings.append_bits(0, 2 * k);
+            bvb_strings.append_bits(0, k * kmer_t::bits_per_char);
         }
 
         uint64_t k;
