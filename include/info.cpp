@@ -23,12 +23,42 @@ uint64_t skew_index::print_info() const {
     return num_kmers_in_skew_index;
 }
 
+double bits_per_kmer_formula(uint64_t k, /* kmer length */
+                             uint64_t m, /* minimizer length */
+                             uint64_t n, /* num. kmers */
+                             uint64_t M) /* num. strings in SPSS */
+{
+    /*
+      Caveats:
+      1. we assume an alphabet of size 4
+      2. this assumes a random minimizer scheme, so num. super-kmers is ~ 2n/(k-m+2)
+      3. we neglect lower order terms and skew index space
+      4. no canonical parsing
+    */
+
+    assert(k > 0);
+    assert(k >= m);
+
+    const uint64_t N = n + M * (k - 1);  // num. characters in SPSS
+
+    /* summing (M-1) provides an upper bound to the num. of super-kmers */
+    double Z = (2.0 * n) / (k - m + 2) + (M - 1);
+
+    double num_bits = 2 * N + Z * (5.0 + std::ceil(std::log2(N))) +
+                      M * (2.0 + std::ceil(std::log2(static_cast<double>(N) / M)));
+
+    return num_bits / n;
+}
+
 void dictionary::print_space_breakdown() const {
-    std::cout << "total index size: " << essentials::convert((num_bits() + 7) / 8, essentials::MB)
-              << " [MB]" << '\n';
+    const uint64_t num_bytes = (num_bits() + 7) / 8;
+    std::cout << "total index size: " << num_bytes << " [B] -- "
+              << essentials::convert(num_bytes, essentials::MB) << " [MB]" << '\n';
     std::cout << "SPACE BREAKDOWN:\n";
     std::cout << "  minimizers: " << static_cast<double>(m_minimizers.num_bits()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] ("
+              << static_cast<double>(m_minimizers.num_bits()) / m_minimizers.size()
+              << " [bits/key])\n";
     std::cout << "  pieces: " << static_cast<double>(m_buckets.pieces.num_bits()) / size()
               << " [bits/kmer]\n";
     std::cout << "  num_super_kmers_before_bucket: "
@@ -46,6 +76,9 @@ void dictionary::print_space_breakdown() const {
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
               << std::endl;
+
+    std::cout << "  Close-form formula: " << bits_per_kmer_formula(k(), m(), size(), num_contigs())
+              << " [bits/kmer]" << std::endl;
 }
 
 void dictionary::print_info() const {

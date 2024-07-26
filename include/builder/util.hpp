@@ -10,11 +10,6 @@ namespace sshash {
               << (time * 1000) / num_kmers << " [ns/kmer])" << std::endl;
 }
 
-struct empty_bucket_runtime_error : public std::runtime_error {
-    empty_bucket_runtime_error()
-        : std::runtime_error("try a different choice of l or change seed") {}
-};
-
 struct parse_runtime_error : public std::runtime_error {
     parse_runtime_error() : std::runtime_error("did you provide an input file with weights?") {}
 };

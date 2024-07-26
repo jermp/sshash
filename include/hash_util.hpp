@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../external/pthash/include/pthash.hpp"
+#include "external/pthash/include/pthash.hpp"
 #include "constants.hpp"
 
 namespace sshash {

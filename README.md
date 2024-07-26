@@ -11,7 +11,7 @@ This is a compressed dictionary data structure for k-mers
 The data structure is described in the following papers:
 
 * [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245) [1]
-* [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
+* [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
 
 **Please, cite these papers if you use SSHash.**
 
@@ -106,6 +106,12 @@ If you want to use the "traditional" encoding
 for compatibility issues with other software, then
 compile SSHash with the flag `-DSSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING=On`.
 
+### K-mer Length
+
+By default, SSHash uses a maximum k-mer length of 31.
+If you want to support k-mer lengths up to (and including) 63,
+compile the library with the flag `-DSSHASH_USE_MAX_KMER_LENGTH_63=On`.
+
 Dependencies
 ------------
 
@@ -151,7 +157,7 @@ Examples
 --------
 
 For the examples, we are going to use some collections
-of *stitched unitigs* from the directory `../data/unitigs_stitched`.
+of *stitched unitigs* from the directory `data/unitigs_stitched`.
 
 **Important note:** The value of k used during the formation of the unitigs
 is indicated in the name of each file and the dictionaries
@@ -161,7 +167,7 @@ For example, `data/unitigs_stitched/ecoli4_k31_ust.fa.gz` indicates the value k 
 
 For all the examples below, we are going to use k = 31.
 
-(The subdirectory `../data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
+(The directory `data/unitigs_stitched/with_weights` contains some files with k-mers' weights too.)
 
 In the section [Input Files](#input-files), we explain how
 such collections of stitched unitigs can be obtained from raw FASTA files.
@@ -210,26 +216,11 @@ Below a comparison between the dictionary built in Example 2 (not canonical)
 and the one just built (Example 3, canonical).
 
     ./sshash query -i salmonella_100.index -q ../data/queries/SRR5833294.10K.fastq.gz
-    index size: 10.3981 [MB] (6.36232 [bits/kmer])
-    ==== query report:
-    num_kmers = 460000
-    num_positive_kmers = 46 (0.01%)
-    num_searches = 42/46 (91.3043%)
-    num_extensions = 4/46 (8.69565%)
-    elapsed = 229.159 millisec / 0.229159 sec / 0.00381932 min / 498.172 ns/kmer
 
     ./sshash query -i salmonella_100.canon.index -q ../data/queries/SRR5833294.10K.fastq.gz
-    index size: 11.0657 [MB] (6.77083 [bits/kmer])
-    ==== query report:
-    num_kmers = 460000
-    num_positive_kmers = 46 (0.01%)
-    num_searches = 42/46 (91.3043%)
-    num_extensions = 4/46 (8.69565%)
-    elapsed = 107.911 millisec / 0.107911 sec / 0.00179852 min / 234.589 ns/kmer
 
-We see that the canonical dictionary is twice as fast as the regular dictionary
-for low-hit workloads,
-even on this tiny example, for only +0.4 bits/k-mer.
+The canonical dictionary can be twice as fast as the regular dictionary
+for low-hit workloads, even on this tiny example, for only +0.4 bits/k-mer.
 
 ### Example 4
 
@@ -374,6 +365,6 @@ Author
 References
 -----
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
-* [2] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
-* [3] Giulio Ermanno Pibiri. [On Weighted K-Mers Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
+* [2] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
+* [3] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
 * [4] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.

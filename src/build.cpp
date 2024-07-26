@@ -80,7 +80,8 @@ int build(int argc, char** argv) {
         check_correctness_navigational_kmer_query(dict, input_filename);
         check_correctness_navigational_contig_query(dict);
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        check_correctness_iterator(dict);
+        check_correctness_kmer_iterator(dict);
+        check_correctness_contig_iterator(dict);
     }
     bool bench = parser.get<bool>("bench");
     if (bench) {

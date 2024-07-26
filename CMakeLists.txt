@@ -23,6 +23,13 @@ if (UNIX AND (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2 -msse4.2") # for hardware popcount and pdep
 endif()
 
+if (SSHASH_USE_MAX_KMER_LENGTH_63)
+  MESSAGE(STATUS "SSHash uses a maximum kmer length of 63")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSSHASH_USE_MAX_KMER_LENGTH_63")
+else()
+  MESSAGE(STATUS "SSHash uses a maximum kmer length of 31")
+endif()
+
 if (SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING)
   MESSAGE(STATUS "SSHash maps {'A','a'}->0, {'C','c'}->1, {'G','g'}->2, and {'T','t'}->3")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING")
@@ -48,6 +55,10 @@ if (UNIX)
   endif()
 
 endif()
+
+include_directories(.) # all include paths relative to parent directory
+include_directories(external/pthash)
+include_directories(external/pthash/external/essentials/include)
 
 set(Z_LIB_SOURCES
   include/gz/zip_stream.cpp

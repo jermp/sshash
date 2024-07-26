@@ -2,14 +2,31 @@
 
 #include <algorithm>  // for std::transform
 
-#include "../include/gz/zip_stream.hpp"
+#include "include/gz/zip_stream.hpp"
 
 namespace sshash {
 
-bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
-    uint64_t k = dict.k();
-    uint64_t n = dict.size();
+bool check_correctness_negative_lookup(dictionary const& dict) {
+    std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
+    const uint64_t num_lookups = std::min<uint64_t>(1000000, dict.size());
+    std::string kmer(dict.k(), 0);
+    for (uint64_t i = 0; i != num_lookups; ++i) {
+        random_kmer(kmer.data(), dict.k());
+        /*
+            We could use a std::unordered_set to check if kmer is really absent,
+            but that would take much more memory...
+        */
+        uint64_t id = dict.lookup(kmer.c_str());
+        if (id != constants::invalid_uint64) {
+            std::cout << "kmer '" << kmer << "' found!" << std::endl;
+        }
+    }
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
 
+bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
+    const uint64_t k = dict.k();
     std::string line;
     uint64_t pos = 0;
     uint64_t num_kmers = 0;
@@ -155,25 +172,9 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict) {
         }
     }
     std::cout << "checked " << num_kmers << " kmers" << std::endl;
-
     std::cout << "EVERYTHING OK!" << std::endl;
 
-    std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
-    uint64_t num_lookups = std::min<uint64_t>(1000000, n);
-    for (uint64_t i = 0; i != num_lookups; ++i) {
-        random_kmer(got_kmer_str.data(), k);
-        /*
-            We could use a std::unordered_set to check if kmer is really absent,
-            but that would take much more memory...
-        */
-        uint64_t id = dict.lookup(got_kmer_str.c_str());
-        if (id != constants::invalid_uint64) {
-            std::cout << "kmer '" << got_kmer_str << "' found!" << std::endl;
-        }
-    }
-
-    std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
+    return check_correctness_negative_lookup(dict);
 }
 
 bool check_correctness_navigational_kmer_query(std::istream& is, dictionary const& dict) {
@@ -439,17 +440,18 @@ bool check_dictionary(dictionary const& dict) {
     }
     std::cout << "checked " << id << " kmers" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
+
+    return check_correctness_negative_lookup(dict);
 }
 
-bool check_correctness_iterator(dictionary const& dict) {
-    std::cout << "checking correctness of iterator..." << std::endl;
+bool check_correctness_kmer_iterator(dictionary const& dict) {
+    std::cout << "checking correctness of kmer iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
     constexpr uint64_t runs = 3;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
     for (uint64_t run = 0; run != runs; ++run) {
         uint64_t from_kmer_id = distr.gen();
-        auto it = dict.at(from_kmer_id);
+        auto it = dict.at_kmer_id(from_kmer_id);
         while (it.has_next()) {
             auto [kmer_id, kmer] = it.next();
             dict.access(kmer_id, expected_kmer.data());
@@ -463,6 +465,30 @@ bool check_correctness_iterator(dictionary const& dict) {
             ++from_kmer_id;
         }
         assert(from_kmer_id == dict.size());
+    }
+    std::cout << "EVERYTHING OK!" << std::endl;
+    return true;
+}
+
+bool check_correctness_contig_iterator(dictionary const& dict) {
+    std::cout << "checking correctness of contig iterator..." << std::endl;
+    std::string expected_kmer(dict.k(), 0);
+    for (uint64_t contig_id = 0; contig_id != dict.num_contigs(); ++contig_id) {
+        auto [begin, _] = dict.contig_offsets(contig_id);
+        uint64_t from_kmer_id = begin - contig_id * (dict.k() - 1);
+        auto it = dict.at_contig_id(contig_id);
+        while (it.has_next()) {
+            auto [kmer_id, kmer] = it.next();
+            dict.access(kmer_id, expected_kmer.data());
+            if (kmer != expected_kmer or kmer_id != from_kmer_id) {
+                std::cout << "got (" << kmer_id << ",'" << kmer << "')";
+                std::cout << " but ";
+                std::cout << "expected (" << from_kmer_id << ",'" << expected_kmer << "')"
+                          << std::endl;
+                return false;
+            }
+            ++from_kmer_id;
+        }
     }
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;
