@@ -5,14 +5,16 @@ int build(int argc, char** argv) {
 
     /* Required arguments. */
     parser.add("input_filename",
-               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
-               "\t- without duplicate nor invalid kmers\n"
+               "Must be a FASTA file (.fa/fasta extension) or cf_seg file compressed with gzip (.gz) or not:\n"
+               "\t- FASTA file should be without duplicate nor invalid kmers\n"
                "\t- one DNA sequence per line.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
+               "\tFor example, it could be the de Bruijn graph topology output by BCALM.\n"
+               "\t- cfseg file is the output file produced by CUTTLEFISH with -f 3\n",
                "-i", true);
     parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
                true);
     parser.add("m", "Minimizer length (must be < k).", "-m", true);
+    parser.add("f", "Format of input (must be fasta | cfseg).", "-f", false);
 
     /* Optional arguments. */
     parser.add("seed",
@@ -52,6 +54,13 @@ int build(int argc, char** argv) {
     auto input_filename = parser.get<std::string>("input_filename");
     auto k = parser.get<uint64_t>("k");
     auto m = parser.get<uint64_t>("m");
+    auto fmt = parser.get<std::string>("f");
+
+    if (fmt != "fasta" && fmt != "cfseg" && fmt != "") {
+        std::cerr << "unknown input format selected, should be either `fasta` or `cfseg` \n";
+        std::cerr << "[" << fmt << "]\n";
+        std::exit(1);
+    }
 
     dictionary dict;
 
@@ -59,11 +68,24 @@ int build(int argc, char** argv) {
     build_config.k = k;
     build_config.m = m;
 
+    if (fmt == "fasta" || fmt == "") {
+        fmt = "fasta";
+	    build_config.input_type = sshash::input_build_type::fasta;
+    } else if (fmt == "cfseg") {
+	    build_config.input_type = sshash::input_build_type::cfseg;
+    }
+
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
     build_config.weighted = parser.get<bool>("weighted");
+
+    if (build_config.weighted && fmt=="cfseg") {
+        std::cerr << "weighted index file for cfseg is not supported\n";
+        std::exit(1);
+    }
+
     build_config.verbose = parser.get<bool>("verbose");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
@@ -76,8 +98,8 @@ int build(int argc, char** argv) {
 
     bool check = parser.get<bool>("check");
     if (check) {
-        check_correctness_lookup_access(dict, input_filename);
-        check_correctness_navigational_kmer_query(dict, input_filename);
+        check_correctness_lookup_access(dict, input_filename, fmt);
+        check_correctness_navigational_kmer_query(dict, input_filename, fmt);
         check_correctness_navigational_contig_query(dict);
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
         check_correctness_kmer_iterator(dict);
