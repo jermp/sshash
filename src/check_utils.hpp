@@ -38,10 +38,10 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict, s
     std::string expected_kmer_str(k, 0);
 
     std::cout << "checking correctness of access and positive lookup..." << std::endl;
+
     while (appendline(is, line)) {
-        // std::getline(is, line);
+        sequence.clear();
         if (fmt == "fasta") {
-            std::cout << "pos " << line[0] << std::endl;
             if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
             // comment or empty line restart the term buffer
                 line.clear();
@@ -62,7 +62,6 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict, s
                            [](char c) { return std::tolower(c); });
         }
         ++num_lines;
-        std::cout << "seq " << sequence << std::endl;
         for (uint64_t i = 0; i + k <= sequence.size(); ++i) {
             assert(util::is_valid(sequence.data() + i, k));
 
@@ -172,9 +171,9 @@ bool check_correctness_lookup_access(std::istream& is, dictionary const& dict, s
             ++num_kmers;
     }
         if (sequence.size() > k - 1) {
-            std::copy(sequence.data() + sequence.size() - (k - 1), sequence.data() + sequence.size(), sequence.data());
-            sequence.resize(k - 1);
-            pos = sequence.size();
+            std::copy(line.data() + line.size() - (k - 1), line.data() + line.size(), line.data());
+            line.resize(k - 1);
+            pos = line.size();
         } else {
             pos = 0;
         }
@@ -195,7 +194,7 @@ bool check_correctness_navigational_kmer_query(std::istream& is,
     std::string sequence;
 
     std::cout << "checking correctness of navigational queries for kmers..." << std::endl;
-    while (!is.eof()) {
+    while (appendline(is, line)) {
         std::getline(is, line);
         if (fmt == "fasta") {
             if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
@@ -279,9 +278,9 @@ bool check_correctness_navigational_kmer_query(std::istream& is,
             ++num_kmers;
         }
         if (sequence.size() > k - 1) {
-            std::copy(sequence.data() + sequence.size() - (k - 1), sequence.data() + sequence.size(), sequence.data());
-            sequence.resize(k - 1);
-            pos = sequence.size();
+            std::copy(line.data() + line.size() - (k - 1), line.data() + line.size(), line.data());
+            line.resize(k - 1);
+            pos = line.size();
         } else {
             pos = 0;
         }
@@ -344,7 +343,6 @@ bool check_correctness_weights(std::istream& is, dictionary const& dict) {
 
     while (!is.eof()) {
         std::getline(is, line);  // header line
-        std::cout << "line is " << line << std::endl;
         
         if (line.empty()) break;
 
