@@ -69,6 +69,7 @@ int build(int argc, char** argv) {
     build_config.m = m;
 
     if (fmt == "fasta" || fmt == "") {
+        fmt = "fasta";
 	    build_config.input_type = sshash::input_build_type::fasta;
     } else if (fmt == "cfseg") {
 	    build_config.input_type = sshash::input_build_type::cfseg;
@@ -79,6 +80,12 @@ int build(int argc, char** argv) {
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
     build_config.weighted = parser.get<bool>("weighted");
+
+    if (build_config.weighted && fmt=="cfseg") {
+        std::cerr << "weighted index file for cfseg is not supported\n";
+        std::exit(1);
+    }
+
     build_config.verbose = parser.get<bool>("verbose");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
@@ -91,10 +98,10 @@ int build(int argc, char** argv) {
 
     bool check = parser.get<bool>("check");
     if (check) {
-        // check_correctness_lookup_access(dict, input_filename, fmt);
+        check_correctness_lookup_access(dict, input_filename, fmt);
         // check_correctness_navigational_kmer_query(dict, input_filename, fmt);
         // check_correctness_navigational_contig_query(dict);
-        if (build_config.weighted) check_correctness_weights(dict, input_filename);
+        // if (build_config.weighted) check_correctness_weights(dict, input_filename);
         // check_correctness_kmer_iterator(dict);
         // check_correctness_contig_iterator(dict);
     }
