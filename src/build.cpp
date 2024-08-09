@@ -14,11 +14,14 @@ int build(int argc, char** argv) {
     parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
                true);
     parser.add("m", "Minimizer length (must be < k).", "-m", true);
-    parser.add("f", "Format of input (must be fasta | cfseg).", "-f", false);
 
     /* Optional arguments. */
+    parser.add("f", "Format of input (must be fasta | cfseg).", "-f", false);
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
+               false);
+    parser.add("t",
+               "Number of threads (default is " + std::to_string(constants::threads) + ").", "-t",
                false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
@@ -76,6 +79,7 @@ int build(int argc, char** argv) {
     }
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
+    if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");

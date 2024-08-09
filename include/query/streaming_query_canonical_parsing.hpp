@@ -43,6 +43,24 @@ struct streaming_query_canonical_parsing {
         m_minimizer_not_found = false;
     }
 
+    inline void reset_state() {
+        // reset all of the relevant state
+        m_minimizer_not_found = false;
+        start();
+        m_curr_minimizer = constants::invalid_uint64;
+        m_prev_minimizer = constants::invalid_uint64;
+        m_kmer = constants::invalid_uint64;
+
+        m_string_iterator.at(0);
+        m_begin = 0;
+        m_end = 0;
+        m_pos_in_window = 0;
+        m_window_size = 0;
+
+        m_res.kmer_id = constants::invalid_uint64;
+        m_reverse = false;
+    }
+
     lookup_result lookup_advanced(const char* kmer) {
         /* 1. validation */
         bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
