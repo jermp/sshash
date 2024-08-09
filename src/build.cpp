@@ -20,8 +20,10 @@ int build(int argc, char** argv) {
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
+    uint64_t threads = std::max(std::min(static_cast<uint64_t>(16),
+        static_cast<uint64_t>(std::thread::hardware_concurrency())), static_cast<uint64_t>(2));
     parser.add("t",
-               "Number of threads (default is " + std::to_string(constants::threads) + ").", "-t",
+               "Number of threads (default is " + std::to_string(threads) + ").", "-t",
                false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
