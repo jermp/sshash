@@ -86,13 +86,15 @@ struct build_configuration {
 
         , l(constants::min_l)
         , c(constants::c)
+        
+        , num_threads(1)
 
         , canonical_parsing(false)
         , weighted(false)
         , verbose(true)
 
         , tmp_dirname(constants::default_tmp_dirname)
-        , input_type(input_build_type::fasta) {}
+        , input_type(input_build_type::cfseg) {}
         
 
     uint64_t k;  // kmer size
@@ -101,6 +103,8 @@ struct build_configuration {
 
     uint64_t l;  // drive dictionary trade-off
     double c;    // drive PTHash trade-off
+
+    uint64_t num_threads;
 
     bool canonical_parsing;
     bool weighted;
