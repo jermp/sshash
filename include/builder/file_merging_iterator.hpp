@@ -5,7 +5,8 @@
 namespace sshash {
 
 template <typename FileIterator>
-struct file_merging_iterator {
+struct file_merging_iterator  //
+{
     template <typename FileNamesIterator>
     file_merging_iterator(FileNamesIterator file_names_iterator, uint64_t num_files_to_merge)
         : m_mm_files(num_files_to_merge) {

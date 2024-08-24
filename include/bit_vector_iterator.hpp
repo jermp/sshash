@@ -1,6 +1,6 @@
 #pragma once
 
-#include "external/pthash/include/encoders/bit_vector.hpp"
+#include "external/pthash/external/bits/include/bit_vector.hpp"
 #include "util.hpp"
 
 namespace sshash {
@@ -8,7 +8,7 @@ namespace sshash {
 struct bit_vector_iterator {
     bit_vector_iterator() : m_bv(nullptr) {}
 
-    bit_vector_iterator(pthash::bit_vector const& bv, uint64_t pos) : m_bv(&bv) { at(pos); }
+    bit_vector_iterator(bits::bit_vector const& bv, uint64_t pos) : m_bv(&bv) { at(pos); }
 
     void at(uint64_t pos) {
         m_pos = pos;
@@ -134,7 +134,7 @@ private:
         m_avail = constants::uint_kmer_bits;
     }
 
-    pthash::bit_vector const* m_bv;
+    bits::bit_vector const* m_bv;
     uint64_t m_pos;
     uint64_t m_avail;
     kmer_t m_buf;

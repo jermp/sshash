@@ -1,5 +1,5 @@
-#include "dictionary.hpp"
-#include "skew_index.hpp"
+#include "include/dictionary.hpp"
+#include "include/skew_index.hpp"
 
 namespace sshash {
 
@@ -14,7 +14,7 @@ uint64_t skew_index::print_info() const {
         std::cout << "num_kmers belonging to buckets of size > " << lower << " and <= " << upper
                   << ": " << n << "; ";
         std::cout << "bits/kmer = " << static_cast<double>(mphfs[partition_id].num_bits()) / n
-                  << " (mphf) + " << (positions[partition_id].bytes() * 8.0) / n
+                  << " (mphf) + " << (positions[partition_id].num_bytes() * 8.0) / n
                   << " (positions)\n";
         num_kmers_in_skew_index += n;
         lower = upper;
@@ -67,16 +67,16 @@ void dictionary::print_space_breakdown() const {
               << " [bits/kmer] ("
               << static_cast<double>(m_minimizers.num_bits()) / m_minimizers.size()
               << " [bits/key]) -- " << perc(m_minimizers.num_bits(), num_bits()) << "%\n";
-    std::cout << "  pieces: " << static_cast<double>(m_buckets.pieces.num_bits()) / size()
-              << " [bits/kmer] -- " << perc(m_buckets.pieces.num_bits(), num_bits()) << "%\n";
+    std::cout << "  pieces: " << (8.0 * m_buckets.pieces.num_bytes()) / size() << " [bits/kmer] -- "
+              << perc(m_buckets.pieces.num_bytes() * 8, num_bits()) << "%\n";
     std::cout << "  num_super_kmers_before_bucket: "
-              << static_cast<double>(m_buckets.num_super_kmers_before_bucket.num_bits()) / size()
+              << (m_buckets.num_super_kmers_before_bucket.num_bytes() * 8.0) / size()
               << " [bits/kmer] -- "
-              << perc(m_buckets.num_super_kmers_before_bucket.num_bits(), num_bits()) << "%\n";
-    std::cout << "  offsets: " << static_cast<double>(8 * m_buckets.offsets.bytes()) / size()
-              << " [bits/kmer] -- " << perc(8 * m_buckets.offsets.bytes(), num_bits()) << "%\n";
-    std::cout << "  strings: " << static_cast<double>(8 * m_buckets.strings.bytes()) / size()
-              << " [bits/kmer] -- " << perc(8 * m_buckets.strings.bytes(), num_bits()) << "%\n";
+              << perc(m_buckets.num_super_kmers_before_bucket.num_bytes() * 8, num_bits()) << "%\n";
+    std::cout << "  offsets: " << (8.0 * m_buckets.offsets.num_bytes()) / size()
+              << " [bits/kmer] -- " << perc(8 * m_buckets.offsets.num_bytes(), num_bits()) << "%\n";
+    std::cout << "  strings: " << (8.0 * m_buckets.strings.num_bytes()) / size()
+              << " [bits/kmer] -- " << perc(8 * m_buckets.strings.num_bytes(), num_bits()) << "%\n";
     std::cout << "  skew_index: " << static_cast<double>(m_skew_index.num_bits()) / size()
               << " [bits/kmer] -- " << perc(m_skew_index.num_bits(), num_bits()) << "%\n";
     std::cout << "  weights: " << static_cast<double>(m_weights.num_bits()) / size()
@@ -85,9 +85,9 @@ void dictionary::print_space_breakdown() const {
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
               << std::endl;
-
-    std::cout << "  Close-form formula: " << bits_per_kmer_formula(k(), m(), size(), num_contigs())
-              << " [bits/kmer]" << std::endl;
+    // std::cout << "  Close-form formula: " << bits_per_kmer_formula(k(), m(), size(),
+    // num_contigs())
+    //           << " [bits/kmer]" << std::endl;
 }
 
 void dictionary::print_info() const {
@@ -102,8 +102,8 @@ void dictionary::print_info() const {
     std::cout << "num_super_kmers = " << m_buckets.offsets.size() << '\n';
     std::cout << "num_pieces = " << m_buckets.pieces.size() << " (+"
               << (2.0 * m_buckets.pieces.size() * (k() - 1)) / size() << " [bits/kmer])" << '\n';
-    std::cout << "bits_per_offset = ceil(log2(" << m_buckets.strings.size() / 2
-              << ")) = " << std::ceil(std::log2(m_buckets.strings.size() / 2)) << '\n';
+    std::cout << "bits_per_offset = ceil(log2(" << m_buckets.strings.num_bits() / 2
+              << ")) = " << std::ceil(std::log2(m_buckets.strings.num_bits() / 2)) << '\n';
     uint64_t num_kmers_in_skew_index = m_skew_index.print_info();
     std::cout << "num_kmers_in_skew_index " << num_kmers_in_skew_index << "("
               << (num_kmers_in_skew_index * 100.0) / size() << "%)" << std::endl;

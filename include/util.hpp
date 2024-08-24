@@ -119,14 +119,6 @@ static uint64_t get_seed_for_hash_function(build_configuration const& build_conf
     return build_config.seed != my_favourite_seed ? my_favourite_seed : ~my_favourite_seed;
 }
 
-/* return the position of the most significant bit */
-static inline uint32_t msb(uint32_t x) {
-    assert(x > 0);
-    return 31 - __builtin_clz(x);
-}
-
-static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1) + 1 : 0; }
-
 [[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
     if (pattern.size() > str.size()) return false;
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
@@ -353,29 +345,6 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
         kmer >>= 2;
     }
     return minimizer;
-}
-
-/* used in dump.cpp */
-template <typename Hasher = murmurhash2_64>
-std::pair<uint64_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
-                                                    uint64_t seed) {
-    assert(m <= constants::max_m);
-    assert(m <= k);
-    uint64_t min_hash = uint64_t(-1);
-    uint64_t minimizer = uint64_t(-1);
-    kmer_t mask = (kmer_t(1) << (2 * m)) - 1;
-    uint64_t pos = 0;
-    for (uint64_t i = 0; i != k - m + 1; ++i) {
-        uint64_t mmer = static_cast<uint64_t>(kmer & mask);
-        uint64_t hash = Hasher::hash(mmer, seed);
-        if (hash < min_hash) {
-            min_hash = hash;
-            minimizer = mmer;
-            pos = i;
-        }
-        kmer >>= 2;
-    }
-    return {minimizer, pos};
 }
 
 }  // namespace util

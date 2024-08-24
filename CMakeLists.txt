@@ -58,18 +58,18 @@ endif()
 
 include_directories(.) # all include paths relative to parent directory
 include_directories(external/pthash)
-include_directories(external/pthash/external/essentials/include)
+include_directories(external/pthash/external/bits/external/essentials/include)
 
 set(Z_LIB_SOURCES
-  include/gz/zip_stream.cpp
+  external/gz/zip_stream.cpp
 )
 
 set(SSHASH_SOURCES
-  include/dictionary.cpp
-  include/info.cpp
-  include/dump.cpp
-  include/statistics.cpp
-  include/builder/build.cpp
+  src/dictionary.cpp
+  src/info.cpp
+  src/dump.cpp
+  src/statistics.cpp
+  src/build.cpp
 )
 
 # Create a static lib
@@ -78,7 +78,7 @@ add_library(sshash_static STATIC
   ${SSHASH_SOURCES}
 )
 
-add_executable(sshash src/sshash.cpp)
+add_executable(sshash tools/sshash.cpp)
 target_link_libraries(sshash
   sshash_static
   z

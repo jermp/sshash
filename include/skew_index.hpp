@@ -38,9 +38,9 @@ struct skew_index {
              2 * sizeof(size_t) /* for std::vector::size */) *
             8;
         for (uint64_t partition_id = 0; partition_id != mphfs.size(); ++partition_id) {
-            auto const& mphf = mphfs[partition_id];
+            auto const& M = mphfs[partition_id];
             auto const& P = positions[partition_id];
-            n += mphf.num_bits() + P.bytes() * 8;
+            n += M.num_bits() + P.num_bytes() * 8;
         }
         return n;
     }
@@ -59,7 +59,7 @@ struct skew_index {
     uint16_t max_log2;
     uint32_t log2_max_num_super_kmers_in_bucket;
     std::vector<kmers_pthash_type> mphfs;
-    std::vector<pthash::compact_vector> positions;
+    std::vector<bits::compact_vector> positions;
 
 private:
     template <typename Visitor, typename T>

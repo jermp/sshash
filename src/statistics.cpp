@@ -1,5 +1,5 @@
-#include "dictionary.hpp"
-#include "buckets_statistics.hpp"
+#include "include/dictionary.hpp"
+#include "include/buckets_statistics.hpp"
 
 namespace sshash {
 
@@ -26,15 +26,11 @@ void dictionary::compute_statistics() const {
             uint64_t w = 0;
             for (; w != window_size; ++w) {
                 uint64_t kmer = bv_it.read_and_advance_by_two(2 * m_k);
-                auto [minimizer, pos] = util::compute_minimizer_pos(kmer, m_k, m_m, m_seed);
+                uint64_t minimizer = util::compute_minimizer(kmer, m_k, m_m, m_seed);
                 if (m_canonical_parsing) {
                     uint64_t kmer_rc = util::compute_reverse_complement(kmer, m_k);
-                    auto [minimizer_rc, pos_rc] =
-                        util::compute_minimizer_pos(kmer_rc, m_k, m_m, m_seed);
-                    if (minimizer_rc < minimizer) {
-                        minimizer = minimizer_rc;
-                        pos = pos_rc;
-                    }
+                    uint64_t minimizer_rc = util::compute_minimizer(kmer_rc, m_k, m_m, m_seed);
+                    if (minimizer_rc < minimizer) minimizer = minimizer_rc;
                 }
                 if (prev_minimizer != constants::invalid_uint64 and minimizer != prev_minimizer) {
                     break;

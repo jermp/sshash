@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../dictionary.hpp"
-#include "../util.hpp"
+#include "include/dictionary.hpp"
+#include "include/util.hpp"
 
-#include "../gz/zip_stream.hpp"
+#include "external/gz/zip_stream.hpp"
 #include "streaming_query_canonical_parsing.hpp"
 #include "streaming_query_regular_parsing.hpp"
 

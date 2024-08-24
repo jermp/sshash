@@ -34,8 +34,9 @@ struct buckets_statistics {
         if (num_super_kmers_in_bucket > m_max_num_super_kmers_in_bucket) {
             m_max_num_super_kmers_in_bucket = num_super_kmers_in_bucket;
         }
-        if (num_kmers_in_super_kmer < max_string_size + 1)
+        if (num_kmers_in_super_kmer < max_string_size + 1) {
             m_string_sizes[num_kmers_in_super_kmer] += 1;
+        }
     }
 
     uint64_t num_kmers() const { return m_num_kmers; }

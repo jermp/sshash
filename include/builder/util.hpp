@@ -30,7 +30,7 @@ struct compact_string_pool {
         void build(compact_string_pool& pool) {
             pool.m_num_super_kmers = num_super_kmers;
             pool.pieces.swap(pieces);
-            pool.strings.build(&bvb_strings);
+            bvb_strings.build(pool.strings);
         }
 
         void append(char const* string, uint64_t size, bool glue) {
@@ -39,19 +39,19 @@ struct compact_string_pool {
             if (glue) {
                 prefix = k - 1;
             } else { /* otherwise, start a new piece */
-                pieces.push_back(bvb_strings.size() / 2);
+                pieces.push_back(bvb_strings.num_bits() / 2);
             }
             for (uint64_t i = prefix; i != size; ++i) {
                 bvb_strings.append_bits(util::char_to_uint(string[i]), 2);
             }
             num_super_kmers += 1;
-            offset = bvb_strings.size() / 2;
+            offset = bvb_strings.num_bits() / 2;
         }
 
         void finalize() {
             /* So pieces will be of size p+1, where p is the number of DNA sequences
                in the input file. */
-            pieces.push_back(bvb_strings.size() / 2);
+            pieces.push_back(bvb_strings.num_bits() / 2);
             assert(pieces.front() == 0);
 
             /* Push a final sentinel (dummy) kmer to avoid bounds' checking in
@@ -63,14 +63,14 @@ struct compact_string_pool {
         uint64_t offset;
         uint64_t num_super_kmers;
         std::vector<uint64_t> pieces;
-        pthash::bit_vector_builder bvb_strings;
+        bits::bit_vector::builder bvb_strings;
     };
 
-    uint64_t num_bits() const { return strings.size(); }
+    uint64_t num_bits() const { return strings.num_bits(); }
     uint64_t num_super_kmers() const { return m_num_super_kmers; }
 
     std::vector<uint64_t> pieces;
-    pthash::bit_vector strings;
+    bits::bit_vector strings;
 
 private:
     uint64_t m_num_super_kmers;
