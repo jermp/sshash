@@ -21,11 +21,19 @@ static double bits_per_kmer_formula(uint64_t k, /* kmer length */
     /* summing (M-1) provides an upper bound to the num. of super-kmers */
     double Z = (2.0 * n) / (k - m + 2) + (M - 1);
 
-    double num_bits = 2 * N + Z * (5.0 + std::ceil(std::log2(N))) +
-                      M * (2.0 + std::ceil(std::log2(static_cast<double>(N) / M)));
+    /* A cache line is 64 B = 512 bits -->
+       max window_size that fits in a cache line is 512/2 = 256
+       assuming a 2-bit encoded stream. */
+    const uint64_t window_size = 1; /* 256; */
+
+    double num_bits =
+        2 * N + Z * (5.0 + std::ceil(std::log2(std::ceil(static_cast<double>(N) / window_size)))) +
+        M * (2.0 + std::ceil(std::log2(static_cast<double>(N) / M)));
 
     return num_bits / n;
 }
+
+double perc(uint64_t amount, uint64_t total) { return (amount * 100.0) / total; }
 
 template <class kmer_t>
 void dictionary<kmer_t>::print_space_breakdown() const {
@@ -36,20 +44,21 @@ void dictionary<kmer_t>::print_space_breakdown() const {
     std::cout << "  minimizers: " << static_cast<double>(m_minimizers.num_bits()) / size()
               << " [bits/kmer] ("
               << static_cast<double>(m_minimizers.num_bits()) / m_minimizers.size()
-              << " [bits/key])\n";
+              << " [bits/key]) -- " << perc(m_minimizers.num_bits(), num_bits()) << "%\n";
     std::cout << "  pieces: " << static_cast<double>(m_buckets.pieces.num_bits()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] -- " << perc(m_buckets.pieces.num_bits(), num_bits()) << "%\n";
     std::cout << "  num_super_kmers_before_bucket: "
               << static_cast<double>(m_buckets.num_super_kmers_before_bucket.num_bits()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] -- "
+              << perc(m_buckets.num_super_kmers_before_bucket.num_bits(), num_bits()) << "%\n";
     std::cout << "  offsets: " << static_cast<double>(8 * m_buckets.offsets.bytes()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] -- " << perc(8 * m_buckets.offsets.bytes(), num_bits()) << "%\n";
     std::cout << "  strings: " << static_cast<double>(8 * m_buckets.strings.bytes()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] -- " << perc(8 * m_buckets.strings.bytes(), num_bits()) << "%\n";
     std::cout << "  skew_index: " << static_cast<double>(m_skew_index.num_bits()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] -- " << perc(m_skew_index.num_bits(), num_bits()) << "%\n";
     std::cout << "  weights: " << static_cast<double>(m_weights.num_bits()) / size()
-              << " [bits/kmer]\n";
+              << " [bits/kmer] -- " << perc(m_weights.num_bits(), num_bits()) << "%\n";
     m_weights.print_space_breakdown(size());
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
