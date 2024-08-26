@@ -6,8 +6,9 @@
 
 namespace sshash {
 
+template <class kmer_t>
 struct streaming_query_canonical_parsing {
-    streaming_query_canonical_parsing(dictionary const* dict)
+    streaming_query_canonical_parsing(dictionary<kmer_t> const* dict)
 
         : m_dict(dict)
 
@@ -17,7 +18,7 @@ struct streaming_query_canonical_parsing {
         , m_prev_minimizer(constants::invalid_uint64)
         , m_kmer(constants::invalid_uint64)
 
-        , m_shift(2 * (dict->m_k - 1))
+        , m_shift(dict->m_k - 1)
         , m_k(dict->m_k)
         , m_m(dict->m_m)
         , m_seed(dict->m_seed)
@@ -45,7 +46,8 @@ struct streaming_query_canonical_parsing {
 
     lookup_result lookup_advanced(const char* kmer) {
         /* 1. validation */
-        bool is_valid = m_start ? util::is_valid(kmer, m_k) : util::is_valid(kmer[m_k - 1]);
+        bool is_valid =
+            m_start ? util::is_valid<kmer_t>(kmer, m_k) : kmer_t::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             start();
             return lookup_result();
@@ -53,19 +55,20 @@ struct streaming_query_canonical_parsing {
 
         /* 2. compute kmer and minimizer */
         if (!m_start) {
-            m_kmer >>= 2;
-            m_kmer += (util::char_to_uint(kmer[m_k - 1])) << m_shift;
-            assert(m_kmer == util::string_to_uint_kmer(kmer, m_k));
+            m_kmer.drop_char();
+            m_kmer.kth_char_or(m_shift, kmer_t::char_to_uint(kmer[m_k - 1]));
+            assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
         } else {
-            m_kmer = util::string_to_uint_kmer(kmer, m_k);
+            m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
-        assert(m_curr_minimizer == util::compute_minimizer(m_kmer, m_k, m_m, m_seed));
-        m_kmer_rc = util::compute_reverse_complement(m_kmer, m_k);
+        assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
+        m_kmer_rc = m_kmer;
+        m_kmer_rc.reverse_complement_inplace(m_k);
         constexpr bool reverse = true;
-        uint64_t minimizer_rc = m_minimizer_enum_rc.next<reverse>(m_kmer_rc, m_start);
-        assert(minimizer_rc == util::compute_minimizer(m_kmer_rc, m_k, m_m, m_seed));
-        m_curr_minimizer = std::min<uint64_t>(m_curr_minimizer, minimizer_rc);
+        uint64_t minimizer_rc = m_minimizer_enum_rc.next(m_kmer_rc, m_start, reverse);
+        assert(minimizer_rc == util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_seed));
+        m_curr_minimizer = std::min(m_curr_minimizer, minimizer_rc);
 
         /* 3. compute result */
         if (m_start) {
@@ -101,14 +104,14 @@ struct streaming_query_canonical_parsing {
     uint64_t num_extensions() const { return m_num_extensions; }
 
 private:
-    dictionary const* m_dict;
+    dictionary<kmer_t> const* m_dict;
 
     /* result */
     lookup_result m_res;
 
     /* (kmer,minimizer) state */
-    minimizer_enumerator<> m_minimizer_enum;
-    minimizer_enumerator<> m_minimizer_enum_rc;
+    minimizer_enumerator<kmer_t> m_minimizer_enum;
+    minimizer_enumerator<kmer_t> m_minimizer_enum_rc;
     bool m_minimizer_not_found;
     bool m_start;
     uint64_t m_curr_minimizer, m_prev_minimizer;
@@ -118,7 +121,7 @@ private:
     uint64_t m_shift, m_k, m_m, m_seed;
 
     /* string state */
-    bit_vector_iterator m_string_iterator;
+    bit_vector_iterator<kmer_t> m_string_iterator;
     uint64_t m_begin, m_end;
     uint64_t m_pos_in_window, m_window_size;
     bool m_reverse;
@@ -173,10 +176,11 @@ private:
                 kmer_t val = m_string_iterator.read(2 * m_k);
 
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    kmer_t val_rc = util::compute_reverse_complement(val, m_k);
+                    kmer_t val_rc = val;
+                    val_rc.reverse_complement_inplace(m_k);
                     uint64_t minimizer =
-                        std::min<uint64_t>(util::compute_minimizer(val, m_k, m_m, m_seed),
-                                           util::compute_minimizer(val_rc, m_k, m_m, m_seed));
+                        std::min(util::compute_minimizer(val, m_k, m_m, m_seed),
+                                 util::compute_minimizer(val_rc, m_k, m_m, m_seed));
                     if (minimizer != m_curr_minimizer) {
                         m_minimizer_not_found = true;
                         m_res = lookup_result();

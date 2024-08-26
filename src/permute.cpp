@@ -3,6 +3,7 @@
 
 using namespace sshash;
 
+template <class kmer_t>
 int permute(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
@@ -16,8 +17,7 @@ int permute(int argc, char** argv) {
                "\tFor example, it could be the de Bruijn graph topology output "
                "by BCALM.",
                "-i", true);
-    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
-               true);
+    parser.add("k", "K-mer length (must be <= " + std::to_string(kmer_t::max_k) + ").", "-k", true);
 
     /* Optional arguments. */
     parser.add("output_filename", "Output file where the permuted collection will be written.",
@@ -38,8 +38,8 @@ int permute(int argc, char** argv) {
         std::cerr << "k must be > 0" << std::endl;
         return 1;
     }
-    if (k > constants::max_k) {
-        std::cerr << "k must be less <= " + std::to_string(constants::max_k) +
+    if (k > kmer_t::max_k) {
+        std::cerr << "k must be less <= " + std::to_string(kmer_t::max_k) +
                          " but got k = " + std::to_string(k)
                   << std::endl;
         return 1;
@@ -94,7 +94,7 @@ int permute(int argc, char** argv) {
     }
 
     /* permute and save to output file */
-    permute_and_write(input_filename, output_filename, tmp_dirname, permutation, signs, k);
+    permute_and_write<kmer_t>(input_filename, output_filename, tmp_dirname, permutation, signs, k);
     std::remove(permutation_filename.c_str());
 
     return 0;

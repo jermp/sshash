@@ -4,15 +4,18 @@
 
 namespace sshash {
 
+template <class kmer_t>
 struct parse_data {
     parse_data(std::string const& tmp_dirname) : num_kmers(0), minimizers(tmp_dirname) {}
     uint64_t num_kmers;
     minimizers_tuples minimizers;
-    compact_string_pool strings;
+    compact_string_pool<kmer_t> strings;
     weights::builder weights_builder;
 };
 
-void parse_file(std::istream& is, parse_data& data, build_configuration const& build_config) {
+template <class kmer_t>
+void parse_file(std::istream& is, parse_data<kmer_t>& data,
+                build_configuration const& build_config) {
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
@@ -29,7 +32,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     /* fit into the wanted number of bits */
     assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
-    compact_string_pool::builder builder(k);
+    typename compact_string_pool<kmer_t>::builder builder(k);
 
     std::string sequence;
     uint64_t prev_minimizer = constants::invalid_uint64;
@@ -48,7 +51,7 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
         assert(end > begin);
         char const* super_kmer = sequence.data() + begin;
         uint64_t size = (end - begin) + k - 1;
-        assert(util::is_valid(super_kmer, size));
+        assert(util::is_valid<kmer_t>(super_kmer, size));
 
         /* if num_kmers_in_super_kmer > k - m + 1, then split the super_kmer into blocks */
         uint64_t num_kmers_in_super_kmer = end - begin;
@@ -60,7 +63,8 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
             if (i == num_blocks - 1) n = size;
             uint64_t num_kmers_in_block = n - k + 1;
             assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-            data.minimizers.emplace_back(prev_minimizer, builder.offset, num_kmers_in_block);
+            data.minimizers.emplace_back(uint64_t(prev_minimizer), builder.offset,
+                                         num_kmers_in_block);
             builder.append(super_kmer + i * max_num_kmers_in_super_kmer, n, glue);
             if (glue) {
                 assert(data.minimizers.back().offset > k - 1);
@@ -160,14 +164,15 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
 
         while (end != sequence.size() - k + 1) {
             char const* kmer = sequence.data() + end;
-            assert(util::is_valid(kmer, k));
-            kmer_t uint_kmer = util::string_to_uint_kmer(kmer, k);
-            uint64_t minimizer = util::compute_minimizer(uint_kmer, k, m, seed);
+            assert(util::is_valid<kmer_t>(kmer, k));
+            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
+            uint64_t minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
 
             if (build_config.canonical_parsing) {
-                kmer_t uint_kmer_rc = util::compute_reverse_complement(uint_kmer, k);
-                uint64_t minimizer_rc = util::compute_minimizer(uint_kmer_rc, k, m, seed);
-                minimizer = std::min<uint64_t>(minimizer, minimizer_rc);
+                kmer_t uint_kmer_rc = uint_kmer;
+                uint_kmer_rc.reverse_complement_inplace(k);
+                uint64_t minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
+                minimizer = std::min(minimizer, minimizer_rc);
             }
 
             if (prev_minimizer == constants::invalid_uint64) prev_minimizer = minimizer;
@@ -205,16 +210,18 @@ void parse_file(std::istream& is, parse_data& data, build_configuration const& b
     }
 }
 
-parse_data parse_file(std::string const& filename, build_configuration const& build_config) {
+template <class kmer_t>
+parse_data<kmer_t> parse_file(std::string const& filename,
+                              build_configuration const& build_config) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     std::cout << "reading file '" << filename << "'..." << std::endl;
-    parse_data data(build_config.tmp_dirname);
+    parse_data<kmer_t> data(build_config.tmp_dirname);
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        parse_file(zis, data, build_config);
+        parse_file<kmer_t>(zis, data, build_config);
     } else {
-        parse_file(is, data, build_config);
+        parse_file<kmer_t>(is, data, build_config);
     }
     is.close();
     return data;

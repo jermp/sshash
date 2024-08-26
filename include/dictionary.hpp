@@ -8,6 +8,14 @@
 
 namespace sshash {
 
+// Forward declarations of the friend template classes
+template <class kmer_t>
+struct streaming_query_canonical_parsing;
+
+template <class kmer_t>
+struct streaming_query_regular_parsing;
+
+template <class kmer_t>
 struct dictionary {
     dictionary() : m_size(0), m_seed(0), m_k(0), m_m(0), m_canonical_parsing(0) {}
 
@@ -40,20 +48,22 @@ struct dictionary {
     uint64_t contig_size(uint64_t contig_id) const;
 
     /* Navigational queries. */
-    neighbourhood kmer_forward_neighbours(char const* string_kmer,
-                                          bool check_reverse_complement = true) const;
-    neighbourhood kmer_forward_neighbours(kmer_t uint_kmer,
-                                          bool check_reverse_complement = true) const;
-    neighbourhood kmer_backward_neighbours(char const* string_kmer,
-                                           bool check_reverse_complement = true) const;
-    neighbourhood kmer_backward_neighbours(kmer_t uint_kmer,
-                                           bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer,
+                                                  bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer,
+                                                  bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer,
+                                                   bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer,
+                                                   bool check_reverse_complement = true) const;
 
     /* forward and backward */
-    neighbourhood kmer_neighbours(char const* string_kmer,
-                                  bool check_reverse_complement = true) const;
-    neighbourhood kmer_neighbours(kmer_t uint_kmer, bool check_reverse_complement = true) const;
-    neighbourhood contig_neighbours(uint64_t contig_id, bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id,
+                                            bool check_reverse_complement = true) const;
 
     /* Return the weight of the kmer given its id. */
     uint64_t weight(uint64_t kmer_id) const;
@@ -66,8 +76,8 @@ struct dictionary {
     bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
     /* Streaming queries. */
-    friend struct streaming_query_canonical_parsing;
-    friend struct streaming_query_regular_parsing;
+    friend struct streaming_query_canonical_parsing<kmer_t>;
+    friend struct streaming_query_regular_parsing<kmer_t>;
     streaming_query_report streaming_query_from_file(std::string const& filename,
                                                      bool multiline) const;
 
@@ -84,7 +94,7 @@ struct dictionary {
         }
 
     private:
-        typename buckets::iterator it;
+        typename buckets<kmer_t>::iterator it;
     };
 
     iterator begin() const { return iterator(this, 0, size()); }
@@ -147,15 +157,24 @@ private:
     uint16_t m_m;
     uint16_t m_canonical_parsing;
     minimizers m_minimizers;
-    buckets m_buckets;
-    skew_index m_skew_index;
+    buckets<kmer_t> m_buckets;
+    skew_index<kmer_t> m_skew_index;
     weights m_weights;
 
     lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
     lookup_result lookup_uint_canonical_parsing(kmer_t uint_kmer) const;
-    void forward_neighbours(kmer_t suffix, neighbourhood& res, bool check_reverse_complement) const;
-    void backward_neighbours(kmer_t prefix, neighbourhood& res,
+    void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
+                            bool check_reverse_complement) const;
+    void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
                              bool check_reverse_complement) const;
+    kmer_t get_prefix(kmer_t kmer) const;
+    kmer_t get_suffix(kmer_t kmer) const;
 };
 
 }  // namespace sshash
+
+#include "builder/build.impl"
+#include "dictionary.impl"
+#include "dump.impl"
+#include "info.impl"
+#include "statistics.impl"

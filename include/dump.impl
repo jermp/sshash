@@ -1,8 +1,7 @@
-#include "dictionary.hpp"
-
 namespace sshash {
 
-void dictionary::dump(std::string const& filename) const {
+template <class kmer_t>
+void dictionary<kmer_t>::dump(std::string const& filename) const {
     uint64_t num_kmers = size();
     uint64_t num_minimizers = m_minimizers.size();
     uint64_t num_super_kmers = m_buckets.offsets.size();
@@ -24,15 +23,16 @@ void dictionary::dump(std::string const& filename) const {
             uint64_t offset = m_buckets.offsets.access(super_kmer_id);
             auto [_, contig_end] = m_buckets.offset_to_id(offset, m_k);
             (void)_;
-            bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
+            bit_vector_iterator<kmer_t> bv_it(m_buckets.strings, 2 * offset);
             uint64_t window_size = std::min<uint64_t>(m_k - m_m + 1, contig_end - offset - m_k + 1);
-            uint64_t prev_minimizer = constants::invalid_uint64;
+            kmer_t prev_minimizer = constants::invalid_uint64;
             bool super_kmer_header_written = false;
             for (uint64_t w = 0; w != window_size; ++w) {
-                kmer_t kmer = bv_it.read_and_advance_by_two(2 * m_k);
+                kmer_t kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * m_k);
                 auto [minimizer, pos] = util::compute_minimizer_pos(kmer, m_k, m_m, m_seed);
                 if (m_canonical_parsing) {
-                    kmer_t kmer_rc = util::compute_reverse_complement(kmer, m_k);
+                    kmer_t kmer_rc = kmer;
+                    kmer_rc.reverse_complement_inplace(m_k);
                     auto [minimizer_rc, pos_rc] =
                         util::compute_minimizer_pos(kmer_rc, m_k, m_m, m_seed);
                     if (minimizer_rc < minimizer) {
@@ -53,7 +53,9 @@ void dictionary::dump(std::string const& filename) const {
                     if (minimizer != prev_minimizer) {
                         break;
                     } else {
-                        out << util::uint64_to_char(kmer >> (2 * (m_k - 1)));
+                        kmer_t last_char = kmer;
+                        last_char.drop_chars(m_k - 1);
+                        out << kmer_t::uint64_to_char(last_char.pop_char());
                     }
                 }
                 prev_minimizer = minimizer;
