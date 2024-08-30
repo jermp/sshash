@@ -1,8 +1,11 @@
 #include <iostream>
 
 #include "common.hpp"
-#include "bench_utils.hpp"
-#include "check_utils.hpp"
+#include "perf.hpp"
+
+#include "test/check.hpp"
+#include "test/check_from_file.hpp"
+
 #include "build.cpp"
 #include "query.cpp"
 #include "permute.cpp"

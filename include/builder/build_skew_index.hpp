@@ -124,7 +124,7 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
         mphf_config.seed = util::get_seed_for_hash_function(build_config);
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = std::thread::hardware_concurrency();
+        mphf_config.num_threads = build_config.num_threads;
         mphf_config.num_partitions = 4 * mphf_config.num_threads;
 
         uint64_t partition_id = 0;

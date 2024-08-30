@@ -6,33 +6,12 @@
 
 namespace sshash {
 
-template <class kmer_t>
-bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
-    std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
-    const uint64_t num_lookups = std::min<uint64_t>(1000000, dict.size());
-    std::string kmer(dict.k(), 0);
-    for (uint64_t i = 0; i != num_lookups; ++i) {
-        random_kmer(kmer.data(), dict.k());
-        /*
-            We could use a std::unordered_set to check if kmer is really absent,
-            but that would take much more memory...
-        */
-        uint64_t id = dict.lookup(kmer.c_str());
-        if (id != constants::invalid_uint64) {
-            std::cout << "kmer '" << kmer << "' found!" << std::endl;
-        }
-    }
-    std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
-}
-
-template <class kmer_t>
+template <class kmer_t, input_file_type fmt>
 bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const& dict) {
     const uint64_t k = dict.k();
-    std::string line;
-    uint64_t pos = 0;
+    std::string sequence;
     uint64_t num_kmers = 0;
-    uint64_t num_lines = 0;
+    uint64_t num_sequences = 0;
     lookup_result prev;
     prev.contig_id = 0;
 
@@ -41,26 +20,32 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
 
     std::cout << "checking correctness of access and positive lookup..." << std::endl;
 
-    while (appendline(is, line)) {
-        if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
-            // comment or empty line restart the term buffer
-            line.clear();
-            continue;
+    while (!is.eof())  //
+    {
+        if constexpr (fmt == input_file_type::cfseg) {
+            std::getline(is, sequence, '\t');  // skip '\t'
+            std::getline(is, sequence);        // DNA sequence
+        } else {
+            static_assert(fmt == input_file_type::fasta);
+            std::getline(is, sequence);  // header sequence
+            std::getline(is, sequence);  // DNA sequence
         }
+
+        if (sequence.length() < k) continue;
 
         /* transform 50% of the read nucleotides into lower-case letters
            (assuming the input is upper-case):
            lower-case kmers must be found anyway in the index */
-        if ((num_lines & 1) == 0) {
-            std::transform(line.begin(), line.end(), line.begin(),
+        if ((num_sequences & 1) == 0) {
+            std::transform(sequence.begin(), sequence.end(), sequence.begin(),
                            [](char c) { return std::tolower(c); });
         }
-        ++num_lines;
+        ++num_sequences;
 
-        for (uint64_t i = 0; i + k <= line.size(); ++i) {
-            assert(util::is_valid<kmer_t>(line.data() + i, k));
+        for (uint64_t i = 0; i + k <= sequence.length(); ++i) {
+            assert(util::is_valid<kmer_t>(sequence.data() + i, k));
 
-            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(line.data() + i, k);
+            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(sequence.data() + i, k);
             bool orientation = constants::forward_orientation;
 
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
@@ -166,13 +151,6 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
             }
             ++num_kmers;
         }
-        if (line.size() > k - 1) {
-            std::copy(line.data() + line.size() - (k - 1), line.data() + line.size(), line.data());
-            line.resize(k - 1);
-            pos = line.size();
-        } else {
-            pos = 0;
-        }
     }
     std::cout << "checked " << num_kmers << " kmers" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
@@ -180,28 +158,32 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
     return check_correctness_negative_lookup(dict);
 }
 
-template <class kmer_t>
+template <class kmer_t, input_file_type fmt>
 bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer_t> const& dict) {
-    uint64_t k = dict.k();
-    std::string line;
-    uint64_t pos = 0;
+    const uint64_t k = dict.k();
+    std::string sequence;
     uint64_t num_kmers = 0;
 
     std::cout << "checking correctness of navigational queries for kmers..." << std::endl;
-    while (appendline(is, line)) {
-        if (line.size() == pos || line[pos] == '>' || line[pos] == ';') {
-            // comment or empty line restart the term buffer
-            line.clear();
-            continue;
+
+    while (!is.eof())  //
+    {
+        if constexpr (fmt == input_file_type::cfseg) {
+            std::getline(is, sequence, '\t');  // skip '\t'
+            std::getline(is, sequence);        // DNA sequence
+        } else {
+            static_assert(fmt == input_file_type::fasta);
+            std::getline(is, sequence);  // header sequence
+            std::getline(is, sequence);  // DNA sequence
         }
-        for (uint64_t i = 0; i + k <= line.size(); ++i) {
-            assert(util::is_valid<kmer_t>(line.data() + i, k));
+        for (uint64_t i = 0; i + k <= sequence.length(); ++i) {
+            assert(util::is_valid<kmer_t>(sequence.data() + i, k));
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
                 std::cout << "checked " << num_kmers << " kmers" << std::endl;
             }
-            neighbourhood<kmer_t> curr = dict.kmer_neighbours(line.data() + i);
-            if (i + k < line.size()) {
-                char next_nuc = line[i + k];
+            neighbourhood<kmer_t> curr = dict.kmer_neighbours(sequence.data() + i);
+            if (i + k < sequence.length()) {
+                char next_nuc = sequence[i + k];
                 bool next_nuc_not_found = curr.forward[kmer_t::char_to_uint(next_nuc)].kmer_id ==
                                           constants::invalid_uint64;
                 if (next_nuc_not_found) {
@@ -211,7 +193,7 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer
             }
 
             if (i != 0) {
-                char prev_nuc = line[i - 1];
+                char prev_nuc = sequence[i - 1];
                 bool prev_nuc_not_found = curr.backward[kmer_t::char_to_uint(prev_nuc)].kmer_id ==
                                           constants::invalid_uint64;
                 if (prev_nuc_not_found) {
@@ -222,52 +204,9 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer
 
             ++num_kmers;
         }
-        if (line.size() > k - 1) {
-            std::copy(line.data() + line.size() - (k - 1), line.data() + line.size(), line.data());
-            line.resize(k - 1);
-            pos = line.size();
-        } else {
-            pos = 0;
-        }
     }
     std::cout << "checked " << num_kmers << " kmers" << std::endl;
 
-    std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
-}
-
-template <class kmer_t>
-bool check_correctness_navigational_contig_query(dictionary<kmer_t> const& dict) {
-    std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
-    uint64_t num_contigs = dict.num_contigs();
-    uint64_t k = dict.k();
-    uint64_t kmer_id = 0;
-    std::string kmer(k, 0);
-    uint64_t contig_id = 0;
-    for (; contig_id != num_contigs; ++contig_id) {
-        if (contig_id != 0 and contig_id % 1000000 == 0) {
-            std::cout << "checked " << contig_id << "/" << num_contigs << " contigs" << std::endl;
-        }
-
-        auto res = dict.contig_neighbours(contig_id);
-        uint64_t contig_size = dict.contig_size(contig_id);
-
-        uint64_t begin_kmer_id = kmer_id;
-        dict.access(begin_kmer_id, kmer.data());
-        auto backward = dict.kmer_backward_neighbours(kmer.data());
-        for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
-            equal_lookup_result(backward.backward[i], res.backward[i]);
-        }
-
-        uint64_t end_kmer_id = kmer_id + contig_size - 1;
-        dict.access(end_kmer_id, kmer.data());
-        auto forward = dict.kmer_forward_neighbours(kmer.data());
-        for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
-            equal_lookup_result(forward.forward[i], res.forward[i]);
-        }
-        kmer_id += contig_size;
-    }
-    std::cout << "checked " << contig_id << " contigs" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;
 }
@@ -335,9 +274,17 @@ bool check_correctness_lookup_access(dictionary<kmer_t> const& dict, std::string
     bool good = true;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        good = check_correctness_lookup_access(zis, dict);
+        if (util::ends_with(filename, ".cfseg.gz")) {
+            good = check_correctness_lookup_access<kmer_t, input_file_type::cfseg>(zis, dict);
+        } else {
+            good = check_correctness_lookup_access<kmer_t, input_file_type::fasta>(zis, dict);
+        }
     } else {
-        good = check_correctness_lookup_access(is, dict);
+        if (util::ends_with(filename, ".cfseg")) {
+            good = check_correctness_lookup_access<kmer_t, input_file_type::cfseg>(is, dict);
+        } else {
+            good = check_correctness_lookup_access<kmer_t, input_file_type::fasta>(is, dict);
+        }
     }
     is.close();
     return good;
@@ -355,9 +302,21 @@ bool check_correctness_navigational_kmer_query(dictionary<kmer_t> const& dict,
     bool good = true;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        good = check_correctness_navigational_kmer_query(zis, dict);
+        if (util::ends_with(filename, ".cfseg.gz")) {
+            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::cfseg>(zis,
+                                                                                             dict);
+        } else {
+            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::fasta>(zis,
+                                                                                             dict);
+        }
     } else {
-        good = check_correctness_navigational_kmer_query(is, dict);
+        if (util::ends_with(filename, ".cfseg")) {
+            good =
+                check_correctness_navigational_kmer_query<kmer_t, input_file_type::cfseg>(is, dict);
+        } else {
+            good =
+                check_correctness_navigational_kmer_query<kmer_t, input_file_type::fasta>(is, dict);
+        }
     }
     is.close();
     return good;
@@ -365,6 +324,7 @@ bool check_correctness_navigational_kmer_query(dictionary<kmer_t> const& dict,
 
 /*
    The input file must be the one the index was built from.
+   Only for FASTA files since CUTTLEFISH does not store kmer weights.
 */
 template <class kmer_t>
 bool check_correctness_weights(dictionary<kmer_t> const& dict, std::string const& filename) {
@@ -379,88 +339,6 @@ bool check_correctness_weights(dictionary<kmer_t> const& dict, std::string const
     }
     is.close();
     return good;
-}
-
-template <class kmer_t>
-bool check_dictionary(dictionary<kmer_t> const& dict) {
-    uint64_t k = dict.k();
-    uint64_t n = dict.size();
-    std::cout << "checking correctness of access and positive lookup..." << std::endl;
-    uint64_t id = 0;
-    std::string kmer(k, 0);
-    for (; id != n; ++id) {
-        if (id != 0 and id % 5000000 == 0) std::cout << "checked " << id << " kmers" << std::endl;
-        dict.access(id, kmer.data());
-        uint64_t got_id = dict.lookup(kmer.c_str());
-        if (got_id == constants::invalid_uint64) {
-            std::cout << "kmer '" << kmer << "' not found!" << std::endl;
-            return false;
-        }
-        if (got_id >= n) {
-            std::cout << "ERROR: id out of range " << got_id << "/" << n << std::endl;
-            return false;
-        }
-        if (got_id != id) {
-            std::cout << "expected id " << id << " but got id " << got_id << std::endl;
-            return false;
-        }
-    }
-    std::cout << "checked " << id << " kmers" << std::endl;
-    std::cout << "EVERYTHING OK!" << std::endl;
-
-    return check_correctness_negative_lookup(dict);
-}
-
-template <class kmer_t>
-bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
-    std::cout << "checking correctness of kmer iterator..." << std::endl;
-    std::string expected_kmer(dict.k(), 0);
-    constexpr uint64_t runs = 3;
-    essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
-    for (uint64_t run = 0; run != runs; ++run) {
-        uint64_t from_kmer_id = distr.gen();
-        auto it = dict.at_kmer_id(from_kmer_id);
-        while (it.has_next()) {
-            auto [kmer_id, kmer] = it.next();
-            dict.access(kmer_id, expected_kmer.data());
-            if (kmer != expected_kmer or kmer_id != from_kmer_id) {
-                std::cout << "got (" << kmer_id << ",'" << kmer << "')";
-                std::cout << " but ";
-                std::cout << "expected (" << from_kmer_id << ",'" << expected_kmer << "')"
-                          << std::endl;
-                return false;
-            }
-            ++from_kmer_id;
-        }
-        assert(from_kmer_id == dict.size());
-    }
-    std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
-}
-
-template <class kmer_t>
-bool check_correctness_contig_iterator(dictionary<kmer_t> const& dict) {
-    std::cout << "checking correctness of contig iterator..." << std::endl;
-    std::string expected_kmer(dict.k(), 0);
-    for (uint64_t contig_id = 0; contig_id != dict.num_contigs(); ++contig_id) {
-        auto [begin, _] = dict.contig_offsets(contig_id);
-        uint64_t from_kmer_id = begin - contig_id * (dict.k() - 1);
-        auto it = dict.at_contig_id(contig_id);
-        while (it.has_next()) {
-            auto [kmer_id, kmer] = it.next();
-            dict.access(kmer_id, expected_kmer.data());
-            if (kmer != expected_kmer or kmer_id != from_kmer_id) {
-                std::cout << "got (" << kmer_id << ",'" << kmer << "')";
-                std::cout << " but ";
-                std::cout << "expected (" << from_kmer_id << ",'" << expected_kmer << "')"
-                          << std::endl;
-                return false;
-            }
-            ++from_kmer_id;
-        }
-    }
-    std::cout << "EVERYTHING OK!" << std::endl;
-    return true;
 }
 
 }  // namespace sshash

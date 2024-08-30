@@ -13,7 +13,7 @@ struct parse_data {
     weights::builder weights_builder;
 };
 
-template <class kmer_t>
+template <class kmer_t, input_file_type fmt>
 void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 build_configuration const& build_config) {
     uint64_t k = build_config.k;
@@ -138,12 +138,19 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         }
     };
 
-    while (!is.eof()) {
-        std::getline(is, sequence);  // header sequence
-        if (build_config.weighted) parse_header();
+    while (!is.eof())  //
+    {
+        if constexpr (fmt == input_file_type::cfseg) {
+            std::getline(is, sequence, '\t');  // skip '\t'
+            std::getline(is, sequence);        // DNA sequence
+        } else {
+            static_assert(fmt == input_file_type::fasta);
+            std::getline(is, sequence);  // header sequence
+            if (build_config.weighted) parse_header();
+            std::getline(is, sequence);  // DNA sequence
+        }
 
-        std::getline(is, sequence);  // DNA sequence
-        if (sequence.size() < k) continue;
+        if (sequence.length() < k) continue;
 
         if (++num_sequences % 100000 == 0) {
             std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
@@ -154,15 +161,15 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         end = 0;
         glue = false;  // start a new piece
         prev_minimizer = constants::invalid_uint64;
-        num_bases += sequence.size();
+        num_bases += sequence.length();
 
-        if (build_config.weighted and seq_len != sequence.size()) {
+        if (build_config.weighted and seq_len != sequence.length()) {
             std::cout << "ERROR: expected a sequence of length " << seq_len
-                      << " but got one of length " << sequence.size() << std::endl;
+                      << " but got one of length " << sequence.length() << std::endl;
             throw std::runtime_error("file is malformed");
         }
 
-        while (end != sequence.size() - k + 1) {
+        while (end != sequence.length() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid<kmer_t>(kmer, k));
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
@@ -219,9 +226,17 @@ parse_data<kmer_t> parse_file(std::string const& filename,
     parse_data<kmer_t> data(build_config.tmp_dirname);
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        parse_file<kmer_t>(zis, data, build_config);
+        if (util::ends_with(filename, ".cfseg.gz")) {
+            parse_file<kmer_t, input_file_type::cfseg>(zis, data, build_config);
+        } else {
+            parse_file<kmer_t, input_file_type::fasta>(zis, data, build_config);
+        }
     } else {
-        parse_file<kmer_t>(is, data, build_config);
+        if (util::ends_with(filename, ".cfseg")) {
+            parse_file<kmer_t, input_file_type::cfseg>(is, data, build_config);
+        } else {
+            parse_file<kmer_t, input_file_type::fasta>(is, data, build_config);
+        }
     }
     is.close();
     return data;

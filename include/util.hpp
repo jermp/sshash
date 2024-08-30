@@ -70,6 +70,8 @@ struct neighbourhood {
     return good;
 }
 
+enum input_file_type { fasta, cfseg };
+
 struct build_configuration {
     build_configuration()
         : k(31)
@@ -84,7 +86,10 @@ struct build_configuration {
         , weighted(false)
         , verbose(true)
 
-        , tmp_dirname(constants::default_tmp_dirname) {}
+        , tmp_dirname(constants::default_tmp_dirname)
+    // , input_type(input_build_type::cfseg)
+
+    {}
 
     uint64_t k;  // kmer size
     uint64_t m;  // minimizer size
@@ -99,12 +104,15 @@ struct build_configuration {
     bool verbose;
 
     std::string tmp_dirname;
+    // input_build_type input_type;
 
     void print() const {
-        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
-                  << ", c = " << c
-                  << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
+        std::cout
+            << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l << ", c = " << c
+            << ", canonical_parsing = " << (canonical_parsing ? "true" : "false") << ", weighted = "
+            << (weighted ? "true" : "false")
+            // << ", file type = " << (input_type == input_build_type::fasta ? "fasta" : "cfseg")
+            << std::endl;
     }
 };
 

@@ -5,18 +5,27 @@ int build(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
     /* Required arguments. */
-    parser.add("input_filename",
-               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
-               "\t- without duplicate nor invalid kmers\n"
-               "\t- one DNA sequence per line.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
-               "-i", true);
+    parser.add(
+        "input_filename",
+        "Must be a FASTA file (.fa/fasta extension) or a CUTTLEFISH file (.cfseg extension, "
+        "produced by CUTTLEFISH with option -f 3) "
+        "compressed with gzip (.gz) or not:\n"
+        "\t- without duplicate nor invalid kmers\n"
+        "\t- one DNA sequence per line.\n"
+        "\tFor example, it could be the de Bruijn graph topology output by BCALM or CUTTLEFISH.",
+        "-i", true);
     parser.add("k", "K-mer length (must be <= " + std::to_string(kmer_t::max_k) + ").", "-k", true);
     parser.add("m", "Minimizer length (must be < k).", "-m", true);
 
     /* Optional arguments. */
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
+               false);
+    const uint64_t num_threads =
+        std::max(std::min(static_cast<uint64_t>(16),
+                          static_cast<uint64_t>(std::thread::hardware_concurrency())),
+                 static_cast<uint64_t>(2));
+    parser.add("t", "Number of threads (default is " + std::to_string(num_threads) + ").", "-t",
                false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
@@ -58,8 +67,10 @@ int build(int argc, char** argv) {
     build_configuration build_config;
     build_config.k = k;
     build_config.m = m;
+    build_config.num_threads = num_threads;
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
+    if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("c")) build_config.c = parser.get<double>("c");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
