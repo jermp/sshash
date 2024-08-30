@@ -1,7 +1,7 @@
 #pragma once
 
 #include "external/pthash/include/pthash.hpp"
-#include "external/pthash/external/essentials/include/essentials.hpp"
+#include "external/pthash/external/bits/external/essentials/include/essentials.hpp"
 #include "external/gz/zip_stream.hpp"
 #include "external/gz/zip_stream.cpp"
 #include "include/builder/util.hpp"
