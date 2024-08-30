@@ -1,3 +1,5 @@
+#include "include/dictionary.hpp"
+
 namespace sshash {
 
 template <class kmer_t>

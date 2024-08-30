@@ -3,8 +3,8 @@
 #include "external/pthash/include/pthash.hpp"
 #include "external/pthash/external/cmd_line_parser/include/parser.hpp"
 #include "external/pthash/external/essentials/include/essentials.hpp"
-#include "include/gz/zip_stream.hpp"
-#include "include/gz/zip_stream.cpp"
+#include "external/gz/zip_stream.hpp"
+#include "external/gz/zip_stream.cpp"
 #include "include/builder/util.hpp"
 
 #include "node.hpp"
@@ -159,7 +159,8 @@ private:
 
     std::string read_line() {
         uint8_t const* begin = m_begin;
-        while (m_begin != m_end and *m_begin++ != '\n');
+        while (m_begin != m_end and *m_begin++ != '\n')
+            ;
         if (begin == m_begin) return std::string("");
         return std::string(reinterpret_cast<const char*>(begin), m_begin - begin - 1);
     }

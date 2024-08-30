@@ -173,8 +173,9 @@ private:
 
 }  // namespace sshash
 
-#include "builder/build.impl"
-#include "dictionary.impl"
-#include "dump.impl"
-#include "info.impl"
-#include "statistics.impl"
+/* include sources */
+#include "src/build.cpp"
+#include "src/dictionary.cpp"
+#include "src/dump.cpp"
+#include "src/info.cpp"
+#include "src/statistics.cpp"

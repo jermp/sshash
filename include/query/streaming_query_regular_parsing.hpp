@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../dictionary.hpp"
-#include "../minimizer_enumerator.hpp"
-#include "../util.hpp"
+#include "include/dictionary.hpp"
+#include "include/minimizer_enumerator.hpp"
+#include "include/util.hpp"
 
 namespace sshash {
 

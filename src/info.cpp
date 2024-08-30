@@ -1,9 +1,11 @@
+#include "include/dictionary.hpp"
+
 namespace sshash {
 
 static double bits_per_kmer_formula(uint64_t k, /* kmer length */
-                             uint64_t m, /* minimizer length */
-                             uint64_t n, /* num. kmers */
-                             uint64_t M) /* num. strings in SPSS */
+                                    uint64_t m, /* minimizer length */
+                                    uint64_t n, /* num. kmers */
+                                    uint64_t M) /* num. strings in SPSS */
 {
     /*
       Caveats:

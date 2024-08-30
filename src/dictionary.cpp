@@ -1,3 +1,5 @@
+#include "include/dictionary.hpp"
+
 namespace sshash {
 
 template <class kmer_t>
@@ -172,6 +174,7 @@ kmer_t dictionary<kmer_t>::get_prefix(kmer_t kmer) const {
     prefix.take_chars(m_k);
     return prefix;
 }
+
 template <class kmer_t>
 neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
     kmer_t uint_kmer, bool check_reverse_complement) const {
@@ -186,6 +189,7 @@ neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(char const* string_kme
     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
     return kmer_neighbours(uint_kmer, check_reverse_complement);
 }
+
 template <class kmer_t>
 neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer,
                                                           bool check_reverse_complement) const {

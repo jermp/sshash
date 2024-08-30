@@ -1,13 +1,13 @@
 #pragma once
 
 #include "bitpack.hpp"
-#include <bitset>
+// #include <bitset>
 #include <string>
 
-template <size_t N>
-bool operator<(std::bitset<N> const& a, std::bitset<N> const& b) {
-    return a.to_string() < b.to_string();
-}
+// template <size_t N>
+// bool operator<(std::bitset<N> const& a, std::bitset<N> const& b) {
+//     return a.to_string() < b.to_string();
+// }
 
 namespace sshash {
 template <typename Kmer, uint8_t BitsPerChar>

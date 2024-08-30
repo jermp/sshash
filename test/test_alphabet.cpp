@@ -1,5 +1,6 @@
 #include "include/util.hpp"
-#include "src/common.hpp"  // for random_kmer
+#include "tools/common.hpp"  // for random_kmer
+
 #include <cctype>
 
 using namespace sshash;

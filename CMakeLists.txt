@@ -61,7 +61,7 @@ include_directories(external/pthash)
 include_directories(external/pthash/external/essentials/include)
 
 set(Z_LIB_SOURCES
-  include/gz/zip_stream.cpp
+  external/gz/zip_stream.cpp
 )
 
 
@@ -70,7 +70,7 @@ add_library(sshash_static STATIC
   ${Z_LIB_SOURCES}
 )
 
-add_executable(sshash src/sshash.cpp)
+add_executable(sshash tools/sshash.cpp)
 target_link_libraries(sshash
   sshash_static
   z
