@@ -1,6 +1,6 @@
 #pragma once
 
-#include "external/pthash/include/encoders/bit_vector.hpp"
+#include "external/pthash/external/bits/include/bit_vector.hpp"
 #include "util.hpp"
 
 namespace sshash {
@@ -9,7 +9,7 @@ template <class kmer_t>
 struct bit_vector_iterator {
     bit_vector_iterator() : m_bv(nullptr) {}
 
-    bit_vector_iterator(pthash::bit_vector const& bv, uint64_t pos) : m_bv(&bv) { at(pos); }
+    bit_vector_iterator(bits::bit_vector const& bv, uint64_t pos) : m_bv(&bv) { at(pos); }
 
     void at(uint64_t pos) {
         m_pos = pos;
@@ -84,7 +84,7 @@ private:
     inline void fill_buf() {
         static_assert(kmer_t::uint_kmer_bits % 64 == 0);
         for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
-            if (m_pos + i < m_bv->size()) { m_buf.append64(m_bv->get_word64(m_pos + i)); }
+            if (m_pos + i < m_bv->num_bits()) { m_buf.append64(m_bv->get_word64(m_pos + i)); }
         }
         m_avail = kmer_t::uint_kmer_bits;
     }
@@ -98,7 +98,7 @@ private:
         m_buf.pad(kmer_t::uint_kmer_bits - m_avail);
     }
 
-    pthash::bit_vector const* m_bv;
+    bits::bit_vector const* m_bv;
     uint64_t m_pos;
     uint64_t m_avail;
     kmer_t m_buf;

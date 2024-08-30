@@ -1,35 +1,25 @@
 #pragma once
 
+#include "external/pthash/external/bits/include/elias_fano.hpp"
+
 #include "util.hpp"
 #include "bit_vector_iterator.hpp"
-#include "ef_sequence.hpp"
 
 namespace sshash {
 
 template <class kmer_t>
 struct buckets {
     std::pair<lookup_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
-        auto [pos, contig_begin, contig_end] = pieces.locate(offset);
+        auto p = pieces.locate(offset);
+        uint64_t contig_id = p.first.pos;
+        uint64_t contig_begin = p.first.val;
+        uint64_t contig_end = p.second.val;
 
-        /* The following two facts hold. */
-        assert(pieces.access(pos) == contig_end);
-        assert(contig_end >= offset);
-
-        bool shift = contig_end > offset;
-        assert(pos >= shift);
-        uint64_t contig_id = pos - shift;
-
-        if (contig_end == offset) {
-            assert(shift == false);
-            assert(pos + 1 < pieces.size());
-            contig_begin = contig_end;
-            contig_end = pieces.access(pos + 1);
-        }
-
-        /* Now, the following facts hold. */
+        /* The following facts hold. */
         assert(offset >= contig_id * (k - 1));
         assert(contig_begin <= offset);
         assert(offset < contig_end);
+        /****************************/
 
         uint64_t absolute_kmer_id = offset - contig_id * (k - 1);
         uint64_t relative_kmer_id = offset - contig_begin;
@@ -191,7 +181,7 @@ struct buckets {
             m_offset = m_buckets->id_to_offset(m_begin_kmer_id, k);
             auto [pos, piece_end] = m_buckets->pieces.next_geq(m_offset);
             if (piece_end == m_offset) pos += 1;
-            m_pieces_it = m_buckets->pieces.at(pos);
+            m_pieces_it = m_buckets->pieces.get_iterator_at(pos);
             next_piece();
             m_ret.second.resize(m_k, 0);
         }
@@ -204,24 +194,20 @@ struct buckets {
                 next_piece();
             }
 
-            while (m_offset != m_next_offset - m_k + 1) {
-                m_ret.first = m_begin_kmer_id;
-                if (m_clear) {
-                    util::uint_kmer_to_string(m_read_kmer, m_ret.second.data(), m_k);
-                } else {
-                    memmove(m_ret.second.data(), m_ret.second.data() + 1, m_k - 1);
-                    m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_last_char);
-                }
-                m_clear = false;
-                m_read_kmer.drop_char();
-                m_last_char = m_bv_it.get_next_char();
-                m_read_kmer.kth_char_or(m_k - 1, m_last_char);
-                ++m_begin_kmer_id;
-                ++m_offset;
-                return m_ret;
+            m_ret.first = m_begin_kmer_id;
+            if (m_clear) {
+                util::uint_kmer_to_string(m_read_kmer, m_ret.second.data(), m_k);
+            } else {
+                memmove(m_ret.second.data(), m_ret.second.data() + 1, m_k - 1);
+                m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_last_char);
             }
-
-            return next();
+            m_clear = false;
+            m_read_kmer.drop_char();
+            m_last_char = m_bv_it.get_next_char();
+            m_read_kmer.kth_char_or(m_k - 1, m_last_char);
+            ++m_begin_kmer_id;
+            ++m_offset;
+            return m_ret;
         }
 
     private:
@@ -232,7 +218,7 @@ struct buckets {
         uint64_t m_offset;
         uint64_t m_next_offset;
         bit_vector_iterator<kmer_t> m_bv_it;
-        ef_sequence<true>::iterator m_pieces_it;
+        bits::elias_fano<true, false>::iterator m_pieces_it;
 
         kmer_t m_read_kmer;
         uint64_t m_last_char;
@@ -240,10 +226,11 @@ struct buckets {
 
         void next_piece() {
             m_bv_it.at(kmer_t::bits_per_char * m_offset);
-            m_next_offset = m_pieces_it.next();
+            m_next_offset = m_pieces_it.value();
             assert(m_next_offset > m_offset);
             m_read_kmer = m_bv_it.take(kmer_t::bits_per_char * m_k);
             m_clear = true;
+            m_pieces_it.next();
         }
     };
 
@@ -252,8 +239,8 @@ struct buckets {
     }
 
     uint64_t num_bits() const {
-        return pieces.num_bits() + num_super_kmers_before_bucket.num_bits() +
-               8 * (offsets.bytes() + strings.bytes());
+        return 8 * (pieces.num_bytes() + num_super_kmers_before_bucket.num_bytes() +
+                    offsets.num_bytes() + strings.num_bytes());
     }
 
     template <typename Visitor>
@@ -266,10 +253,10 @@ struct buckets {
         visit_impl(visitor, *this);
     }
 
-    ef_sequence<true> pieces;
-    ef_sequence<false> num_super_kmers_before_bucket;
-    pthash::compact_vector offsets;
-    pthash::bit_vector strings;
+    bits::elias_fano<true, false> pieces;
+    bits::elias_fano<false, false> num_super_kmers_before_bucket;
+    bits::compact_vector offsets;
+    bits::bit_vector strings;
 
 private:
     template <typename Visitor, typename T>

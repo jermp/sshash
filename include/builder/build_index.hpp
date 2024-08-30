@@ -15,7 +15,9 @@ struct bucket_pair {
 };
 #pragma pack(pop)
 
-struct bucket_pairs_iterator : std::forward_iterator_tag {
+struct bucket_pairs_iterator {
+    using iterator_category = std::forward_iterator_tag;
+
     bucket_pairs_iterator(bucket_pair const* begin, bucket_pair const* end)
         : m_begin(begin)
         , m_end(end)
@@ -163,8 +165,8 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     uint64_t num_kmers = data.num_kmers;
     uint64_t num_super_kmers = data.strings.num_super_kmers();
 
-    pthash::compact_vector::builder offsets;
-    offsets.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
+    bits::compact_vector::builder offsets_builder;
+    offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
 
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
@@ -220,16 +222,17 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
         uint64_t offset_pos = 0;
         auto list = it.list();
         for (auto [offset, num_kmers_in_super_kmer] : list) {
-            offsets.set(base + offset_pos++, offset);
+            offsets_builder.set(base + offset_pos++, offset);
             buckets_stats.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket,
                                                       num_kmers_in_super_kmer);
         }
         assert(offset_pos == num_super_kmers_in_bucket);
     }
 
-    m_buckets.pieces.encode(data.strings.pieces.begin(), data.strings.pieces.size(),
-                            data.strings.pieces.back());
-    offsets.build(m_buckets.offsets);
+    m_buckets.pieces.encode(data.strings.pieces.begin(),  //
+                            data.strings.pieces.size(),   //
+                            data.strings.pieces.back());  //
+    offsets_builder.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings.strings);
 
     input.close();

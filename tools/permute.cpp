@@ -69,17 +69,17 @@ int permute(int argc, char** argv) {
         c.save(permutation_filename);
     }
 
-    pthash::compact_vector permutation;
-    pthash::bit_vector signs;
+    bits::compact_vector permutation;
+    bits::bit_vector signs;
     {
         std::ifstream is(permutation_filename.c_str());
         if (!is.good()) {
             throw std::runtime_error("error in opening the file '" + permutation_filename + "'");
         }
-        pthash::compact_vector::builder cv_builder(
+        bits::compact_vector::builder cv_builder(
             data.num_sequences,
             data.num_sequences == 1 ? 1 : std::ceil(std::log2(data.num_sequences)));
-        pthash::bit_vector_builder bv_builder(data.num_sequences);
+        bits::bit_vector::builder bv_builder(data.num_sequences);
         for (uint64_t i = 0; i != data.num_sequences; ++i) {
             uint64_t position = 0;
             bool sign = 0;
@@ -90,7 +90,7 @@ int permute(int argc, char** argv) {
         }
         is.close();
         cv_builder.build(permutation);
-        signs.build(&bv_builder);
+        bv_builder.build(signs);
     }
 
     /* permute and save to output file */

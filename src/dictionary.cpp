@@ -11,7 +11,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular_parsing(kmer_t uint_kmer) 
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
     uint64_t num_super_kmers_in_bucket = end - begin;
-    uint64_t log2_bucket_size = util::ceil_log2_uint32(num_super_kmers_in_bucket);
+    uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(num_super_kmers_in_bucket);
     if (log2_bucket_size > m_skew_index.min_log2) {
         uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
         /* It must hold pos < num_super_kmers_in_bucket for the kmer to exist. */
@@ -38,7 +38,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical_parsing(kmer_t uint_kmer
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
     uint64_t num_super_kmers_in_bucket = end - begin;
-    uint64_t log2_bucket_size = util::ceil_log2_uint32(num_super_kmers_in_bucket);
+    uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(num_super_kmers_in_bucket);
     if (log2_bucket_size > m_skew_index.min_log2) {
         uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
         if (pos < num_super_kmers_in_bucket) {

@@ -2,6 +2,32 @@
 
 namespace sshash {
 
+namespace util {
+
+template <class kmer_t, typename Hasher = murmurhash2_64>
+std::pair<kmer_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
+                                                  uint64_t seed) {
+    assert(m <= kmer_t::max_m);
+    assert(m <= k);
+    uint64_t min_hash = uint64_t(-1);
+    kmer_t minimizer = kmer_t(-1);
+    uint64_t pos = 0;
+    for (uint64_t i = 0; i != k - m + 1; ++i) {
+        kmer_t mmer = kmer;
+        mmer.take_chars(m);
+        uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
+        if (hash < min_hash) {
+            min_hash = hash;
+            minimizer = mmer;
+            pos = i;
+        }
+        kmer.drop_char();
+    }
+    return {minimizer, pos};
+}
+
+}  // namespace util
+
 template <class kmer_t>
 void dictionary<kmer_t>::dump(std::string const& filename) const {
     uint64_t num_kmers = size();

@@ -26,7 +26,7 @@ struct skew_index {
             std::cout << "num_kmers belonging to buckets of size > " << lower << " and <= " << upper
                       << ": " << n << "; ";
             std::cout << "bits/kmer = " << static_cast<double>(mphfs[partition_id].num_bits()) / n
-                      << " (mphf) + " << (positions[partition_id].bytes() * 8.0) / n
+                      << " (mphf) + " << (positions[partition_id].num_bytes() * 8.0) / n
                       << " (positions)\n";
             num_kmers_in_skew_index += n;
             lower = upper;
@@ -45,9 +45,9 @@ struct skew_index {
             partition_id = mphfs.size() - 1;
         }
         assert(partition_id < mphfs.size());
-        auto const& mphf = mphfs[partition_id];
-        auto const& P = positions[partition_id];
-        uint64_t position = P.access(mphf(uint_kmer));
+        auto const& f = mphfs[partition_id];
+        auto const& p = positions[partition_id];
+        uint64_t position = p.access(f(uint_kmer));
         return position;
     }
 
@@ -57,9 +57,9 @@ struct skew_index {
              2 * sizeof(size_t) /* for std::vector::size */) *
             8;
         for (uint64_t partition_id = 0; partition_id != mphfs.size(); ++partition_id) {
-            auto const& mphf = mphfs[partition_id];
-            auto const& P = positions[partition_id];
-            n += mphf.num_bits() + P.bytes() * 8;
+            auto const& f = mphfs[partition_id];
+            auto const& p = positions[partition_id];
+            n += f.num_bits() + p.num_bytes() * 8;
         }
         return n;
     }
@@ -78,7 +78,7 @@ struct skew_index {
     uint16_t max_log2;
     uint32_t log2_max_num_super_kmers_in_bucket;
     std::vector<kmers_pthash_type<kmer_t>> mphfs;
-    std::vector<pthash::compact_vector> positions;
+    std::vector<bits::compact_vector> positions;
 
 private:
     template <typename Visitor, typename T>

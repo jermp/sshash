@@ -141,7 +141,7 @@ private:
         bool check_minimizer = !same_minimizer();
         if (!m_dict->m_skew_index.empty()) {
             uint64_t num_super_kmers_in_bucket = m_end - m_begin;
-            uint64_t log2_bucket_size = util::ceil_log2_uint32(num_super_kmers_in_bucket);
+            uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(num_super_kmers_in_bucket);
             if (log2_bucket_size > (m_dict->m_skew_index).min_log2) {
                 uint64_t p = m_dict->m_skew_index.lookup(m_kmer, log2_bucket_size);
                 if (p < num_super_kmers_in_bucket) {

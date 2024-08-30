@@ -120,7 +120,7 @@ struct dictionary {
         return iterator(this, begin_kmer_id, end_kmer_id);
     }
 
-    pthash::bit_vector const& strings() const { return m_buckets.strings; }
+    bits::bit_vector const& strings() const { return m_buckets.strings; }
 
     uint64_t num_bits() const;
     void print_info() const;
