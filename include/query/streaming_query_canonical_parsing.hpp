@@ -39,9 +39,23 @@ struct streaming_query_canonical_parsing {
         assert(m_dict->m_canonical_parsing);
     }
 
-    inline void start() {
+    void start() {
         m_start = true;
         m_minimizer_not_found = false;
+    }
+
+    void reset_state() {
+        start();
+        m_curr_minimizer = constants::invalid_uint64;
+        m_prev_minimizer = constants::invalid_uint64;
+        m_kmer = constants::invalid_uint64;
+        m_string_iterator.at(0);
+        m_begin = 0;
+        m_end = 0;
+        m_pos_in_window = 0;
+        m_window_size = 0;
+        m_res.kmer_id = constants::invalid_uint64;
+        m_reverse = false;
     }
 
     lookup_result lookup_advanced(const char* kmer) {
