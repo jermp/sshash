@@ -33,8 +33,7 @@ struct bit_vector_iterator {
         if (m_avail < l) fill_buf_reverse();
         kmer_t val = 0;
         if (l != constants::uint_kmer_bits) {
-            uint64_t shift = (l >= 64) ? (constants::uint_kmer_bits - l) : 64;
-            val = m_buf >> shift;
+            val = m_buf >> (constants::uint_kmer_bits - l);
         } else {
             val = m_buf;
         }
@@ -122,14 +121,14 @@ private:
         } else {
             assert(constants::uint_kmer_bits == 128);
             if (m_pos < 128) {
-                m_buf = static_cast<kmer_t>(m_bv->get_word64(0)) << 64;
-                m_buf += static_cast<kmer_t>(m_bv->get_word64(64));
+                m_buf = static_cast<kmer_t>(m_bv->get_word64(64)) << 64;
+                m_buf += static_cast<kmer_t>(m_bv->get_word64(0));
                 m_avail = m_pos;
                 m_buf <<= (128 - m_pos);
                 return;
             }
-            m_buf = static_cast<kmer_t>(m_bv->get_word64(m_pos - 128)) << 64;
-            m_buf += static_cast<kmer_t>(m_bv->get_word64(m_pos - 64));
+            m_buf = static_cast<kmer_t>(m_bv->get_word64(m_pos - 64)) << 64;
+            m_buf += static_cast<kmer_t>(m_bv->get_word64(m_pos - 128));
         }
         m_avail = constants::uint_kmer_bits;
     }
