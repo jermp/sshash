@@ -219,6 +219,14 @@ and the one just built (Example 3, canonical).
 
     ./sshash query -i salmonella_100.canon.index -q ../data/queries/SRR5833294.10K.fastq.gz
 
+Both queries should originate the following report (reported here for reference):
+
+    ==== query report:
+    num_kmers = 460000
+    num_positive_kmers = 46 (0.01%)
+    num_searches = 42/46 (91.3043%)
+    num_extensions = 4/46 (8.69565%)
+
 The canonical dictionary can be twice as fast as the regular dictionary
 for low-hit workloads, even on this tiny example, for only +0.4 bits/k-mer.
 
