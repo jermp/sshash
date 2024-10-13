@@ -359,6 +359,61 @@ static inline bool is_valid(int c) { return canonicalize_basepair_forward_map[c]
 /*
     This implements the (mod/lr)-minimizer.
 */
+// template <typename Hasher = murmurhash2_64>
+// uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed)
+// {
+//     assert(m <= constants::max_m);
+//     assert(m <= k);
+//     assert(m >= constants::r);
+
+//     const uint64_t w = k - m + 1;
+
+//     /* "classic" minimizer */
+//     const uint64_t t = m;
+
+//     /* lr-minimizer */
+//     // const uint64_t t = 2 * m - k - 1;
+
+//     /* mod-minimizer */
+//     // const uint64_t t = constants::r + (m - constants::r) % w;
+//     // const uint64_t t = m % w;
+
+//     assert(t == m or m > (k + 2) / 2);
+
+//     kmer_t copy = kmer;
+//     const kmer_t tmer_mask = (kmer_t(1) << (2 * t)) - 1;
+//     const kmer_t mmer_mask = (kmer_t(1) << (2 * m)) - 1;
+
+//     uint64_t min_hash = uint64_t(-1);
+//     uint64_t p = 0;  // position of minimum tmer
+//     for (uint64_t i = 0; i != k - t + 1; ++i) {
+//         uint64_t tmer = static_cast<uint64_t>(kmer & tmer_mask);
+//         uint64_t hash = Hasher::hash(tmer, seed);
+//         if (hash < min_hash) {
+//             min_hash = hash;
+//             p = i;
+//         }
+//         kmer >>= 2;
+//     }
+
+//     p = p % w;
+//     return (copy >> (2 * p)) & mmer_mask;
+// }
+
+/*
+    This implements the open-closed mod-minimizer.
+*/
+
+struct pair_t {
+    uint64_t priority;
+    uint64_t data;
+    bool operator<(pair_t other) {
+        if (priority < other.priority) return true;
+        if (priority == other.priority) return data < other.data;
+        return false;
+    }
+};
+
 template <typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= constants::max_m);
@@ -366,32 +421,47 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
     assert(m >= constants::r);
 
     const uint64_t w = k - m + 1;
-
-    /* "classic" minimizer */
-    const uint64_t t = m;
-
-    /* lr-minimizer */
-    // const uint64_t t = 2 * m - k - 1;
-
-    /* mod-minimizer */
-    // const uint64_t t = constants::r + (m - constants::r) % w;
-    // const uint64_t t = m % w;
-
-    assert(t == m or m > (k + 2) / 2);
+    const uint64_t s = constants::r;
+    const uint64_t t = constants::r + (m - constants::r) % w;
+    const uint64_t offset = (t - s) / 2;
 
     kmer_t copy = kmer;
+    const kmer_t smer_mask = (kmer_t(1) << (2 * s)) - 1;
     const kmer_t tmer_mask = (kmer_t(1) << (2 * t)) - 1;
     const kmer_t mmer_mask = (kmer_t(1) << (2 * m)) - 1;
 
-    uint64_t min_hash = uint64_t(-1);
-    uint64_t p = 0;  // position of minimum tmer
+    pair_t min_hash{2, uint64_t(-1)};
+    uint64_t p = 0;  // position of minimum oc-minimizer
+
     for (uint64_t i = 0; i != k - t + 1; ++i) {
         uint64_t tmer = static_cast<uint64_t>(kmer & tmer_mask);
-        uint64_t hash = Hasher::hash(tmer, seed);
+        pair_t hash{2, Hasher::hash(tmer, seed)};
+
+        // find position of smallest s-mer in t-mer
+        uint64_t smallest_smer_hash = uint64_t(-1);
+        uint64_t smallest_smer_pos = 0;
+        for (uint64_t j = 0; j != t - s + 1; ++j) {
+            uint64_t smer = static_cast<uint64_t>(tmer & smer_mask);
+            uint64_t smer_hash = Hasher::hash(smer, seed);
+            if (smer_hash < smallest_smer_hash) {
+                smallest_smer_hash = smer_hash;
+                smallest_smer_pos = j;
+            }
+            tmer >>= 2;
+        }
+
+        if (smallest_smer_pos == offset) {  // open syncmer of length t
+            hash.priority = 0;
+        } else if (smallest_smer_pos == 0 or
+                   smallest_smer_pos == t - s) {  // closed syncmer of length t
+            hash.priority = 1;
+        }
+
         if (hash < min_hash) {
             min_hash = hash;
             p = i;
         }
+
         kmer >>= 2;
     }
 
