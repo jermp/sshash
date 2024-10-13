@@ -422,7 +422,8 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
 
     const uint64_t w = k - m + 1;
     const uint64_t s = constants::r;
-    const uint64_t t = constants::r + (m - constants::r) % w;
+    const uint64_t t = m;  // oc minimizer
+    // const uint64_t t = constants::r + (m - constants::r) % w; // oc mod-minimizer
     const uint64_t offset = (t - s) / 2;
 
     kmer_t copy = kmer;
