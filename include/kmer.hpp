@@ -13,7 +13,7 @@ namespace sshash {
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
     using uint_t = Kmer;
-    Kmer kmer;
+    Kmer kmer = 0;
 
     uint_kmer_t() {}
     uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
