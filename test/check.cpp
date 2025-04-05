@@ -96,14 +96,18 @@ void query_from_fastq_file(std::string const& query_filename,
 
 int main(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
-    parser.add("input_filename", "", "-i", true);
-    parser.add("query_filename",
-               "Must be a FASTQ file (.fa/fasta or .fq/fastq extension) compressed with gzip "
-               "or not.",
+    parser.add("input_filename", "Must be in the same input format as that used by 'sshash build'.",
+               "-i", true);
+    parser.add("query_filename", "Must be a FASTQ file (.fq/fastq extension) compressed with gzip.",
                "-q", true);
+    parser.add("k", "K-mer length (must be <= 31).", "-k", true);
     if (!parser.parse()) return 1;
 
-    const uint64_t k = 31;
+    auto k = parser.get<uint64_t>("k");
+    if (k > 31) {
+        std::cerr << "K-mer length (must be <= 31)." << std::endl;
+        return 1;
+    }
     auto input_filename = parser.get<std::string>("input_filename");
     auto query_filename = parser.get<std::string>("query_filename");
 
