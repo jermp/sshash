@@ -2,10 +2,12 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7772316.svg)](https://doi.org/10.5281/zenodo.7772316)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7239205.svg)](https://doi.org/10.5281/zenodo.7239205)
 
-SSHash
-======
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/sshash_on_dark.png">
+  <img src="img/sshash.png" width="350" alt="Logo">
+</picture>
 
-This is a compressed dictionary data structure for k-mers
+**SSHash** is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
 The data structure is described in the following papers:
