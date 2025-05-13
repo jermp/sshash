@@ -23,6 +23,11 @@ if (UNIX AND (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2 -msse4.2") # for hardware popcount and pdep
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+MESSAGE(STATUS "Compiling with flags: -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+endif()
+
 if (SSHASH_USE_MAX_KMER_LENGTH_63)
   MESSAGE(STATUS "SSHash uses a maximum kmer length of 63")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSSHASH_USE_MAX_KMER_LENGTH_63")
@@ -64,19 +69,27 @@ set(Z_LIB_SOURCES
   external/gz/zip_stream.cpp
 )
 
+set(SSHASH_SOURCES
+  src/build.cpp
+  src/dictionary.cpp
+  src/dump.cpp
+  src/info.cpp
+  src/statistics.cpp
+)
 
 # Create a static lib
 add_library(sshash_static STATIC
   ${Z_LIB_SOURCES}
+  ${SSHASH_SOURCES}
 )
 
 add_executable(sshash tools/sshash.cpp)
 target_link_libraries(sshash
-  sshash_static
   z
 )
 
-# tests
+# tests:
+
 add_executable(test_alphabet test/test_alphabet.cpp)
 target_link_libraries(test_alphabet
   sshash_static

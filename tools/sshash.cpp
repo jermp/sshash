@@ -6,6 +6,12 @@
 #include "test/check.hpp"
 #include "test/check_from_file.hpp"
 
+#include "src/build.cpp"
+#include "src/dictionary.cpp"
+#include "src/dump.cpp"
+#include "src/info.cpp"
+#include "src/statistics.cpp"
+
 #include "build.cpp"
 #include "query.cpp"
 #include "permute.cpp"
