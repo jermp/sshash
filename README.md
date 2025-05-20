@@ -48,7 +48,6 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Examples](#Examples)
 * [Input Files](#input-files)
 * [Benchmarks](#benchmarks)
-* [Author](#author)
 * [References](#references)
 
 Compiling the Code
@@ -314,8 +313,6 @@ The following table summarizes the space of the dictionaries.
 | SSHash, regular   | 13.21  | 10.06       | 22.28 | 9.91       |
 | SSHash, canonical | 14.94  | 11.37       | 25.03 | 11.13      |
 
-
-
 To query the dictionaries, we use [SRR17023415](https://www.ebi.ac.uk/ena/browser/view/SRR17023415) fastq reads
 (23,891,117 reads, each of 150 bases) for the pine,
 and [GSM5747680](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM5747680) multi-line fasta (15,548,160 lines) for the axolotl.
@@ -367,11 +364,6 @@ Below the complete query reports.
     num_searches = 106220473/650467884 (16.3299%)
     num_extensions = 544247411/650467884 (83.6701%)
     elapsed = 193.871 sec / 3.23119 min / 208.158 ns/kmer
-
-Author
-------
-
-[Giulio Ermanno Pibiri](https://jermp.github.io) - <giulioermanno.pibiri@unive.it>
 
 References
 -----
