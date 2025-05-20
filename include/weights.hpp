@@ -3,12 +3,12 @@
 #include <vector>
 #include <unordered_map>  // count the distinct weights with freq information
 
-#include "ef_sequence.hpp"
-
 namespace sshash {
 
-struct weights {
-    struct builder {
+struct weights  //
+{
+    struct builder  //
+    {
         builder() {}
 
         void init() { m_weight_interval_lengths.push_back(0); }
@@ -81,7 +81,7 @@ struct weights {
 
         void build(weights& index) {
             uint64_t num_distinct_weights = m_weight_dictionary_builder.size();
-            pthash::compact_vector::builder weight_interval_values;
+            bits::compact_vector::builder weight_interval_values;
             weight_interval_values.resize(
                 m_weight_interval_values.size(),
                 num_distinct_weights == 1 ? 1 : std::ceil(std::log2(num_distinct_weights)));
@@ -139,32 +139,32 @@ struct weights {
         std::vector<uint64_t> m_weight_interval_values;
         std::vector<uint64_t> m_weight_interval_lengths;
 
-        pthash::compact_vector::builder m_weight_dictionary_builder;
+        bits::compact_vector::builder m_weight_dictionary_builder;
     };
 
     bool empty() const { return m_weight_dictionary.size() == 0; }
 
     uint64_t weight(uint64_t kmer_id) const {
-        uint64_t i = m_weight_interval_lengths.prev_leq(kmer_id);
+        auto [i, _] = m_weight_interval_lengths.prev_leq(kmer_id);
         uint64_t id = m_weight_interval_values.access(i);
         uint64_t weight = m_weight_dictionary.access(id);
         return weight;
     }
 
     uint64_t num_bits() const {
-        return m_weight_interval_values.bytes() * 8 + m_weight_interval_lengths.num_bits() +
-               m_weight_dictionary.bytes() * 8;
+        return 8 * (m_weight_interval_values.num_bytes() + m_weight_interval_lengths.num_bytes() +
+                    m_weight_dictionary.num_bytes());
     }
 
     void print_space_breakdown(uint64_t num_kmers) const {
         std::cout << "    weight_interval_values: "
-                  << static_cast<double>(m_weight_interval_values.bytes() * 8) / num_kmers
+                  << static_cast<double>(m_weight_interval_values.num_bytes() * 8) / num_kmers
                   << " [bits/kmer]\n";
         std::cout << "    weight_interval_lengths: "
-                  << static_cast<double>(m_weight_interval_lengths.num_bits()) / num_kmers
+                  << static_cast<double>(m_weight_interval_lengths.num_bytes() * 8) / num_kmers
                   << " [bits/kmer]\n";
         std::cout << "    weight_dictionary: "
-                  << static_cast<double>(m_weight_dictionary.bytes() * 8) / num_kmers
+                  << static_cast<double>(m_weight_dictionary.num_bytes() * 8) / num_kmers
                   << " [bits/kmer]\n";
     }
 
@@ -186,9 +186,9 @@ private:
         visitor.visit(t.m_weight_dictionary);
     }
 
-    pthash::compact_vector m_weight_interval_values;
-    ef_sequence<true> m_weight_interval_lengths;
-    pthash::compact_vector m_weight_dictionary;
+    bits::compact_vector m_weight_interval_values;
+    bits::elias_fano<true, false> m_weight_interval_lengths;
+    bits::compact_vector m_weight_dictionary;
 };
 
 }  // namespace sshash

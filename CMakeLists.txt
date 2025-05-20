@@ -19,6 +19,11 @@ if (UNIX AND (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2 -msse4.2") # for hardware popcount and pdep
 endif()
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+MESSAGE(STATUS "Compiling with flags: -O0")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O0")
+endif()
+
 if (SSHASH_USE_MAX_KMER_LENGTH_63)
   MESSAGE(STATUS "SSHash uses a maximum kmer length of 63")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSSHASH_USE_MAX_KMER_LENGTH_63")
@@ -54,18 +59,18 @@ endif()
 
 include_directories(.) # all include paths relative to parent directory
 include_directories(external/pthash)
-include_directories(external/pthash/external/essentials/include)
+include_directories(external/pthash/external/bits/external/essentials/include)
 
 set(Z_LIB_SOURCES
-  include/gz/zip_stream.cpp
+  external/gz/zip_stream.cpp
 )
 
 set(SSHASH_SOURCES
-  include/dictionary.cpp
-  include/info.cpp
-  include/dump.cpp
-  include/statistics.cpp
-  include/builder/build.cpp
+  src/build.cpp
+  src/dictionary.cpp
+  src/dump.cpp
+  src/info.cpp
+  src/statistics.cpp
 )
 
 # Create a static lib
@@ -74,14 +79,20 @@ add_library(sshash_static STATIC
   ${SSHASH_SOURCES}
 )
 
-add_executable(sshash src/sshash.cpp)
+add_executable(sshash tools/sshash.cpp)
 target_link_libraries(sshash
-  sshash_static
   z
 )
 
-# tests
+# tests:
+
 add_executable(test_alphabet test/test_alphabet.cpp)
 target_link_libraries(test_alphabet
   sshash_static
+)
+
+add_executable(check test/check.cpp)
+target_link_libraries(check
+  sshash_static
+  z
 )

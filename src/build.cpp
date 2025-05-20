@@ -1,100 +1,121 @@
-using namespace sshash;
+#include "include/dictionary.hpp"
+#include "essentials.hpp"
+#include "include/builder/util.hpp"
 
-int build(int argc, char** argv) {
-    cmd_line_parser::parser parser(argc, argv);
+/** build steps **/
+#include "include/builder/parse_file.hpp"
+#include "include/builder/build_index.hpp"
+#include "include/builder/build_skew_index.hpp"
+/*****************/
 
-    /* Required arguments. */
-    parser.add("input_filename",
-               "Must be a FASTA file (.fa/fasta extension) compressed with gzip (.gz) or not:\n"
-               "\t- without duplicate nor invalid kmers\n"
-               "\t- one DNA sequence per line.\n"
-               "\tFor example, it could be the de Bruijn graph topology output by BCALM.",
-               "-i", true);
-    parser.add("k", "K-mer length (must be <= " + std::to_string(constants::max_k) + ").", "-k",
-               true);
-    parser.add("m", "Minimizer length (must be < k).", "-m", true);
+#include <numeric>  // for std::accumulate
 
-    /* Optional arguments. */
-    parser.add("seed",
-               "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
-               false);
-    parser.add("l",
-               "A (integer) constant that controls the space/time trade-off of the dictionary. "
-               "A reasonable values lies in [2.." +
-                   std::to_string(constants::max_l) + "). The default value is " +
-                   std::to_string(constants::min_l) + ".",
-               "-l", false);
-    parser.add("c",
-               "A (floating point) constant that trades construction speed for space effectiveness "
-               "of minimal perfect hashing. "
-               "A reasonable value lies between 3.0 and 10.0 (default is " +
-                   std::to_string(constants::c) + ").",
-               "-c", false);
-    parser.add("output_filename", "Output file name where the data structure will be serialized.",
-               "-o", false);
-    parser.add(
-        "tmp_dirname",
-        "Temporary directory used for construction in external memory. Default is directory '" +
-            constants::default_tmp_dirname + "'.",
-        "-d", false);
-    parser.add("canonical_parsing",
-               "Canonical parsing of k-mers. This option changes the parsing and results in a "
-               "trade-off between index space and lookup time.",
-               "--canonical-parsing", false, true);
-    parser.add("weighted", "Also store the weights in compressed format.", "--weighted", false,
-               true);
-    parser.add("check", "Check correctness after construction.", "--check", false, true);
-    parser.add("bench", "Run benchmark after construction.", "--bench", false, true);
-    parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
+namespace sshash {
 
-    if (!parser.parse()) return 1;
-
-    auto input_filename = parser.get<std::string>("input_filename");
-    auto k = parser.get<uint64_t>("k");
-    auto m = parser.get<uint64_t>("m");
-
-    dictionary dict;
-
-    build_configuration build_config;
-    build_config.k = k;
-    build_config.m = m;
-
-    if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
-    if (parser.parsed("l")) build_config.l = parser.get<double>("l");
-    if (parser.parsed("c")) build_config.c = parser.get<double>("c");
-    build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
-    build_config.weighted = parser.get<bool>("weighted");
-    build_config.verbose = parser.get<bool>("verbose");
-    if (parser.parsed("tmp_dirname")) {
-        build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
-        essentials::create_directory(build_config.tmp_dirname);
+template <class kmer_t>
+void dictionary<kmer_t>::build(std::string const& filename,
+                               build_configuration const& build_config) {
+    /* Validate the build configuration. */
+    if (build_config.k == 0) throw std::runtime_error("k must be > 0");
+    if (build_config.k > kmer_t::max_k) {
+        throw std::runtime_error("k must be less <= " + std::to_string(kmer_t::max_k) +
+                                 " but got k = " + std::to_string(build_config.k));
     }
-    build_config.print();
-
-    dict.build(input_filename, build_config);
-    assert(dict.k() == k);
-
-    bool check = parser.get<bool>("check");
-    if (check) {
-        check_correctness_lookup_access(dict, input_filename);
-        check_correctness_navigational_kmer_query(dict, input_filename);
-        check_correctness_navigational_contig_query(dict);
-        if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        check_correctness_kmer_iterator(dict);
-        check_correctness_contig_iterator(dict);
+    if (build_config.m == 0) throw std::runtime_error("m must be > 0");
+    if (build_config.m > kmer_t::max_m) {
+        throw std::runtime_error("m must be less <= " + std::to_string(kmer_t::max_m) +
+                                 " but got m = " + std::to_string(build_config.m));
     }
-    bool bench = parser.get<bool>("bench");
-    if (bench) {
-        perf_test_lookup_access(dict);
-        if (dict.weighted()) perf_test_lookup_weight(dict);
-        perf_test_iterator(dict);
-    }
-    if (parser.parsed("output_filename")) {
-        auto output_filename = parser.get<std::string>("output_filename");
-        essentials::logger("saving data structure to disk...");
-        essentials::save(dict, output_filename.c_str());
-        essentials::logger("DONE");
+    if (build_config.m > build_config.k) throw std::runtime_error("m must be <= k");
+    if (build_config.l >= constants::max_l) {
+        throw std::runtime_error("l must be < " + std::to_string(constants::max_l));
     }
 
-    return 0;
+    m_k = build_config.k;
+    m_m = build_config.m;
+    m_seed = build_config.seed;
+    m_canonical_parsing = build_config.canonical_parsing;
+    m_skew_index.min_log2 = build_config.l;
+
+    std::vector<double> timings;
+    timings.reserve(5);
+    essentials::timer_type timer;
+
+    /* step 1: parse the input file and build compact string pool ***/
+    timer.start();
+    parse_data<kmer_t> data = parse_file<kmer_t>(filename, build_config);
+    m_size = data.num_kmers;
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
+    timer.reset();
+    /******/
+
+    if (build_config.weighted) {
+        /* step 1.1: compress weights ***/
+        timer.start();
+        data.weights_builder.build(m_weights);
+        timer.stop();
+        timings.push_back(timer.elapsed());
+        print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_weights'");
+        timer.reset();
+        /******/
+        if (build_config.verbose) {
+            double entropy_weights = data.weights_builder.print_info(data.num_kmers);
+            double avg_bits_per_weight = static_cast<double>(m_weights.num_bits()) / data.num_kmers;
+            std::cout << "weights: " << avg_bits_per_weight << " [bits/kmer]" << std::endl;
+            std::cout << "  (" << entropy_weights / avg_bits_per_weight
+                      << "x smaller than the empirical entropy)" << std::endl;
+        }
+    }
+
+    /* step 2: merge minimizers and build MPHF ***/
+    timer.start();
+    data.minimizers.merge();
+    {
+        mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                               mm::advice::sequential);
+        minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
+
+        if (build_config.verbose) {
+            std::cout << "num_minimizers " << data.minimizers.num_minimizers() << std::endl;
+        }
+
+        m_minimizers.build(iterator, data.minimizers.num_minimizers(), build_config);
+        input.close();
+    }
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 2: 'build_minimizers'");
+    timer.reset();
+    /******/
+
+    /* step 3: build index ***/
+    timer.start();
+    auto buckets_stats = build_index(data, m_minimizers, m_buckets, build_config);
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");
+    timer.reset();
+    /******/
+
+    /* step 4: build skew index ***/
+    timer.start();
+    build_skew_index(m_skew_index, data, m_buckets, build_config, buckets_stats);
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 4: 'build_skew_index'");
+    timer.reset();
+    /******/
+
+    double total_time = std::accumulate(timings.begin(), timings.end(), 0.0);
+    print_time(total_time, data.num_kmers, "total_time");
+
+    print_space_breakdown();
+
+    if (build_config.verbose) buckets_stats.print_less();
+
+    data.minimizers.remove_tmp_file();
 }
+
+}  // namespace sshash

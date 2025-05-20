@@ -1,10 +1,9 @@
 #pragma once
 
 #include "external/pthash/include/pthash.hpp"
-#include "external/pthash/external/cmd_line_parser/include/parser.hpp"
-#include "external/pthash/external/essentials/include/essentials.hpp"
-#include "include/gz/zip_stream.hpp"
-#include "include/gz/zip_stream.cpp"
+#include "external/pthash/external/bits/external/essentials/include/essentials.hpp"
+#include "external/gz/zip_stream.hpp"
+#include "external/gz/zip_stream.cpp"
 #include "include/builder/util.hpp"
 
 #include "node.hpp"
@@ -198,9 +197,10 @@ void reverse_header(std::string const& input, std::string& output, uint64_t k) {
     for (auto weight : weights) output.append(std::to_string(weight) + " ");
 }
 
+template <typename kmer_t>
 void permute_and_write(std::istream& is, std::string const& output_filename,
-                       std::string const& tmp_dirname, pthash::compact_vector const& permutation,
-                       pthash::bit_vector const& signs, uint64_t k) {
+                       std::string const& tmp_dirname, bits::compact_vector const& permutation,
+                       bits::bit_vector const& signs, uint64_t k) {
     constexpr uint64_t limit = 1 * essentials::GB;
     std::vector<std::pair<std::string, std::string>> buffer;  // (header, dna)
 
@@ -250,13 +250,13 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         std::getline(is, header_sequence);
         std::getline(is, dna_sequence);
 
-        if (!signs[i]) {
+        if (!signs.get(i)) {
             /* compute reverse complement of dna_sequence
                and reverse the weights in header_sequence */
             dna_sequence_rc.resize(dna_sequence.size());
             header_sequence_r.clear();
-            util::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
-                                             dna_sequence.size());
+            kmer_t::compute_reverse_complement(dna_sequence.data(), dna_sequence_rc.data(),
+                                               dna_sequence.size());
             reverse_header(header_sequence, header_sequence_r, k);
             dna_sequence.swap(dna_sequence_rc);
             header_sequence.swap(header_sequence_r);
@@ -352,17 +352,18 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
     }
 }
 
+template <typename kmer_t>
 void permute_and_write(std::string const& input_filename, std::string const& output_filename,
-                       std::string const& tmp_dirname, pthash::compact_vector const& permutation,
-                       pthash::bit_vector const& signs, uint64_t k) {
+                       std::string const& tmp_dirname, bits::compact_vector const& permutation,
+                       bits::bit_vector const& signs, uint64_t k) {
     std::ifstream is(input_filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + input_filename + "'");
     std::cout << "reading file '" << input_filename << "'..." << std::endl;
     if (util::ends_with(input_filename, ".gz")) {
         zip_istream zis(is);
-        permute_and_write(zis, output_filename, tmp_dirname, permutation, signs, k);
+        permute_and_write<kmer_t>(zis, output_filename, tmp_dirname, permutation, signs, k);
     } else {
-        permute_and_write(is, output_filename, tmp_dirname, permutation, signs, k);
+        permute_and_write<kmer_t>(is, output_filename, tmp_dirname, permutation, signs, k);
     }
     is.close();
 }

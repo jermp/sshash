@@ -4,8 +4,9 @@
 
 namespace sshash {
 
-void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const& m_buckets,
-                      build_configuration const& build_config,
+template <class kmer_t>
+void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data,
+                      buckets<kmer_t> const& m_buckets, build_configuration const& build_config,
                       buckets_statistics const& buckets_stats) {
     const uint64_t min_log2_size = m_skew_index.min_log2;
     const uint64_t max_log2_size = m_skew_index.max_log2;
@@ -123,7 +124,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         mphf_config.seed = util::get_seed_for_hash_function(build_config);
         mphf_config.minimal_output = true;
         mphf_config.verbose_output = false;
-        mphf_config.num_threads = std::thread::hardware_concurrency();
+        mphf_config.num_threads = build_config.num_threads;
         mphf_config.num_partitions = 4 * mphf_config.num_threads;
 
         uint64_t partition_id = 0;
@@ -136,7 +137,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
         std::vector<uint32_t> super_kmer_ids_in_partition;
         keys_in_partition.reserve(num_kmers_in_partition[partition_id]);
         super_kmer_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
-        pthash::compact_vector::builder cvb_positions;
+        bits::compact_vector::builder cvb_positions;
         cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
         /*******/
 
@@ -186,7 +187,7 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
 
                     std::cout << "    built positions[" << partition_id << "] for "
                               << positions.size() << " keys; bits/key = "
-                              << (positions.bytes() * 8.0) / positions.size() << std::endl;
+                              << (positions.num_bytes() * 8.0) / positions.size() << std::endl;
                 }
 
                 if (i == lists.size()) break;
@@ -212,12 +213,13 @@ void build_skew_index(skew_index& m_skew_index, parse_data& data, buckets const&
             assert(lists[i].size() > lower and lists[i].size() <= upper);
             uint64_t super_kmer_id = 0;
             for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
-                bit_vector_iterator bv_it(m_buckets.strings, 2 * offset);
+                bit_vector_iterator<kmer_t> bv_it(m_buckets.strings,
+                                                  kmer_t::bits_per_char * offset);
                 for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
-                    kmer_t kmer = bv_it.read(2 * build_config.k);
+                    kmer_t kmer = bv_it.read(kmer_t::bits_per_char * build_config.k);
                     keys_in_partition.push_back(kmer);
                     super_kmer_ids_in_partition.push_back(super_kmer_id);
-                    bv_it.eat(2);
+                    bv_it.eat(kmer_t::bits_per_char);
                 }
                 assert(super_kmer_id < (1ULL << cvb_positions.width()));
                 ++super_kmer_id;
