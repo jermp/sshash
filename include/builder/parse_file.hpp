@@ -83,61 +83,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     uint64_t weight_value = constants::invalid_uint64;
     uint64_t weight_length = 0;
 
-    auto parse_header = [&]() {
-        if (sequence.empty()) return;
-
-        /*
-            Heder format:
-            >[id] LN:i:[seq_len] ab:Z:[weight_seq]
-            where [weight_seq] is a space-separated sequence of integer counters (the weights),
-            whose length is equal to [seq_len]-k+1
-        */
-
-        // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
-
-        expect(sequence[0], '>');
-        uint64_t i = 0;
-        i = sequence.find_first_of(' ', i);
-        if (i == std::string::npos) throw parse_runtime_error();
-
-        i += 1;
-        expect(sequence[i + 0], 'L');
-        expect(sequence[i + 1], 'N');
-        expect(sequence[i + 2], ':');
-        expect(sequence[i + 3], 'i');
-        expect(sequence[i + 4], ':');
-        i += 5;
-        uint64_t j = sequence.find_first_of(' ', i);
-        if (j == std::string::npos) throw parse_runtime_error();
-
-        seq_len = std::strtoull(sequence.data() + i, nullptr, 10);
-        i = j + 1;
-        expect(sequence[i + 0], 'a');
-        expect(sequence[i + 1], 'b');
-        expect(sequence[i + 2], ':');
-        expect(sequence[i + 3], 'Z');
-        expect(sequence[i + 4], ':');
-        i += 5;
-
-        for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
-            uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
-            i = sequence.find_first_of(' ', i) + 1;
-
-            data.weights_builder.eat(weight);
-            sum_of_weights += weight;
-
-            if (weight == weight_value) {
-                weight_length += 1;
-            } else {
-                if (weight_value != constants::invalid_uint64) {
-                    data.weights_builder.push_weight_interval(weight_value, weight_length);
-                }
-                weight_value = weight;
-                weight_length = 1;
-            }
-        }
-    };
-
     while (!is.eof())  //
     {
         if constexpr (fmt == input_file_type::cfseg) {
@@ -145,8 +90,61 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             std::getline(is, sequence);        // DNA sequence
         } else {
             static_assert(fmt == input_file_type::fasta);
-            std::getline(is, sequence);  // header sequence
-            if (build_config.weighted) parse_header();
+            std::getline(is, sequence);   // header sequence
+            if (build_config.weighted) {  // parse header
+                if (sequence.empty()) return;
+
+                /*
+                    Heder format:
+                    >[id] LN:i:[seq_len] ab:Z:[weight_seq]
+                    where [weight_seq] is a space-separated sequence of integer counters (the
+                   weights), whose length is equal to [seq_len]-k+1
+                */
+
+                // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
+
+                expect(sequence[0], '>');
+                uint64_t i = 0;
+                i = sequence.find_first_of(' ', i);
+                if (i == std::string::npos) throw parse_runtime_error();
+
+                i += 1;
+                expect(sequence[i + 0], 'L');
+                expect(sequence[i + 1], 'N');
+                expect(sequence[i + 2], ':');
+                expect(sequence[i + 3], 'i');
+                expect(sequence[i + 4], ':');
+                i += 5;
+                uint64_t j = sequence.find_first_of(' ', i);
+                if (j == std::string::npos) throw parse_runtime_error();
+
+                seq_len = std::strtoull(sequence.data() + i, nullptr, 10);
+                i = j + 1;
+                expect(sequence[i + 0], 'a');
+                expect(sequence[i + 1], 'b');
+                expect(sequence[i + 2], ':');
+                expect(sequence[i + 3], 'Z');
+                expect(sequence[i + 4], ':');
+                i += 5;
+
+                for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
+                    uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
+                    i = sequence.find_first_of(' ', i) + 1;
+
+                    data.weights_builder.eat(weight);
+                    sum_of_weights += weight;
+
+                    if (weight == weight_value) {
+                        weight_length += 1;
+                    } else {
+                        if (weight_value != constants::invalid_uint64) {
+                            data.weights_builder.push_weight_interval(weight_value, weight_length);
+                        }
+                        weight_value = weight;
+                        weight_length = 1;
+                    }
+                }
+            }
             std::getline(is, sequence);  // DNA sequence
         }
 
