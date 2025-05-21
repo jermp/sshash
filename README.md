@@ -47,7 +47,6 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Tools and Usage](#tools-and-usage)
 * [Examples](#Examples)
 * [Input Files](#input-files)
-* [Benchmarks](#benchmarks)
 * [References](#references)
 
 Compiling the Code
@@ -286,84 +285,6 @@ For the experiments in [2] and [3], we used the datasets available on [Zenodo](h
 
 #### Weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
-
-Benchmarks
-----------
-
-For some example benchmarks, see the folder `/benchmarks`.
-
-Some more large-scale benchmarks below.
-
-*Pinus Taeda* ("pine", [GCA_000404065.3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/404/065/GCA_000404065.3_Ptaeda2.0/GCA_000404065.3_Ptaeda2.0_genomic.fna.gz)) and *Ambystoma Mexicanum* ("axolotl", [GCA_002915635.2](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/915/635/GCA_002915635.3_AmbMex60DD/GCA_002915635.3_AmbMex60DD_genomic.fna.gz))
-are some of the largest genome assemblies, respectively counting
-10,508,232,575 and 17,987,935,180 distinct k-mers for k = 31.
-
-After running BCALM2 and UST, we build the indexes as follows.
-
-    ./sshash build -i ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz -k 31 -m 20 -l 6 -c 7 -o pinus.m20.index
-    ./sshash build -i ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz -k 31 -m 19 -l 6 -c 7 --canonical-parsing -o pinus.m19.canon.index
-    ./sshash build -i ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz -k 31 -m 21 -l 6 -c 7 -o axolotl.m21.index
-    ./sshash build -i ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz -k 31 -m 20 -l 6 -c 7 --canonical-parsing -o axolotl.m20.canon.index
-
-The following table summarizes the space of the dictionaries.
-
-| Dictionary        |Pine       || Axolotl  ||
-|:------------------|:---:|:----:|:---:|:---:|
-|                   | GB     | bits/k-mer  | GB    | bits/k-mer |
-| SSHash, regular   | 13.21  | 10.06       | 22.28 | 9.91       |
-| SSHash, canonical | 14.94  | 11.37       | 25.03 | 11.13      |
-
-To query the dictionaries, we use [SRR17023415](https://www.ebi.ac.uk/ena/browser/view/SRR17023415) fastq reads
-(23,891,117 reads, each of 150 bases) for the pine,
-and [GSM5747680](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM5747680) multi-line fasta (15,548,160 lines) for the axolotl.
-
-Timings have been collected on an Intel Xeon Platinum 8276L CPU @ 2.20GHz,
-using a single thread.
-
-| Dictionary        |Pine       || Axolotl  ||
-|:------------------|:---:|:----:|:---:|:---:|
-|                   |(>75% hits)||(>86% hits)|
-|                   | tot (min) | avg (ns/k-mer) | tot (min) | avg (ns/k-mer) |
-| SSHash, regular   | 19.2      | 400            | 4.2       | 269            |
-| SSHash, canonical | 14.8      | 310            | 3.2       | 208            |
-
-Below the complete query reports.
-
-    ./sshash query -i pinus.m20.index -q ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
-    ==== query report:
-    num_kmers = 2866934040
-    num_valid_kmers = 2866783488 (99.9947% of kmers)
-    num_positive_kmers = 2151937575 (75.0645% of valid kmers)
-    num_searches = 418897117/2151937575 (19.466%)
-    num_extensions = 1733040458/2151937575 (80.534%)
-    elapsed = 1146.58 sec / 19.1097 min / 399.933 ns/kmer
-
-    ./sshash query -i pinus.m19.canon.index -q ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
-    ==== query report:
-    num_kmers = 2866934040
-    num_valid_kmers = 2866783488 (99.9947% of kmers)
-    num_positive_kmers = 2151937575 (75.0645% of valid kmers)
-    num_searches = 359426304/2151937575 (16.7025%)
-    num_extensions = 1792511271/2151937575 (83.2975%)
-    elapsed = 889.779 sec / 14.8297 min / 310.359 ns/kmer
-
-    ./sshash query -i axolotl.m21.index -q ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
-    ==== query report:
-    num_kmers = 931366757
-    num_valid_kmers = 748445346 (80.3599% of kmers)
-    num_positive_kmers = 650467884 (86.9092% of valid kmers)
-    num_searches = 124008258/650467884 (19.0645%)
-    num_extensions = 526459626/650467884 (80.9355%)
-    elapsed = 250.173 sec / 4.16955 min / 268.608 ns/kmer
-
-    ./sshash query -i axolotl.m20.canon.index -q ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
-    ==== query report:
-    num_kmers = 931366757
-    num_valid_kmers = 748445346 (80.3599% of kmers)
-    num_positive_kmers = 650467884 (86.9092% of valid kmers)
-    num_searches = 106220473/650467884 (16.3299%)
-    num_extensions = 544247411/650467884 (83.6701%)
-    elapsed = 193.871 sec / 3.23119 min / 208.158 ns/kmer
 
 References
 -----
