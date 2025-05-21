@@ -43,17 +43,22 @@ struct kmers_pthash_hasher_128 {
 using minimizers_base_hasher_type = pthash::murmurhash2_128;
 
 using minimizers_pthash_type =
-    pthash::partitioned_phf<minimizers_base_hasher_type,    // base hasher
-                            pthash::dictionary_dictionary,  // encoder type
-                            true>;                          // minimal output
+    pthash::partitioned_phf<minimizers_base_hasher_type,                    // base hasher
+                            pthash::skew_bucketer,                          // bucketer type
+                            pthash::dictionary_dictionary,                  // encoder type
+                            true,                                           // minimal output
+                            pthash::pthash_search_type::xor_displacement>;  // search type>;
 
 template <class kmer_t>
 using kmers_base_hasher_type = kmers_pthash_hasher_128<kmer_t>;
 
 template <class kmer_t>
-using kmers_pthash_type = pthash::partitioned_phf<kmers_base_hasher_type<kmer_t>,  // base hasher
-                                                  pthash::dictionary_dictionary,   // encoder type
-                                                  true>;                           // minimal output
+using kmers_pthash_type =
+    pthash::partitioned_phf<kmers_base_hasher_type<kmer_t>,                 // base hasher
+                            pthash::skew_bucketer,                          // bucketer type
+                            pthash::dictionary_dictionary,                  // encoder type
+                            true,                                           // minimal output
+                            pthash::pthash_search_type::xor_displacement>;  // search type>;
 
 /* used to hash m-mers and determine the minimizer of a k-mer */
 struct murmurhash2_64 {

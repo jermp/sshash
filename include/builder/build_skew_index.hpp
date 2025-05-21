@@ -118,14 +118,13 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
     {
         std::cout << "building partitions..." << std::endl;
 
-        pthash::build_configuration mphf_config;
-        mphf_config.c = build_config.c;
-        mphf_config.alpha = 0.94;
-        mphf_config.seed = util::get_seed_for_hash_function(build_config);
-        mphf_config.minimal_output = true;
-        mphf_config.verbose_output = false;
-        mphf_config.num_threads = build_config.num_threads;
-        mphf_config.num_partitions = 4 * mphf_config.num_threads;
+        pthash::build_configuration mphf_build_config;
+        mphf_build_config.lambda = build_config.lambda;
+        mphf_build_config.alpha = 0.94;
+        mphf_build_config.seed = util::get_seed_for_hash_function(build_config);
+        mphf_build_config.verbose = false;
+        mphf_build_config.num_threads = build_config.num_threads;
+        mphf_build_config.avg_partition_size = constants::avg_partition_size;
 
         uint64_t partition_id = 0;
         uint64_t lower = min_size;
@@ -151,25 +150,21 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
 
                 if (num_kmers_in_partition[partition_id] > 0)  //
                 {
-                    if (keys_in_partition.size() / mphf_config.num_partitions <
-                        pthash::constants::min_partition_size) {
-                        mphf_config.num_partitions =
-                            std::max<uint64_t>(1, keys_in_partition.size() /
-                                                      (2 * pthash::constants::min_partition_size));
-                    }
-
                     if (build_config.verbose) {
-                        std::cout << "    building MPHF with " << mphf_config.num_threads
-                                  << " threads and " << mphf_config.num_partitions
-                                  << " partitions..." << std::endl;
+                        const uint64_t avg_partition_size = pthash::compute_avg_partition_size(
+                            keys_in_partition.size(), mphf_build_config);
+                        const uint64_t num_partitions = pthash::compute_num_partitions(
+                            keys_in_partition.size(), avg_partition_size);
+                        assert(num_partitions > 0);
+                        std::cout << "    building MPHF with " << mphf_build_config.num_threads
+                                  << " threads and " << num_partitions
+                                  << " partitions (avg. partition size = " << avg_partition_size
+                                  << ")..." << std::endl;
                     }
 
                     auto& mphf = m_skew_index.mphfs[partition_id];
                     mphf.build_in_internal_memory(keys_in_partition.begin(),
-                                                  keys_in_partition.size(), mphf_config);
-
-                    mphf_config.num_partitions =
-                        4 * mphf_config.num_threads;  // restore default value
+                                                  keys_in_partition.size(), mphf_build_config);
 
                     std::cout << "    built mphs[" << partition_id << "] for "
                               << keys_in_partition.size() << " keys; bits/key = "

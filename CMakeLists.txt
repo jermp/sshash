@@ -58,8 +58,12 @@ if (UNIX)
 endif()
 
 include_directories(.) # all include paths relative to parent directory
-include_directories(external/pthash)
+include_directories(external/pthash/include)
+include_directories(external/pthash/external/bits/include)
+include_directories(external/pthash/external/fastmod)
 include_directories(external/pthash/external/bits/external/essentials/include)
+include_directories(external/pthash/external/xxHash)
+include_directories(external/pthash/external/mm_file/include)
 
 set(Z_LIB_SOURCES
   external/gz/zip_stream.cpp

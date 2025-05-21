@@ -80,14 +80,13 @@ struct build_configuration {
         , num_threads(std::thread::hardware_concurrency())
 
         , l(constants::min_l)
-        , c(constants::c)
+        , lambda(constants::lambda)
 
         , canonical_parsing(false)
         , weighted(false)
         , verbose(true)
 
         , tmp_dirname(constants::default_tmp_dirname)
-    // , input_type(input_build_type::cfseg)
 
     {}
 
@@ -96,23 +95,20 @@ struct build_configuration {
     uint64_t seed;
     uint64_t num_threads;
 
-    uint64_t l;  // drive dictionary trade-off
-    double c;    // drive PTHash trade-off
+    uint64_t l;     // drive dictionary trade-off
+    double lambda;  // drive PTHash trade-off
 
     bool canonical_parsing;
     bool weighted;
     bool verbose;
 
     std::string tmp_dirname;
-    // input_build_type input_type;
 
     void print() const {
-        std::cout
-            << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l << ", c = " << c
-            << ", canonical_parsing = " << (canonical_parsing ? "true" : "false") << ", weighted = "
-            << (weighted ? "true" : "false")
-            // << ", file type = " << (input_type == input_build_type::fasta ? "fasta" : "cfseg")
-            << std::endl;
+        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
+                  << ", lambda = " << lambda
+                  << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
+                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
     }
 };
 

@@ -33,12 +33,12 @@ int build(int argc, char** argv) {
                    std::to_string(constants::max_l) + "). The default value is " +
                    std::to_string(constants::min_l) + ".",
                "-l", false);
-    parser.add("c",
+    parser.add("lambda",
                "A (floating point) constant that trades construction speed for space effectiveness "
                "of minimal perfect hashing. "
                "A reasonable value lies between 3.0 and 10.0 (default is " +
-                   std::to_string(constants::c) + ").",
-               "-c", false);
+                   std::to_string(constants::lambda) + ").",
+               "-a", false);
     parser.add("output_filename", "Output file name where the data structure will be serialized.",
                "-o", false);
     parser.add(
@@ -72,7 +72,7 @@ int build(int argc, char** argv) {
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
     if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
-    if (parser.parsed("c")) build_config.c = parser.get<double>("c");
+    if (parser.parsed("lambda")) build_config.lambda = parser.get<double>("lambda");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
     build_config.weighted = parser.get<bool>("weighted");
     build_config.verbose = parser.get<bool>("verbose");
