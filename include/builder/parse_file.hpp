@@ -15,7 +15,8 @@ struct parse_data {
 
 template <class kmer_t, input_file_type fmt>
 void parse_file(std::istream& is, parse_data<kmer_t>& data,
-                build_configuration const& build_config) {
+                build_configuration const& build_config)  //
+{
     uint64_t k = build_config.k;
     uint64_t m = build_config.m;
     uint64_t seed = build_config.seed;
@@ -85,7 +86,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
     while (!is.eof())  //
     {
-        if constexpr (fmt == input_file_type::cfseg) {
+        if constexpr (fmt == input_file_type::cf_seg) {
             std::getline(is, sequence, '\t');  // skip '\t'
             std::getline(is, sequence);        // DNA sequence
         } else {
@@ -224,14 +225,14 @@ parse_data<kmer_t> parse_file(std::string const& filename,
     parse_data<kmer_t> data(build_config.tmp_dirname);
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
-        if (util::ends_with(filename, ".cfseg.gz")) {
-            parse_file<kmer_t, input_file_type::cfseg>(zis, data, build_config);
+        if (util::ends_with(filename, ".cf_seg.gz")) {
+            parse_file<kmer_t, input_file_type::cf_seg>(zis, data, build_config);
         } else {
             parse_file<kmer_t, input_file_type::fasta>(zis, data, build_config);
         }
     } else {
-        if (util::ends_with(filename, ".cfseg")) {
-            parse_file<kmer_t, input_file_type::cfseg>(is, data, build_config);
+        if (util::ends_with(filename, ".cf_seg")) {
+            parse_file<kmer_t, input_file_type::cf_seg>(is, data, build_config);
         } else {
             parse_file<kmer_t, input_file_type::fasta>(is, data, build_config);
         }

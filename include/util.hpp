@@ -10,6 +10,8 @@
 
 namespace sshash {
 
+enum input_file_type { fasta, cf_seg };
+
 struct streaming_query_report {
     streaming_query_report()
         : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
@@ -70,8 +72,6 @@ struct neighbourhood {
     return good;
 }
 
-enum input_file_type { fasta, cfseg };
-
 struct build_configuration {
     build_configuration()
         : k(31)
@@ -128,14 +128,14 @@ template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
     kmer_t x = 0;
-    for (int i = k - 1; i >= 0; i--) { x.append_char(kmer_t::char_to_uint(str[i])); }
+    for (int i = k - 1; i >= 0; i--) x.append_char(kmer_t::char_to_uint(str[i]));
     return x;
 }
 
 template <class kmer_t>
 static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
-    for (uint64_t i = 0; i != k; ++i) { str[i] = kmer_t::uint64_to_char(x.pop_char()); }
+    for (uint64_t i = 0; i != k; ++i) str[i] = kmer_t::uint64_to_char(x.pop_char());
 }
 
 template <class kmer_t>
@@ -150,7 +150,7 @@ template <class kmer_t>
 template <class kmer_t>
 [[maybe_unused]] static bool is_valid(char const* str, uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
-        if (!kmer_t::is_valid(str[i])) { return false; }
+        if (!kmer_t::is_valid(str[i])) return false;
     }
     return true;
 }

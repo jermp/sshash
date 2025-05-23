@@ -22,7 +22,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
 
     while (!is.eof())  //
     {
-        if constexpr (fmt == input_file_type::cfseg) {
+        if constexpr (fmt == input_file_type::cf_seg) {
             std::getline(is, sequence, '\t');  // skip '\t'
             std::getline(is, sequence);        // DNA sequence
         } else {
@@ -168,7 +168,7 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer
 
     while (!is.eof())  //
     {
-        if constexpr (fmt == input_file_type::cfseg) {
+        if constexpr (fmt == input_file_type::cf_seg) {
             std::getline(is, sequence, '\t');  // skip '\t'
             std::getline(is, sequence);        // DNA sequence
         } else {
@@ -275,13 +275,13 @@ bool check_correctness_lookup_access(dictionary<kmer_t> const& dict, std::string
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cfseg.gz")) {
-            good = check_correctness_lookup_access<kmer_t, input_file_type::cfseg>(zis, dict);
+            good = check_correctness_lookup_access<kmer_t, input_file_type::cf_seg>(zis, dict);
         } else {
             good = check_correctness_lookup_access<kmer_t, input_file_type::fasta>(zis, dict);
         }
     } else {
         if (util::ends_with(filename, ".cfseg")) {
-            good = check_correctness_lookup_access<kmer_t, input_file_type::cfseg>(is, dict);
+            good = check_correctness_lookup_access<kmer_t, input_file_type::cf_seg>(is, dict);
         } else {
             good = check_correctness_lookup_access<kmer_t, input_file_type::fasta>(is, dict);
         }
@@ -303,16 +303,16 @@ bool check_correctness_navigational_kmer_query(dictionary<kmer_t> const& dict,
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cfseg.gz")) {
-            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::cfseg>(zis,
-                                                                                             dict);
+            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::cf_seg>(zis,
+                                                                                              dict);
         } else {
             good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::fasta>(zis,
                                                                                              dict);
         }
     } else {
         if (util::ends_with(filename, ".cfseg")) {
-            good =
-                check_correctness_navigational_kmer_query<kmer_t, input_file_type::cfseg>(is, dict);
+            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::cf_seg>(is,
+                                                                                              dict);
         } else {
             good =
                 check_correctness_navigational_kmer_query<kmer_t, input_file_type::fasta>(is, dict);
