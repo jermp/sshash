@@ -31,7 +31,6 @@ void dictionary<kmer_t>::build(std::string const& filename,
         throw std::runtime_error("l must be < " + std::to_string(constants::max_l));
     }
 
-    m_vnum.init_to_current_version_number();
     m_k = build_config.k;
     m_m = build_config.m;
     m_seed = build_config.seed;

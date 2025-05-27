@@ -12,41 +12,6 @@ namespace sshash {
 
 enum input_file_type { fasta, cf_seg };
 
-/* Reference: https://semver.org */
-struct version_number {
-    static const uint8_t X = 4;
-    static const uint8_t Y = 0;
-    static const uint8_t Z = 0;
-
-    version_number() : x(0), y(0), z(0) {}
-
-    void init_to_current_version_number() {
-        x = X;
-        y = Y;
-        z = Z;
-    }
-
-    std::string to_string() const {
-        return std::to_string(x) + '.' + std::to_string(y) + '.' + std::to_string(z);
-    }
-
-    uint8_t x, y, z;
-
-    template <typename Visitor>
-    void visit(Visitor& visitor) {
-        visitor.visit(x);
-        visitor.visit(y);
-        visitor.visit(z);
-    }
-
-    template <typename Visitor>
-    void visit(Visitor& visitor) const {
-        visitor.visit(x);
-        visitor.visit(y);
-        visitor.visit(z);
-    }
-};
-
 struct streaming_query_report {
     streaming_query_report()
         : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
@@ -149,8 +114,8 @@ struct build_configuration {
 
 namespace util {
 
-void check_version_number(version_number const& vnum) {
-    if (vnum.x != version_number::X) {
+void check_version_number(essentials::version_number const& vnum) {
+    if (vnum.x != constants::current_version_number::x) {
         throw std::runtime_error("MAJOR index version mismatch: SSHash index needs rebuilding");
     }
 }
