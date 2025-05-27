@@ -3,6 +3,7 @@
 #include "kmer.hpp"
 
 namespace sshash::constants {
+
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
 
 constexpr uint64_t seed = 1;
