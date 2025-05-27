@@ -114,7 +114,7 @@ struct build_configuration {
 
 namespace util {
 
-void check_version_number(essentials::version_number const& vnum) {
+static void check_version_number(essentials::version_number const& vnum) {
     if (vnum.x != constants::current_version_number::x) {
         throw std::runtime_error("MAJOR index version mismatch: SSHash index needs rebuilding");
     }
