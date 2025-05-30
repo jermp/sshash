@@ -1,6 +1,7 @@
 #pragma once
 
 #include "external/gz/zip_stream.hpp"
+#include "include/minimizer_enumerator.hpp"
 
 namespace sshash {
 
@@ -17,11 +18,11 @@ template <class kmer_t, input_file_type fmt>
 void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 build_configuration const& build_config)  //
 {
-    uint64_t k = build_config.k;
-    uint64_t m = build_config.m;
-    uint64_t seed = build_config.seed;
-    uint64_t max_num_kmers_in_super_kmer = k - m + 1;
-    uint64_t block_size = 2 * k - m;  // max_num_kmers_in_super_kmer + k - 1
+    const uint64_t k = build_config.k;
+    const uint64_t m = build_config.m;
+    const uint64_t seed = build_config.seed;
+    const uint64_t max_num_kmers_in_super_kmer = k - m + 1;
+    const uint64_t block_size = 2 * k - m;  // max_num_kmers_in_super_kmer + k - 1
 
     if (max_num_kmers_in_super_kmer >= (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8))) {
         throw std::runtime_error(
@@ -76,6 +77,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         }
     };
 
+    minimizer_enumerator<kmer_t> minimizer_enum(k, m, seed);
+    minimizer_enumerator<kmer_t> minimizer_enum_rc(k, m, seed);
     uint64_t seq_len = 0;
     uint64_t sum_of_weights = 0;
     data.weights_builder.init();
@@ -168,16 +171,29 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             throw std::runtime_error("file is malformed");
         }
 
+        bool start = true;
+        kmer_t uint_kmer;
         while (end != sequence.length() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid<kmer_t>(kmer, k));
-            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
-            uint64_t minimizer = util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed);
+
+            if (!start) {
+                uint_kmer.drop_char();
+                uint_kmer.kth_char_or(k - 1, kmer_t::char_to_uint(kmer[k - 1]));
+                assert(uint_kmer == util::string_to_uint_kmer<kmer_t>(kmer, k));
+            } else {
+                uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
+            }
+
+            uint64_t minimizer = minimizer_enum.next(uint_kmer, start);
+            assert(minimizer == util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed));
 
             if (build_config.canonical_parsing) {
                 kmer_t uint_kmer_rc = uint_kmer;
                 uint_kmer_rc.reverse_complement_inplace(k);
-                uint64_t minimizer_rc = util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed);
+                constexpr bool reverse = true;
+                uint64_t minimizer_rc = minimizer_enum_rc.next(uint_kmer_rc, start, reverse);
+                assert(minimizer_rc == util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed));
                 minimizer = std::min(minimizer, minimizer_rc);
             }
 
@@ -191,6 +207,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
             ++data.num_kmers;
             ++end;
+            start = false;
         }
 
         append_super_kmer();

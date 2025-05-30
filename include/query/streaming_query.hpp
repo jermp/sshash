@@ -15,7 +15,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
     streaming_query_report report;
     buffered_lines_iterator it(is);
     std::string buffer;
-    uint64_t k = dict->k();
+    const uint64_t k = dict->k();
     Query query(dict);
     query.start();
     while (!it.eof()) {
@@ -47,7 +47,7 @@ streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const*
                                                        std::istream& is) {
     streaming_query_report report;
     std::string line;
-    uint64_t k = dict->k();
+    const uint64_t k = dict->k();
     Query query(dict);
     while (!is.eof()) {
         query.start();
@@ -71,7 +71,7 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
                                                        std::istream& is) {
     streaming_query_report report;
     std::string line;
-    uint64_t k = dict->k();
+    const uint64_t k = dict->k();
     Query query(dict);
     while (!is.eof()) {
         query.start();
