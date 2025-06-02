@@ -47,5 +47,5 @@ jobs:
         run: sudo apt-get install -y libomp-dev
       - name: Build
         run: |
-          cmake -B ./build
+          cmake -B ./build -DCMAKE_CXX_FLAGS="-fopenmp"
           cmake --build ./build --parallel
