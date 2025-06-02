@@ -24,8 +24,6 @@ jobs:
           sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install --assume-yes --no-install-recommends ca-certificates cmake git
-      - name: Install OpenMP library
-        run: sudo apt-get install -y libomp-dev
       - name: Install GCC
         if: ${{ matrix.compiler.name == 'gcc' }}
         run: |
@@ -41,6 +39,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - name: Install OpenMP library for GCC
+        if: ${{ matrix.compiler.name == 'gcc' }}
+        run: sudo apt-get install -y libomp-dev libgomp1
+      - name: Install OpenMP library for Clang
+        if: ${{ matrix.compiler.name == 'clang' }}
+        run: sudo apt-get install -y libomp-dev
       - name: Build
         run: |
           cmake -B ./build
