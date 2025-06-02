@@ -6,6 +6,13 @@ struct buckets_statistics {
     static const uint64_t max_bucket_size = 4 * 1024;
     static const uint64_t max_string_size = 256;
 
+    buckets_statistics()
+        : m_num_buckets(0)
+        , m_num_kmers(0)
+        , m_num_super_kmers(0)
+        , m_max_num_kmers_in_super_kmer(0)
+        , m_max_num_super_kmers_in_bucket(0) {}
+
     buckets_statistics(uint64_t num_buckets, uint64_t num_kmers, uint64_t num_super_kmers)
         : m_num_buckets(num_buckets)
         , m_num_kmers(num_kmers)
@@ -38,8 +45,11 @@ struct buckets_statistics {
             m_string_sizes[num_kmers_in_super_kmer] += 1;
     }
 
-    uint64_t num_kmers() const { return m_num_kmers; }
     uint64_t num_buckets() const { return m_num_buckets; }
+    uint64_t num_kmers() const { return m_num_kmers; }
+    uint64_t num_super_kmers() const { return m_num_super_kmers; }
+
+    uint64_t max_num_kmers_in_super_kmer() const { return m_max_num_kmers_in_super_kmer; }
     uint64_t max_num_super_kmers_in_bucket() const { return m_max_num_super_kmers_in_bucket; }
 
     void print_full() const {
@@ -118,12 +128,40 @@ struct buckets_statistics {
                   << std::endl;
     }
 
+    void operator+=(buckets_statistics const& rhs) {
+        assert(m_num_buckets == rhs.num_buckets());
+        assert(m_num_kmers == rhs.num_kmers());
+        assert(m_num_super_kmers == rhs.num_super_kmers());
+
+        if (rhs.max_num_kmers_in_super_kmer() > m_max_num_kmers_in_super_kmer) {
+            m_max_num_kmers_in_super_kmer = rhs.max_num_kmers_in_super_kmer();
+        }
+        if (rhs.max_num_super_kmers_in_bucket() > m_max_num_super_kmers_in_bucket) {
+            m_max_num_super_kmers_in_bucket = rhs.max_num_super_kmers_in_bucket();
+        }
+
+        assert(m_bucket_sizes.size() == rhs.m_bucket_sizes.size());
+        for (uint64_t i = 0; i != m_bucket_sizes.size(); ++i) {
+            m_bucket_sizes[i] += rhs.m_bucket_sizes[i];
+        }
+        assert(m_total_kmers.size() == rhs.m_total_kmers.size());
+        for (uint64_t i = 0; i != m_total_kmers.size(); ++i) {
+            m_total_kmers[i] += rhs.m_total_kmers[i];
+        }
+        assert(m_string_sizes.size() == rhs.m_string_sizes.size());
+        for (uint64_t i = 0; i != m_string_sizes.size(); ++i) {
+            m_string_sizes[i] += rhs.m_string_sizes[i];
+        }
+    }
+
 private:
     uint64_t m_num_buckets;
     uint64_t m_num_kmers;
     uint64_t m_num_super_kmers;
+
     uint64_t m_max_num_kmers_in_super_kmer;
     uint64_t m_max_num_super_kmers_in_bucket;
+
     std::vector<uint64_t> m_bucket_sizes;
     std::vector<uint64_t> m_total_kmers;
     std::vector<uint64_t> m_string_sizes;

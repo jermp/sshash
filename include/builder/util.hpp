@@ -2,6 +2,10 @@
 
 #include "file_merging_iterator.hpp"
 
+#ifndef __APPLE__
+#include <parallel/algorithm>
+#endif
+
 namespace sshash {
 
 [[maybe_unused]] static void print_time(double time, uint64_t num_kmers,
@@ -147,11 +151,6 @@ struct minimizers_tuples_iterator : std::forward_iterator_tag {
     bool has_next() const { return m_list_begin != m_end; }
     list_type list() const { return list_type(m_list_begin, m_list_end); }
 
-private:
-    minimizer_tuple const* m_list_begin;
-    minimizer_tuple const* m_list_end;
-    minimizer_tuple const* m_end;
-
     minimizer_tuple const* next_begin() {
         minimizer_tuple const* begin = m_list_begin;
         uint64_t prev_minimizer = (*begin).minimizer;
@@ -162,6 +161,11 @@ private:
         }
         return begin;
     }
+
+private:
+    minimizer_tuple const* m_list_begin;
+    minimizer_tuple const* m_list_end;
+    minimizer_tuple const* m_end;
 };
 
 template <typename ValueType>
@@ -178,7 +182,7 @@ private:
 };
 
 struct minimizers_tuples {
-    static constexpr uint64_t ram_limit = 0.5 * essentials::GB;
+    static constexpr uint64_t ram_limit = 1.0 * essentials::GB;
 
     minimizers_tuples(std::string const& tmp_dirname)
         : m_buffer_size(0)
@@ -199,12 +203,16 @@ struct minimizers_tuples {
 
     void sort_and_flush() {
         std::cout << "sorting buffer..." << std::endl;
-        std::sort(m_buffer.begin(), m_buffer.end(),
-                  [](minimizer_tuple const& x, minimizer_tuple const& y) {
-                      return (x.minimizer < y.minimizer) or
-                             (x.minimizer == y.minimizer and x.offset < y.offset);
-                  });
-
+#ifdef __APPLE__
+        std::sort
+#else
+        __gnu_parallel::sort
+#endif
+            (m_buffer.begin(), m_buffer.end(),
+             [](minimizer_tuple const& x, minimizer_tuple const& y) {
+                 return (x.minimizer < y.minimizer) or
+                        (x.minimizer == y.minimizer and x.offset < y.offset);
+             });
         auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
