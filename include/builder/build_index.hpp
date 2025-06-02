@@ -170,8 +170,7 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     // bits::compact_vector::builder offsets_builder;
     // offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
 
-    std::vector<uint64_t> offsets_builder;
-    offsets_builder.resize(num_super_kmers);
+    std::vector<uint64_t> offsets_builder(num_super_kmers, constants::invalid_uint64);
 
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
@@ -262,7 +261,9 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
             auto list = it.list();
             for (auto [offset, num_kmers_in_super_kmer] : list) {
                 // offsets_builder.set(base + offset_pos++, offset);
-                offsets_builder[base + offset_pos++] = offset;
+                assert(offsets_builder[base + offset_pos] == constants::invalid_uint64);
+                offsets_builder[base + offset_pos] = offset;
+                offset_pos += 1;
                 tbs.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket, num_kmers_in_super_kmer);
             }
             assert(offset_pos == num_super_kmers_in_bucket);
