@@ -192,6 +192,8 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     std::cout << "num_singletons " << num_singletons << "/" << num_buckets << " ("
               << (num_singletons * 100.0) / num_buckets << "%)" << std::endl;
 
+    essentials::timer_type timer;
+    timer.start();
     if (bucket_pairs_manager.num_files_to_merge() > 0) {
         bucket_pairs_manager.merge();
         mm::file_source<bucket_pair> bucket_pairs_file(
@@ -208,9 +210,14 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
         m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
                                                        num_super_kmers - num_buckets);
     }
+    timer.stop();
+    std::cout << "building: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+
+    timer.reset();
 
     buckets_statistics buckets_stats(num_buckets, num_kmers, num_super_kmers);
 
+    timer.start();
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
          it.next()) {
         uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
@@ -228,14 +235,20 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
         }
         assert(offset_pos == num_super_kmers_in_bucket);
     }
+    input.close();
+    timer.stop();
+    std::cout << "computing minimizers offsets: " << timer.elapsed() / 1000000 << " [sec]"
+              << std::endl;
 
+    timer.reset();
+    timer.start();
     m_buckets.pieces.encode(data.strings.pieces.begin(),  //
                             data.strings.pieces.size(),   //
                             data.strings.pieces.back());  //
     offsets_builder.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings.strings);
-
-    input.close();
+    timer.stop();
+    std::cout << "encoding: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
     return buckets_stats;
 }

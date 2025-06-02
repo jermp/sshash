@@ -26,7 +26,10 @@ struct compact_string_pool {
     compact_string_pool() {}
 
     struct builder {
-        builder(uint64_t k) : k(k), offset(0), num_super_kmers(0) {}
+        builder(uint64_t k) : k(k), offset(0), num_super_kmers(0) {
+            const uint64_t num_bits = 8 * 8 * essentials::GB;  // 8 GB of memory
+            bvb_strings.reserve(num_bits);
+        }
 
         void build(compact_string_pool& pool) {
             pool.m_num_super_kmers = num_super_kmers;

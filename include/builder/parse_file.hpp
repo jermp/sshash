@@ -65,8 +65,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             if (i == num_blocks - 1) n = size;
             uint64_t num_kmers_in_block = n - k + 1;
             assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-            data.minimizers.emplace_back(uint64_t(prev_minimizer), builder.offset,
-                                         num_kmers_in_block);
+            data.minimizers.emplace_back(prev_minimizer, builder.offset, num_kmers_in_block);
             builder.append(super_kmer + i * max_num_kmers_in_super_kmer, n, glue);
             if (glue) {
                 assert(data.minimizers.back().offset > k - 1);
