@@ -167,8 +167,11 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     const uint64_t num_super_kmers = data.strings.num_super_kmers();
     const uint64_t num_threads = build_config.num_threads;
 
-    bits::compact_vector::builder offsets_builder;
-    offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
+    // bits::compact_vector::builder offsets_builder;
+    // offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
+
+    std::vector<uint64_t> offsets_builder;
+    offsets_builder.resize(num_super_kmers);
 
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
@@ -228,7 +231,7 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     offsets.reserve(num_threads + 1);
     for (uint64_t begin = -1; begin != num_super_kmers;) {
         offsets.push_back(begin + 1);
-        begin = std::min<uint64_t>(begin + 1 + block_size, num_super_kmers);
+        begin = std::min<uint64_t>((begin + 1) + block_size, num_super_kmers);
         minimizers_tuples_iterator it(input.data() + begin, input.data() + input.size());
         minimizer_tuple const* next_begin = it.next_begin();
         assert(next_begin >= input.data() + begin);
@@ -258,7 +261,8 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
             uint64_t offset_pos = 0;
             auto list = it.list();
             for (auto [offset, num_kmers_in_super_kmer] : list) {
-                offsets_builder.set(base + offset_pos++, offset);
+                // offsets_builder.set(base + offset_pos++, offset);
+                offsets_builder[base + offset_pos++] = offset;
                 tbs.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket, num_kmers_in_super_kmer);
             }
             assert(offset_pos == num_super_kmers_in_bucket);
@@ -267,16 +271,17 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
 
     std::vector<std::thread> threads(num_threads);
     for (uint64_t thread_id = 0; thread_id != num_threads; ++thread_id) {
-        // std::cout << "[" << offsets[thread_id] << "," << offsets[thread_id + 1] << ")" <<
-        // std::endl;
+        std::cout << "[" << offsets[thread_id] << "," << offsets[thread_id + 1] << ")" << std::endl;
         threads_buckets_stats[thread_id] =
             buckets_statistics(num_buckets, num_kmers, num_super_kmers);
         threads[thread_id] = std::thread(exe, thread_id);
+        // exe(thread_id);
     }
     for (auto& t : threads) {
         if (t.joinable()) t.join();
     }
     for (auto const& tbs : threads_buckets_stats) buckets_stats += tbs;
+    buckets_stats.print();
 
     input.close();
     timer.stop();
@@ -288,7 +293,9 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     m_buckets.pieces.encode(data.strings.pieces.begin(),  //
                             data.strings.pieces.size(),   //
                             data.strings.pieces.back());  //
-    offsets_builder.build(m_buckets.offsets);
+    // offsets_builder.build(m_buckets.offsets);
+    m_buckets.offsets.build(offsets_builder.begin(), offsets_builder.size(),
+                            std::ceil(std::log2(data.strings.num_bits() / 2)));
     m_buckets.strings.swap(data.strings.strings);
     timer.stop();
     std::cout << "encoding: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
