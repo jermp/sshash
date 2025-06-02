@@ -17,13 +17,15 @@ jobs:
           - { name: clang, version: 17}
           - { name: clang, version: 18}
     name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
         run: |
           sudo add-apt-repository universe
           sudo apt-get update
           sudo apt-get install --assume-yes --no-install-recommends ca-certificates cmake git
+      - name: Install OpenMP library
+        run: sudo apt-get install -y libomp-dev
       - name: Install GCC
         if: ${{ matrix.compiler.name == 'gcc' }}
         run: |
