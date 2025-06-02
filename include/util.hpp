@@ -10,6 +10,8 @@
 
 namespace sshash {
 
+enum input_file_type { fasta, cf_seg };
+
 struct streaming_query_report {
     streaming_query_report()
         : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
@@ -70,8 +72,6 @@ struct neighbourhood {
     return good;
 }
 
-enum input_file_type { fasta, cfseg };
-
 struct build_configuration {
     build_configuration()
         : k(31)
@@ -80,14 +80,13 @@ struct build_configuration {
         , num_threads(std::thread::hardware_concurrency())
 
         , l(constants::min_l)
-        , c(constants::c)
+        , lambda(constants::lambda)
 
         , canonical_parsing(false)
         , weighted(false)
         , verbose(true)
 
         , tmp_dirname(constants::default_tmp_dirname)
-    // , input_type(input_build_type::cfseg)
 
     {}
 
@@ -96,27 +95,30 @@ struct build_configuration {
     uint64_t seed;
     uint64_t num_threads;
 
-    uint64_t l;  // drive dictionary trade-off
-    double c;    // drive PTHash trade-off
+    uint64_t l;     // drive dictionary trade-off
+    double lambda;  // drive PTHash trade-off
 
     bool canonical_parsing;
     bool weighted;
     bool verbose;
 
     std::string tmp_dirname;
-    // input_build_type input_type;
 
     void print() const {
-        std::cout
-            << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l << ", c = " << c
-            << ", canonical_parsing = " << (canonical_parsing ? "true" : "false") << ", weighted = "
-            << (weighted ? "true" : "false")
-            // << ", file type = " << (input_type == input_build_type::fasta ? "fasta" : "cfseg")
-            << std::endl;
+        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
+                  << ", lambda = " << lambda
+                  << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
+                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
     }
 };
 
 namespace util {
+
+static void check_version_number(essentials::version_number const& vnum) {
+    if (vnum.x != constants::current_version_number::x) {
+        throw std::runtime_error("MAJOR index version mismatch: SSHash index needs rebuilding");
+    }
+}
 
 static inline uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
     static const uint64_t my_favourite_seed = 1234567890;
@@ -132,14 +134,14 @@ template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
     kmer_t x = 0;
-    for (int i = k - 1; i >= 0; i--) { x.append_char(kmer_t::char_to_uint(str[i])); }
+    for (int i = k - 1; i >= 0; i--) x.append_char(kmer_t::char_to_uint(str[i]));
     return x;
 }
 
 template <class kmer_t>
 static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
-    for (uint64_t i = 0; i != k; ++i) { str[i] = kmer_t::uint64_to_char(x.pop_char()); }
+    for (uint64_t i = 0; i != k; ++i) str[i] = kmer_t::uint64_to_char(x.pop_char());
 }
 
 template <class kmer_t>
@@ -154,7 +156,7 @@ template <class kmer_t>
 template <class kmer_t>
 [[maybe_unused]] static bool is_valid(char const* str, uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
-        if (!kmer_t::is_valid(str[i])) { return false; }
+        if (!kmer_t::is_valid(str[i])) return false;
     }
     return true;
 }

@@ -214,7 +214,7 @@ neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id,
 
 template <class kmer_t>
 uint64_t dictionary<kmer_t>::num_bits() const {
-    return 8 * (sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
+    return 8 * (sizeof(m_vnum) + sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
                 sizeof(m_canonical_parsing)) +
            m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits() +
            m_weights.num_bits();

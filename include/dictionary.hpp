@@ -17,7 +17,15 @@ struct streaming_query_regular_parsing;
 
 template <class kmer_t>
 struct dictionary {
-    dictionary() : m_size(0), m_seed(0), m_k(0), m_m(0), m_canonical_parsing(0) {}
+    dictionary()
+        : m_vnum(constants::current_version_number::x,  //
+                 constants::current_version_number::y,  //
+                 constants::current_version_number::z)
+        , m_size(0)
+        , m_seed(0)
+        , m_k(0)
+        , m_m(0)
+        , m_canonical_parsing(0) {}
 
     /* Build from input file. */
     void build(std::string const& input_filename, build_configuration const& build_config);
@@ -25,6 +33,7 @@ struct dictionary {
     /* Write super-k-mers to output file in FASTA format. */
     void dump(std::string const& output_filename) const;
 
+    essentials::version_number vnum() const { return m_vnum; }
     uint64_t size() const { return m_size; }
     uint64_t seed() const { return m_seed; }
     uint64_t k() const { return m_k; }
@@ -140,6 +149,8 @@ struct dictionary {
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
+        visitor.visit(t.m_vnum);
+        util::check_version_number(t.m_vnum);
         visitor.visit(t.m_size);
         visitor.visit(t.m_seed);
         visitor.visit(t.m_k);
@@ -151,6 +162,7 @@ private:
         visitor.visit(t.m_weights);
     }
 
+    essentials::version_number m_vnum;
     uint64_t m_size;
     uint64_t m_seed;
     uint16_t m_k;

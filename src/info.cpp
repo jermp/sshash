@@ -74,6 +74,7 @@ void dictionary<kmer_t>::print_space_breakdown() const {
 template <class kmer_t>
 void dictionary<kmer_t>::print_info() const {
     std::cout << "=== dictionary info:\n";
+    std::cout << "version number = " << m_vnum.to_string() << '\n';
     std::cout << "num_kmers = " << size() << '\n';
     std::cout << "k = " << k() << '\n';
     std::cout << "num_minimizers = " << m_minimizers.size() << std::endl;
