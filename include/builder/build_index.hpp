@@ -158,11 +158,10 @@ private:
 };
 
 template <class kmer_t>
-buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_minimizers,
-                               buckets<kmer_t>& m_buckets,
+buckets_statistics build_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
+                               const uint64_t num_buckets,
                                build_configuration const& build_config)  //
 {
-    const uint64_t num_buckets = m_minimizers.size();
     const uint64_t num_kmers = data.num_kmers;
     const uint64_t num_super_kmers = data.strings.num_super_kmers();
     const uint64_t num_threads = build_config.num_threads;
@@ -187,7 +186,7 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
         uint32_t list_size = it.list().size();
         assert(list_size > 0);
         if (list_size != 1) {
-            uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
+            uint64_t bucket_id = it.minimizer();
             bucket_pairs_manager.emplace_back(bucket_id + 1, list_size - 1);
         } else {
             ++num_singletons;
@@ -253,7 +252,7 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
              it.has_next();                                                            //
              it.next())                                                                //
         {
-            uint64_t bucket_id = m_minimizers.lookup(it.minimizer());
+            uint64_t bucket_id = it.minimizer();
             uint64_t base = m_buckets.num_super_kmers_before_bucket.access(bucket_id) + bucket_id;
             uint64_t num_super_kmers_in_bucket =
                 (m_buckets.num_super_kmers_before_bucket.access(bucket_id + 1) + bucket_id + 1) -

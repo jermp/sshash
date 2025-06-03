@@ -38,7 +38,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     m_skew_index.min_log2 = build_config.l;
 
     std::vector<double> timings;
-    timings.reserve(5);
+    timings.reserve(6);
     essentials::timer_type timer;
 
     /* step 1: parse the input file and build compact string pool ***/
@@ -91,22 +91,26 @@ void dictionary<kmer_t>::build(std::string const& filename,
     /* step 2.1: resort minimizers by MPHF order ***/
     timer.start();
     {
+        std::cout << "re-sorting minimizer tuples..." << std::endl;
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         std::vector<minimizer_tuple> vec;
         vec.resize(input.size());
-        std::copy(input.data(), input.data() + input.size(), vec.data());
+        auto* begin = input.data();
+        /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
+        for (uint64_t i = 0; i != vec.size(); ++i, ++begin) {
+            vec[i] = *begin;
+            vec[i].minimizer = m_minimizers.lookup(vec[i].minimizer);
+        }
         input.close();
-        std::cout << "re-sorting minimizer tuples..." << std::endl;
 #ifdef __APPLE__
         std::sort
 #else
         __gnu_parallel::sort
 #endif
             (vec.begin(), vec.end(), [&](minimizer_tuple const& x, minimizer_tuple const& y) {
-                uint64_t id_x = m_minimizers.lookup(x.minimizer);
-                uint64_t id_y = m_minimizers.lookup(y.minimizer);
-                return (id_x < id_y) or (id_x == id_y and x.offset < y.offset);
+                return (x.minimizer < y.minimizer) or
+                       (x.minimizer == y.minimizer and x.offset < y.offset);
             });
         std::cout << "saving to file '" << data.minimizers.get_minimizers_filename() << "'..."
                   << std::endl;
@@ -123,7 +127,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_index(data, m_minimizers, m_buckets, build_config);
+    auto buckets_stats = build_index(data, m_buckets, m_minimizers.size(), build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");
