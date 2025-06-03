@@ -271,7 +271,8 @@ buckets_statistics build_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buck
 
     std::vector<std::thread> threads(num_threads);
     for (uint64_t thread_id = 0; thread_id != num_threads; ++thread_id) {
-        std::cout << "[" << offsets[thread_id] << "," << offsets[thread_id + 1] << ")" << std::endl;
+        // std::cout << "[" << offsets[thread_id] << "," << offsets[thread_id + 1] << ")" <<
+        // std::endl;
         threads_buckets_stats[thread_id] =
             buckets_statistics(num_buckets, num_kmers, num_super_kmers);
         threads[thread_id] = std::thread(exe, thread_id);

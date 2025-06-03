@@ -168,7 +168,7 @@ template <class kmer_t, typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= kmer_t::max_m);
     assert(m <= k);
-    uint64_t min_hash = uint64_t(-1);
+    uint64_t min_hash = constants::invalid_uint64;
     kmer_t minimizer = kmer_t(-1);
     for (uint64_t i = 0; i != k - m + 1; ++i) {
         kmer_t mmer = kmer;

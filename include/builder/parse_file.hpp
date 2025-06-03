@@ -184,14 +184,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
             }
 
-            uint64_t minimizer = minimizer_enum.next(uint_kmer, start);
+            uint64_t minimizer = minimizer_enum.template next<false>(uint_kmer, start);
             assert(minimizer == util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed));
 
             if (build_config.canonical_parsing) {
                 kmer_t uint_kmer_rc = uint_kmer;
                 uint_kmer_rc.reverse_complement_inplace(k);
-                constexpr bool reverse = true;
-                uint64_t minimizer_rc = minimizer_enum_rc.next(uint_kmer_rc, start, reverse);
+                uint64_t minimizer_rc = minimizer_enum_rc.template next<true>(uint_kmer_rc, start);
                 assert(minimizer_rc == util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed));
                 minimizer = std::min(minimizer, minimizer_rc);
             }
