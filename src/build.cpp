@@ -96,13 +96,12 @@ void dictionary<kmer_t>::build(std::string const& filename,
                                                mm::advice::sequential);
         std::vector<minimizer_tuple> vec;
         vec.resize(input.size());
-        auto* begin = input.data();
+        std::copy(input.data(), input.data() + input.size(), vec.data());
+        input.close();
         /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
-        for (uint64_t i = 0; i != vec.size(); ++i, ++begin) {
-            vec[i] = *begin;
+        for (uint64_t i = 0; i != vec.size(); ++i) {
             vec[i].minimizer = m_minimizers.lookup(vec[i].minimizer);
         }
-        input.close();
 #ifdef __APPLE__
         std::sort
 #else
