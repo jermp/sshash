@@ -171,7 +171,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         }
 
         bool start = true;
-        kmer_t uint_kmer;
+        kmer_t uint_kmer = 0;
         while (end != sequence.length() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid<kmer_t>(kmer, k));

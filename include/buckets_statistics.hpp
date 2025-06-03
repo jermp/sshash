@@ -154,24 +154,6 @@ struct buckets_statistics {
         }
     }
 
-    void print() const {
-        std::cout << "m_num_buckets " << m_num_buckets << std::endl;
-        std::cout << "m_num_kmers " << m_num_kmers << std::endl;
-        std::cout << "m_num_super_kmers " << m_num_super_kmers << std::endl;
-        std::cout << "m_max_num_kmers_in_super_kmer " << m_max_num_kmers_in_super_kmer << std::endl;
-        std::cout << "m_max_num_super_kmers_in_bucket " << m_max_num_super_kmers_in_bucket
-                  << std::endl;
-        std::cout << "m_bucket_sizes:\n";
-        for (auto x : m_bucket_sizes) std::cout << x << ' ';
-        std::cout << std::endl;
-        std::cout << "m_total_kmers:\n";
-        for (auto x : m_total_kmers) std::cout << x << ' ';
-        std::cout << std::endl;
-        std::cout << "m_string_sizes:\n";
-        for (auto x : m_string_sizes) std::cout << x << ' ';
-        std::cout << std::endl;
-    }
-
 private:
     uint64_t m_num_buckets;
     uint64_t m_num_kmers;

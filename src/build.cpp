@@ -76,17 +76,48 @@ void dictionary<kmer_t>::build(std::string const& filename,
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-
         if (build_config.verbose) {
             std::cout << "num_minimizers " << data.minimizers.num_minimizers() << std::endl;
         }
-
         m_minimizers.build(iterator, data.minimizers.num_minimizers(), build_config);
         input.close();
     }
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 2: 'build_minimizers'");
+    timer.reset();
+    /******/
+
+    /* step 2.1: resort minimizers by MPHF order ***/
+    timer.start();
+    {
+        mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                               mm::advice::sequential);
+        std::vector<minimizer_tuple> vec;
+        vec.resize(input.size());
+        std::copy(input.data(), input.data() + input.size(), vec.data());
+        input.close();
+        std::cout << "re-sorting minimizer tuples..." << std::endl;
+#ifdef __APPLE__
+        std::sort
+#else
+        __gnu_parallel::sort
+#endif
+            (vec.begin(), vec.end(), [&](minimizer_tuple const& x, minimizer_tuple const& y) {
+                uint64_t id_x = m_minimizers.lookup(x.minimizer);
+                uint64_t id_y = m_minimizers.lookup(y.minimizer);
+                return (id_x < id_y) or (id_x == id_y and x.offset < y.offset);
+            });
+        std::cout << "saving to file '" << data.minimizers.get_minimizers_filename() << "'..."
+                  << std::endl;
+        std::ofstream out(data.minimizers.get_minimizers_filename().c_str(), std::ofstream::binary);
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        out.write(reinterpret_cast<char const*>(vec.data()), vec.size() * sizeof(minimizer_tuple));
+        out.close();
+    }
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 2.1: 're-sorting minimizers tuples'");
     timer.reset();
     /******/
 

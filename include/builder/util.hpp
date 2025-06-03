@@ -88,6 +88,7 @@ typedef uint8_t num_kmers_in_super_kmer_uint_type;
 
 #pragma pack(push, 1)
 struct minimizer_tuple {
+    minimizer_tuple() {}
     minimizer_tuple(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer)
         : minimizer(minimizer), offset(offset), num_kmers_in_super_kmer(num_kmers_in_super_kmer) {}
     uint64_t minimizer;
@@ -151,6 +152,14 @@ struct minimizers_tuples_iterator : std::forward_iterator_tag {
     bool has_next() const { return m_list_begin != m_end; }
     list_type list() const { return list_type(m_list_begin, m_list_end); }
 
+    minimizer_tuple const* list_begin() const { return m_list_begin; }
+    minimizer_tuple const* list_end() const { return m_list_end; }
+
+private:
+    minimizer_tuple const* m_list_begin;
+    minimizer_tuple const* m_list_end;
+    minimizer_tuple const* m_end;
+
     minimizer_tuple const* next_begin() {
         minimizer_tuple const* begin = m_list_begin;
         uint64_t prev_minimizer = (*begin).minimizer;
@@ -161,11 +170,6 @@ struct minimizers_tuples_iterator : std::forward_iterator_tag {
         }
         return begin;
     }
-
-private:
-    minimizer_tuple const* m_list_begin;
-    minimizer_tuple const* m_list_end;
-    minimizer_tuple const* m_end;
 };
 
 template <typename ValueType>

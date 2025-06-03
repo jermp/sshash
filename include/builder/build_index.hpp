@@ -167,24 +167,23 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     const uint64_t num_super_kmers = data.strings.num_super_kmers();
     const uint64_t num_threads = build_config.num_threads;
 
-    // bits::compact_vector::builder offsets_builder;
-    // offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
-
-    std::vector<uint64_t> offsets_builder(num_super_kmers, constants::invalid_uint64);
+    bits::compact_vector::builder offsets_builder;
+    offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
 
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
 
+    std::cout << "reading from '" << data.minimizers.get_minimizers_filename() << "'..."
+              << std::endl;
     mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                            mm::advice::sequential);
+    minimizer_tuple const* begin = input.data();
+    minimizer_tuple const* end = input.data() + input.size();
     assert(input.size() == num_super_kmers);
 
     bucket_pairs bucket_pairs_manager(build_config.tmp_dirname);
     uint64_t num_singletons = 0;
-    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
-         it.has_next();                                                             //
-         it.next())                                                                 //
-    {
+    for (minimizers_tuples_iterator it(begin, end); it.has_next(); it.next()) {
         uint32_t list_size = it.list().size();
         assert(list_size > 0);
         if (list_size != 1) {
@@ -228,13 +227,17 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     uint64_t block_size = (num_super_kmers + num_threads - 1) / num_threads;
     std::vector<uint64_t> offsets;
     offsets.reserve(num_threads + 1);
-    for (uint64_t begin = -1; begin != num_super_kmers;) {
-        offsets.push_back(begin + 1);
-        begin = std::min<uint64_t>((begin + 1) + block_size, num_super_kmers);
-        minimizers_tuples_iterator it(input.data() + begin, input.data() + input.size());
-        minimizer_tuple const* next_begin = it.next_begin();
-        assert(next_begin >= input.data() + begin);
-        begin += next_begin - (input.data() + begin);
+    for (uint64_t offset = -1; offset != num_super_kmers;) {
+        offsets.push_back(offset + 1);
+        offset = std::min<uint64_t>((offset + 1) + block_size, num_super_kmers);
+        minimizer_tuple const* b = begin + offset;
+        uint64_t curr_minimizer = (*b).minimizer;
+        while (b + 1 < end) {  // adjust offset
+            uint64_t next_minimizer = (*(b + 1)).minimizer;
+            if (curr_minimizer != next_minimizer) break;
+            b += 1;
+            offset += 1;
+        }
     }
     offsets.push_back(num_super_kmers);
     assert(offsets.size() == num_threads + 1);
@@ -243,10 +246,10 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
 
     auto exe = [&](const uint64_t thread_id) {
         assert(thread_id + 1 < offsets.size());
-        const uint64_t begin = offsets[thread_id];
-        const uint64_t end = offsets[thread_id + 1];
+        const uint64_t offset_begin = offsets[thread_id];
+        const uint64_t offset_end = offsets[thread_id + 1];
         auto& tbs = threads_buckets_stats[thread_id];
-        for (minimizers_tuples_iterator it(input.data() + begin, input.data() + end);  //
+        for (minimizers_tuples_iterator it(begin + offset_begin, begin + offset_end);  //
              it.has_next();                                                            //
              it.next())                                                                //
         {
@@ -257,16 +260,13 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
                 base;
             assert(num_super_kmers_in_bucket > 0);
             tbs.add_num_super_kmers_in_bucket(num_super_kmers_in_bucket);
-            uint64_t offset_pos = 0;
+            uint64_t pos = 0;
             auto list = it.list();
             for (auto [offset, num_kmers_in_super_kmer] : list) {
-                // offsets_builder.set(base + offset_pos++, offset);
-                assert(offsets_builder[base + offset_pos] == constants::invalid_uint64);
-                offsets_builder[base + offset_pos] = offset;
-                offset_pos += 1;
+                offsets_builder.set(base + pos++, offset);
                 tbs.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket, num_kmers_in_super_kmer);
             }
-            assert(offset_pos == num_super_kmers_in_bucket);
+            assert(pos == num_super_kmers_in_bucket);
         }
     };
 
@@ -276,13 +276,11 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
         threads_buckets_stats[thread_id] =
             buckets_statistics(num_buckets, num_kmers, num_super_kmers);
         threads[thread_id] = std::thread(exe, thread_id);
-        // exe(thread_id);
     }
     for (auto& t : threads) {
         if (t.joinable()) t.join();
     }
     for (auto const& tbs : threads_buckets_stats) buckets_stats += tbs;
-    buckets_stats.print();
 
     input.close();
     timer.stop();
@@ -294,9 +292,7 @@ buckets_statistics build_index(parse_data<kmer_t>& data, minimizers const& m_min
     m_buckets.pieces.encode(data.strings.pieces.begin(),  //
                             data.strings.pieces.size(),   //
                             data.strings.pieces.back());  //
-    // offsets_builder.build(m_buckets.offsets);
-    m_buckets.offsets.build(offsets_builder.begin(), offsets_builder.size(),
-                            std::ceil(std::log2(data.strings.num_bits() / 2)));
+    offsets_builder.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings.strings);
     timer.stop();
     std::cout << "encoding: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
