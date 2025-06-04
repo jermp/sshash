@@ -92,20 +92,18 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.start();
     {
         if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
-        minimizers_tuples minimizers(build_config);
         std::ifstream input(data.minimizers.get_minimizers_filename(), std::ifstream::binary);
+        data.minimizers.init();
         minimizer_tuple mt;
         for (uint64_t i = 0; i != num_super_kmers; ++i) {
             input.read(reinterpret_cast<char*>(&mt), sizeof(minimizer_tuple));
             /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
             mt.minimizer = m_minimizers.lookup(mt.minimizer);
-            minimizers.push_back(mt);
+            data.minimizers.push_back(mt);
         }
         input.close();
-        minimizers.finalize();
-        minimizers.merge();
-        data.minimizers.swap(minimizers);
-        minimizers.remove_tmp_file();
+        data.minimizers.finalize();
+        data.minimizers.merge();
     }
     timer.stop();
     timings.push_back(timer.elapsed());

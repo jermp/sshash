@@ -188,12 +188,16 @@ struct minimizers_tuples {
         : m_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
                         (2 * sizeof(minimizer_tuple)))  // allocate half memory because
                                                         // __gnu::parallel_sort is not in-place
-        , m_num_files_to_merge(0)
-        , m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
         , m_tmp_dirname(build_config.tmp_dirname)  //
     {
+        init();
         m_buffer.reserve(m_buffer_size);
+    }
+
+    void init() {
+        m_num_files_to_merge = 0;
+        m_num_minimizers = 0;
     }
 
     void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
@@ -309,7 +313,7 @@ struct minimizers_tuples {
             std::remove(tmp_output_filename.c_str());
         }
 
-        m_buffer.resize(0);
+        m_buffer.clear();
     }
 
     uint64_t num_minimizers() const { return m_num_minimizers; }

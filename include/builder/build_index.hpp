@@ -46,13 +46,10 @@ struct bucket_pairs {
     static constexpr uint64_t ram_limit = 0.25 * essentials::GB;
 
     bucket_pairs(std::string const& tmp_dirname)
-        : m_buffer_size(0)
+        : m_buffer_size(ram_limit / sizeof(bucket_pair))
         , m_num_files_to_merge(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
-        , m_tmp_dirname(tmp_dirname) {
-        m_buffer_size = ram_limit / sizeof(bucket_pair);
-        std::cout << "m_buffer_size " << m_buffer_size << std::endl;
-    }
+        , m_tmp_dirname(tmp_dirname) {}
 
     void emplace_back(uint64_t id, uint32_t size) {
         if (m_buffer.size() == m_buffer_size) sort_and_flush();
