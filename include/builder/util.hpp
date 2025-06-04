@@ -183,15 +183,13 @@ private:
 };
 
 struct minimizers_tuples {
-    static constexpr uint64_t ram_limit = 1.0 * essentials::GB;
-
     minimizers_tuples() {}
-    minimizers_tuples(std::string const& tmp_dirname)
-        : m_buffer_size(ram_limit / sizeof(minimizer_tuple))
+    minimizers_tuples(build_configuration const& build_config)
+        : m_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) / sizeof(minimizer_tuple))
         , m_num_files_to_merge(0)
         , m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
-        , m_tmp_dirname(tmp_dirname) {}
+        , m_tmp_dirname(build_config.tmp_dirname) {}
 
     void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
         if (m_buffer.size() == m_buffer_size) sort_and_flush();

@@ -7,7 +7,7 @@ namespace sshash {
 
 template <class kmer_t>
 struct parse_data {
-    parse_data(std::string const& tmp_dirname) : num_kmers(0), minimizers(tmp_dirname) {}
+    parse_data(build_configuration const& build_config) : num_kmers(0), minimizers(build_config) {}
     uint64_t num_kmers;
     minimizers_tuples minimizers;
     compact_string_pool<kmer_t> strings;
@@ -237,7 +237,7 @@ parse_data<kmer_t> parse_file(std::string const& filename,
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     std::cout << "reading file '" << filename << "'..." << std::endl;
-    parse_data<kmer_t> data(build_config.tmp_dirname);
+    parse_data<kmer_t> data(build_config);
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {

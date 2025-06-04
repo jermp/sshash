@@ -77,7 +77,8 @@ struct build_configuration {
         : k(31)
         , m(17)
         , seed(constants::seed)
-        , num_threads(std::thread::hardware_concurrency())
+        , num_threads(1)
+        , ram_limit_in_GiB(constants::default_ram_limit_in_GiB)
 
         , l(constants::min_l)
         , lambda(constants::lambda)
@@ -94,6 +95,7 @@ struct build_configuration {
     uint64_t m;  // minimizer size
     uint64_t seed;
     uint64_t num_threads;
+    uint64_t ram_limit_in_GiB;
 
     uint64_t l;     // drive dictionary trade-off
     double lambda;  // drive PTHash trade-off

@@ -21,12 +21,7 @@ int build(int argc, char** argv) {
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
-    const uint64_t num_threads =
-        std::max(std::min(static_cast<uint64_t>(16),
-                          static_cast<uint64_t>(std::thread::hardware_concurrency())),
-                 static_cast<uint64_t>(2));
-    parser.add("t", "Number of threads (default is " + std::to_string(num_threads) + ").", "-t",
-               false);
+    parser.add("t", "Number of threads (default is 1).", "-t", false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
                "A reasonable values lies in [2.." +
@@ -46,6 +41,10 @@ int build(int argc, char** argv) {
         "Temporary directory used for construction in external memory. Default is directory '" +
             constants::default_tmp_dirname + "'.",
         "-d", false);
+    parser.add("RAM",
+               "RAM limit in GiB. Default value is " +
+                   std::to_string(constants::default_ram_limit_in_GiB) + " GiB.",
+               "-g", false);
     parser.add("canonical_parsing",
                "Canonical parsing of k-mers. This option changes the parsing and results in a "
                "trade-off between index space and lookup time.",
@@ -67,7 +66,6 @@ int build(int argc, char** argv) {
     build_configuration build_config;
     build_config.k = k;
     build_config.m = m;
-    build_config.num_threads = num_threads;
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
     if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
@@ -80,6 +78,10 @@ int build(int argc, char** argv) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
         essentials::create_directory(build_config.tmp_dirname);
     }
+    if (parser.get<uint64_t>("RAM")) {
+        build_config.ram_limit_in_GiB = parser.get<uint64_t>("RAM");
+    }
+
     build_config.print();
 
     dict.build(input_filename, build_config);

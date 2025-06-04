@@ -92,7 +92,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.start();
     {
         if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
-        minimizers_tuples minimizers(build_config.tmp_dirname);
+        minimizers_tuples minimizers(build_config);
         std::ifstream input(data.minimizers.get_minimizers_filename(), std::ifstream::binary);
         minimizer_tuple mt;
         for (uint64_t i = 0; i != num_super_kmers; ++i) {
