@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <functional>
 
 namespace sshash {
 
@@ -43,29 +44,32 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
         }
     }
 
-    std::make_heap(heap.begin(), heap.end(), [&comp](heap_element const& x, heap_element const& y) {
-        return comp(y.first, x.first);
-    });
+    auto neg_comp = [&](heap_element const& x, heap_element const& y) {
+        return !comp(x.first, y.first);
+    };
 
+    std::make_heap(heap.begin(), heap.end(), neg_comp);
     data.clear();
     data.reserve(data_size);
 
     while (!heap.empty()) {
-        std::pop_heap(heap.begin(), heap.end(),
-                      [&comp](heap_element const& x, heap_element const& y) {
-                          return comp(y.first, x.first);
-                      });
-        T min = heap.back().first;
-        uint32_t i = heap.back().second;
-        heap.pop_back();
+        auto [min, i] = heap.front();
         data.push_back(min);
         ++iterators[i];
-        if (iterators[i] != sorted_chunks[i].end()) {
-            heap.emplace_back(*iterators[i], i);
-            std::push_heap(heap.begin(), heap.end(),
-                           [&comp](heap_element const& x, heap_element const& y) {
-                               return comp(y.first, x.first);
-                           });
+        if (iterators[i] != sorted_chunks[i].end()) {  // percolate down the head
+            heap[0].first = *iterators[i];
+            uint64_t pos = 0;
+            uint64_t size = heap.size();
+            while (2 * pos + 1 < size) {
+                uint64_t i = 2 * pos + 1;
+                if (i + 1 < size and neg_comp(heap[i], heap[i + 1])) ++i;
+                if (neg_comp(heap[i], heap[pos])) break;
+                std::swap(heap[i], heap[pos]);
+                pos = i;
+            }
+        } else {
+            std::pop_heap(heap.begin(), heap.end(), neg_comp);
+            heap.pop_back();
         }
     }
 }
