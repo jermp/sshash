@@ -229,7 +229,7 @@ struct minimizers_tuples {
         out.write(reinterpret_cast<char const*>(m_buffer.data()),
                   m_buffer.size() * sizeof(minimizer_tuple));
         out.close();
-
+        std::cout << "DONE" << std::endl;
         m_buffer.clear();
         ++m_num_files_to_merge;
     }
