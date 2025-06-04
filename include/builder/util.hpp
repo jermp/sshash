@@ -2,9 +2,11 @@
 
 #include "file_merging_iterator.hpp"
 
-#ifndef __APPLE__
-#include <parallel/algorithm>
-#endif
+// #ifndef __APPLE__
+// #include <parallel/algorithm>
+// #endif
+
+#include "parallel_sort.hpp"
 
 namespace sshash {
 
@@ -190,6 +192,7 @@ struct minimizers_tuples {
                         (2 * sizeof(minimizer_tuple)))
         , m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
+        , m_num_threads(build_config.num_threads)
         , m_tmp_dirname(build_config.tmp_dirname)  //
     {
         init();
@@ -207,16 +210,21 @@ struct minimizers_tuples {
 
     void sort_and_flush() {
         // std::cout << "sorting buffer..." << std::endl;
-#ifdef __APPLE__
-        std::sort
-#else
-        __gnu_parallel::sort
-#endif
-            (m_buffer.begin(), m_buffer.end(),
-             [](minimizer_tuple const& x, minimizer_tuple const& y) {
-                 return (x.minimizer < y.minimizer) or
-                        (x.minimizer == y.minimizer and x.offset < y.offset);
-             });
+        // #ifdef __APPLE__
+        //         std::sort
+        // #else
+        //         __gnu_parallel::sort
+        // #endif
+        // (m_buffer.begin(), m_buffer.end(),
+        //  [](minimizer_tuple const& x, minimizer_tuple const& y) {
+        //      return (x.minimizer < y.minimizer) or
+        //             (x.minimizer == y.minimizer and x.offset < y.offset);
+        //  });
+        parallel_sort(m_buffer, m_num_threads,
+                      [](minimizer_tuple const& x, minimizer_tuple const& y) {
+                          return (x.minimizer < y.minimizer) or
+                                 (x.minimizer == y.minimizer and x.offset < y.offset);
+                      });
         auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
@@ -323,6 +331,7 @@ struct minimizers_tuples {
         std::swap(m_num_files_to_merge, other.m_num_files_to_merge);
         std::swap(m_num_minimizers, other.m_num_minimizers);
         std::swap(m_run_identifier, other.m_run_identifier);
+        std::swap(m_num_threads, other.m_num_threads);
         m_tmp_dirname.swap(other.m_tmp_dirname);
         m_buffer.swap(other.m_buffer);
     }
@@ -332,6 +341,7 @@ private:
     uint64_t m_num_files_to_merge;
     uint64_t m_num_minimizers;
     uint64_t m_run_identifier;
+    uint64_t m_num_threads;
     std::string m_tmp_dirname;
     std::vector<minimizer_tuple> m_buffer;
 
