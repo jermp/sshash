@@ -93,20 +93,17 @@ void dictionary<kmer_t>::build(std::string const& filename,
     {
         if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
         std::ifstream input(data.minimizers.get_minimizers_filename(), std::ifstream::binary);
+
+        auto const& f = m_minimizers;
+        const uint64_t num_threads = build_config.num_threads;
         const uint64_t num_files_to_merge = data.minimizers.num_files_to_merge();
+
         data.minimizers.init();
         if (num_files_to_merge == 1) {  // optimization
             auto& buff = data.minimizers.buffer();
             buff.resize(num_super_kmers);
             input.read(reinterpret_cast<char*>(buff.data()),
                        num_super_kmers * sizeof(minimizer_tuple));
-
-            // for (uint64_t i = 0; i != num_super_kmers; ++i) {
-            //     buff[i].minimizer = m_minimizers.lookup(buff[i].minimizer);
-            // }
-
-            auto const& f = m_minimizers;
-            const uint64_t num_threads = build_config.num_threads;
             const uint64_t chunk_size = (num_super_kmers + num_threads - 1) / num_threads;
             std::vector<std::thread> threads;
             threads.reserve(num_threads);
@@ -122,14 +119,44 @@ void dictionary<kmer_t>::build(std::string const& filename,
             for (auto& t : threads) {
                 if (t.joinable()) t.join();
             }
-
         } else {
-            minimizer_tuple mt;
-            for (uint64_t i = 0; i != num_super_kmers; ++i) {
-                input.read(reinterpret_cast<char*>(&mt), sizeof(minimizer_tuple));
-                /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
-                mt.minimizer = m_minimizers.lookup(mt.minimizer);
-                data.minimizers.push_back(mt);
+            // minimizer_tuple mt;
+            // for (uint64_t i = 0; i != num_super_kmers; ++i) {
+            //     input.read(reinterpret_cast<char*>(&mt), sizeof(minimizer_tuple));
+            //     /* replace minimizer hashes with their minimal hashes (also called "bucket ids")
+            //     */ mt.minimizer = m_minimizers.lookup(mt.minimizer);
+            //     data.minimizers.push_back(mt);
+            // }
+
+            const uint64_t buffer_size = data.minimizers.buffer_size();
+            const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
+            assert(num_super_kmers > (num_blocks - 1) * buffer_size);
+            std::vector<std::thread> threads;
+            threads.reserve(num_threads);
+            for (uint64_t i = 0; i != num_blocks; ++i) {
+                const uint64_t n = (i == num_blocks - 1)
+                                       ? num_super_kmers - (num_blocks - 1) * buffer_size
+                                       : buffer_size;
+                auto& buff = data.minimizers.buffer();
+                buff.resize(n);
+                input.read(reinterpret_cast<char*>(buff.data()),
+                           buff.size() * sizeof(minimizer_tuple));
+
+                const uint64_t chunk_size = (n + num_threads - 1) / num_threads;
+                for (uint64_t t = 0; t != num_threads; ++t) {
+                    uint64_t begin = t * chunk_size;
+                    uint64_t end = (t == num_threads - 1) ? n : begin + chunk_size;
+                    threads.emplace_back([begin, end, &buff, &f]() {
+                        for (uint64_t i = begin; i != end; ++i) {
+                            buff[i].minimizer = f.lookup(buff[i].minimizer);
+                        }
+                    });
+                }
+                for (auto& t : threads) {
+                    if (t.joinable()) t.join();
+                }
+                threads.clear();
+                data.minimizers.sort_and_flush();
             }
         }
         data.minimizers.finalize();
