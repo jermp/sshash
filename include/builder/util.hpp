@@ -152,9 +152,6 @@ struct minimizers_tuples_iterator : std::forward_iterator_tag {
     bool has_next() const { return m_list_begin != m_end; }
     list_type list() const { return list_type(m_list_begin, m_list_end); }
 
-    minimizer_tuple const* list_begin() const { return m_list_begin; }
-    minimizer_tuple const* list_end() const { return m_list_end; }
-
 private:
     minimizer_tuple const* m_list_begin;
     minimizer_tuple const* m_list_end;
@@ -188,19 +185,22 @@ private:
 struct minimizers_tuples {
     static constexpr uint64_t ram_limit = 1.0 * essentials::GB;
 
+    minimizers_tuples() {}
     minimizers_tuples(std::string const& tmp_dirname)
-        : m_buffer_size(0)
+        : m_buffer_size(ram_limit / sizeof(minimizer_tuple))
         , m_num_files_to_merge(0)
         , m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
-        , m_tmp_dirname(tmp_dirname) {
-        m_buffer_size = ram_limit / sizeof(minimizer_tuple);
-        std::cout << "m_buffer_size " << m_buffer_size << std::endl;
-    }
+        , m_tmp_dirname(tmp_dirname) {}
 
     void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
         if (m_buffer.size() == m_buffer_size) sort_and_flush();
         m_buffer.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
+    }
+
+    void push_back(minimizer_tuple const& mt) {
+        if (m_buffer.size() == m_buffer_size) sort_and_flush();
+        m_buffer.push_back(mt);
     }
 
     minimizer_tuple& back() { return m_buffer.back(); }
@@ -311,6 +311,15 @@ struct minimizers_tuples {
 
     uint64_t num_minimizers() const { return m_num_minimizers; }
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
+
+    void swap(minimizers_tuples& other) {
+        std::swap(m_buffer_size, other.m_buffer_size);
+        std::swap(m_num_files_to_merge, other.m_num_files_to_merge);
+        std::swap(m_num_minimizers, other.m_num_minimizers);
+        std::swap(m_run_identifier, other.m_run_identifier);
+        m_tmp_dirname.swap(other.m_tmp_dirname);
+        m_buffer.swap(other.m_buffer);
+    }
 
 private:
     uint64_t m_buffer_size;

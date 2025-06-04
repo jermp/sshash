@@ -84,7 +84,7 @@ private:
     inline void fill_buf() {
         static_assert(kmer_t::uint_kmer_bits % 64 == 0);
         for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
-            if (m_pos + i < m_bv->num_bits()) { m_buf.append64(m_bv->get_word64(m_pos + i)); }
+            if (m_pos + i < m_bv->num_bits()) m_buf.append64(m_bv->get_word64(m_pos + i));
         }
         m_avail = kmer_t::uint_kmer_bits;
     }

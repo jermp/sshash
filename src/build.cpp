@@ -2,11 +2,9 @@
 #include "essentials.hpp"
 #include "include/builder/util.hpp"
 
-/** build steps **/
 #include "include/builder/parse_file.hpp"
 #include "include/builder/build_index.hpp"
 #include "include/builder/build_skew_index.hpp"
-/*****************/
 
 #include <numeric>  // for std::accumulate
 
@@ -72,15 +70,17 @@ void dictionary<kmer_t>::build(std::string const& filename,
     /* step 2: merge minimizers and build MPHF ***/
     timer.start();
     data.minimizers.merge();
+    const uint64_t num_minimizers = data.minimizers.num_minimizers();
+    const uint64_t num_super_kmers = data.strings.num_super_kmers();
     {
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-        if (build_config.verbose) {
-            std::cout << "num_minimizers " << data.minimizers.num_minimizers() << std::endl;
-        }
-        m_minimizers.build(iterator, data.minimizers.num_minimizers(), build_config);
+        assert(input.size() == num_super_kmers);
+        if (build_config.verbose) std::cout << "num_minimizers " << num_minimizers << std::endl;
+        m_minimizers.build(iterator, num_minimizers, build_config);
         input.close();
+        assert(m_minimizers.size() == num_minimizers);
     }
     timer.stop();
     timings.push_back(timer.elapsed());
@@ -91,32 +91,21 @@ void dictionary<kmer_t>::build(std::string const& filename,
     /* step 2.1: resort minimizers by MPHF order ***/
     timer.start();
     {
-        std::cout << "re-sorting minimizer tuples..." << std::endl;
-        mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
-                                               mm::advice::sequential);
-        std::vector<minimizer_tuple> vec;
-        vec.resize(input.size());
-        std::copy(input.data(), input.data() + input.size(), vec.data());
-        input.close();
-        /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
-        for (uint64_t i = 0; i != vec.size(); ++i) {
-            vec[i].minimizer = m_minimizers.lookup(vec[i].minimizer);
+        if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
+        minimizers_tuples minimizers(build_config.tmp_dirname);
+        std::ifstream input(data.minimizers.get_minimizers_filename(), std::ifstream::binary);
+        minimizer_tuple mt;
+        for (uint64_t i = 0; i != num_super_kmers; ++i) {
+            input.read(reinterpret_cast<char*>(&mt), sizeof(minimizer_tuple));
+            /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
+            mt.minimizer = m_minimizers.lookup(mt.minimizer);
+            minimizers.push_back(mt);
         }
-#ifdef __APPLE__
-        std::sort
-#else
-        __gnu_parallel::sort
-#endif
-            (vec.begin(), vec.end(), [&](minimizer_tuple const& x, minimizer_tuple const& y) {
-                return (x.minimizer < y.minimizer) or
-                       (x.minimizer == y.minimizer and x.offset < y.offset);
-            });
-        std::cout << "saving to file '" << data.minimizers.get_minimizers_filename() << "'..."
-                  << std::endl;
-        std::ofstream out(data.minimizers.get_minimizers_filename().c_str(), std::ofstream::binary);
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
-        out.write(reinterpret_cast<char const*>(vec.data()), vec.size() * sizeof(minimizer_tuple));
-        out.close();
+        input.close();
+        minimizers.finalize();
+        minimizers.merge();
+        data.minimizers.swap(minimizers);
+        minimizers.remove_tmp_file();
     }
     timer.stop();
     timings.push_back(timer.elapsed());
@@ -126,7 +115,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_index(data, m_buckets, m_minimizers.size(), build_config);
+    auto buckets_stats = build_index(data, m_buckets, num_minimizers, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");
