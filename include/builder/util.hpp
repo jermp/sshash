@@ -203,15 +203,10 @@ struct minimizers_tuples {
         m_buffer.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
     }
 
-    void push_back(minimizer_tuple const& mt) {
-        if (m_buffer.size() == m_buffer_size) sort_and_flush();
-        m_buffer.push_back(mt);
-    }
-
     minimizer_tuple& back() { return m_buffer.back(); }
 
     void sort_and_flush() {
-        std::cout << "sorting buffer..." << std::endl;
+        // std::cout << "sorting buffer..." << std::endl;
 #ifdef __APPLE__
         std::sort
 #else
@@ -229,7 +224,7 @@ struct minimizers_tuples {
         out.write(reinterpret_cast<char const*>(m_buffer.data()),
                   m_buffer.size() * sizeof(minimizer_tuple));
         out.close();
-        std::cout << "DONE" << std::endl;
+        // std::cout << "DONE" << std::endl;
         m_buffer.clear();
         ++m_num_files_to_merge;
     }
