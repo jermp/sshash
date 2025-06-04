@@ -100,9 +100,29 @@ void dictionary<kmer_t>::build(std::string const& filename,
             buff.resize(num_super_kmers);
             input.read(reinterpret_cast<char*>(buff.data()),
                        num_super_kmers * sizeof(minimizer_tuple));
-            for (uint64_t i = 0; i != num_super_kmers; ++i) {
-                buff[i].minimizer = m_minimizers.lookup(buff[i].minimizer);
+
+            // for (uint64_t i = 0; i != num_super_kmers; ++i) {
+            //     buff[i].minimizer = m_minimizers.lookup(buff[i].minimizer);
+            // }
+
+            auto const& f = m_minimizers;
+            const uint64_t num_threads = build_config.num_threads;
+            const uint64_t chunk_size = (num_super_kmers + num_threads - 1) / num_threads;
+            std::vector<std::thread> threads;
+            threads.reserve(num_threads);
+            for (uint64_t t = 0; t != num_threads; ++t) {
+                uint64_t begin = t * chunk_size;
+                uint64_t end = (t == num_threads - 1) ? num_super_kmers : begin + chunk_size;
+                threads.emplace_back([begin, end, &buff, &f]() {
+                    for (uint64_t i = begin; i != end; ++i) {
+                        buff[i].minimizer = f.lookup(buff[i].minimizer);
+                    }
+                });
             }
+            for (auto& t : threads) {
+                if (t.joinable()) t.join();
+            }
+
         } else {
             minimizer_tuple mt;
             for (uint64_t i = 0; i != num_super_kmers; ++i) {
