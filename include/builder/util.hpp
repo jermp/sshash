@@ -185,9 +185,10 @@ private:
 struct minimizers_tuples {
     minimizers_tuples() {}
     minimizers_tuples(build_configuration const& build_config)
+        /* allocate half memory because __gnu::parallel_sort is not in-place */
         : m_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
-                        (2 * sizeof(minimizer_tuple)))  // allocate half memory because
-                                                        // __gnu::parallel_sort is not in-place
+                        (2 * sizeof(minimizer_tuple)))
+        , m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
         , m_tmp_dirname(build_config.tmp_dirname)  //
     {
@@ -195,10 +196,7 @@ struct minimizers_tuples {
         m_buffer.reserve(m_buffer_size);
     }
 
-    void init() {
-        m_num_files_to_merge = 0;
-        m_num_minimizers = 0;
-    }
+    void init() { m_num_files_to_merge = 0; }
 
     void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
         if (m_buffer.size() == m_buffer_size) sort_and_flush();
@@ -265,6 +263,7 @@ struct minimizers_tuples {
         if (m_num_files_to_merge == 0) return;
 
         if (m_num_files_to_merge == 1) {
+            if (m_num_minimizers != 0) return;
             /* just count num. distinct minimizers and do not write twice on disk */
             mm::file_source<minimizer_tuple> input(get_minimizers_filename(),
                                                    mm::advice::sequential);
@@ -286,15 +285,16 @@ struct minimizers_tuples {
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
+        m_num_minimizers = 0;
         uint64_t num_written_tuples = 0;
         uint64_t prev_minimizer = constants::invalid_uint64;
         while (fm_iterator.has_next()) {
             auto file_it = *fm_iterator;
-            minimizer_tuple tuple = *file_it;
-            out.write(reinterpret_cast<char const*>(&tuple), sizeof(minimizer_tuple));
+            minimizer_tuple mt = *file_it;
+            out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
             num_written_tuples += 1;
-            if (tuple.minimizer != prev_minimizer) {
-                prev_minimizer = tuple.minimizer;
+            if (mt.minimizer != prev_minimizer) {
+                prev_minimizer = mt.minimizer;
                 ++m_num_minimizers;
             }
             if (num_written_tuples % 50000000 == 0) {
