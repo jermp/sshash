@@ -317,6 +317,9 @@ struct minimizers_tuples {
     }
 
     uint64_t num_minimizers() const { return m_num_minimizers; }
+    uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
+    std::vector<minimizer_tuple>& buffer() { return m_buffer; }
+
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
     void swap(minimizers_tuples& other) {

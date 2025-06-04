@@ -93,17 +93,28 @@ void dictionary<kmer_t>::build(std::string const& filename,
     {
         if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
         std::ifstream input(data.minimizers.get_minimizers_filename(), std::ifstream::binary);
+        const uint64_t num_files_to_merge = data.minimizers.num_files_to_merge();
         data.minimizers.init();
-        minimizer_tuple mt;
-        for (uint64_t i = 0; i != num_super_kmers; ++i) {
-            input.read(reinterpret_cast<char*>(&mt), sizeof(minimizer_tuple));
-            /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
-            mt.minimizer = m_minimizers.lookup(mt.minimizer);
-            data.minimizers.push_back(mt);
+        if (num_files_to_merge == 1) {  // optimization
+            auto& buff = data.minimizers.buffer();
+            buff.resize(num_super_kmers);
+            input.read(reinterpret_cast<char*>(buff.data()),
+                       num_super_kmers * sizeof(minimizer_tuple));
+            for (uint64_t i = 0; i != num_super_kmers; ++i) {
+                buff[i].minimizer = m_minimizers.lookup(buff[i].minimizer);
+            }
+        } else {
+            minimizer_tuple mt;
+            for (uint64_t i = 0; i != num_super_kmers; ++i) {
+                input.read(reinterpret_cast<char*>(&mt), sizeof(minimizer_tuple));
+                /* replace minimizer hashes with their minimal hashes (also called "bucket ids") */
+                mt.minimizer = m_minimizers.lookup(mt.minimizer);
+                data.minimizers.push_back(mt);
+            }
         }
-        input.close();
         data.minimizers.finalize();
         data.minimizers.merge();
+        input.close();
     }
     timer.stop();
     timings.push_back(timer.elapsed());
