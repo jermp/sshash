@@ -15,7 +15,7 @@ struct minimizers {
         mphf_build_config.verbose = false;
         mphf_build_config.num_threads = build_config.num_threads;
         mphf_build_config.avg_partition_size = constants::avg_partition_size;
-        mphf_build_config.ram = build_config.ram_limit_in_GiB * essentials::GiB;
+        mphf_build_config.ram = (build_config.ram_limit_in_GiB * essentials::GiB) / 2;
         mphf_build_config.tmp_dir = build_config.tmp_dirname;
 
         if (build_config.verbose) {
