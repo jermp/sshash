@@ -8,7 +8,8 @@ namespace sshash {
 template <typename Iterator, typename Compare>
 void parallel_merge(Iterator A_begin, Iterator A_end,                                  //
                     Iterator B_begin, Iterator B_end,                                  //
-                    std::vector<typename Iterator::value_type>& output, Compare comp)  //
+                    std::vector<typename Iterator::value_type>& output, Compare comp,  //
+                    uint64_t sequential_merge_threshold)                               //
 {
     using T = typename Iterator::value_type;
     assert(std::is_sorted(A_begin, A_end, comp));
@@ -16,11 +17,9 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                           
 
     const uint64_t size_A = A_end - A_begin;
     const uint64_t size_B = B_end - B_begin;
-
     assert(output.size() == size_A + size_B);
 
-    constexpr uint64_t sequential_merge_threshold = 1024 * 1024;
-    if (size_A + size_B <= sequential_merge_threshold) {  // sequential merge for small inputs
+    if (size_A + size_B <= sequential_merge_threshold) {
         std::merge(A_begin, A_end, B_begin, B_end, output.begin(), comp);
         return;
     }
@@ -49,13 +48,13 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                           
     std::thread thread1([&]() {
         parallel_merge(larger_begin, larger_begin + pos_A,    //
                        smaller_begin, smaller_begin + pos_B,  //
-                       output1, comp);
+                       output1, comp, sequential_merge_threshold);
         std::copy(output1.begin(), output1.end(), output.begin());
     });
     std::thread thread2([&]() {
         parallel_merge(larger_begin + pos_A, larger_end,    //
                        smaller_begin + pos_B, smaller_end,  //
-                       output2, comp);
+                       output2, comp, sequential_merge_threshold);
         std::copy(output2.begin(), output2.end(), output.begin() + output1.size());
     });
     thread1.join();
@@ -66,7 +65,7 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                           
 
 template <typename T, typename Compare>
 void parallel_merge(std::vector<std::vector<T>>& sorted_ranges, std::vector<T>& output,
-                    Compare comp)  //
+                    Compare comp, uint64_t sequential_merge_threshold)  //
 {
     if (sorted_ranges.empty()) return;
 
@@ -87,7 +86,7 @@ void parallel_merge(std::vector<std::vector<T>>& sorted_ranges, std::vector<T>& 
                                             current_ranges[i + 1].size());
                 parallel_merge(current_ranges[i].begin(), current_ranges[i].end(),
                                current_ranges[i + 1].begin(), current_ranges[i + 1].end(),
-                               merged_range, comp);
+                               merged_range, comp, sequential_merge_threshold);
                 next_ranges.push_back(std::move(merged_range));
             } else {
                 next_ranges.push_back(std::move(current_ranges[i]));
@@ -126,8 +125,10 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
         if (t.joinable()) t.join();
     }
 
+    uint64_t sequential_merge_threshold = data.size() / uint64_t(std::log2(num_threads));
+    std::cout << "sequential_merge_threshold = " << sequential_merge_threshold << std::endl;
     data.clear();
-    parallel_merge(sorted_chunks, data, comp);
+    parallel_merge(sorted_chunks, data, comp, sequential_merge_threshold);
 
     // using heap_element = std::pair<T, uint32_t>;  // (value, index in heap)
     // std::vector<heap_element> heap;
