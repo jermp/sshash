@@ -1,7 +1,5 @@
 #pragma once
 
-#include <vector>
-
 #include "kmer.hpp"
 
 namespace sshash {
