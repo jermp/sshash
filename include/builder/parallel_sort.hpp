@@ -5,42 +5,57 @@
 
 namespace sshash {
 
-template <typename T, typename Compare>
-void parallel_merge(std::vector<T> const& A, std::vector<T> const& B,  //
-                    std::vector<T>& output, Compare comp)              //
+template <typename Iterator, typename Compare>
+void parallel_merge(Iterator A_begin, Iterator A_end,                                  //
+                    Iterator B_begin, Iterator B_end,                                  //
+                    std::vector<typename Iterator::value_type>& output, Compare comp)  //
 {
-    assert(std::is_sorted(A.begin(), A.end(), comp));
-    assert(std::is_sorted(B.begin(), B.end(), comp));
-    assert(output.size() == A.size() + B.size());
+    using T = typename Iterator::value_type;
+    assert(std::is_sorted(A_begin, A_end, comp));
+    assert(std::is_sorted(B_begin, B_end, comp));
 
-    constexpr uint64_t sequential_merge_threshold = 1024;
-    if (A.size() + B.size() <= sequential_merge_threshold) {  // sequential merge for small inputs
-        std::merge(A.begin(), A.end(), B.begin(), B.end(), output.begin(), comp);
+    const uint64_t size_A = A_end - A_begin;
+    const uint64_t size_B = B_end - B_begin;
+
+    assert(output.size() == size_A + size_B);
+
+    constexpr uint64_t sequential_merge_threshold = 1024 * 1024;
+    if (size_A + size_B <= sequential_merge_threshold) {  // sequential merge for small inputs
+        std::merge(A_begin, A_end, B_begin, B_end, output.begin(), comp);
         return;
     }
 
-    std::vector<T> const& larger = (A.size() >= B.size()) ? A : B;
-    std::vector<T> const& smaller = (A.size() >= B.size()) ? B : A;
+    Iterator larger_begin = A_begin;
+    Iterator larger_end = A_end;
+    Iterator smaller_begin = B_begin;
+    Iterator smaller_end = B_end;
+    uint64_t larger_size = size_A;
+    if (size_A < size_B) {
+        larger_begin = B_begin;
+        larger_end = B_end;
+        smaller_begin = A_begin;
+        smaller_end = A_end;
+        larger_size = size_B;
+    }
 
-    uint64_t pos_A = larger.size() / 2;
-    T mid_val = larger[pos_A];
+    uint64_t pos_A = larger_size / 2;
+    T mid_val = *(larger_begin + pos_A);
 
-    auto it = std::lower_bound(smaller.begin(), smaller.end(), mid_val, comp);
-    size_t pos_B = std::distance(smaller.begin(), it);
+    auto it = std::lower_bound(smaller_begin, smaller_end, mid_val, comp);
+    size_t pos_B = std::distance(smaller_begin, it);
 
-    std::vector<T> A1(larger.begin(), larger.begin() + pos_A);
-    std::vector<T> A2(larger.begin() + pos_A, larger.end());
-    std::vector<T> B1(smaller.begin(), smaller.begin() + pos_B);
-    std::vector<T> B2(smaller.begin() + pos_B, smaller.end());
-
-    std::vector<T> output1(A1.size() + B1.size());
-    std::vector<T> output2(A2.size() + B2.size());
+    std::vector<T> output1(pos_A + pos_B);
+    std::vector<T> output2(size_A + size_B - (pos_A + pos_B));
     std::thread thread1([&]() {
-        parallel_merge(A1, B1, output1, comp);
+        parallel_merge(larger_begin, larger_begin + pos_A,    //
+                       smaller_begin, smaller_begin + pos_B,  //
+                       output1, comp);
         std::copy(output1.begin(), output1.end(), output.begin());
     });
     std::thread thread2([&]() {
-        parallel_merge(A2, B2, output2, comp);
+        parallel_merge(larger_begin + pos_A, larger_end,    //
+                       smaller_begin + pos_B, smaller_end,  //
+                       output2, comp);
         std::copy(output2.begin(), output2.end(), output.begin() + output1.size());
     });
     thread1.join();
@@ -70,7 +85,9 @@ void parallel_merge(std::vector<std::vector<T>>& sorted_ranges, std::vector<T>& 
             if (i + 1 < current_ranges.size()) {
                 std::vector<T> merged_range(current_ranges[i].size() +
                                             current_ranges[i + 1].size());
-                parallel_merge(current_ranges[i], current_ranges[i + 1], merged_range, comp);
+                parallel_merge(current_ranges[i].begin(), current_ranges[i].end(),
+                               current_ranges[i + 1].begin(), current_ranges[i + 1].end(),
+                               merged_range, comp);
                 next_ranges.push_back(std::move(merged_range));
             } else {
                 next_ranges.push_back(std::move(current_ranges[i]));
