@@ -107,10 +107,13 @@ struct build_configuration {
     std::string tmp_dirname;
 
     void print() const {
-        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
+        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
+                  << ", num_threads = " << num_threads
+                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", l = " << l
                   << ", lambda = " << lambda
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
+                  << ", weighted = " << (weighted ? "true" : "false")
+                  << ", verbose = " << (verbose ? "true" : "false") << std::endl;
     }
 };
 
