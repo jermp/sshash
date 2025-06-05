@@ -215,11 +215,11 @@ struct minimizers_tuples {
         // #else
         //         __gnu_parallel::sort
         // #endif
-        // (m_buffer.begin(), m_buffer.end(),
-        //  [](minimizer_tuple const& x, minimizer_tuple const& y) {
-        //      return (x.minimizer < y.minimizer) or
-        //             (x.minimizer == y.minimizer and x.offset < y.offset);
-        //  });
+        //             (m_buffer.begin(), m_buffer.end(),
+        //              [](minimizer_tuple const& x, minimizer_tuple const& y) {
+        //                  return (x.minimizer < y.minimizer) or
+        //                         (x.minimizer == y.minimizer and x.offset < y.offset);
+        //              });
         parallel_sort(m_buffer, m_num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or

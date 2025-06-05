@@ -1,9 +1,82 @@
 #pragma once
 
 #include <algorithm>
-#include <functional>
+// #include <functional>
 
 namespace sshash {
+
+template <typename T, typename Compare>
+void parallel_merge(std::vector<T> const& A, std::vector<T> const& B,  //
+                    std::vector<T>& output, Compare comp)              //
+{
+    assert(std::is_sorted(A.begin(), A.end(), comp));
+    assert(std::is_sorted(B.begin(), B.end(), comp));
+    assert(output.size() == A.size() + B.size());
+
+    constexpr uint64_t sequntial_merge_threshold = 1024;
+    if (A.size() + B.size() <= sequntial_merge_threshold) {  // sequential merge for small inputs
+        std::merge(A.begin(), A.end(), B.begin(), B.end(), output.begin(), comp);
+        return;
+    }
+
+    std::vector<T> const& larger = (A.size() >= B.size()) ? A : B;
+    std::vector<T> const& smaller = (A.size() >= B.size()) ? B : A;
+
+    uint64_t pos_A = larger.size() / 2;
+    T mid_val = larger[pos_A];
+
+    auto it = std::lower_bound(smaller.begin(), smaller.end(), mid_val, comp);
+    size_t pos_B = std::distance(smaller.begin(), it);
+
+    std::vector<T> A1(larger.begin(), larger.begin() + pos_A);
+    std::vector<T> A2(larger.begin() + pos_A, larger.end());
+    std::vector<T> B1(smaller.begin(), smaller.begin() + pos_B);
+    std::vector<T> B2(smaller.begin() + pos_B, smaller.end());
+
+    std::vector<T> output1(A1.size() + B1.size());
+    std::vector<T> output2(A2.size() + B2.size());
+    std::thread thread1([&A1, &B1, &output1, &comp]() { parallel_merge(A1, B1, output1, comp); });
+    std::thread thread2([&A2, &B2, &output2, &comp]() { parallel_merge(A2, B2, output2, comp); });
+    thread1.join();
+    thread2.join();
+
+    std::copy(output1.begin(), output1.end(), output.begin());
+    std::copy(output2.begin(), output2.end(), output.begin() + output1.size());
+    assert(std::is_sorted(output.begin(), output.end(), comp));
+}
+
+template <typename T, typename Compare>
+void parallel_merge(std::vector<std::vector<T>>& sorted_ranges, std::vector<T>& output,
+                    Compare comp)  //
+{
+    if (sorted_ranges.empty()) return;
+
+    if (sorted_ranges.size() == 1) {
+        output.swap(sorted_ranges[0]);
+        return;
+    }
+
+    std::vector<std::vector<T>> current_ranges;
+    current_ranges.swap(sorted_ranges);
+    std::vector<std::vector<T>> next_ranges;
+
+    while (current_ranges.size() > 1) {
+        next_ranges.clear();
+        for (size_t i = 0; i < current_ranges.size(); i += 2) {
+            if (i + 1 < current_ranges.size()) {
+                std::vector<T> merged_range(current_ranges[i].size() +
+                                            current_ranges[i + 1].size());
+                parallel_merge(current_ranges[i], current_ranges[i + 1], merged_range, comp);
+                next_ranges.push_back(std::move(merged_range));
+            } else {
+                next_ranges.push_back(std::move(current_ranges[i]));
+            }
+        }
+        current_ranges.swap(next_ranges);
+    }
+
+    output.swap(current_ranges[0]);
+}
 
 template <typename T, typename Compare>
 void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare comp) {
@@ -32,46 +105,49 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
         if (t.joinable()) t.join();
     }
 
-    using heap_element = std::pair<T, uint32_t>;  // (value, index in heap)
-    std::vector<heap_element> heap;
-    heap.reserve(num_threads);
-    std::vector<typename std::vector<T>::iterator> iterators(num_threads);
-
-    for (uint64_t i = 0; i != num_threads; ++i) {
-        if (!sorted_chunks[i].empty()) {
-            heap.emplace_back(sorted_chunks[i][0], i);
-            iterators[i] = sorted_chunks[i].begin();
-        }
-    }
-
-    auto neg_comp = [&](heap_element const& x, heap_element const& y) {
-        return !comp(x.first, y.first);
-    };
-
-    std::make_heap(heap.begin(), heap.end(), neg_comp);
     data.clear();
-    data.reserve(data_size);
+    parallel_merge(sorted_chunks, data, comp);
 
-    while (!heap.empty()) {
-        auto [min, i] = heap.front();
-        data.push_back(min);
-        ++iterators[i];
-        if (iterators[i] != sorted_chunks[i].end()) {  // percolate down the head
-            heap[0].first = *iterators[i];
-            uint64_t pos = 0;
-            uint64_t size = heap.size();
-            while (2 * pos + 1 < size) {
-                uint64_t i = 2 * pos + 1;
-                if (i + 1 < size and neg_comp(heap[i], heap[i + 1])) ++i;
-                if (neg_comp(heap[i], heap[pos])) break;
-                std::swap(heap[i], heap[pos]);
-                pos = i;
-            }
-        } else {
-            std::pop_heap(heap.begin(), heap.end(), neg_comp);
-            heap.pop_back();
-        }
-    }
+    // using heap_element = std::pair<T, uint32_t>;  // (value, index in heap)
+    // std::vector<heap_element> heap;
+    // heap.reserve(num_threads);
+    // std::vector<typename std::vector<T>::iterator> iterators(num_threads);
+
+    // for (uint64_t i = 0; i != num_threads; ++i) {
+    //     if (!sorted_chunks[i].empty()) {
+    //         heap.emplace_back(sorted_chunks[i][0], i);
+    //         iterators[i] = sorted_chunks[i].begin();
+    //     }
+    // }
+
+    // auto neg_comp = [&](heap_element const& x, heap_element const& y) {
+    //     return !comp(x.first, y.first);
+    // };
+
+    // std::make_heap(heap.begin(), heap.end(), neg_comp);
+    // data.clear();
+    // data.reserve(data_size);
+
+    // while (!heap.empty()) {
+    //     auto [min, i] = heap.front();
+    //     data.push_back(min);
+    //     ++iterators[i];
+    //     if (iterators[i] != sorted_chunks[i].end()) {  // percolate down the head
+    //         heap[0].first = *iterators[i];
+    //         uint64_t pos = 0;
+    //         uint64_t size = heap.size();
+    //         while (2 * pos + 1 < size) {
+    //             uint64_t i = 2 * pos + 1;
+    //             if (i + 1 < size and neg_comp(heap[i], heap[i + 1])) ++i;
+    //             if (neg_comp(heap[i], heap[pos])) break;
+    //             std::swap(heap[i], heap[pos]);
+    //             pos = i;
+    //         }
+    //     } else {
+    //         std::pop_heap(heap.begin(), heap.end(), neg_comp);
+    //         heap.pop_back();
+    //     }
+    // }
 }
 
 }  // namespace sshash
