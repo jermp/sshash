@@ -13,8 +13,8 @@ void parallel_merge(std::vector<T> const& A, std::vector<T> const& B,  //
     assert(std::is_sorted(B.begin(), B.end(), comp));
     assert(output.size() == A.size() + B.size());
 
-    constexpr uint64_t sequntial_merge_threshold = 1024;
-    if (A.size() + B.size() <= sequntial_merge_threshold) {  // sequential merge for small inputs
+    constexpr uint64_t sequential_merge_threshold = 1024;
+    if (A.size() + B.size() <= sequential_merge_threshold) {  // sequential merge for small inputs
         std::merge(A.begin(), A.end(), B.begin(), B.end(), output.begin(), comp);
         return;
     }
@@ -35,13 +35,17 @@ void parallel_merge(std::vector<T> const& A, std::vector<T> const& B,  //
 
     std::vector<T> output1(A1.size() + B1.size());
     std::vector<T> output2(A2.size() + B2.size());
-    std::thread thread1([&A1, &B1, &output1, &comp]() { parallel_merge(A1, B1, output1, comp); });
-    std::thread thread2([&A2, &B2, &output2, &comp]() { parallel_merge(A2, B2, output2, comp); });
+    std::thread thread1([&]() {
+        parallel_merge(A1, B1, output1, comp);
+        std::copy(output1.begin(), output1.end(), output.begin());
+    });
+    std::thread thread2([&]() {
+        parallel_merge(A2, B2, output2, comp);
+        std::copy(output2.begin(), output2.end(), output.begin() + output1.size());
+    });
     thread1.join();
     thread2.join();
 
-    std::copy(output1.begin(), output1.end(), output.begin());
-    std::copy(output2.begin(), output2.end(), output.begin() + output1.size());
     assert(std::is_sorted(output.begin(), output.end(), comp));
 }
 
