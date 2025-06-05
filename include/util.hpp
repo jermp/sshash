@@ -77,7 +77,8 @@ struct build_configuration {
         : k(31)
         , m(17)
         , seed(constants::seed)
-        , num_threads(std::thread::hardware_concurrency())
+        , num_threads(1)
+        , ram_limit_in_GiB(constants::default_ram_limit_in_GiB)
 
         , l(constants::min_l)
         , lambda(constants::lambda)
@@ -94,6 +95,7 @@ struct build_configuration {
     uint64_t m;  // minimizer size
     uint64_t seed;
     uint64_t num_threads;
+    uint64_t ram_limit_in_GiB;
 
     uint64_t l;     // drive dictionary trade-off
     double lambda;  // drive PTHash trade-off
@@ -105,10 +107,13 @@ struct build_configuration {
     std::string tmp_dirname;
 
     void print() const {
-        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
+        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
+                  << ", num_threads = " << num_threads
+                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", l = " << l
                   << ", lambda = " << lambda
                   << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
+                  << ", weighted = " << (weighted ? "true" : "false")
+                  << ", verbose = " << (verbose ? "true" : "false") << std::endl;
     }
 };
 
@@ -168,7 +173,7 @@ template <class kmer_t, typename Hasher = murmurhash2_64>
 uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
     assert(m <= kmer_t::max_m);
     assert(m <= k);
-    uint64_t min_hash = uint64_t(-1);
+    uint64_t min_hash = constants::invalid_uint64;
     kmer_t minimizer = kmer_t(-1);
     for (uint64_t i = 0; i != k - m + 1; ++i) {
         kmer_t mmer = kmer;

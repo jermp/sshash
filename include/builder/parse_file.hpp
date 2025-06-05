@@ -7,7 +7,7 @@ namespace sshash {
 
 template <class kmer_t>
 struct parse_data {
-    parse_data(std::string const& tmp_dirname) : num_kmers(0), minimizers(tmp_dirname) {}
+    parse_data(build_configuration const& build_config) : num_kmers(0), minimizers(build_config) {}
     uint64_t num_kmers;
     minimizers_tuples minimizers;
     compact_string_pool<kmer_t> strings;
@@ -65,8 +65,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             if (i == num_blocks - 1) n = size;
             uint64_t num_kmers_in_block = n - k + 1;
             assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-            data.minimizers.emplace_back(uint64_t(prev_minimizer), builder.offset,
-                                         num_kmers_in_block);
+            data.minimizers.emplace_back(prev_minimizer, builder.offset, num_kmers_in_block);
             builder.append(super_kmer + i * max_num_kmers_in_super_kmer, n, glue);
             if (glue) {
                 assert(data.minimizers.back().offset > k - 1);
@@ -172,7 +171,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         }
 
         bool start = true;
-        kmer_t uint_kmer;
+        kmer_t uint_kmer = 0;
         while (end != sequence.length() - k + 1) {
             char const* kmer = sequence.data() + end;
             assert(util::is_valid<kmer_t>(kmer, k));
@@ -185,14 +184,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
             }
 
-            uint64_t minimizer = minimizer_enum.next(uint_kmer, start);
+            uint64_t minimizer = minimizer_enum.template next<false>(uint_kmer, start);
             assert(minimizer == util::compute_minimizer<kmer_t>(uint_kmer, k, m, seed));
 
             if (build_config.canonical_parsing) {
                 kmer_t uint_kmer_rc = uint_kmer;
                 uint_kmer_rc.reverse_complement_inplace(k);
-                constexpr bool reverse = true;
-                uint64_t minimizer_rc = minimizer_enum_rc.next(uint_kmer_rc, start, reverse);
+                uint64_t minimizer_rc = minimizer_enum_rc.template next<true>(uint_kmer_rc, start);
                 assert(minimizer_rc == util::compute_minimizer<kmer_t>(uint_kmer_rc, k, m, seed));
                 minimizer = std::min(minimizer, minimizer_rc);
             }
@@ -239,7 +237,7 @@ parse_data<kmer_t> parse_file(std::string const& filename,
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     std::cout << "reading file '" << filename << "'..." << std::endl;
-    parse_data<kmer_t> data(build_config.tmp_dirname);
+    parse_data<kmer_t> data(build_config);
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {

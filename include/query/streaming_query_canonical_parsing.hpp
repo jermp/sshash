@@ -75,12 +75,11 @@ struct streaming_query_canonical_parsing {
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
-        m_curr_minimizer = m_minimizer_enum.next(m_kmer, m_start);
+        m_curr_minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
         assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
         m_kmer_rc = m_kmer;
         m_kmer_rc.reverse_complement_inplace(m_k);
-        constexpr bool reverse = true;
-        uint64_t minimizer_rc = m_minimizer_enum_rc.next(m_kmer_rc, m_start, reverse);
+        uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(m_kmer_rc, m_start);
         assert(minimizer_rc == util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_seed));
         m_curr_minimizer = std::min(m_curr_minimizer, minimizer_rc);
 

@@ -17,7 +17,7 @@ jobs:
           - { name: clang, version: 17}
           - { name: clang, version: 18}
     name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }})
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
         run: |

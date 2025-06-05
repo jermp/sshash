@@ -6,7 +6,8 @@ namespace sshash {
 
 struct minimizers {
     template <typename ForwardIterator>
-    void build(ForwardIterator begin, uint64_t size, build_configuration const& build_config) {
+    void build(ForwardIterator begin, uint64_t size, build_configuration const& build_config)  //
+    {
         pthash::build_configuration mphf_build_config;
         mphf_build_config.lambda = 5.0;
         mphf_build_config.alpha = 0.94;
@@ -14,6 +15,8 @@ struct minimizers {
         mphf_build_config.verbose = false;
         mphf_build_config.num_threads = build_config.num_threads;
         mphf_build_config.avg_partition_size = constants::avg_partition_size;
+        mphf_build_config.ram = (build_config.ram_limit_in_GiB * essentials::GiB) / 2;
+        mphf_build_config.tmp_dir = build_config.tmp_dirname;
 
         if (build_config.verbose) {
             const uint64_t avg_partition_size =
@@ -27,8 +30,6 @@ struct minimizers {
                       << std::endl;
         }
 
-        mphf_build_config.ram = 4 * essentials::GB;
-        mphf_build_config.tmp_dir = build_config.tmp_dirname;
         m_mphf.build_in_external_memory(begin, size, mphf_build_config);
     }
 
