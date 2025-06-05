@@ -21,7 +21,7 @@ int build(int argc, char** argv) {
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
-    parser.add("t", "Number of threads (default is 1).", "-t", false);
+    parser.add("t", "Number of threads (default is 1). Must be a power of 2.", "-t", false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
                "A reasonable values lies in [2.." +
@@ -68,7 +68,6 @@ int build(int argc, char** argv) {
     build_config.m = m;
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
-    if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
     if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("lambda")) build_config.lambda = parser.get<double>("lambda");
     build_config.canonical_parsing = parser.get<bool>("canonical_parsing");
@@ -80,6 +79,12 @@ int build(int argc, char** argv) {
     }
     if (parser.get<uint64_t>("RAM")) {
         build_config.ram_limit_in_GiB = parser.get<uint64_t>("RAM");
+    }
+
+    if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
+    if ((build_config.num_threads & (build_config.num_threads - 1)) != 0) {
+        std::cerr << "number of threads must be a power of 2" << std::endl;
+        return 1;
     }
 
     build_config.print();

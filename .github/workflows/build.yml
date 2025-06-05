@@ -13,9 +13,9 @@ jobs:
           - { name: gcc, version: 12}
           - { name: gcc, version: 13}
           - { name: gcc, version: 14}
-          # - { name: clang, version: 16}
-          # - { name: clang, version: 17}
-          # - { name: clang, version: 18}
+          - { name: clang, version: 16}
+          - { name: clang, version: 17}
+          - { name: clang, version: 18}
     name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }})
     runs-on: ubuntu-latest
     steps:
@@ -30,21 +30,15 @@ jobs:
           sudo apt-get install --assume-yes --no-install-recommends gcc-${{ matrix.compiler.version }} g++-${{ matrix.compiler.version }}
           echo "CC=/usr/bin/gcc-${{ matrix.compiler.version }}" >> $GITHUB_ENV
           echo "CXX=/usr/bin/g++-${{ matrix.compiler.version }}" >> $GITHUB_ENV
-      # - name: Install Clang
-      #   if: ${{ matrix.compiler.name == 'clang' }}
-      #   run: |
-      #     sudo apt-get install --assume-yes --no-install-recommends clang-${{ matrix.compiler.version }}
-      #     echo "CC=/usr/bin/clang-${{ matrix.compiler.version }}" >> $GITHUB_ENV
-      #     echo "CXX=/usr/bin/clang++-${{ matrix.compiler.version }}" >> $GITHUB_ENV
+      - name: Install Clang
+        if: ${{ matrix.compiler.name == 'clang' }}
+        run: |
+          sudo apt-get install --assume-yes --no-install-recommends clang-${{ matrix.compiler.version }}
+          echo "CC=/usr/bin/clang-${{ matrix.compiler.version }}" >> $GITHUB_ENV
+          echo "CXX=/usr/bin/clang++-${{ matrix.compiler.version }}" >> $GITHUB_ENV
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - name: Install OpenMP library for GCC
-        if: ${{ matrix.compiler.name == 'gcc' }}
-        run: sudo apt-get install -y libomp-dev libgomp1
-      # - name: Install OpenMP library for Clang
-      #   if: ${{ matrix.compiler.name == 'clang' }}
-      #   run: sudo apt-get install -y libomp-dev
       - name: Build
         run: |
           cmake -B ./build -DCMAKE_CXX_FLAGS="-fopenmp"

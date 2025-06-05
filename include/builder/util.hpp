@@ -1,11 +1,6 @@
 #pragma once
 
 #include "file_merging_iterator.hpp"
-
-// #ifndef __APPLE__
-// #include <parallel/algorithm>
-// #endif
-
 #include "parallel_sort.hpp"
 
 namespace sshash {
@@ -210,16 +205,6 @@ struct minimizers_tuples {
 
     void sort_and_flush() {
         // std::cout << "sorting buffer..." << std::endl;
-        // #ifdef __APPLE__
-        //         std::sort
-        // #else
-        //         __gnu_parallel::sort
-        // #endif
-        //             (m_buffer.begin(), m_buffer.end(),
-        //              [](minimizer_tuple const& x, minimizer_tuple const& y) {
-        //                  return (x.minimizer < y.minimizer) or
-        //                         (x.minimizer == y.minimizer and x.offset < y.offset);
-        //              });
         parallel_sort(m_buffer, m_num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or
