@@ -41,5 +41,5 @@ jobs:
           submodules: recursive
       - name: Build
         run: |
-          cmake -B ./build -DCMAKE_CXX_FLAGS="-fopenmp"
+          cmake -B ./build
           cmake --build ./build --parallel
