@@ -8,8 +8,9 @@
 namespace sshash {
 
 template <class kmer_t>
-struct buckets {
-    std::pair<lookup_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
+struct buckets  //
+{
+    lookup_result offset_to_id(uint64_t offset, uint64_t k) const {
         auto p = pieces.locate(offset);
         uint64_t contig_id = p.first.pos;
         uint64_t contig_begin = p.first.val;
@@ -32,8 +33,11 @@ struct buckets {
         res.kmer_id_in_contig = relative_kmer_id;
         res.contig_id = contig_id;
         res.contig_size = contig_size;
+        res.kmer_offset = offset;
+        res.contig_offset_begin = contig_begin;
+        res.contig_offset_end = contig_end;
 
-        return {res, contig_end};
+        return res;
     }
 
     /* Return where the contig begins and ends in strings. */
@@ -84,14 +88,16 @@ struct buckets {
     lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, kmer_t target_kmer, uint64_t k,
                                        uint64_t m) const {
         uint64_t offset = offsets.access(super_kmer_id);
-        auto [res, contig_end] = offset_to_id(offset, k);
+        auto res = offset_to_id(offset, k);
         bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
-        uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
+        uint64_t window_size =
+            std::min<uint64_t>(k - m + 1, res.contig_offset_end - offset - k + 1);
         for (uint64_t w = 0; w != window_size; ++w) {
             kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
             if (read_kmer == target_kmer) {
                 res.kmer_id += w;
                 res.kmer_id_in_contig += w;
+                res.kmer_offset += w;
                 assert(is_valid(res));
                 return res;
             }
@@ -109,14 +115,16 @@ struct buckets {
                                    kmer_t target_kmer_rc, uint64_t k, uint64_t m) const {
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             uint64_t offset = offsets.access(super_kmer_id);
-            auto [res, contig_end] = offset_to_id(offset, k);
+            auto res = offset_to_id(offset, k);
             bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
-            uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
+            uint64_t window_size =
+                std::min<uint64_t>(k - m + 1, res.contig_offset_end - offset - k + 1);
             for (uint64_t w = 0; w != window_size; ++w) {
                 kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
                 if (read_kmer == target_kmer) {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
+                    res.kmer_offset += w;
                     res.kmer_orientation = constants::forward_orientation;
                     assert(is_valid(res));
                     return res;
@@ -124,6 +132,7 @@ struct buckets {
                 if (read_kmer == target_kmer_rc) {
                     res.kmer_id += w;
                     res.kmer_id_in_contig += w;
+                    res.kmer_offset += w;
                     res.kmer_orientation = constants::backward_orientation;
                     assert(is_valid(res));
                     return res;
@@ -267,9 +276,11 @@ private:
         visitor.visit(t.strings);
     }
     bool is_valid(lookup_result res) const {
-        return (res.contig_size != constants::invalid_uint64 and
-                res.kmer_id_in_contig < res.contig_size) and
-               (res.contig_id != constants::invalid_uint64 or res.contig_id < pieces.size());
+        return res.contig_size != constants::invalid_uint64 and  //
+               res.kmer_id_in_contig < res.contig_size and       //
+               res.contig_id < pieces.size() and                 //
+               res.kmer_offset >= res.contig_offset_begin and    //
+               res.kmer_offset < res.contig_offset_end;          //
     }
 };
 

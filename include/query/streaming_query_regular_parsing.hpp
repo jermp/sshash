@@ -239,10 +239,11 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
+            auto res = (m_dict->m_buckets).offset_to_id(offset, m_k);
             m_res = res;
             m_pos_in_window = 0;
-            m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
+            m_window_size =
+                std::min<uint64_t>(m_k - m_m + 1, res.contig_offset_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 kmer_t val = m_string_iterator.read(2 * m_k);
@@ -281,10 +282,11 @@ private:
             uint64_t pos_in_string = 2 * offset;
             m_reverse = false;
             m_string_iterator.at(pos_in_string);
-            auto [res, offset_end] = (m_dict->m_buckets).offset_to_id(offset, m_k);
+            auto res = (m_dict->m_buckets).offset_to_id(offset, m_k);
             m_res = res;
             m_pos_in_window = 0;
-            m_window_size = std::min<uint64_t>(m_k - m_m + 1, offset_end - offset - m_k + 1);
+            m_window_size =
+                std::min<uint64_t>(m_k - m_m + 1, res.contig_offset_end - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 kmer_t val = m_string_iterator.read(2 * m_k);

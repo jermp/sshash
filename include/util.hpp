@@ -15,6 +15,7 @@ enum input_file_type { fasta, cf_seg };
 struct streaming_query_report {
     streaming_query_report()
         : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
+
     uint64_t num_kmers;
     uint64_t num_positive_kmers;
     uint64_t num_searches;
@@ -27,12 +28,33 @@ struct lookup_result {
         , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
         , contig_id(constants::invalid_uint64)
-        , contig_size(constants::invalid_uint64) {}
+        , contig_size(constants::invalid_uint64)
+
+        , kmer_offset(constants::invalid_uint64)
+        , contig_offset_begin(constants::invalid_uint64)
+        , contig_offset_end(constants::invalid_uint64) {}
+
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
     uint64_t kmer_orientation;
     uint64_t contig_id;
-    uint64_t contig_size;
+    uint64_t contig_size;  // always equal to (contig_offset_end - contig_offset_begin) - k + 1
+
+    /* these two variables are for streaming logic */
+    uint64_t kmer_offset;          // offset of kmer into internal string
+    uint64_t contig_offset_begin;  // offset of begin of contig into internal string
+    uint64_t contig_offset_end;    // offset of end of contig into internal string
+
+    void print() const {
+        std::cout << "  == kmer_id = " << kmer_id << '\n';
+        std::cout << "  == kmer_id_in_contig = " << kmer_id_in_contig << '\n';
+        std::cout << "  == kmer_orientation = " << kmer_orientation << '\n';
+        std::cout << "  == contig_id = " << contig_id << '\n';
+        std::cout << "  == contig_size = " << contig_size << '\n';
+        std::cout << "  == kmer_offset = " << kmer_offset << '\n';
+        std::cout << "  == contig_offset_begin = " << contig_offset_begin << '\n';
+        std::cout << "  == contig_offset_end = " << contig_offset_end << '\n';
+    }
 };
 
 template <class kmer_t>
