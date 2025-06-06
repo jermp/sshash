@@ -10,7 +10,6 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                   //
                     Iterator output_begin,                              //
                     Compare comp, uint64_t sequential_merge_threshold)  //
 {
-    using T = typename std::iterator_traits<Iterator>::value_type;
     assert(std::is_sorted(A_begin, A_end, comp));
     assert(std::is_sorted(B_begin, B_end, comp));
 
@@ -31,7 +30,7 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                   //
     }
 
     Iterator larger_mid = larger_begin + (std::distance(larger_begin, larger_end) / 2);
-    T larger_mid_val = *larger_mid;
+    auto larger_mid_val = *larger_mid;
     Iterator smaller_mid = std::lower_bound(smaller_begin, smaller_end, larger_mid_val, comp);
 
     std::thread thread1([&]() {
@@ -51,9 +50,16 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                   //
     thread2.join();
 }
 
+/*
+    Data to sort is in *data*. The vector *temp_data* is the temporary
+    working memory, which must be of same size as data.
+*/
 template <typename T, typename Compare>
-void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare comp)  //
+void parallel_sort(std::vector<T>& data, std::vector<T>& temp_data,  //
+                   const uint64_t num_threads, Compare comp)         //
 {
+    assert(data.size() == temp_data.size());
+
     if (num_threads <= 1) {
         std::sort(data.begin(), data.end(), comp);
         return;
@@ -63,18 +69,17 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
     const uint64_t data_size = data.size();
     const uint64_t chunk_size = (data_size + num_threads - 1) / num_threads;
     const uint64_t sequential_merge_threshold = data_size / uint64_t(std::log2(num_threads));
+    assert(sequential_merge_threshold > 0);
 
     std::vector<std::thread> threads;
     threads.reserve(num_threads);
 
-    std::vector<std::pair<typename std::vector<T>::iterator,  //
-                          typename std::vector<T>::iterator>>
-        ranges(num_threads);
+    using iterator_t = typename std::vector<T>::iterator;
+    std::vector<std::pair<iterator_t, iterator_t>> ranges(num_threads);
 
     for (uint64_t i = 0; i != num_threads; ++i) {
-        size_t begin = i * chunk_size;
-        size_t end = (i == num_threads - 1) ? data_size : begin + chunk_size;
-        // std::cout << "[" << begin << "," << end << ")" << std::endl;
+        uint64_t begin = i * chunk_size;
+        uint64_t end = (i == num_threads - 1) ? data_size : begin + chunk_size;
         ranges[i] = {data.begin() + begin, data.begin() + end};
         threads.emplace_back(
             [&, begin, end]() { std::sort(data.begin() + begin, data.begin() + end, comp); });
@@ -83,35 +88,23 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
         if (t.joinable()) t.join();
     }
 
-    std::vector<T> temp_data;
-    temp_data.resize(data.size());
-
-    bool use_data = true;
-    std::vector<std::pair<typename std::vector<T>::iterator,  //
-                          typename std::vector<T>::iterator>>
-        next_ranges;
+    bool swap = false;
+    std::vector<std::pair<iterator_t, iterator_t>> next_ranges;
 
     while (ranges.size() != 1)  //
     {
         next_ranges.clear();
         for (uint64_t i = 0; i != ranges.size(); i += 2) {
             if (i + 1 < ranges.size()) {
-                auto begin1 = ranges[i].first;
-                auto end1 = ranges[i].second;
-                auto begin2 = ranges[i + 1].first;
-                auto end2 = ranges[i + 1].second;
+                auto [begin1, end1] = ranges[i];
+                auto [begin2, end2] = ranges[i + 1];
                 uint64_t output_size = (end1 - begin1) + (end2 - begin2);
 
-                uint64_t offset = 0;
-                typename std::vector<T>::iterator output_iterator;
-
-                if (use_data) {
-                    offset = std::distance(data.begin(), begin1);
-                    output_iterator = temp_data.begin() + offset;
-                } else {
-                    offset = std::distance(temp_data.begin(), begin1);
-                    output_iterator = data.begin() + offset;
-                }
+                auto input = data.begin();
+                auto output = temp_data.begin();
+                if (swap) std::swap(input, output);
+                uint64_t offset = std::distance(input, begin1);
+                auto output_iterator = output + offset;
                 assert(offset <= data_size);
 
                 parallel_merge(begin1, end1, begin2, end2, output_iterator, comp,
@@ -124,10 +117,10 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
             }
         }
         ranges.swap(next_ranges);
-        use_data = !use_data;
+        swap = !swap;
     }
 
-    if (!use_data) data.swap(temp_data);
+    if (swap) data.swap(temp_data);
 }
 
 }  // namespace sshash

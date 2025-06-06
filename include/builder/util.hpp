@@ -205,7 +205,8 @@ struct minimizers_tuples {
 
     void sort_and_flush() {
         // std::cout << "sorting buffer..." << std::endl;
-        parallel_sort(m_buffer, m_num_threads,
+        m_temp_buffer.resize(m_buffer.size());
+        parallel_sort(m_buffer, m_temp_buffer, m_num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or
                                  (x.minimizer == y.minimizer and x.offset < y.offset);
@@ -248,6 +249,10 @@ struct minimizers_tuples {
     files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
 
     void merge() {
+        assert(m_buffer.empty());
+        std::vector<minimizer_tuple>().swap(m_buffer);
+        std::vector<minimizer_tuple>().swap(m_temp_buffer);
+
         if (m_num_files_to_merge == 0) return;
 
         if (m_num_files_to_merge == 1) {
@@ -300,8 +305,6 @@ struct minimizers_tuples {
             auto tmp_output_filename = get_tmp_output_filename(i);
             std::remove(tmp_output_filename.c_str());
         }
-
-        m_buffer.clear();
     }
 
     uint64_t num_minimizers() const { return m_num_minimizers; }
@@ -311,16 +314,6 @@ struct minimizers_tuples {
 
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
-    void swap(minimizers_tuples& other) {
-        std::swap(m_buffer_size, other.m_buffer_size);
-        std::swap(m_num_files_to_merge, other.m_num_files_to_merge);
-        std::swap(m_num_minimizers, other.m_num_minimizers);
-        std::swap(m_run_identifier, other.m_run_identifier);
-        std::swap(m_num_threads, other.m_num_threads);
-        m_tmp_dirname.swap(other.m_tmp_dirname);
-        m_buffer.swap(other.m_buffer);
-    }
-
 private:
     uint64_t m_buffer_size;
     uint64_t m_num_files_to_merge;
@@ -329,6 +322,7 @@ private:
     uint64_t m_num_threads;
     std::string m_tmp_dirname;
     std::vector<minimizer_tuple> m_buffer;
+    std::vector<minimizer_tuple> m_temp_buffer;
 
     std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;
