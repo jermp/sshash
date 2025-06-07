@@ -22,7 +22,6 @@ struct streaming_query_canonical_parsing {
         , m_seed(dict->m_seed)
 
         , m_string_iterator(dict->m_buckets.strings, 0)
-        , m_reverse(false)
 
         , m_num_searches(0)
         , m_num_extensions(0)
@@ -42,7 +41,6 @@ struct streaming_query_canonical_parsing {
         m_prev_kmer_rc = constants::invalid_uint64;
         m_string_iterator.at(0);
         m_res = lookup_result();
-        m_reverse = false;
     }
 
     lookup_result lookup_advanced(const char* kmer) {
@@ -67,6 +65,7 @@ struct streaming_query_canonical_parsing {
         }
         m_kmer_rc = m_kmer;
         m_kmer_rc.reverse_complement_inplace(m_k);
+
         /* 3. compute result */
         if (m_start or m_res.kmer_id == constants::invalid_uint64) {
             /* if at the start of a new query or previous kmer was not found */
@@ -82,12 +81,14 @@ struct streaming_query_canonical_parsing {
 
         // m_res.print();
 
-        auto exp_res = m_dict->lookup_advanced(kmer);
-        if (!equal_lookup_result(exp_res, m_res)) {
-            // std::cout << "expected:" << std::endl;
-            exp_res.print();
-            assert(false);
-        }
+        // auto exp_res = m_dict->lookup_advanced(kmer);
+        // if (!equal_lookup_result(exp_res, m_res)) {
+        //     // std::cout << "expected:" << std::endl;
+        //     exp_res.print();
+        //     assert(false);
+        // }
+
+        assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
 
         m_prev_kmer = m_kmer;
         m_prev_kmer_rc = m_kmer_rc;
@@ -113,7 +114,6 @@ private:
 
     /* string state */
     bit_vector_iterator<kmer_t> m_string_iterator;
-    bool m_reverse;
 
     /* performance counts */
     uint64_t m_num_searches;
@@ -132,25 +132,27 @@ private:
         m_num_searches += 1;
         // std::cout << "--> kmer FOUND!" << std::endl;
         if (m_res.kmer_orientation == constants::forward_orientation) {
-            m_reverse = false;
             m_string_iterator.at(2 * m_res.kmer_offset + 2);  // at next kmer
         } else {
-            m_reverse = true;
-            m_string_iterator.at(2 * (m_res.kmer_offset + m_k - 1) + 2);  // at next kmer
+            m_string_iterator.at(2 * (m_res.kmer_offset + m_k - 1));  // at next kmer
         }
-
-        // std::cout << "reverse = " << int(m_reverse) << std::endl;
     }
 
     inline bool extends() {
-        if (m_reverse) {
-            if (m_res.kmer_offset == m_res.contig_offset_begin + m_k) return false;
+        if (m_res.kmer_orientation == constants::backward_orientation) {
+            // std::cout << "REVERSE" << std::endl;
+            if (m_res.kmer_offset == m_res.contig_offset_begin) return false;
+            // std::cout << "m_kmer_rc = " << util::uint_kmer_to_string(m_kmer_rc, m_k) <<
+            // std::endl; std::cout << "read = "
+            //           << util::uint_kmer_to_string(m_string_iterator.read_reverse(2 * m_k), m_k)
+            //           << std::endl;
             if (m_kmer_rc == m_string_iterator.read_reverse(2 * m_k)) {
                 ++m_num_extensions;
                 return true;
             }
             return false;
         }
+        // std::cout << "NOT REVERSE" << std::endl;
         assert(m_res.contig_offset_end >= m_k);
         if (m_res.kmer_offset == m_res.contig_offset_end - m_k) return false;
         // std::cout << "m_kmer = " << util::uint_kmer_to_string(m_kmer, m_k) << std::endl;
@@ -164,22 +166,21 @@ private:
     }
 
     inline void extend() {
-        // std::cout << "extend with reverse = " << int(m_reverse) << std::endl;
-        if (m_reverse) {
-            m_string_iterator.eat_reverse(2);
-            if (m_kmer_rc == m_prev_kmer_rc) return;
-            m_res.kmer_offset -= 1;
-            assert(m_res.kmer_offset >= m_res.contig_offset_begin);
+        if (m_res.kmer_orientation == constants::backward_orientation) {
             assert(m_res.kmer_orientation == constants::backward_orientation);
+            m_string_iterator.eat_reverse(2);
+            m_res.kmer_offset -= 1;
+            if (m_kmer_rc == m_prev_kmer_rc) return;
             m_res.kmer_id -= 1;
             m_res.kmer_id_in_contig -= 1;
             return;
         }
-        m_string_iterator.eat(2);
-        if (m_kmer == m_prev_kmer) return;
-        m_res.kmer_offset += 1;
-        assert(m_res.kmer_offset <= m_res.contig_offset_end);
         assert(m_res.kmer_orientation == constants::forward_orientation);
+        m_string_iterator.eat(2);
+        m_res.kmer_offset += 1;
+        assert(m_res.contig_offset_end >= m_k);
+        assert(m_res.kmer_offset <= m_res.contig_offset_end - m_k);
+        if (m_kmer == m_prev_kmer) return;
         m_res.kmer_id += 1;
         m_res.kmer_id_in_contig += 1;
     }
