@@ -12,7 +12,6 @@ struct streaming_query_canonical_parsing {
         : m_dict(dict)
 
         , m_kmer(constants::invalid_uint64)
-        , m_kmer_rc(constants::invalid_uint64)
 
         , m_k(dict->m_k)
         , m_m(dict->m_m)
@@ -35,7 +34,6 @@ struct streaming_query_canonical_parsing {
     void reset_state() {
         start();
         m_kmer = constants::invalid_uint64;
-        m_kmer_rc = constants::invalid_uint64;
         m_string_iterator.at(0);
         m_remaining_contig_bases = 0;
         m_direction = 0;
@@ -62,8 +60,6 @@ struct streaming_query_canonical_parsing {
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
-        m_kmer_rc = m_kmer;
-        m_kmer_rc.reverse_complement_inplace(m_k);
 
         // std::cout << "m_remaining_contig_bases = " << m_remaining_contig_bases << std::endl;
 
@@ -74,26 +70,22 @@ struct streaming_query_canonical_parsing {
             /* if at the start of a new query or previous kmer was not found */
             seed();
         } else {
-            if (m_res.kmer_orientation == constants::backward_orientation) {
-                m_string_iterator.eat_reverse(2);
-                if (m_kmer_rc == m_string_iterator.read_reverse(2 * m_k)) {
-                    ++m_num_extensions;
-                    m_res.kmer_id += m_direction;
-                    m_res.kmer_id_in_contig += m_direction;
-                    m_remaining_contig_bases -= 1;
-                } else {
-                    seed();
-                }
+            auto expected_kmer =
+                (m_direction == 1)
+                    ? (m_string_iterator.eat(2), m_string_iterator.read(2 * m_k))
+                    : (m_string_iterator.eat_reverse(2), m_string_iterator.read_reverse(2 * m_k));
+
+            // bool is_present = (m_kmer == expected_kmer) or (m_kmer_rc == expected_kmer);
+            auto expected_kmer_rc = expected_kmer;
+            expected_kmer_rc.reverse_complement_inplace(m_k);
+
+            if ((m_kmer == expected_kmer) or (m_kmer == expected_kmer_rc)) {
+                ++m_num_extensions;
+                m_res.kmer_id += m_direction;
+                m_res.kmer_id_in_contig += m_direction;
+                m_remaining_contig_bases -= 1;
             } else {
-                m_string_iterator.eat(2);
-                if (m_kmer == m_string_iterator.read(2 * m_k)) {
-                    ++m_num_extensions;
-                    m_res.kmer_id += m_direction;
-                    m_res.kmer_id_in_contig += m_direction;
-                    m_remaining_contig_bases -= 1;
-                } else {
-                    seed();
-                }
+                seed();
             }
         }
 
@@ -125,7 +117,7 @@ private:
 
     /* kmer state */
     bool m_start;
-    kmer_t m_kmer, m_kmer_rc;
+    kmer_t m_kmer;
 
     /* constants */
     uint64_t m_k, m_m, m_seed;
