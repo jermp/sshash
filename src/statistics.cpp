@@ -22,7 +22,7 @@ void dictionary<kmer_t>::compute_statistics() const {
             auto res = m_buckets.offset_to_id(offset, m_k);
             bit_vector_iterator<kmer_t> bv_it(m_buckets.strings, 2 * offset);
             uint64_t window_size =
-                std::min<uint64_t>(m_k - m_m + 1, res.contig_offset_end - offset - m_k + 1);
+                std::min<uint64_t>(m_k - m_m + 1, res.contig_end(m_k) - offset - m_k + 1);
             uint64_t prev_minimizer = constants::invalid_uint64;
             uint64_t w = 0;
             for (; w != window_size; ++w) {

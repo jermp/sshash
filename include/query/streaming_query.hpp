@@ -85,8 +85,6 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
                 auto answer = query.lookup_advanced(kmer);
                 report.num_kmers += 1;
                 report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
-                // std::cout << "query-" << query_id << " for '" << std::string(kmer, kmer + k)
-                //           << "' DONE!" << std::endl;
                 ++query_id;
             }
         }

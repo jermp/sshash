@@ -28,34 +28,31 @@ struct lookup_result {
         , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
         , contig_id(constants::invalid_uint64)
-        , contig_size(constants::invalid_uint64)
-
-        , kmer_offset(constants::invalid_uint64)
-        , contig_offset_begin(constants::invalid_uint64)
-        , contig_offset_end(constants::invalid_uint64) {}
+        , contig_size(constants::invalid_uint64) {}
 
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
     uint64_t kmer_orientation;
     uint64_t contig_id;
-    uint64_t contig_size;  // always equal to (contig_offset_end - contig_offset_begin) - k + 1
+    uint64_t contig_size;
 
-    /* these two variables are for streaming logic */
-    uint64_t kmer_offset;          // offset of kmer into internal string
-    uint64_t contig_offset_begin;  // offset of begin of contig into internal string
-    uint64_t contig_offset_end;    // offset of end of contig into internal string
+    uint64_t contig_begin(const uint64_t k) const {  //
+        return kmer_id + contig_id * (k - 1) - kmer_id_in_contig;
+    }
 
-    void print() const {
-        std::cout << "  == kmer_id = " << kmer_id << '\n';
-        std::cout << "  == kmer_id_in_contig = " << kmer_id_in_contig << '\n';
-        std::cout << "  == kmer_orientation = " << kmer_orientation << '\n';
-        std::cout << "  == contig_id = " << contig_id << '\n';
-        std::cout << "  == contig_size = " << contig_size << '\n';
-        std::cout << "  == kmer_offset = " << kmer_offset << '\n';
-        std::cout << "  == contig_offset_begin = " << contig_offset_begin << '\n';
-        std::cout << "  == contig_offset_end = " << contig_offset_end << '\n';
+    uint64_t contig_end(const uint64_t k) const {  //
+        return contig_begin(k) + contig_size + k - 1;
     }
 };
+
+std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
+    os << "  == kmer_id = " << res.kmer_id << '\n';
+    os << "  == kmer_id_in_contig = " << res.kmer_id_in_contig << '\n';
+    os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
+    os << "  == contig_id = " << res.contig_id << '\n';
+    os << "  == contig_size = " << res.contig_size << '\n';
+    return os;
+}
 
 template <class kmer_t>
 struct neighbourhood {

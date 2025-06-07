@@ -1,7 +1,6 @@
 #pragma once
 
 #include "include/dictionary.hpp"
-#include "include/minimizer_enumerator.hpp"
 #include "include/util.hpp"
 
 namespace sshash {
@@ -43,14 +42,6 @@ struct streaming_query_canonical_parsing {
         m_res = lookup_result();
     }
 
-    inline void set_remaining_contig_bases() {
-        // if moving forward, we have (contig-length - (pos + k)) positions left
-        // if moving backward, we have (pos) positions left.
-        m_remaining_contig_bases = (m_direction == 1)
-                                       ? (m_res.contig_size - (m_res.kmer_id_in_contig + m_k))
-                                       : (m_res.kmer_id_in_contig);
-    }
-
     lookup_result lookup_advanced(const char* kmer) {
         // std::cout << "querying '" << std::string(kmer, kmer + m_k) << "'..." << std::endl;
 
@@ -74,13 +65,9 @@ struct streaming_query_canonical_parsing {
         m_kmer_rc = m_kmer;
         m_kmer_rc.reverse_complement_inplace(m_k);
 
-        if (m_res.kmer_orientation == constants::forward_orientation) {
-            if (m_res.kmer_offset == m_res.contig_offset_end - m_k) m_start = true;
-        } else {
-            if (m_res.kmer_offset == m_res.contig_offset_begin) m_start = true;
-        }
+        // std::cout << "m_remaining_contig_bases = " << m_remaining_contig_bases << std::endl;
 
-        // if (m_remaining_contig_bases == 0) m_start = true;
+        if (m_remaining_contig_bases == 0) m_start = true;
 
         /* 3. compute result */
         if (m_start or m_res.kmer_id == constants::invalid_uint64) {
@@ -93,8 +80,7 @@ struct streaming_query_canonical_parsing {
                     ++m_num_extensions;
                     m_res.kmer_id += m_direction;
                     m_res.kmer_id_in_contig += m_direction;
-                    // m_remaining_contig_bases -= 1;
-                    m_res.kmer_offset += m_direction;
+                    m_remaining_contig_bases -= 1;
                 } else {
                     seed();
                 }
@@ -104,8 +90,7 @@ struct streaming_query_canonical_parsing {
                     ++m_num_extensions;
                     m_res.kmer_id += m_direction;
                     m_res.kmer_id_in_contig += m_direction;
-                    // m_remaining_contig_bases -= 1;
-                    m_res.kmer_offset += m_direction;
+                    m_remaining_contig_bases -= 1;
                 } else {
                     seed();
                 }
@@ -115,7 +100,7 @@ struct streaming_query_canonical_parsing {
         /* 4. update state */
         m_start = false;
 
-        // m_res.print();
+        // std::cout << m_res << std::endl;
 
         // auto exp_res = m_dict->lookup_advanced(kmer);
         // if (!equal_lookup_result(exp_res, m_res)) {
@@ -147,7 +132,7 @@ private:
 
     /* string state */
     bit_vector_iterator<kmer_t> m_string_iterator;
-    int64_t m_remaining_contig_bases;
+    uint64_t m_remaining_contig_bases;
     int64_t m_direction;
 
     /* performance counts */
@@ -164,67 +149,18 @@ private:
             return;
         }
 
-        m_num_searches += 1;
         // std::cout << "--> kmer FOUND!" << std::endl;
-        if (m_res.kmer_orientation == constants::forward_orientation) {
-            m_direction = 1;
-            m_string_iterator.at(2 * m_res.kmer_offset);
-        } else {
-            m_string_iterator.at(2 * (m_res.kmer_offset + m_k));
-            m_direction = -1;
-        }
 
-        // set_remaining_contig_bases();
+        m_num_searches += 1;
+        uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.contig_id * (m_k - 1));
+        m_direction = m_res.kmer_orientation == constants::forward_orientation ? 1 : -1;
+        kmer_offset += (m_direction == 1) ? 0 : (2 * m_k);
+        m_string_iterator.at(kmer_offset);
+
+        m_remaining_contig_bases = (m_direction == 1)
+                                       ? ((m_res.contig_size - 1) - m_res.kmer_id_in_contig)
+                                       : (m_res.kmer_id_in_contig);
     }
-
-    // inline bool extends() {
-    //     if (m_res.kmer_orientation == constants::backward_orientation) {
-    //         // std::cout << "REVERSE" << std::endl;
-    //         if (m_res.kmer_offset == m_res.contig_offset_begin) return false;
-    //         // std::cout << "m_kmer_rc = " << util::uint_kmer_to_string(m_kmer_rc, m_k) <<
-    //         // std::endl; std::cout << "read = "
-    //         //           << util::uint_kmer_to_string(m_string_iterator.read_reverse(2 * m_k),
-    //         m_k)
-    //         //           << std::endl;
-    //         if (m_kmer_rc == m_string_iterator.read_reverse(2 * m_k)) {
-    //             ++m_num_extensions;
-    //             return true;
-    //         }
-    //         return false;
-    //     }
-    //     // std::cout << "NOT REVERSE" << std::endl;
-    //     assert(m_res.contig_offset_end >= m_k);
-    //     if (m_res.kmer_offset == m_res.contig_offset_end - m_k) return false;
-    //     // std::cout << "m_kmer = " << util::uint_kmer_to_string(m_kmer, m_k) << std::endl;
-    //     // std::cout << "read = " << util::uint_kmer_to_string(m_string_iterator.read(2 * m_k),
-    //     m_k)
-    //     //           << std::endl;
-    //     if (m_kmer == m_string_iterator.read(2 * m_k)) {
-    //         ++m_num_extensions;
-    //         return true;
-    //     }
-    //     return false;
-    // }
-
-    // inline void extend() {
-    //     if (m_res.kmer_orientation == constants::backward_orientation) {
-    //         assert(m_res.kmer_orientation == constants::backward_orientation);
-    //         m_string_iterator.eat_reverse(2);
-    //         m_res.kmer_offset -= 1;
-    //         if (m_kmer_rc == m_prev_kmer_rc) return;
-    //         m_res.kmer_id -= 1;
-    //         m_res.kmer_id_in_contig -= 1;
-    //         return;
-    //     }
-    //     assert(m_res.kmer_orientation == constants::forward_orientation);
-    //     m_string_iterator.eat(2);
-    //     m_res.kmer_offset += 1;
-    //     assert(m_res.contig_offset_end >= m_k);
-    //     assert(m_res.kmer_offset <= m_res.contig_offset_end - m_k);
-    //     if (m_kmer == m_prev_kmer) return;
-    //     m_res.kmer_id += 1;
-    //     m_res.kmer_id_in_contig += 1;
-    // }
 };
 
 }  // namespace sshash

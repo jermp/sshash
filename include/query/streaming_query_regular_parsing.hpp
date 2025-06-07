@@ -243,7 +243,7 @@ private:
             m_res = res;
             m_pos_in_window = 0;
             m_window_size =
-                std::min<uint64_t>(m_k - m_m + 1, res.contig_offset_end - offset - m_k + 1);
+                std::min<uint64_t>(m_k - m_m + 1, res.contig_end(m_k) - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 kmer_t val = m_string_iterator.read(2 * m_k);
@@ -286,7 +286,7 @@ private:
             m_res = res;
             m_pos_in_window = 0;
             m_window_size =
-                std::min<uint64_t>(m_k - m_m + 1, res.contig_offset_end - offset - m_k + 1);
+                std::min<uint64_t>(m_k - m_m + 1, res.contig_end(m_k) - offset - m_k + 1);
 
             while (m_pos_in_window != m_window_size) {
                 kmer_t val = m_string_iterator.read(2 * m_k);
