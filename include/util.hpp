@@ -14,10 +14,17 @@ enum input_file_type { fasta, cf_seg };
 
 struct streaming_query_report {
     streaming_query_report()
-        : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
+        : num_kmers(0)
+        , num_positive_kmers(0)
+        , num_negative_kmers(0)
+        , num_invalid_kmers(0)
+        , num_searches(0)
+        , num_extensions(0) {}
 
     uint64_t num_kmers;
     uint64_t num_positive_kmers;
+    uint64_t num_negative_kmers;
+    uint64_t num_invalid_kmers;
     uint64_t num_searches;
     uint64_t num_extensions;
 };

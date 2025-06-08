@@ -149,6 +149,9 @@ struct streaming_query_regular_parsing {
 
     uint64_t num_searches() const { return m_num_searches; }
     uint64_t num_extensions() const { return m_num_extensions; }
+    uint64_t num_positive_lookups() const { return num_searches() + num_extensions(); }
+    uint64_t num_negative_lookups() const { return m_num_negative; }
+    uint64_t num_invalid_lookups() const { return m_num_invalid; }
 
 private:
     dictionary<kmer_t> const* m_dict;
@@ -177,6 +180,8 @@ private:
     /* performance counts */
     uint64_t m_num_searches;
     uint64_t m_num_extensions;
+    uint64_t m_num_invalid;
+    uint64_t m_num_negative;
 
     void update_state() {
         m_prev_minimizer = m_curr_minimizer;

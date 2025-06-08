@@ -23,6 +23,8 @@ struct streaming_query_canonical_parsing {
 
         , m_num_searches(0)
         , m_num_extensions(0)
+        , m_num_invalid(0)
+        , m_num_negative(0)
 
     {
         start();
@@ -48,6 +50,7 @@ struct streaming_query_canonical_parsing {
             m_start ? util::is_valid<kmer_t>(kmer, m_k) : kmer_t::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             // std::cout << "kmer is invalid" << std::endl;
+            m_num_invalid += 1;
             m_start = true;
             return lookup_result();
         }
@@ -75,7 +78,6 @@ struct streaming_query_canonical_parsing {
                     ? (m_string_iterator.eat(2), m_string_iterator.read(2 * m_k))
                     : (m_string_iterator.eat_reverse(2), m_string_iterator.read_reverse(2 * m_k));
 
-            // bool is_present = (m_kmer == expected_kmer) or (m_kmer_rc == expected_kmer);
             auto expected_kmer_rc = expected_kmer;
             expected_kmer_rc.reverse_complement_inplace(m_k);
 
@@ -108,6 +110,9 @@ struct streaming_query_canonical_parsing {
 
     uint64_t num_searches() const { return m_num_searches; }
     uint64_t num_extensions() const { return m_num_extensions; }
+    uint64_t num_positive_lookups() const { return num_searches() + num_extensions(); }
+    uint64_t num_negative_lookups() const { return m_num_negative; }
+    uint64_t num_invalid_lookups() const { return m_num_invalid; }
 
 private:
     dictionary<kmer_t> const* m_dict;
@@ -130,6 +135,8 @@ private:
     /* performance counts */
     uint64_t m_num_searches;
     uint64_t m_num_extensions;
+    uint64_t m_num_invalid;
+    uint64_t m_num_negative;
 
     void seed() {
         // std::cout << "seeding" << std::endl;
@@ -138,6 +145,7 @@ private:
         m_res = m_dict->lookup_uint_canonical_parsing(m_kmer);
         if (m_res.kmer_id == constants::invalid_uint64) {
             // std::cout << "kmer not found..." << std::endl;
+            m_num_negative += 1;
             return;
         }
 

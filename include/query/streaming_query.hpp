@@ -20,11 +20,11 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
     query.start();
     while (!it.eof()) {
         bool empty_line_was_read = it.fill_buffer(buffer);
-        for (uint64_t i = 0; i != buffer.size() - k + 1; ++i) {
+        const uint64_t num_kmers = buffer.size() - k + 1;
+        report.num_kmers += num_kmers;
+        for (uint64_t i = 0; i != num_kmers; ++i) {
             char const* kmer = buffer.data() + i;
-            auto answer = query.lookup_advanced(kmer);
-            report.num_kmers += 1;
-            report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
+            query.lookup_advanced(kmer);
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
@@ -39,6 +39,11 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
     }
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
+    report.num_positive_kmers = query.num_positive_lookups();
+    report.num_negative_kmers = query.num_negative_lookups();
+    report.num_invalid_kmers = query.num_invalid_lookups();
+    assert(report.num_kmers ==
+           report.num_positive_kmers + report.num_negative_kmers + report.num_invalid_kmers);
     return report;
 }
 
@@ -54,15 +59,20 @@ streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const*
         std::getline(is, line);  // skip first header line
         std::getline(is, line);
         if (line.size() < k) continue;
-        for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
+        const uint64_t num_kmers = line.size() - k + 1;
+        report.num_kmers += num_kmers;
+        for (uint64_t i = 0; i != num_kmers; ++i) {
             char const* kmer = line.data() + i;
-            auto answer = query.lookup_advanced(kmer);
-            report.num_kmers += 1;
-            report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
+            query.lookup_advanced(kmer);
         }
     }
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
+    report.num_positive_kmers = query.num_positive_lookups();
+    report.num_negative_kmers = query.num_negative_lookups();
+    report.num_invalid_kmers = query.num_invalid_lookups();
+    assert(report.num_kmers ==
+           report.num_positive_kmers + report.num_negative_kmers + report.num_invalid_kmers);
     return report;
 }
 
@@ -73,19 +83,17 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
     std::string line;
     const uint64_t k = dict->k();
     Query query(dict);
-    uint64_t query_id = 0;
     while (!is.eof()) {
         query.start();
         /* We assume the file is well-formed, i.e., there are exactly 4 lines per read. */
         std::getline(is, line);  // skip first header line
         std::getline(is, line);
         if (line.size() >= k) {
+            const uint64_t num_kmers = line.size() - k + 1;
+            report.num_kmers += num_kmers;
             for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
                 char const* kmer = line.data() + i;
-                auto answer = query.lookup_advanced(kmer);
-                report.num_kmers += 1;
-                report.num_positive_kmers += answer.kmer_id != constants::invalid_uint64;
-                ++query_id;
+                query.lookup_advanced(kmer);
             }
         }
         std::getline(is, line);  // skip '+'
@@ -93,6 +101,11 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
     }
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
+    report.num_positive_kmers = query.num_positive_lookups();
+    report.num_negative_kmers = query.num_negative_lookups();
+    report.num_invalid_kmers = query.num_invalid_lookups();
+    assert(report.num_kmers ==
+           report.num_positive_kmers + report.num_negative_kmers + report.num_invalid_kmers);
     return report;
 }
 

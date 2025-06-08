@@ -37,6 +37,10 @@ int query(int argc, char** argv) {
     std::cout << "num_kmers = " << report.num_kmers << std::endl;
     std::cout << "num_positive_kmers = " << report.num_positive_kmers << " ("
               << (report.num_positive_kmers * 100.0) / report.num_kmers << "%)" << std::endl;
+    std::cout << "num_negative_kmers = " << report.num_negative_kmers << " ("
+              << (report.num_negative_kmers * 100.0) / report.num_kmers << "%)" << std::endl;
+    std::cout << "num_invalid_kmers = " << report.num_invalid_kmers << " ("
+              << (report.num_invalid_kmers * 100.0) / report.num_kmers << "%)" << std::endl;
     std::cout << "num_searches = " << report.num_searches << "/" << report.num_positive_kmers
               << " (" << (report.num_searches * 100.0) / report.num_positive_kmers << "%)"
               << std::endl;
