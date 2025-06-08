@@ -39,7 +39,7 @@ struct lookup_result {
 
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint64_t kmer_orientation;
+    int64_t kmer_orientation;
     uint64_t contig_id;
     uint64_t contig_size;
 
