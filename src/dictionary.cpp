@@ -3,7 +3,7 @@
 namespace sshash {
 
 template <class kmer_t>
-lookup_result dictionary<kmer_t>::lookup_uint_regular_parsing(kmer_t uint_kmer) const {
+lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
     auto minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
     uint64_t bucket_id = m_minimizers.lookup(uint64_t(minimizer));
 
@@ -25,7 +25,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular_parsing(kmer_t uint_kmer) 
 }
 
 template <class kmer_t>
-lookup_result dictionary<kmer_t>::lookup_uint_canonical_parsing(kmer_t uint_kmer) const {
+lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer) const {
     kmer_t uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
     auto minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
@@ -78,13 +78,13 @@ lookup_result dictionary<kmer_t>::lookup_advanced(char const* string_kmer,
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_advanced_uint(kmer_t uint_kmer,
                                                        bool check_reverse_complement) const {
-    if (m_canonical_parsing) return lookup_uint_canonical_parsing(uint_kmer);
-    auto res = lookup_uint_regular_parsing(uint_kmer);
+    if (m_canonical) return lookup_uint_canonical(uint_kmer);
+    auto res = lookup_uint_regular(uint_kmer);
     assert(res.kmer_orientation == constants::forward_orientation);
     if (check_reverse_complement and res.kmer_id == constants::invalid_uint64) {
         kmer_t uint_kmer_rc = uint_kmer;
         uint_kmer_rc.reverse_complement_inplace(m_k);
-        res = lookup_uint_regular_parsing(uint_kmer_rc);
+        res = lookup_uint_regular(uint_kmer_rc);
         res.kmer_orientation = constants::backward_orientation;
     }
     return res;
@@ -125,7 +125,7 @@ void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>
                                             bool check_reverse_complement) const {
     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
         kmer_t new_kmer = suffix;
-        new_kmer.kth_char_or(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
+        new_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
         res.forward[i] = lookup_advanced_uint(new_kmer, check_reverse_complement);
     }
 }
@@ -134,7 +134,7 @@ void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t
                                              bool check_reverse_complement) const {
     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
         kmer_t new_kmer = prefix;
-        new_kmer.kth_char_or(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
+        new_kmer.set(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
         res.backward[i] = lookup_advanced_uint(new_kmer, check_reverse_complement);
     }
 }
@@ -215,7 +215,7 @@ neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id,
 template <class kmer_t>
 uint64_t dictionary<kmer_t>::num_bits() const {
     return 8 * (sizeof(m_vnum) + sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
-                sizeof(m_canonical_parsing)) +
+                sizeof(m_canonical)) +
            m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits() +
            m_weights.num_bits();
 }

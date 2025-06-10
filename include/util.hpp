@@ -109,7 +109,7 @@ struct build_configuration {
         , l(constants::min_l)
         , lambda(constants::lambda)
 
-        , canonical_parsing(false)
+        , canonical(false)
         , weighted(false)
         , verbose(true)
 
@@ -126,7 +126,7 @@ struct build_configuration {
     uint64_t l;     // drive dictionary trade-off
     double lambda;  // drive PTHash trade-off
 
-    bool canonical_parsing;
+    bool canonical;
     bool weighted;
     bool verbose;
 
@@ -136,8 +136,7 @@ struct build_configuration {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
                   << ", num_threads = " << num_threads
                   << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", l = " << l
-                  << ", lambda = " << lambda
-                  << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
+                  << ", lambda = " << lambda << ", canonical = " << (canonical ? "true" : "false")
                   << ", weighted = " << (weighted ? "true" : "false")
                   << ", verbose = " << (verbose ? "true" : "false") << std::endl;
     }
@@ -190,6 +189,17 @@ template <class kmer_t>
         if (!kmer_t::is_valid(str[i])) return false;
     }
     return true;
+}
+
+template <class kmer_t>
+static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const uint64_t pos) {
+    static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+    kmer_t kmer = 0;
+    for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
+        if (pos + i < bv.num_bits()) kmer.append64(bv.get_word64(pos + i));
+    }
+    kmer.take(kmer_t::bits_per_char * k);
+    return kmer;
 }
 
 /*

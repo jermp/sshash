@@ -34,16 +34,10 @@ struct uint_kmer_t {
     bool operator!=(uint_kmer_t const& t) const { return kmer != t.kmer; }
     bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }
 
-    void pad(uint16_t b) {
-        assert(b < uint_kmer_bits);
-        kmer <<= b;
-    }
+    void pad(uint16_t b) { kmer <<= b; }
     void pad_char() { pad(bits_per_char); }
 
-    void drop(uint16_t b) {
-        assert(b < uint_kmer_bits);
-        kmer >>= b;
-    }
+    void drop(uint16_t b) { kmer >>= b; }
     void drop64() {
         if constexpr (uint_kmer_bits == 64) {
             kmer = 0;
@@ -84,9 +78,14 @@ struct uint_kmer_t {
     }
     void append_char(uint64_t c) { append(bits_per_char, c); }
 
-    // assigns a character at k-th position
-    // assuming that the position is empty
-    void kth_char_or(uint16_t k, uint64_t c) { kmer |= Kmer(c) << (k * bits_per_char); }
+    /* Set the char at position i to c,
+       assuming that the position is empty. */
+    void set(uint16_t i, uint64_t c) { kmer |= Kmer(c) << (i * bits_per_char); }
+
+    /* Returns the char at position i. */
+    uint64_t at(uint16_t i) const {
+        return (kmer >> (i * bits_per_char)) & ((uint64_t(1) << bits_per_char) - 1);
+    }
 
     static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);
     static constexpr uint8_t bits_per_char = BitsPerChar;

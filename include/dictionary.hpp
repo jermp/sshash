@@ -10,10 +10,10 @@ namespace sshash {
 
 // Forward declarations of the friend template classes
 template <class kmer_t>
-struct streaming_query_canonical_parsing;
+struct streaming_query_canonical;
 
 template <class kmer_t>
-struct streaming_query_regular_parsing;
+struct streaming_query_regular;
 
 template <class kmer_t>
 struct dictionary {
@@ -25,7 +25,7 @@ struct dictionary {
         , m_seed(0)
         , m_k(0)
         , m_m(0)
-        , m_canonical_parsing(0) {}
+        , m_canonical(0) {}
 
     /* Build from input file. */
     void build(std::string const& input_filename, build_configuration const& build_config);
@@ -39,7 +39,7 @@ struct dictionary {
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
     uint64_t num_contigs() const { return m_buckets.pieces.size() - 1; }
-    bool canonicalized() const { return m_canonical_parsing; }
+    bool canonical() const { return m_canonical; }
     bool weighted() const { return !m_weights.empty(); }
 
     /* Lookup queries. Return the kmer_id of the kmer or -1 if it is not found in the dictionary. */
@@ -85,8 +85,8 @@ struct dictionary {
     bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
     /* Streaming queries. */
-    friend struct streaming_query_canonical_parsing<kmer_t>;
-    friend struct streaming_query_regular_parsing<kmer_t>;
+    friend struct streaming_query_canonical<kmer_t>;
+    friend struct streaming_query_regular<kmer_t>;
     streaming_query_report streaming_query_from_file(std::string const& filename,
                                                      bool multiline) const;
 
@@ -155,7 +155,7 @@ private:
         visitor.visit(t.m_seed);
         visitor.visit(t.m_k);
         visitor.visit(t.m_m);
-        visitor.visit(t.m_canonical_parsing);
+        visitor.visit(t.m_canonical);
         visitor.visit(t.m_minimizers);
         visitor.visit(t.m_buckets);
         visitor.visit(t.m_skew_index);
@@ -167,14 +167,14 @@ private:
     uint64_t m_seed;
     uint16_t m_k;
     uint16_t m_m;
-    uint16_t m_canonical_parsing;
+    uint16_t m_canonical;
     minimizers m_minimizers;
     buckets<kmer_t> m_buckets;
     skew_index<kmer_t> m_skew_index;
     weights m_weights;
 
-    lookup_result lookup_uint_regular_parsing(kmer_t uint_kmer) const;
-    lookup_result lookup_uint_canonical_parsing(kmer_t uint_kmer) const;
+    lookup_result lookup_uint_regular(kmer_t uint_kmer) const;
+    lookup_result lookup_uint_canonical(kmer_t uint_kmer) const;
     void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
                             bool check_reverse_complement) const;
     void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,

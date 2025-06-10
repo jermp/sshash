@@ -32,7 +32,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     m_k = build_config.k;
     m_m = build_config.m;
     m_seed = build_config.seed;
-    m_canonical_parsing = build_config.canonical_parsing;
+    m_canonical = build_config.canonical;
     m_skew_index.min_log2 = build_config.l;
 
     std::vector<double> timings;

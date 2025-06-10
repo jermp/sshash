@@ -4,8 +4,8 @@
 #include "include/util.hpp"
 
 #include "external/gz/zip_stream.hpp"
-#include "streaming_query_canonical_parsing.hpp"
-#include "streaming_query_regular_parsing.hpp"
+#include "streaming_query_canonical.hpp"
+#include "streaming_query_regular.hpp"
 
 namespace sshash {
 
@@ -126,14 +126,12 @@ streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string
     if (util::ends_with(filename, ".fa.gz") or util::ends_with(filename, ".fasta.gz")) {
         zip_istream zis(is);
 
-        if (canonicalized()) {
-            report =
-                streaming_query_from_fasta_file<kmer_t, streaming_query_canonical_parsing<kmer_t>>(
-                    this, zis, multiline);
+        if (canonical()) {
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query_canonical<kmer_t>>(
+                this, zis, multiline);
         } else {
-            report =
-                streaming_query_from_fasta_file<kmer_t, streaming_query_regular_parsing<kmer_t>>(
-                    this, zis, multiline);
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query_regular<kmer_t>>(
+                this, zis, multiline);
         }
 
     } else if (util::ends_with(filename, ".fq.gz") or util::ends_with(filename, ".fastq.gz")) {
@@ -143,25 +141,21 @@ streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string
         }
         zip_istream zis(is);
 
-        if (canonicalized()) {
-            report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query_canonical_parsing<kmer_t>>(
-                    this, zis);
+        if (canonical()) {
+            report = streaming_query_from_fastq_file<kmer_t, streaming_query_canonical<kmer_t>>(
+                this, zis);
         } else {
             report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query_regular_parsing<kmer_t>>(
-                    this, zis);
+                streaming_query_from_fastq_file<kmer_t, streaming_query_regular<kmer_t>>(this, zis);
         }
 
     } else if (util::ends_with(filename, ".fa") or util::ends_with(filename, ".fasta")) {
-        if (canonicalized()) {
-            report =
-                streaming_query_from_fasta_file<kmer_t, streaming_query_canonical_parsing<kmer_t>>(
-                    this, is, multiline);
+        if (canonical()) {
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query_canonical<kmer_t>>(
+                this, is, multiline);
         } else {
-            report =
-                streaming_query_from_fasta_file<kmer_t, streaming_query_regular_parsing<kmer_t>>(
-                    this, is, multiline);
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query_regular<kmer_t>>(
+                this, is, multiline);
         }
 
     } else if (util::ends_with(filename, ".fq") or util::ends_with(filename, ".fastq")) {
@@ -169,14 +163,12 @@ streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string
             std::cout << "==> Warning: option 'multiline' is only valid for FASTA files, not FASTQ."
                       << std::endl;
         }
-        if (canonicalized()) {
-            report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query_canonical_parsing<kmer_t>>(
-                    this, is);
+        if (canonical()) {
+            report = streaming_query_from_fastq_file<kmer_t, streaming_query_canonical<kmer_t>>(
+                this, is);
         } else {
             report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query_regular_parsing<kmer_t>>(
-                    this, is);
+                streaming_query_from_fastq_file<kmer_t, streaming_query_regular<kmer_t>>(this, is);
         }
 
     } else {

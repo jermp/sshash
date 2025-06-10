@@ -6,15 +6,15 @@
 namespace sshash {
 
 template <class kmer_t>
-struct streaming_query_canonical_parsing {
-    streaming_query_canonical_parsing(dictionary<kmer_t> const* dict)
+struct streaming_query_canonical {
+    streaming_query_canonical(dictionary<kmer_t> const* dict)
 
         : m_dict(dict)
 
         , m_kmer(constants::invalid_uint64)
         , m_k(dict->m_k)
 
-        , m_string_iterator(dict->m_buckets.strings, 0)
+        , m_it(dict->m_buckets.strings, m_k)
         , m_remaining_contig_bases(constants::invalid_uint64)
 
         , m_num_searches(0)
@@ -24,7 +24,7 @@ struct streaming_query_canonical_parsing {
 
     {
         start();
-        assert(m_dict->m_canonical_parsing);
+        assert(m_dict->m_canonical);
     }
 
     void start() { m_start = true; }
@@ -32,7 +32,6 @@ struct streaming_query_canonical_parsing {
     void reset_state() {
         start();
         m_kmer = constants::invalid_uint64;
-        m_string_iterator.at(0);
         m_remaining_contig_bases = constants::invalid_uint64;
         m_res = lookup_result();
     }
@@ -47,10 +46,10 @@ struct streaming_query_canonical_parsing {
             return lookup_result();
         }
 
-        /* 2. compute kmer */
+        /* 2. compute uint kmer from input char kmer */
         if (!m_start) {
             m_kmer.drop_char();
-            m_kmer.kth_char_or(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
+            m_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
@@ -59,9 +58,9 @@ struct streaming_query_canonical_parsing {
         if (m_remaining_contig_bases == 0) {
             m_start = true;
             // if (m_res.kmer_orientation == constants::forward_orientation) {
-            //     m_string_iterator.at(m_string_iterator.position() + 2 * (m_k - 1));
+            //     m_it.at(m_it.position() + 2 * (m_k - 1));
             // } else {
-            //     m_string_iterator.at(m_string_iterator.position() - 2 * (m_k - 1));
+            //     m_it.at(m_it.position() - 2 * (m_k - 1));
             // }
         }
 
@@ -70,14 +69,14 @@ struct streaming_query_canonical_parsing {
             /* if at the start of a new query or previous kmer was not found */
             seed();
         } else {
-            auto expected_kmer =
-                (m_res.kmer_orientation == constants::forward_orientation)
-                    ? (m_string_iterator.eat(2), m_string_iterator.read(2 * m_k))
-                    : (m_string_iterator.eat_reverse(2), m_string_iterator.read_reverse(2 * m_k));
-
+            if (m_res.kmer_orientation == constants::forward_orientation) {
+                m_it.next();
+            } else {
+                m_it.next_reverse();
+            }
+            auto expected_kmer = m_it.get();
             auto expected_kmer_rc = expected_kmer;
             expected_kmer_rc.reverse_complement_inplace(m_k);
-
             if ((m_kmer == expected_kmer) or (m_kmer == expected_kmer_rc)) {
                 ++m_num_extensions;
                 m_res.kmer_id += m_res.kmer_orientation;
@@ -88,7 +87,6 @@ struct streaming_query_canonical_parsing {
             }
         }
 
-        /* 4. update state */
         m_start = false;
 
         // std::cout << m_res << std::endl;
@@ -116,7 +114,7 @@ private:
     uint64_t m_k;
 
     /* string state */
-    bit_vector_iterator<kmer_t> m_string_iterator;
+    kmer_iterator<kmer_t> m_it;
     uint64_t m_remaining_contig_bases;
 
     /* performance counts */
@@ -126,7 +124,7 @@ private:
     uint64_t m_num_negative;
 
     void seed() {
-        m_res = m_dict->lookup_uint_canonical_parsing(m_kmer);
+        m_res = m_dict->lookup_uint_canonical(m_kmer);
         if (m_res.kmer_id == constants::invalid_uint64) {
             m_num_negative += 1;
             return;
@@ -134,11 +132,13 @@ private:
         m_num_searches += 1;
         uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.contig_id * (m_k - 1));
         m_remaining_contig_bases = (m_res.contig_size - 1) - m_res.kmer_id_in_contig;
+        bool reverse = false;
         if (m_res.kmer_orientation == constants::backward_orientation) {
             kmer_offset += 2 * m_k;
             m_remaining_contig_bases = m_res.kmer_id_in_contig;
+            reverse = true;
         }
-        m_string_iterator.at(kmer_offset);
+        m_it.at(kmer_offset, reverse);
     }
 };
 
