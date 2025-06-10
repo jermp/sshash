@@ -92,18 +92,16 @@ struct dictionary {
 
     struct iterator {
         iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id) {
-            it = ptr->m_buckets.at(begin_kmer_id, end_kmer_id, ptr->m_k);
+            m_it = ptr->m_buckets.at(begin_kmer_id, end_kmer_id, ptr->m_k);
         }
 
-        bool has_next() const { return it.has_next(); }
+        bool has_next() const { return m_it.has_next(); }
 
-        std::pair<uint64_t, std::string>  // (kmer-id, kmer)
-        next() {
-            return it.next();
-        }
+        /* (kmer-id, kmer) */
+        std::pair<uint64_t, std::string> next() { return m_it.next(); }
 
     private:
-        typename buckets<kmer_t>::iterator it;
+        typename buckets<kmer_t>::iterator m_it;
     };
 
     iterator begin() const { return iterator(this, 0, size()); }

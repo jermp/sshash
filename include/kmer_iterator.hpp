@@ -8,10 +8,16 @@ namespace sshash {
 template <class kmer_t>
 struct kmer_iterator  //
 {
-    kmer_iterator() : m_bv(nullptr), m_k(0), m_pos(0), m_avail(0), m_kmer(), m_buff() {}
+    kmer_iterator() {}
 
     kmer_iterator(bits::bit_vector const& bv, const uint64_t k)
-        : m_bv(&bv), m_k(k), m_uint_kmer_bits(kmer_t::bits_per_char * m_k) {}
+        : m_bv(&bv)
+        , m_k(k)
+        , m_uint_kmer_bits(kmer_t::bits_per_char * m_k)
+        , m_pos(0)
+        , m_avail(0)
+        , m_kmer(0)
+        , m_buff(0) {}
 
     kmer_iterator(bits::bit_vector const& bv, const uint64_t k,  //
                   const uint64_t pos, bool reverse = false)
