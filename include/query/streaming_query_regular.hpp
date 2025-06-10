@@ -313,7 +313,7 @@ private:
                     m_reverse = true;
                     pos_in_string -= 2;
                     m_num_searches += 1;
-                    m_it.at(pos_in_string + 2 * (m_k - 1), true);
+                    m_it.at(pos_in_string + 2 * (m_k - 1));
                     m_res.kmer_orientation = constants::backward_orientation;
                     return;
                 }

@@ -55,26 +55,16 @@ struct streaming_query_canonical {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
 
-        if (m_remaining_contig_bases == 0) {
-            m_start = true;
-            // if (m_res.kmer_orientation == constants::forward_orientation) {
-            //     m_it.at(m_it.position() + 2 * (m_k - 1));
-            // } else {
-            //     m_it.at(m_it.position() - 2 * (m_k - 1));
-            // }
-        }
+        if (m_remaining_contig_bases == 0) m_start = true;
 
         /* 3. compute result */
         if (m_start or m_res.kmer_id == constants::invalid_uint64) {
             /* if at the start of a new query or previous kmer was not found */
             seed();
         } else {
-            if (m_res.kmer_orientation == constants::forward_orientation) {
-                m_it.next();
-            } else {
-                m_it.next_reverse();
-            }
-            auto expected_kmer = m_it.get();
+            auto expected_kmer = (m_res.kmer_orientation == constants::forward_orientation)
+                                     ? (m_it.next(), m_it.get())
+                                     : (m_it.next_reverse(), m_it.get_reverse());
             auto expected_kmer_rc = expected_kmer;
             expected_kmer_rc.reverse_complement_inplace(m_k);
             if ((m_kmer == expected_kmer) or (m_kmer == expected_kmer_rc)) {
@@ -132,13 +122,11 @@ private:
         m_num_searches += 1;
         uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.contig_id * (m_k - 1));
         m_remaining_contig_bases = (m_res.contig_size - 1) - m_res.kmer_id_in_contig;
-        bool reverse = false;
         if (m_res.kmer_orientation == constants::backward_orientation) {
             kmer_offset += 2 * m_k;
             m_remaining_contig_bases = m_res.kmer_id_in_contig;
-            reverse = true;
         }
-        m_it.at(kmer_offset, reverse);
+        m_it.at(kmer_offset);
     }
 };
 

@@ -205,12 +205,13 @@ struct buckets  //
             m_ret.first = m_begin_kmer_id;
             if (m_clear) {
                 util::uint_kmer_to_string(m_it.get(), m_ret.second.data(), m_k);
+                assert(kmer_t::bits_per_char * m_offset == m_it.position());
+                m_it.at(kmer_t::bits_per_char * (m_offset + m_k));
             } else {
                 memmove(m_ret.second.data(), m_ret.second.data() + 1, m_k - 1);
-                m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_last_char);
+                m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_it.get_next_char());
             }
             m_clear = false;
-            m_last_char = m_it.get_next_char();
             ++m_begin_kmer_id;
             ++m_offset;
             return m_ret;
@@ -225,7 +226,6 @@ struct buckets  //
         uint64_t m_next_offset;
         kmer_iterator<kmer_t> m_it;
         bits::elias_fano<true, false>::iterator m_pieces_it;
-        uint64_t m_last_char;
         bool m_clear;
 
         void next_piece() {
