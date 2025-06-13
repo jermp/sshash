@@ -13,6 +13,13 @@ struct streaming_query_canonical {
 
         , m_kmer(constants::invalid_uint64)
         , m_k(dict->m_k)
+        , m_m(dict->m_m)
+        , m_seed(dict->m_seed)
+
+        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
+        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
+        , m_curr_minimizer(constants::invalid_uint64)
+        , m_prev_minimizer(constants::invalid_uint64)
 
         , m_it(dict->m_buckets.strings, m_k)
         , m_remaining_contig_bases(constants::invalid_uint64)
@@ -55,6 +62,14 @@ struct streaming_query_canonical {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
 
+        m_curr_minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
+        assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
+        kmer_t kmer_rc = m_kmer;
+        kmer_rc.reverse_complement_inplace(m_k);
+        uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(kmer_rc, m_start);
+        assert(minimizer_rc == util::compute_minimizer<kmer_t>(kmer_rc, m_k, m_m, m_seed));
+        m_curr_minimizer = std::min(m_curr_minimizer, minimizer_rc);
+
         if (m_remaining_contig_bases == 0) m_start = true;
 
         /* 3. compute result */
@@ -77,6 +92,8 @@ struct streaming_query_canonical {
             }
         }
 
+        /* 4. update state */
+        m_prev_minimizer = m_curr_minimizer;
         m_start = false;
 
         // std::cout << m_res << std::endl;
@@ -101,7 +118,12 @@ private:
     /* kmer state */
     bool m_start;
     kmer_t m_kmer;
-    uint64_t m_k;
+    uint64_t m_k, m_m, m_seed;
+
+    /* minimizer state */
+    minimizer_enumerator<kmer_t> m_minimizer_enum;
+    minimizer_enumerator<kmer_t> m_minimizer_enum_rc;
+    uint64_t m_curr_minimizer, m_prev_minimizer;
 
     /* string state */
     kmer_iterator<kmer_t> m_it;
@@ -113,8 +135,17 @@ private:
     uint64_t m_num_invalid;
     uint64_t m_num_negative;
 
-    void seed() {
-        m_res = m_dict->lookup_uint_canonical(m_kmer);
+    void seed()  //
+    {
+        /* if minimizer does not change and previous minimizer was not found,
+           surely any kmer having the same minimizer cannot be found as well */
+        if (m_curr_minimizer == m_prev_minimizer and m_res.minimizer_found == false) {
+            m_num_negative += 1;
+            return;
+        }
+
+        constexpr bool check_minimizer = true;
+        m_res = m_dict->lookup_uint_canonical(m_kmer, check_minimizer);
         if (m_res.kmer_id == constants::invalid_uint64) {
             m_num_negative += 1;
             return;

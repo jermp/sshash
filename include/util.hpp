@@ -35,13 +35,15 @@ struct lookup_result {
         , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
         , contig_id(constants::invalid_uint64)
-        , contig_size(constants::invalid_uint64) {}
+        , contig_size(constants::invalid_uint64)
+        , minimizer_found(true) {}
 
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
     int64_t kmer_orientation;
     uint64_t contig_id;
     uint64_t contig_size;
+    bool minimizer_found;
 
     uint64_t contig_begin(const uint64_t k) const {  //
         return kmer_id + contig_id * (k - 1) - kmer_id_in_contig;
@@ -180,6 +182,16 @@ template <class kmer_t>
     std::string str;
     str.resize(k);
     uint_kmer_to_string(x, str.data(), k);
+    return str;
+}
+
+template <class kmer_t>
+[[maybe_unused]] static std::string uint_minimizer_to_string(uint64_t minimizer, uint64_t m) {
+    assert(m <= kmer_t::max_m);
+    std::string str;
+    str.resize(m);
+    kmer_t x = minimizer;
+    uint_kmer_to_string(x, str.data(), m);
     return str;
 }
 
