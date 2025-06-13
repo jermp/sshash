@@ -17,7 +17,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
     std::string buffer;
     const uint64_t k = dict->k();
     Query query(dict);
-    query.start();
+    query.reset();
     while (!it.eof()) {
         bool empty_line_was_read = it.fill_buffer(buffer);
         const uint64_t num_kmers = buffer.size() - k + 1;
@@ -28,7 +28,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
-            query.start();
+            query.reset();
         } else {
             if (buffer.size() > k - 1) {
                 std::copy(buffer.data() + buffer.size() - k + 1, buffer.data() + buffer.size(),
@@ -55,7 +55,7 @@ streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const*
     const uint64_t k = dict->k();
     Query query(dict);
     while (!is.eof()) {
-        query.start();
+        query.reset();
         std::getline(is, line);  // skip first header line
         std::getline(is, line);
         if (line.size() < k) continue;
@@ -84,7 +84,7 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
     const uint64_t k = dict->k();
     Query query(dict);
     while (!is.eof()) {
-        query.start();
+        query.reset();
         /* We assume the file is well-formed, i.e., there are exactly 4 lines per read. */
         std::getline(is, line);  // skip first header line
         std::getline(is, line);

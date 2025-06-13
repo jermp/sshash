@@ -47,14 +47,10 @@ struct streaming_query_regular {
         assert(!m_dict->m_canonical);
     }
 
-    void start() {
+    void reset() {
         m_start = true;
         m_minimizer_not_found = false;
         m_minimizer_rc_not_found = false;
-    }
-
-    void reset_state() {
-        start();
         m_curr_minimizer = constants::invalid_uint64;
         m_prev_minimizer = constants::invalid_uint64;
         m_curr_minimizer_rc = constants::invalid_uint64;
@@ -64,7 +60,7 @@ struct streaming_query_regular {
         m_end = 0;
         m_pos_in_window = 0;
         m_window_size = 0;
-        m_res.kmer_id = constants::invalid_uint64;
+        m_res = lookup_result();
         m_reverse = false;
     }
 
@@ -74,8 +70,8 @@ struct streaming_query_regular {
             m_start ? util::is_valid<kmer_t>(kmer, m_k) : kmer_t::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             m_num_invalid += 1;
-            start();
-            return lookup_result();
+            reset();
+            return m_res;
         }
 
         /* 2. compute kmer and minimizer */

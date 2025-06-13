@@ -44,13 +44,12 @@ struct minimizer_enumerator {
                 }
             }
         }
+        assert(m_min_value == util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_seed));
         return m_min_value;
     }
 
 private:
-    uint64_t m_k;
-    uint64_t m_m;
-    uint64_t m_seed;
+    uint64_t m_k, m_m, m_seed;
     uint64_t m_position;
     uint64_t m_min_value, m_min_position, m_min_hash;
 

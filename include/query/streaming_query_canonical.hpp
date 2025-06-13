@@ -11,10 +11,9 @@ struct streaming_query_canonical {
 
         : m_dict(dict)
 
+        , m_start(true)
         , m_kmer(constants::invalid_uint64)
         , m_k(dict->m_k)
-        , m_m(dict->m_m)
-        , m_seed(dict->m_seed)
 
         , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
         , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
@@ -22,7 +21,7 @@ struct streaming_query_canonical {
         , m_prev_minimizer(constants::invalid_uint64)
 
         , m_it(dict->m_buckets.strings, m_k)
-        , m_remaining_contig_bases(constants::invalid_uint64)
+        , m_remaining_contig_bases(0)
 
         , m_num_searches(0)
         , m_num_extensions(0)
@@ -30,16 +29,12 @@ struct streaming_query_canonical {
         , m_num_negative(0)
 
     {
-        start();
         assert(m_dict->m_canonical);
     }
 
-    void start() { m_start = true; }
-
-    void reset_state() {
-        start();
-        m_kmer = constants::invalid_uint64;
-        m_remaining_contig_bases = constants::invalid_uint64;
+    void reset() {
+        m_start = true;
+        m_remaining_contig_bases = 0;
         m_res = lookup_result();
     }
 
@@ -49,11 +44,11 @@ struct streaming_query_canonical {
             m_start ? util::is_valid<kmer_t>(kmer, m_k) : kmer_t::is_valid(kmer[m_k - 1]);
         if (!is_valid) {
             m_num_invalid += 1;
-            m_start = true;
-            return lookup_result();
+            reset();
+            return m_res;
         }
 
-        /* 2. compute uint kmer from input char kmer */
+        /* 2. compute uint kmer from input char kmer and minimizer */
         if (!m_start) {
             m_kmer.drop_char();
             m_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
@@ -63,18 +58,13 @@ struct streaming_query_canonical {
         }
 
         m_curr_minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
-        assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
         kmer_t kmer_rc = m_kmer;
         kmer_rc.reverse_complement_inplace(m_k);
         uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(kmer_rc, m_start);
-        assert(minimizer_rc == util::compute_minimizer<kmer_t>(kmer_rc, m_k, m_m, m_seed));
-        m_curr_minimizer = std::min(m_curr_minimizer, minimizer_rc);
-
-        if (m_remaining_contig_bases == 0) m_start = true;
+        m_curr_minimizer = std::min<uint64_t>(m_curr_minimizer, minimizer_rc);
 
         /* 3. compute result */
-        if (m_start or m_res.kmer_id == constants::invalid_uint64) {
-            /* if at the start of a new query or previous kmer was not found */
+        if (m_remaining_contig_bases == 0) {
             seed();
         } else {
             auto expected_kmer = (m_res.kmer_orientation == constants::forward_orientation)
@@ -96,10 +86,7 @@ struct streaming_query_canonical {
         m_prev_minimizer = m_curr_minimizer;
         m_start = false;
 
-        // std::cout << m_res << std::endl;
-
         assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
-
         return m_res;
     }
 
@@ -118,7 +105,7 @@ private:
     /* kmer state */
     bool m_start;
     kmer_t m_kmer;
-    uint64_t m_k, m_m, m_seed;
+    uint64_t m_k;
 
     /* minimizer state */
     minimizer_enumerator<kmer_t> m_minimizer_enum;
@@ -137,19 +124,25 @@ private:
 
     void seed()  //
     {
+        m_remaining_contig_bases = 0;
+
         /* if minimizer does not change and previous minimizer was not found,
            surely any kmer having the same minimizer cannot be found as well */
         if (m_curr_minimizer == m_prev_minimizer and m_res.minimizer_found == false) {
+            assert(m_res.kmer_id == constants::invalid_uint64);
             m_num_negative += 1;
             return;
         }
 
         constexpr bool check_minimizer = true;
         m_res = m_dict->lookup_uint_canonical(m_kmer, check_minimizer);
+
         if (m_res.kmer_id == constants::invalid_uint64) {
             m_num_negative += 1;
             return;
         }
+
+        assert(m_res.minimizer_found == true);
         m_num_searches += 1;
         uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.contig_id * (m_k - 1));
         m_remaining_contig_bases = (m_res.contig_size - 1) - m_res.kmer_id_in_contig;
