@@ -53,15 +53,21 @@ struct streaming_query_canonical {
             m_kmer.drop_char();
             m_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
+
+            m_kmer_rc.pad_char();
+            m_kmer_rc.set(0, kmer_t::char_to_uint(
+                                 kmer_t::canonicalize_basepair_reverse_map[int(kmer[m_k - 1])]));
+            m_kmer_rc.take(m_k * kmer_t::bits_per_char);
+
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
+            m_kmer_rc = m_kmer;
+            m_kmer_rc.reverse_complement_inplace(m_k);
         }
 
-        m_curr_minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
-        kmer_t kmer_rc = m_kmer;
-        kmer_rc.reverse_complement_inplace(m_k);
-        uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(kmer_rc, m_start);
-        m_curr_minimizer = std::min<uint64_t>(m_curr_minimizer, minimizer_rc);
+        uint64_t minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
+        uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(m_kmer_rc, m_start);
+        m_curr_minimizer = std::min(minimizer, minimizer_rc);
 
         /* 3. compute result */
         if (m_remaining_contig_bases == 0) {
@@ -104,7 +110,7 @@ private:
 
     /* kmer state */
     bool m_start;
-    kmer_t m_kmer;
+    kmer_t m_kmer, m_kmer_rc;
     uint64_t m_k;
 
     /* minimizer state */
