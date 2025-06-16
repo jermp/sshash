@@ -227,6 +227,7 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
         kmer_t mmer = kmer;
         mmer.take_chars(m);
         uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
+        // uint64_t hash = mix(uint64_t(mmer));
         if (hash < min_hash) {
             min_hash = hash;
             minimizer = mmer;

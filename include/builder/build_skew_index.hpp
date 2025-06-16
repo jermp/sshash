@@ -212,6 +212,11 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
                                          kmer_t::bits_per_char * offset);
                 for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
+                    if (build_config.canonical) { /* take the canonical kmer */
+                        auto kmer_rc = kmer;
+                        kmer_rc.reverse_complement_inplace(build_config.k);
+                        kmer = std::min(kmer, kmer_rc);
+                    }
                     keys_in_partition.push_back(kmer);
                     super_kmer_ids_in_partition.push_back(super_kmer_id);
                     it.next();

@@ -37,6 +37,7 @@ struct minimizer_enumerator {
                     mmer.drop_chars(m_k - m_m);
                 }
                 uint64_t hash = Hasher::hash(uint64_t(mmer), m_seed);
+                // uint64_t hash = mix(uint64_t(mmer));
                 if (hash < m_min_hash) {
                     m_min_hash = hash;
                     m_min_value = uint64_t(mmer);
@@ -66,6 +67,7 @@ private:
             }
             mmer.take_chars(m_m);
             uint64_t hash = Hasher::hash(uint64_t(mmer), m_seed);
+            // uint64_t hash = mix(uint64_t(mmer));
             if (hash < m_min_hash) {
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);

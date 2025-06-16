@@ -114,6 +114,35 @@ struct buckets  //
                                 k, m, seed, check_minimizer);
     }
 
+    lookup_result lookup_canonical_in_super_kmer(uint64_t super_kmer_id,                     //
+                                                 kmer_t target_kmer, kmer_t target_kmer_rc,  //
+                                                 const uint64_t k, const uint64_t m) const   //
+    {
+        uint64_t offset = offsets.access(super_kmer_id);
+        auto res = offset_to_id(offset, k);
+        kmer_iterator<kmer_t> it(strings, k, kmer_t::bits_per_char * offset);
+        uint64_t window_size = std::min<uint64_t>(k - m + 1, res.contig_end(k) - offset - k + 1);
+        for (uint64_t w = 0; w != window_size; ++w) {
+            auto read_kmer = it.get();
+            if (read_kmer == target_kmer) {
+                res.kmer_id += w;
+                res.kmer_id_in_contig += w;
+                res.kmer_orientation = constants::forward_orientation;
+                assert(is_valid(res));
+                return res;
+            }
+            if (read_kmer == target_kmer_rc) {
+                res.kmer_id += w;
+                res.kmer_id_in_contig += w;
+                res.kmer_orientation = constants::backward_orientation;
+                assert(is_valid(res));
+                return res;
+            }
+            it.next();
+        }
+        return lookup_result();
+    }
+
     lookup_result lookup_canonical(uint64_t begin, uint64_t end,                             //
                                    kmer_t target_kmer, kmer_t target_kmer_rc,                //
                                    uint64_t target_minimizer,                                //

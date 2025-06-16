@@ -5,6 +5,8 @@
 
 namespace sshash {
 
+constexpr inline uint64_t mix(const uint64_t val) { return val * 0x517cc1b727220a95; }
+
 template <class kmer_t>
 struct kmers_pthash_hasher_64 {
     typedef pthash::hash64 hash_type;
