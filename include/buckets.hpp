@@ -104,15 +104,14 @@ struct buckets  //
         return lookup_result();
     }
 
-    template <bool check_minimizer = false>
     lookup_result lookup_canonical(uint64_t bucket_id, kmer_t target_kmer, kmer_t target_kmer_rc,
                                    uint64_t target_minimizer,           //
                                    const uint64_t k, const uint64_t m,  //
                                    hasher_type const& hasher) const     //
     {
         auto [begin, end] = locate_bucket(bucket_id);
-        return lookup_canonical<check_minimizer>(begin, end, target_kmer, target_kmer_rc,
-                                                 target_minimizer, k, m, hasher);
+        return lookup_canonical(begin, end, target_kmer, target_kmer_rc,  //
+                                target_minimizer, k, m, hasher);
     }
 
     lookup_result lookup_canonical_in_super_kmer(uint64_t super_kmer_id,                     //
@@ -144,21 +143,19 @@ struct buckets  //
         return lookup_result();
     }
 
-    template <bool check_minimizer = false>
     lookup_result lookup_canonical(uint64_t begin, uint64_t end,               //
                                    kmer_t target_kmer, kmer_t target_kmer_rc,  //
                                    uint64_t target_minimizer,                  //
                                    const uint64_t k, const uint64_t m,         //
                                    hasher_type const& hasher) const            //
     {
-        if constexpr (check_minimizer) {
+        { /* check minimizer first */
             uint64_t offset = offsets.access(begin);
             auto read_kmer = util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
             kmer_t read_kmer_rc = read_kmer;
             read_kmer_rc.reverse_complement_inplace(k);
-            uint64_t minimizer =
-                std::min<uint64_t>(util::compute_minimizer(read_kmer, k, m, hasher),
-                                   util::compute_minimizer(read_kmer_rc, k, m, hasher));
+            uint64_t minimizer = std::min(util::compute_minimizer(read_kmer, k, m, hasher),
+                                          util::compute_minimizer(read_kmer_rc, k, m, hasher));
             if (minimizer != target_minimizer) {
                 auto res = lookup_result();
                 res.minimizer_found = false;
