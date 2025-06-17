@@ -1,5 +1,5 @@
 #include "common.hpp"
-#include "include/query/streaming_query.hpp"
+#include "include/streaming_query.hpp"
 
 using namespace sshash;
 

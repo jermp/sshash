@@ -5,7 +5,14 @@ namespace sshash {
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
     uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
-    uint64_t bucket_id = m_minimizers.lookup(minimizer);
+    return lookup_uint_regular(uint_kmer, minimizer);
+}
+
+template <class kmer_t>
+lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer, uint64_t minimizer) const {
+    assert(minimizer == util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
+
+    const uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
     if (m_skew_index.empty()) {
         return m_buckets.lookup(bucket_id, uint_kmer, minimizer,  //
@@ -34,7 +41,17 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer) const 
     uint_kmer_rc.reverse_complement_inplace(m_k);
     uint64_t minimizer = std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher),
                                   util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher));
-    uint64_t bucket_id = m_minimizers.lookup(minimizer);
+    return lookup_uint_canonical(uint_kmer, uint_kmer_rc, minimizer);
+}
+
+template <class kmer_t>
+lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t uint_kmer_rc,
+                                                        uint64_t minimizer) const  //
+{
+    assert(minimizer == std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher),
+                                 util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher)));
+
+    const uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
     if (m_skew_index.empty()) {
         return m_buckets.lookup_canonical(bucket_id, uint_kmer, uint_kmer_rc,  //

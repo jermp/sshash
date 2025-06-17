@@ -6,9 +6,9 @@
 
 namespace sshash {
 
-template <class kmer_t>
-struct streaming_query_regular {
-    streaming_query_regular(dictionary<kmer_t> const* dict)
+template <class kmer_t, bool canonical>
+struct streaming_query {
+    streaming_query(dictionary<kmer_t> const* dict)
 
         : m_dict(dict)
 
@@ -33,7 +33,12 @@ struct streaming_query_regular {
         , m_num_negative(0)
 
     {
-        assert(!m_dict->m_canonical);
+        if (canonical != m_dict->m_canonical) {
+            std::stringstream ss;
+            ss << "dict.canonical() = " << (m_dict->canonical() ? "true" : "false")
+               << " but required " << (canonical ? "true" : "false");
+            throw std::runtime_error(ss.str());
+        }
     }
 
     void reset() {
@@ -68,8 +73,14 @@ struct streaming_query_regular {
             m_kmer_rc.reverse_complement_inplace(m_k);
         }
 
-        m_curr_minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
-        m_curr_minimizer_rc = m_minimizer_enum_rc.template next<true>(m_kmer_rc, m_start);
+        uint64_t minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
+        uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(m_kmer_rc, m_start);
+        if constexpr (canonical) {
+            m_curr_minimizer = std::min(minimizer, minimizer_rc);
+        } else {
+            m_curr_minimizer = minimizer;
+            m_curr_minimizer_rc = minimizer_rc;
+        }
 
         /* 3. compute result */
         if (m_remaining_contig_bases == 0) {
@@ -138,22 +149,34 @@ private:
 
         /* if minimizer does not change and previous minimizer was not found,
            surely any kmer having the same minimizer cannot be found as well */
-        if (m_curr_minimizer == m_prev_minimizer and m_curr_minimizer_rc == m_prev_minimizer_rc  //
-            and m_res.minimizer_found == false)                                                  //
+        if (m_curr_minimizer == m_prev_minimizer and        //
+            m_curr_minimizer_rc == m_prev_minimizer_rc and  // always true for canonical = true
+            m_res.minimizer_found == false)                 //
         {
             assert(m_res.kmer_id == constants::invalid_uint64);
             m_num_negative += 1;
             return;
         }
 
-        m_res = m_dict->lookup_uint_regular(m_kmer);
-        if (m_res.kmer_id == constants::invalid_uint64) {
-            assert(m_res.kmer_orientation == constants::forward_orientation);
-            m_res = m_dict->lookup_uint_regular(m_kmer_rc);
-            m_res.kmer_orientation = constants::backward_orientation;
+        if constexpr (canonical) {
+            m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_minimizer);
             if (m_res.kmer_id == constants::invalid_uint64) {
                 m_num_negative += 1;
                 return;
+            }
+        } else {
+            m_res = m_dict->lookup_uint_regular(m_kmer, m_curr_minimizer);
+            bool minimizer_found = m_res.minimizer_found;
+            if (m_res.kmer_id == constants::invalid_uint64) {
+                assert(m_res.kmer_orientation == constants::forward_orientation);
+                m_res = m_dict->lookup_uint_regular(m_kmer_rc, m_curr_minimizer_rc);
+                m_res.kmer_orientation = constants::backward_orientation;
+                bool minimizer_rc_found = m_res.minimizer_found;
+                m_res.minimizer_found = minimizer_rc_found or minimizer_found;
+                if (m_res.kmer_id == constants::invalid_uint64) {
+                    m_num_negative += 1;
+                    return;
+                }
             }
         }
 

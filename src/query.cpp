@@ -1,11 +1,8 @@
-#pragma once
+#include "external/gz/zip_stream.hpp"
 
 #include "include/dictionary.hpp"
 #include "include/util.hpp"
-
-#include "external/gz/zip_stream.hpp"
-#include "streaming_query_canonical.hpp"
-#include "streaming_query_regular.hpp"
+#include "include/streaming_query.hpp"
 
 namespace sshash {
 
@@ -127,50 +124,45 @@ streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string
         zip_istream zis(is);
 
         if (canonical()) {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query_canonical<kmer_t>>(
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, true>>(
                 this, zis, multiline);
         } else {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query_regular<kmer_t>>(
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, false>>(
                 this, zis, multiline);
         }
-
     } else if (util::ends_with(filename, ".fq.gz") or util::ends_with(filename, ".fastq.gz")) {
         if (multiline) {
             std::cout << "==> Warning: option 'multiline' is only valid for FASTA files, not FASTQ."
                       << std::endl;
         }
         zip_istream zis(is);
-
         if (canonical()) {
-            report = streaming_query_from_fastq_file<kmer_t, streaming_query_canonical<kmer_t>>(
-                this, zis);
+            report =
+                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, true>>(this, zis);
         } else {
             report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query_regular<kmer_t>>(this, zis);
+                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, false>>(this, zis);
         }
-
     } else if (util::ends_with(filename, ".fa") or util::ends_with(filename, ".fasta")) {
         if (canonical()) {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query_canonical<kmer_t>>(
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, true>>(
                 this, is, multiline);
         } else {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query_regular<kmer_t>>(
+            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, false>>(
                 this, is, multiline);
         }
-
     } else if (util::ends_with(filename, ".fq") or util::ends_with(filename, ".fastq")) {
         if (multiline) {
             std::cout << "==> Warning: option 'multiline' is only valid for FASTA files, not FASTQ."
                       << std::endl;
         }
         if (canonical()) {
-            report = streaming_query_from_fastq_file<kmer_t, streaming_query_canonical<kmer_t>>(
-                this, is);
+            report =
+                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, true>>(this, is);
         } else {
             report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query_regular<kmer_t>>(this, is);
+                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, false>>(this, is);
         }
-
     } else {
         std::cerr << "unsupported query file format" << std::endl;
     }
