@@ -204,19 +204,15 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
             bucket_pairs_manager.get_bucket_pairs_filename(), mm::advice::sequential);
         bucket_pairs_iterator iterator(bucket_pairs_file.data(),
                                        bucket_pairs_file.data() + bucket_pairs_file.size());
-        // m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
-        //                                                num_super_kmers - num_buckets);
-        m_buckets.num_super_kmers_before_bucket.build(
-            iterator, num_buckets + 1, std::ceil(std::log2(num_super_kmers - num_buckets)));
+        m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
+                                                       num_super_kmers - num_buckets);
         bucket_pairs_file.close();
         bucket_pairs_manager.remove_tmp_file();
     } else {
         /* all buckets are singletons, thus pass an empty iterator that always returns 0 */
         bucket_pairs_iterator iterator(nullptr, nullptr);
-        // m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
-        //                                                num_super_kmers - num_buckets);
-        m_buckets.num_super_kmers_before_bucket.build(
-            iterator, num_buckets + 1, std::ceil(std::log2(num_super_kmers - num_buckets)));
+        m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
+                                                       num_super_kmers - num_buckets);
     }
     timer.stop();
     std::cout << "building: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
