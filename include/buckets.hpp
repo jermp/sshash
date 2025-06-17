@@ -66,14 +66,29 @@ struct buckets  //
         return {begin, end};
     }
 
-    lookup_result lookup(uint64_t bucket_id, kmer_t target_kmer,  //
-                         const uint64_t k, const uint64_t m) const {
+    lookup_result lookup(uint64_t bucket_id, kmer_t target_kmer,                               //
+                         uint64_t target_minimizer,                                            //
+                         const uint64_t k, const uint64_t m, hasher_type const& hasher) const  //
+    {
         auto [begin, end] = locate_bucket(bucket_id);
-        return lookup(begin, end, target_kmer, k, m);
+        return lookup(begin, end, target_kmer, k, m, target_minimizer, hasher);
     }
 
-    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t target_kmer,  //
-                         const uint64_t k, const uint64_t m) const {
+    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t target_kmer,                     //
+                         uint64_t target_minimizer,                                            //
+                         const uint64_t k, const uint64_t m, hasher_type const& hasher) const  //
+    {
+        { /* check minimizer first */
+            uint64_t offset = offsets.access(begin);
+            auto read_kmer = util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
+            uint64_t minimizer = util::compute_minimizer(read_kmer, k, m, hasher);
+            if (minimizer != target_minimizer) {
+                auto res = lookup_result();
+                res.minimizer_found = false;
+                return res;
+            }
+        }
+
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
             auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
             if (res.kmer_id != constants::invalid_uint64) {
@@ -81,6 +96,7 @@ struct buckets  //
                 return res;
             }
         }
+
         return lookup_result();
     }
 

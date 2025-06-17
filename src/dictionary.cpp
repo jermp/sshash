@@ -7,7 +7,10 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
     uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
-    if (m_skew_index.empty()) return m_buckets.lookup(bucket_id, uint_kmer, m_k, m_m);
+    if (m_skew_index.empty()) {
+        return m_buckets.lookup(bucket_id, uint_kmer, minimizer,  //
+                                m_k, m_m, m_hasher);
+    }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
     const uint64_t num_super_kmers_in_bucket = end - begin;
@@ -21,7 +24,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
         return lookup_result();
     }
 
-    return m_buckets.lookup(begin, end, uint_kmer, m_k, m_m);
+    return m_buckets.lookup(begin, end, uint_kmer, minimizer, m_k, m_m, m_hasher);
 }
 
 template <class kmer_t>

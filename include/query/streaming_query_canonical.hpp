@@ -1,6 +1,7 @@
 #pragma once
 
 #include "include/dictionary.hpp"
+#include "include/minimizer_enumerator.hpp"
 #include "include/util.hpp"
 
 namespace sshash {
@@ -13,6 +14,7 @@ struct streaming_query_canonical {
 
         , m_start(true)
         , m_kmer(constants::invalid_uint64)
+        , m_kmer_rc(constants::invalid_uint64)
         , m_k(dict->m_k)
 
         , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_hasher)
@@ -38,7 +40,8 @@ struct streaming_query_canonical {
         m_res = lookup_result();
     }
 
-    lookup_result lookup_advanced(const char* kmer) {
+    lookup_result lookup_advanced(const char* kmer)  //
+    {
         /* 1. validation */
         bool is_valid =
             m_start ? util::is_valid<kmer_t>(kmer, m_k) : kmer_t::is_valid(kmer[m_k - 1]);
