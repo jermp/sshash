@@ -27,11 +27,11 @@ void dictionary<kmer_t>::compute_statistics() const {
             uint64_t w = 0;
             for (; w != window_size; ++w) {
                 auto kmer = it.get();
-                uint64_t minimizer = util::compute_minimizer(kmer, m_k, m_m, m_seed);
+                uint64_t minimizer = util::compute_minimizer(kmer, m_k, m_m, m_hasher);
                 if (m_canonical) {
                     kmer_t kmer_rc = kmer;
                     kmer_rc.reverse_complement_inplace(m_k);
-                    uint64_t minimizer_rc = util::compute_minimizer(kmer_rc, m_k, m_m, m_seed);
+                    uint64_t minimizer_rc = util::compute_minimizer(kmer_rc, m_k, m_m, m_hasher);
                     if (minimizer_rc < minimizer) minimizer = minimizer_rc;
                 }
                 if (prev_minimizer != constants::invalid_uint64 and minimizer != prev_minimizer) {

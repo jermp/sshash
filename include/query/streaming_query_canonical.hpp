@@ -15,8 +15,8 @@ struct streaming_query_canonical {
         , m_kmer(constants::invalid_uint64)
         , m_k(dict->m_k)
 
-        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
-        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
+        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_hasher)
+        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_hasher)
         , m_curr_minimizer(constants::invalid_uint64)
         , m_prev_minimizer(constants::invalid_uint64)
 

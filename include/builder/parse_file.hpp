@@ -20,9 +20,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 {
     const uint64_t k = build_config.k;
     const uint64_t m = build_config.m;
-    const uint64_t seed = build_config.seed;
     const uint64_t max_num_kmers_in_super_kmer = k - m + 1;
     const uint64_t block_size = 2 * k - m;  // max_num_kmers_in_super_kmer + k - 1
+    hasher_type hasher(build_config.seed);
 
     if (max_num_kmers_in_super_kmer >= (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8))) {
         throw std::runtime_error(
@@ -76,8 +76,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         }
     };
 
-    minimizer_enumerator<kmer_t> minimizer_enum(k, m, seed);
-    minimizer_enumerator<kmer_t> minimizer_enum_rc(k, m, seed);
+    minimizer_enumerator<kmer_t> minimizer_enum(k, m, hasher);
+    minimizer_enumerator<kmer_t> minimizer_enum_rc(k, m, hasher);
     uint64_t seq_len = 0;
     uint64_t sum_of_weights = 0;
     data.weights_builder.init();

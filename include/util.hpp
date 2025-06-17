@@ -217,8 +217,10 @@ static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const u
 /*
     This implements the random minimizer.
 */
-template <class kmer_t, typename Hasher = murmurhash2_64>
-uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
+template <class kmer_t>
+uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
+                           hasher_type const& hasher)  //
+{
     assert(m <= kmer_t::max_m);
     assert(m <= k);
     uint64_t min_hash = constants::invalid_uint64;
@@ -226,8 +228,7 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, cons
     for (uint64_t i = 0; i != k - m + 1; ++i) {
         kmer_t mmer = kmer;
         mmer.take_chars(m);
-        uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
-        // uint64_t hash = mix(uint64_t(mmer));
+        uint64_t hash = hasher.hash(uint64_t(mmer));
         if (hash < min_hash) {
             min_hash = hash;
             minimizer = mmer;

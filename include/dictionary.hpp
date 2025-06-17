@@ -22,10 +22,9 @@ struct dictionary {
                  constants::current_version_number::y,  //
                  constants::current_version_number::z)
         , m_size(0)
-        , m_seed(0)
         , m_k(0)
         , m_m(0)
-        , m_canonical(0) {}
+        , m_canonical(false) {}
 
     /* Build from input file. */
     void build(std::string const& input_filename, build_configuration const& build_config);
@@ -35,12 +34,12 @@ struct dictionary {
 
     essentials::version_number vnum() const { return m_vnum; }
     uint64_t size() const { return m_size; }
-    uint64_t seed() const { return m_seed; }
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
     uint64_t num_contigs() const { return m_buckets.pieces.size() - 1; }
     bool canonical() const { return m_canonical; }
     bool weighted() const { return !m_weights.empty(); }
+    hasher_type const& hasher() const { return m_hasher; }
 
     /* Lookup queries. Return the kmer_id of the kmer or -1 if it is not found in the dictionary. */
     uint64_t lookup(char const* string_kmer, bool check_reverse_complement = true) const;
@@ -150,10 +149,10 @@ private:
         visitor.visit(t.m_vnum);
         util::check_version_number(t.m_vnum);
         visitor.visit(t.m_size);
-        visitor.visit(t.m_seed);
         visitor.visit(t.m_k);
         visitor.visit(t.m_m);
         visitor.visit(t.m_canonical);
+        visitor.visit(t.m_hasher);
         visitor.visit(t.m_minimizers);
         visitor.visit(t.m_buckets);
         visitor.visit(t.m_skew_index);
@@ -162,10 +161,10 @@ private:
 
     essentials::version_number m_vnum;
     uint64_t m_size;
-    uint64_t m_seed;
     uint16_t m_k;
     uint16_t m_m;
-    uint16_t m_canonical;
+    bool m_canonical;
+    hasher_type m_hasher;
     minimizers m_minimizers;
     buckets<kmer_t> m_buckets;
     skew_index<kmer_t> m_skew_index;

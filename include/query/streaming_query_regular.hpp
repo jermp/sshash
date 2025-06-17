@@ -12,8 +12,8 @@ struct streaming_query_regular {
 
         : m_dict(dict)
 
-        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_seed)
-        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_seed)
+        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_hasher)
+        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_hasher)
         , m_minimizer_not_found(false)
         , m_minimizer_rc_not_found(false)
 
@@ -28,7 +28,6 @@ struct streaming_query_regular {
 
         , m_k(dict->m_k)
         , m_m(dict->m_m)
-        , m_seed(dict->m_seed)
 
         , m_it(dict->m_buckets.strings, m_k)
         , m_begin(0)
@@ -83,11 +82,13 @@ struct streaming_query_regular {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
         }
         m_curr_minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
-        assert(m_curr_minimizer == util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_seed));
+        assert(m_curr_minimizer ==
+               util::compute_minimizer<kmer_t>(m_kmer, m_k, m_m, m_dict->m_hasher));
         m_kmer_rc = m_kmer;
         m_kmer_rc.reverse_complement_inplace(m_k);
         m_curr_minimizer_rc = m_minimizer_enum_rc.template next<true>(m_kmer_rc, m_start);
-        assert(m_curr_minimizer_rc == util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_seed));
+        assert(m_curr_minimizer_rc ==
+               util::compute_minimizer<kmer_t>(m_kmer_rc, m_k, m_m, m_dict->m_hasher));
 
         bool both_minimizers_not_found = (same_minimizer() and m_minimizer_not_found) and
                                          (same_minimizer_rc() and m_minimizer_rc_not_found);
@@ -169,7 +170,7 @@ private:
     kmer_t m_kmer, m_kmer_rc;
 
     /* constants */
-    uint64_t m_k, m_m, m_seed;
+    uint64_t m_k, m_m;
 
     /* string state */
     kmer_iterator<kmer_t> m_it;
@@ -252,7 +253,7 @@ private:
             while (m_pos_in_window != m_window_size) {
                 auto val = m_it.get();
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    auto minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
+                    auto minimizer = util::compute_minimizer(val, m_k, m_m, m_dict->m_hasher);
                     if (minimizer != m_curr_minimizer) {
                         m_minimizer_not_found = true;
                         m_res = lookup_result();
@@ -293,7 +294,7 @@ private:
             while (m_pos_in_window != m_window_size) {
                 auto val = m_it.get();
                 if (check_minimizer and super_kmer_id == begin and m_pos_in_window == 0) {
-                    auto minimizer = util::compute_minimizer(val, m_k, m_m, m_seed);
+                    auto minimizer = util::compute_minimizer(val, m_k, m_m, m_dict->m_hasher);
                     if (minimizer != m_curr_minimizer_rc) {
                         m_minimizer_rc_not_found = true;
                         m_res = lookup_result();

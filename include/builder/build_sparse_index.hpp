@@ -155,9 +155,9 @@ private:
 };
 
 template <class kmer_t>
-buckets_statistics build_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
-                               const uint64_t num_buckets,
-                               build_configuration const& build_config)  //
+buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
+                                      const uint64_t num_buckets,
+                                      build_configuration const& build_config)  //
 {
     const uint64_t num_kmers = data.num_kmers;
     const uint64_t num_super_kmers = data.strings.num_super_kmers();

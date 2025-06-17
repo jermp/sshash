@@ -5,8 +5,6 @@
 
 namespace sshash {
 
-constexpr inline uint64_t mix(const uint64_t val) { return val * 0x517cc1b727220a95; }
-
 template <class kmer_t>
 struct kmers_pthash_hasher_64 {
     typedef pthash::hash64 hash_type;
@@ -62,12 +60,57 @@ using kmers_pthash_type =
                             true,                                           // minimal output
                             pthash::pthash_search_type::xor_displacement>;  // search type>;
 
-/* used to hash m-mers and determine the minimizer of a k-mer */
 struct murmurhash2_64 {
+    murmurhash2_64() { seed(0); }
+    murmurhash2_64(const uint64_t seed) { this->seed(seed); }
+
+    void seed(const uint64_t seed) { m_seed = seed; }
+
     /* specialization for uint64_t */
-    static inline uint64_t hash(uint64_t x, uint64_t seed) {
-        return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), seed);
+    inline uint64_t hash(uint64_t x) const {
+        return pthash::MurmurHash2_64(reinterpret_cast<char const*>(&x), sizeof(x), m_seed);
     }
+
+    template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visitor.visit(m_seed);
+    }
+
+    template <typename Visitor>
+    void visit(Visitor& visitor) {
+        visitor.visit(m_seed);
+    }
+
+private:
+    uint64_t m_seed;
 };
+
+struct mixer_64 {
+    mixer_64() { seed(0); }
+    mixer_64(const uint64_t seed) { this->seed(seed); }
+
+    void seed(const uint64_t seed) {
+        m_magic = pthash::MurmurHash2_64(reinterpret_cast<char const*>(&seed), sizeof(seed), 0);
+    }
+
+    /* specialization for uint64_t */
+    inline uint64_t hash(uint64_t x) const { return (x * 0x517cc1b727220a95) ^ m_magic; }
+
+    template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visitor.visit(m_magic);
+    }
+
+    template <typename Visitor>
+    void visit(Visitor& visitor) {
+        visitor.visit(m_magic);
+    }
+
+private:
+    uint64_t m_magic;
+};
+
+/* used to hash m-mers of a k-mer to compute its minimizer */
+using hasher_type = mixer_64;
 
 }  // namespace sshash

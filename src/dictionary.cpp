@@ -4,7 +4,7 @@ namespace sshash {
 
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
-    uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_seed);
+    uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
     if (m_skew_index.empty()) return m_buckets.lookup(bucket_id, uint_kmer, m_k, m_m);
@@ -29,13 +29,13 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer,
                                                         bool check_minimizer) const {
     kmer_t uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
-    uint64_t minimizer = std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_seed),
-                                  util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_seed));
+    uint64_t minimizer = std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher),
+                                  util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher));
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
     if (m_skew_index.empty()) {
         return m_buckets.lookup_canonical(bucket_id, uint_kmer, uint_kmer_rc, minimizer,  //
-                                          m_k, m_m, m_seed, check_minimizer);
+                                          m_k, m_m, m_hasher, check_minimizer);
     }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
@@ -53,7 +53,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer,
     }
 
     return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, minimizer,  //
-                                      m_k, m_m, m_seed, check_minimizer);
+                                      m_k, m_m, m_hasher, check_minimizer);
 }
 
 template <class kmer_t>
@@ -212,7 +212,7 @@ neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id,
 
 template <class kmer_t>
 uint64_t dictionary<kmer_t>::num_bits() const {
-    return 8 * (sizeof(m_vnum) + sizeof(m_size) + sizeof(m_seed) + sizeof(m_k) + sizeof(m_m) +
+    return 8 * (sizeof(m_vnum) + sizeof(m_size) + sizeof(m_hasher) + sizeof(m_k) + sizeof(m_m) +
                 sizeof(m_canonical)) +
            m_minimizers.num_bits() + m_buckets.num_bits() + m_skew_index.num_bits() +
            m_weights.num_bits();
