@@ -11,6 +11,7 @@
 // }
 
 namespace sshash {
+
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
     using uint_t = Kmer;
@@ -164,7 +165,6 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
         assert(k <= max_k);
         dna_uint_kmer_t rev(0);
         for (uint16_t i = 0; i < uint_kmer_bits; i += 64) { rev.append64(crc64(base::pop64())); }
-        // res is full reverse-complement to x
         rev.drop(uint_kmer_bits - k * bits_per_char);
         *this = rev;
     }

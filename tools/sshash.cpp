@@ -8,6 +8,7 @@
 
 #include "src/build.cpp"
 #include "src/dictionary.cpp"
+#include "src/query.cpp"
 #include "src/dump.cpp"
 #include "src/info.cpp"
 #include "src/statistics.cpp"

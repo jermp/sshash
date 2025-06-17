@@ -8,13 +8,6 @@
 
 namespace sshash {
 
-// Forward declarations of the friend template classes
-template <class kmer_t>
-struct streaming_query_canonical;
-
-template <class kmer_t>
-struct streaming_query_regular;
-
 template <class kmer_t>
 struct dictionary {
     dictionary()
@@ -83,11 +76,12 @@ struct dictionary {
     bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
     bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
-    /* Streaming queries. */
-    friend struct streaming_query_canonical<kmer_t>;
-    friend struct streaming_query_regular<kmer_t>;
-    streaming_query_report streaming_query_from_file(std::string const& filename,
-                                                     bool multiline) const;
+    /* Streaming query. */
+    template <class, bool>
+    friend struct streaming_query;
+
+    streaming_query_report  //
+    streaming_query_from_file(std::string const& filename, bool multiline) const;
 
     struct iterator {
         iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id) {
