@@ -25,8 +25,9 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
 }
 
 template <class kmer_t>
-lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer,
-                                                        bool check_minimizer) const {
+lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer) const  //
+{
+    constexpr bool check_minimizer = true;
     kmer_t uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
     uint64_t minimizer = std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher),
@@ -34,8 +35,8 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer,
     uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
     if (m_skew_index.empty()) {
-        return m_buckets.lookup_canonical(bucket_id, uint_kmer, uint_kmer_rc, minimizer,  //
-                                          m_k, m_m, m_hasher, check_minimizer);
+        return m_buckets.template lookup_canonical<check_minimizer>(
+            bucket_id, uint_kmer, uint_kmer_rc, minimizer, m_k, m_m, m_hasher);
     }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
@@ -52,8 +53,8 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer,
         return lookup_result();
     }
 
-    return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, minimizer,  //
-                                      m_k, m_m, m_hasher, check_minimizer);
+    return m_buckets.template lookup_canonical<check_minimizer>(begin, end, uint_kmer, uint_kmer_rc,
+                                                                minimizer, m_k, m_m, m_hasher);
 }
 
 template <class kmer_t>

@@ -140,9 +140,7 @@ private:
             return;
         }
 
-        constexpr bool check_minimizer = true;
-        m_res = m_dict->lookup_uint_canonical(m_kmer, check_minimizer);
-
+        m_res = m_dict->lookup_uint_canonical(m_kmer);
         if (m_res.kmer_id == constants::invalid_uint64) {
             m_num_negative += 1;
             return;

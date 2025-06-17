@@ -171,7 +171,7 @@ private:
     weights m_weights;
 
     lookup_result lookup_uint_regular(kmer_t uint_kmer) const;
-    lookup_result lookup_uint_canonical(kmer_t uint_kmer, bool check_minimizer = false) const;
+    lookup_result lookup_uint_canonical(kmer_t uint_kmer) const;
     void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
                             bool check_reverse_complement) const;
     void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
