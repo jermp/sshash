@@ -40,7 +40,7 @@ struct streaming_query_canonical {
         m_res = lookup_result();
     }
 
-    lookup_result lookup_advanced(const char* kmer)  //
+    lookup_result lookup_advanced(char const* kmer)  //
     {
         /* 1. validation */
         bool is_valid =
@@ -56,12 +56,10 @@ struct streaming_query_canonical {
             m_kmer.drop_char();
             m_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
-
             m_kmer_rc.pad_char();
             m_kmer_rc.set(0, kmer_t::char_to_uint(
                                  kmer_t::canonicalize_basepair_reverse_map[int(kmer[m_k - 1])]));
             m_kmer_rc.take(m_k * kmer_t::bits_per_char);
-
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
             m_kmer_rc = m_kmer;
