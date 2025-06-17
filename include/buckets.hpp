@@ -306,7 +306,8 @@ struct buckets  //
     }
 
     bits::elias_fano<true, false> pieces;
-    bits::elias_fano<false, false> num_super_kmers_before_bucket;
+    // bits::elias_fano<false, false> num_super_kmers_before_bucket;
+    bits::compact_vector num_super_kmers_before_bucket;
     bits::compact_vector offsets;
     bits::bit_vector strings;
 
