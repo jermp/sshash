@@ -165,11 +165,17 @@ private:
     weights m_weights;
 
     lookup_result lookup_uint_regular(kmer_t uint_kmer) const;
+    lookup_result lookup_uint_regular(kmer_t uint_kmer, uint64_t minimizer) const;
+
     lookup_result lookup_uint_canonical(kmer_t uint_kmer) const;
+    lookup_result lookup_uint_canonical(kmer_t uint_kmer, kmer_t uint_kmer_rc,
+                                        uint64_t minimizer) const;
+
     void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
                             bool check_reverse_complement) const;
     void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
                              bool check_reverse_complement) const;
+
     kmer_t get_prefix(kmer_t kmer) const;
     kmer_t get_suffix(kmer_t kmer) const;
 };
