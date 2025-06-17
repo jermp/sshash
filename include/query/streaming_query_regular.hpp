@@ -21,6 +21,8 @@ struct streaming_query_regular {
         , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_hasher)
         , m_curr_minimizer(constants::invalid_uint64)
         , m_prev_minimizer(constants::invalid_uint64)
+        , m_curr_minimizer_rc(constants::invalid_uint64)
+        , m_prev_minimizer_rc(constants::invalid_uint64)
 
         , m_it(dict->m_buckets.strings, m_k)
         , m_remaining_contig_bases(0)
