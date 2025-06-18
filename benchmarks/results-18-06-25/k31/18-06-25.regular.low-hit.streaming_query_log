@@ -1,0 +1,30 @@
+2025-06-18 12:40:56: performing queries from file '/home/giulio/sshash_queries/SRR11449743_1.fastq.gz'...
+2025-06-18 12:43:34: DONE
+==== query report:
+num_kmers = 695737535
+num_positive_kmers = 4754204 (0.683333%)
+num_negative_kmers = 690972341 (99.3151%)
+num_invalid_kmers = 10990 (0.00157962%)
+num_searches = 3613872/4754204 (76.0142%)
+num_extensions = 1140332/4754204 (23.9858%)
+elapsed = 157617 millisec / 157.617 sec / 2.62695 min / 226.547 ns/kmer
+2025-06-18 12:43:34: performing queries from file '/home/giulio/sshash_queries/SRR12858649.fastq.gz'...
+2025-06-18 12:43:49: DONE
+==== query report:
+num_kmers = 163287360
+num_positive_kmers = 790414 (0.484063%)
+num_negative_kmers = 162496946 (99.5159%)
+num_invalid_kmers = 0 (0%)
+num_searches = 499575/790414 (63.2042%)
+num_extensions = 290839/790414 (36.7958%)
+elapsed = 15082.7 millisec / 15.0827 sec / 0.251378 min / 92.3689 ns/kmer
+2025-06-18 12:43:51: performing queries from file '/home/giulio/sshash_queries/SRR5901135_1.fastq.gz'...
+2025-06-18 12:45:28: DONE
+==== query report:
+num_kmers = 395433242
+num_positive_kmers = 1134 (0.000286774%)
+num_negative_kmers = 395408021 (99.9936%)
+num_invalid_kmers = 24087 (0.00609129%)
+num_searches = 895/1134 (78.9242%)
+num_extensions = 239/1134 (21.0758%)
+elapsed = 97076.7 millisec / 97.0767 sec / 1.61794 min / 245.494 ns/kmer
