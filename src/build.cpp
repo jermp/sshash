@@ -3,7 +3,7 @@
 #include "include/builder/util.hpp"
 
 #include "include/builder/parse_file.hpp"
-#include "include/builder/build_index.hpp"
+#include "include/builder/build_sparse_index.hpp"
 #include "include/builder/build_skew_index.hpp"
 
 #include <numeric>  // for std::accumulate
@@ -31,9 +31,9 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     m_k = build_config.k;
     m_m = build_config.m;
-    m_seed = build_config.seed;
-    m_canonical_parsing = build_config.canonical_parsing;
+    m_canonical = build_config.canonical;
     m_skew_index.min_log2 = build_config.l;
+    m_hasher.seed(build_config.seed);
 
     std::vector<double> timings;
     timings.reserve(6);
@@ -145,10 +145,10 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_index(data, m_buckets, num_minimizers, build_config);
+    auto buckets_stats = build_sparse_index(data, m_buckets, num_minimizers, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 3: 'build_index'");
+    print_time(timings.back(), data.num_kmers, "step 3: 'build_sparse_index'");
     timer.reset();
     /******/
 

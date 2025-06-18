@@ -17,8 +17,8 @@ constexpr uint64_t max_l = 12;
 static_assert(min_l < max_l);
 
 static const std::string default_tmp_dirname(".");
-constexpr bool forward_orientation = 0;
-constexpr bool backward_orientation = 1;
+constexpr int forward_orientation = 1;
+constexpr int backward_orientation = -1;
 
 namespace current_version_number {
 constexpr uint8_t x = 4;

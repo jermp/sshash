@@ -44,6 +44,7 @@ struct compact_string_pool {
             if (glue) {
                 prefix = k - 1;
             } else { /* otherwise, start a new piece */
+                assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
                 pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
             }
             for (uint64_t i = prefix; i != size; ++i) {
@@ -59,9 +60,9 @@ struct compact_string_pool {
             pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
             assert(pieces.front() == 0);
 
-            /* Push a final sentinel (dummy) kmer to avoid bounds' checking in
-               bit_vector_iterator::fill_buf(). */
-            bvb_strings.append_bits(0, k * kmer_t::bits_per_char);
+            /* Push a final sentinel (dummy) value to avoid bounds' checking in
+               kmer_iterator::fill_buff(). */
+            bvb_strings.append_bits(0, kmer_t::uint_kmer_bits);
         }
 
         uint64_t k;

@@ -155,19 +155,21 @@ private:
 };
 
 template <class kmer_t>
-buckets_statistics build_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
-                               const uint64_t num_buckets,
-                               build_configuration const& build_config)  //
+buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
+                                      const uint64_t num_buckets,
+                                      build_configuration const& build_config)  //
 {
     const uint64_t num_kmers = data.num_kmers;
     const uint64_t num_super_kmers = data.strings.num_super_kmers();
     const uint64_t num_threads = build_config.num_threads;
 
     bits::compact_vector::builder offsets_builder;
-    offsets_builder.resize(num_super_kmers, std::ceil(std::log2(data.strings.num_bits() / 2)));
+    offsets_builder.resize(num_super_kmers,
+                           std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char)));
 
-    std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / 2
-              << ")) = " << std::ceil(std::log2(data.strings.num_bits() / 2)) << std::endl;
+    std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / kmer_t::bits_per_char
+              << ")) = " << std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char))
+              << std::endl;
 
     std::cout << "reading from '" << data.minimizers.get_minimizers_filename() << "'..."
               << std::endl;
@@ -268,8 +270,6 @@ buckets_statistics build_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buck
 
     std::vector<std::thread> threads(num_threads);
     for (uint64_t thread_id = 0; thread_id != num_threads; ++thread_id) {
-        // std::cout << "[" << offsets[thread_id] << "," << offsets[thread_id + 1] << ")" <<
-        // std::endl;
         threads_buckets_stats[thread_id] =
             buckets_statistics(num_buckets, num_kmers, num_super_kmers);
         threads[thread_id] = std::thread(exe, thread_id);

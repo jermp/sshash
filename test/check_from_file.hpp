@@ -46,7 +46,7 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
             assert(util::is_valid<kmer_t>(sequence.data() + i, k));
 
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(sequence.data() + i, k);
-            bool orientation = constants::forward_orientation;
+            auto orientation = constants::forward_orientation;
 
             if (num_kmers != 0 and num_kmers % 5000000 == 0) {
                 std::cout << "checked " << num_kmers << " kmers" << std::endl;

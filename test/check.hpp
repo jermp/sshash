@@ -4,8 +4,8 @@ namespace sshash {
 
 template <class kmer_t>
 bool check_dictionary(dictionary<kmer_t> const& dict) {
-    uint64_t k = dict.k();
-    uint64_t n = dict.size();
+    const uint64_t k = dict.k();
+    const uint64_t n = dict.size();
     std::cout << "checking correctness of access and positive lookup..." << std::endl;
     uint64_t id = 0;
     std::string kmer(k, 0);
@@ -28,7 +28,6 @@ bool check_dictionary(dictionary<kmer_t> const& dict) {
     }
     std::cout << "checked " << id << " kmers" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
-
     return check_correctness_negative_lookup(dict);
 }
 
@@ -55,8 +54,8 @@ bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
 template <class kmer_t>
 bool check_correctness_navigational_contig_query(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
-    uint64_t num_contigs = dict.num_contigs();
-    uint64_t k = dict.k();
+    const uint64_t num_contigs = dict.num_contigs();
+    const uint64_t k = dict.k();
     uint64_t kmer_id = 0;
     std::string kmer(k, 0);
     uint64_t contig_id = 0;

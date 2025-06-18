@@ -12,7 +12,7 @@ static double bits_per_kmer_formula(uint64_t k, /* kmer length */
       1. we assume an alphabet of size 4
       2. this assumes a random minimizer scheme, so num. super-kmers is ~ 2n/(k-m+2)
       3. we neglect lower order terms and skew index space
-      4. no canonical parsing
+      4. not canonical
     */
 
     assert(k > 0);
@@ -79,7 +79,7 @@ void dictionary<kmer_t>::print_info() const {
     std::cout << "k = " << k() << '\n';
     std::cout << "num_minimizers = " << m_minimizers.size() << std::endl;
     std::cout << "m = " << m() << '\n';
-    std::cout << "canonicalized = " << (canonicalized() ? "true" : "false") << '\n';
+    std::cout << "canonical = " << (canonical() ? "true" : "false") << '\n';
     std::cout << "weighted = " << (weighted() ? "true" : "false") << '\n';
 
     std::cout << "num_super_kmers = " << m_buckets.offsets.size() << '\n';

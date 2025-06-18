@@ -7,18 +7,18 @@ namespace sshash {
 /*
     "Re-scan" method.
 */
-template <class kmer_t, typename Hasher = murmurhash2_64>
+template <class kmer_t>
 struct minimizer_enumerator {
     minimizer_enumerator() {}
 
-    minimizer_enumerator(uint64_t k, uint64_t m, uint64_t seed)
+    minimizer_enumerator(uint64_t k, uint64_t m, hasher_type const& hasher)
         : m_k(k)
         , m_m(m)
-        , m_seed(seed)
         , m_position(0)
         , m_min_value(constants::invalid_uint64)
         , m_min_position(0)
-        , m_min_hash(constants::invalid_uint64) {}
+        , m_min_hash(constants::invalid_uint64)
+        , m_hasher(hasher) {}
 
     template <bool reverse = false>
     uint64_t next(kmer_t kmer, bool clear) {
@@ -36,7 +36,7 @@ struct minimizer_enumerator {
                 } else {
                     mmer.drop_chars(m_k - m_m);
                 }
-                uint64_t hash = Hasher::hash(uint64_t(mmer), m_seed);
+                uint64_t hash = m_hasher.hash(uint64_t(mmer));
                 if (hash < m_min_hash) {
                     m_min_hash = hash;
                     m_min_value = uint64_t(mmer);
@@ -44,15 +44,15 @@ struct minimizer_enumerator {
                 }
             }
         }
+        assert(m_min_value == util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
         return m_min_value;
     }
 
 private:
-    uint64_t m_k;
-    uint64_t m_m;
-    uint64_t m_seed;
+    uint64_t m_k, m_m;
     uint64_t m_position;
     uint64_t m_min_value, m_min_position, m_min_hash;
+    hasher_type m_hasher;
 
     template <bool reverse = false>
     void rescan(kmer_t kmer) {
@@ -66,7 +66,7 @@ private:
                 kmer.drop_char();
             }
             mmer.take_chars(m_m);
-            uint64_t hash = Hasher::hash(uint64_t(mmer), m_seed);
+            uint64_t hash = m_hasher.hash(uint64_t(mmer));
             if (hash < m_min_hash) {
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);

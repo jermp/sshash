@@ -1,0 +1,18 @@
+avg_nanosec_per_positive_lookup 1311.26
+avg_nanosec_per_negative_lookup 1058.74
+avg_nanosec_per_positive_lookup_advanced 1303.31
+avg_nanosec_per_negative_lookup_advanced 1023.85
+avg_nanosec_per_access 375.828
+iterator: avg_nanosec_per_kmer 19.5026
+avg_nanosec_per_positive_lookup 1135.94
+avg_nanosec_per_negative_lookup 1233.4
+avg_nanosec_per_positive_lookup_advanced 1120.07
+avg_nanosec_per_negative_lookup_advanced 1198.42
+avg_nanosec_per_access 322.338
+iterator: avg_nanosec_per_kmer 19.437
+avg_nanosec_per_positive_lookup 1658.81
+avg_nanosec_per_negative_lookup 1372.11
+avg_nanosec_per_positive_lookup_advanced 1645.61
+avg_nanosec_per_negative_lookup_advanced 1335.04
+avg_nanosec_per_access 462.532
+iterator: avg_nanosec_per_kmer 19.4629
