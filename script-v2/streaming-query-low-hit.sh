@@ -4,8 +4,8 @@ echo "output log file =" $1
 
 ### regular indexes
 
-./sshash query -i cod.k31.sshash -q ~/sshash_queries/SRR11449743.fastq.gz >> $1.regular.low-hit.streaming_query_log
-# ./sshash query -i cod.k63.sshash -q ~/sshash_queries/SRR11449743.fastq.gz >> $1.regular.low-hit.streaming_query_log
+./sshash query -i cod.k31.sshash -q ~/sshash_queries/SRR11449743_1.fastq.gz >> $1.regular.low-hit.streaming_query_log
+# ./sshash query -i cod.k63.sshash -q ~/sshash_queries/SRR11449743_1.fastq.gz >> $1.regular.low-hit.streaming_query_log
 
 ./sshash query -i kestrel.k31.sshash -q ~/sshash_queries/SRR12858649.fastq.gz >> $1.regular.low-hit.streaming_query_log
 # ./sshash query -i kestrel.k63.sshash -q ~/sshash_queries/SRR12858649.fastq.gz >> $1.regular.low-hit.streaming_query_log
@@ -15,8 +15,8 @@ echo "output log file =" $1
 
 ### canonical indexes
 
-./sshash query -i cod.k31.canon.sshash -q ~/sshash_queries/SRR11449743.fastq.gz >> $1.canon.low-hit.streaming_query_log
-# ./sshash query -i cod.k63.canon.sshash -q ~/sshash_queries/SRR11449743.fastq.gz >> $1.canon.low-hit.streaming_query_log
+./sshash query -i cod.k31.canon.sshash -q ~/sshash_queries/SRR11449743_1.fastq.gz >> $1.canon.low-hit.streaming_query_log
+# ./sshash query -i cod.k63.canon.sshash -q ~/sshash_queries/SRR11449743_1.fastq.gz >> $1.canon.low-hit.streaming_query_log
 
 ./sshash query -i kestrel.k31.canon.sshash -q ~/sshash_queries/SRR12858649.fastq.gz >> $1.canon.low-hit.streaming_query_log
 # ./sshash query -i kestrel.k63.canon.sshash -q ~/sshash_queries/SRR12858649.fastq.gz >> $1.canon.low-hit.streaming_query_log
