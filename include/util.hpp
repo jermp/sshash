@@ -54,7 +54,7 @@ struct lookup_result {
     }
 };
 
-std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
+inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
     os << "  == kmer_id = " << res.kmer_id << '\n';
     os << "  == kmer_id_in_contig = " << res.kmer_id_in_contig << '\n';
     os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
