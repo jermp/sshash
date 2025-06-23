@@ -79,12 +79,7 @@ int build(int argc, char** argv) {
     if (parser.get<uint64_t>("RAM")) {
         build_config.ram_limit_in_GiB = parser.get<uint64_t>("RAM");
     }
-
     if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
-    if ((build_config.num_threads & (build_config.num_threads - 1)) != 0) {
-        std::cerr << "number of threads must be a power of 2" << std::endl;
-        return 1;
-    }
 
     build_config.print();
 
