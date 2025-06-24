@@ -89,9 +89,7 @@ struct streaming_query {
             auto expected_kmer = (m_res.kmer_orientation == constants::forward_orientation)
                                      ? (m_it.next(), m_it.get())
                                      : (m_it.next_reverse(), m_it.get_reverse());
-            auto expected_kmer_rc = expected_kmer;
-            expected_kmer_rc.reverse_complement_inplace(m_k);
-            if ((m_kmer == expected_kmer) or (m_kmer == expected_kmer_rc)) {
+            if ((expected_kmer == m_kmer) or (expected_kmer == m_kmer_rc)) {
                 ++m_num_extensions;
                 m_res.kmer_id += m_res.kmer_orientation;
                 m_res.kmer_id_in_contig += m_res.kmer_orientation;
