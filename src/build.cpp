@@ -74,7 +74,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.start();
     data.minimizers.merge();
     const uint64_t num_minimizers = data.minimizers.num_minimizers();
-    const uint64_t num_super_kmers = data.strings.num_super_kmers();
+    const uint64_t num_super_kmers = data.num_super_kmers;
     {
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);

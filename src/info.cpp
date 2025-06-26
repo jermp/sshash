@@ -50,9 +50,8 @@ void dictionary<kmer_t>::print_space_breakdown() const {
     std::cout << "  pieces: " << (8.0 * m_buckets.pieces.num_bytes()) / size() << " [bits/kmer] -- "
               << perc(m_buckets.pieces.num_bytes() * 8, num_bits()) << "%\n";
     std::cout << "  num_super_kmers_before_bucket: "
-              << (m_buckets.num_super_kmers_before_bucket.num_bytes() * 8.0) / size()
-              << " [bits/kmer] -- "
-              << perc(m_buckets.num_super_kmers_before_bucket.num_bytes() * 8, num_bits()) << "%\n";
+              << (m_buckets.bucket_sizes.num_bytes() * 8.0) / size() << " [bits/kmer] -- "
+              << perc(m_buckets.bucket_sizes.num_bytes() * 8, num_bits()) << "%\n";
     std::cout << "  offsets: " << (8.0 * m_buckets.offsets.num_bytes()) / size()
               << " [bits/kmer] -- " << perc(8 * m_buckets.offsets.num_bytes(), num_bits()) << "%\n";
     std::cout << "  strings: " << (8.0 * m_buckets.strings.num_bytes()) / size()

@@ -160,7 +160,7 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
                                       build_configuration const& build_config)  //
 {
     const uint64_t num_kmers = data.num_kmers;
-    const uint64_t num_super_kmers = data.strings.num_super_kmers();
+    const uint64_t num_super_kmers = data.num_super_kmers;
     const uint64_t num_threads = build_config.num_threads;
 
     bits::compact_vector::builder offsets_builder;
@@ -204,15 +204,13 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
             bucket_pairs_manager.get_bucket_pairs_filename(), mm::advice::sequential);
         bucket_pairs_iterator iterator(bucket_pairs_file.data(),
                                        bucket_pairs_file.data() + bucket_pairs_file.size());
-        m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
-                                                       num_super_kmers - num_buckets);
+        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1, num_super_kmers - num_buckets);
         bucket_pairs_file.close();
         bucket_pairs_manager.remove_tmp_file();
     } else {
         /* all buckets are singletons, thus pass an empty iterator that always returns 0 */
         bucket_pairs_iterator iterator(nullptr, nullptr);
-        m_buckets.num_super_kmers_before_bucket.encode(iterator, num_buckets + 1,
-                                                       num_super_kmers - num_buckets);
+        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1, num_super_kmers - num_buckets);
     }
     timer.stop();
     std::cout << "building: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
@@ -252,10 +250,9 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
              it.next())                                                                //
         {
             uint64_t bucket_id = it.minimizer();
-            uint64_t base = m_buckets.num_super_kmers_before_bucket.access(bucket_id) + bucket_id;
+            uint64_t base = m_buckets.bucket_sizes.access(bucket_id) + bucket_id;
             uint64_t num_super_kmers_in_bucket =
-                (m_buckets.num_super_kmers_before_bucket.access(bucket_id + 1) + bucket_id + 1) -
-                base;
+                (m_buckets.bucket_sizes.access(bucket_id + 1) + bucket_id + 1) - base;
             assert(num_super_kmers_in_bucket > 0);
             tbs.add_num_super_kmers_in_bucket(num_super_kmers_in_bucket);
             uint64_t pos = 0;

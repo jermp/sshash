@@ -60,37 +60,41 @@ struct buckets  //
     }
 
     std::pair<uint64_t, uint64_t> locate_bucket(const uint64_t bucket_id) const {
-        uint64_t begin = num_super_kmers_before_bucket.access(bucket_id) + bucket_id;
-        uint64_t end = num_super_kmers_before_bucket.access(bucket_id + 1) + bucket_id + 1;
+        uint64_t begin = bucket_sizes.access(bucket_id) + bucket_id;
+        uint64_t end = bucket_sizes.access(bucket_id + 1) + bucket_id + 1;
         assert(begin < end);
         return {begin, end};
     }
 
-    lookup_result lookup(uint64_t bucket_id, kmer_t target_kmer,                               //
-                         uint64_t target_minimizer,                                            //
-                         const uint64_t k, const uint64_t m, hasher_type const& hasher) const  //
+    lookup_result lookup(uint64_t bucket_id,                                               //
+                         kmer_t kmer, uint64_t minimizer, uint64_t pos_minimizer_in_kmer,  //
+                         const uint64_t k, const uint64_t m) const                         //
     {
         auto [begin, end] = locate_bucket(bucket_id);
-        return lookup(begin, end, target_kmer, k, m, target_minimizer, hasher);
+        return lookup(begin, end, kmer, minimizer, pos_minimizer_in_kmer, k, m);
     }
 
-    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t target_kmer,                     //
-                         uint64_t target_minimizer,                                            //
-                         const uint64_t k, const uint64_t m, hasher_type const& hasher) const  //
+    lookup_result lookup(uint64_t begin, uint64_t end,                                     //
+                         kmer_t kmer, uint64_t minimizer, uint64_t pos_minimizer_in_kmer,  //
+                         const uint64_t k, const uint64_t m) const                         //
     {
         { /* check minimizer first */
-            uint64_t offset = offsets.access(begin);
-            auto read_kmer = util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
-            uint64_t minimizer = util::compute_minimizer(read_kmer, k, m, hasher);
-            if (minimizer != target_minimizer) {
+            uint64_t pos_minimizer_in_string = offsets.access(begin);
+            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
+                strings, m, kmer_t::bits_per_char * pos_minimizer_in_string));
+            // std::cout << "  minimizer = " << util::uint_minimizer_to_string<kmer_t>(minimizer, m)
+            //           << std::endl;
+            // std::cout << "  read_mmer = " << util::uint_minimizer_to_string<kmer_t>(read_mmer, m)
+            //           << std::endl;
+            if (read_mmer != minimizer) {
                 auto res = lookup_result();
                 res.minimizer_found = false;
                 return res;
             }
         }
 
-        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
+        for (uint64_t i = begin; i != end; ++i) {
+            auto res = lookup(i, kmer, pos_minimizer_in_kmer, k);
             if (res.kmer_id != constants::invalid_uint64) {
                 assert(is_valid(res));
                 return res;
@@ -100,22 +104,30 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, kmer_t target_kmer,  //
-                                       const uint64_t k, const uint64_t m) const    //
+    lookup_result lookup(const uint64_t i, const kmer_t kmer,   //
+                         const uint64_t pos_minimizer_in_kmer,  //
+                         const uint64_t k) const                //
     {
-        uint64_t offset = offsets.access(super_kmer_id);
-        auto res = offset_to_id(offset, k);
-        kmer_iterator<kmer_t> it(strings, k, kmer_t::bits_per_char * offset);
-        uint64_t window_size = std::min<uint64_t>(k - m + 1, res.contig_end(k) - offset - k + 1);
-        for (uint64_t w = 0; w != window_size; ++w) {
-            auto read_kmer = it.get();
-            if (read_kmer == target_kmer) {
-                res.kmer_id += w;
-                res.kmer_id_in_contig += w;
-                assert(is_valid(res));
-                return res;
+        uint64_t pos_minimizer_in_string = offsets.access(i);
+
+        // std::cout << "  pos_minimizer_in_string = " << pos_minimizer_in_string << std::endl;
+        // std::cout << "  pos_minimizer_in_kmer = " << pos_minimizer_in_kmer << std::endl;
+
+        if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
+            uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;
+            auto res = offset_to_id(offset, k);
+            if (offset + k - 1 < res.contig_end(k)) {
+                auto read_kmer =
+                    util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
+                // std::cout << "  kmer '" << util::uint_kmer_to_string(kmer, k) << "'" <<
+                // std::endl; std::cout << "  read_kmer '" << util::uint_kmer_to_string(read_kmer,
+                // k) << "'"
+                //           << std::endl;
+                if (read_kmer == kmer) {
+                    assert(is_valid(res));
+                    return res;
+                }
             }
-            it.next();
         }
         return lookup_result();
     }
@@ -307,8 +319,8 @@ struct buckets  //
     }
 
     uint64_t num_bits() const {
-        return 8 * (pieces.num_bytes() + num_super_kmers_before_bucket.num_bytes() +
-                    offsets.num_bytes() + strings.num_bytes());
+        return 8 * (pieces.num_bytes() + bucket_sizes.num_bytes() + offsets.num_bytes() +
+                    strings.num_bytes());
     }
 
     template <typename Visitor>
@@ -322,7 +334,7 @@ struct buckets  //
     }
 
     bits::elias_fano<true, false> pieces;
-    bits::elias_fano<false, false> num_super_kmers_before_bucket;
+    bits::elias_fano<false, false> bucket_sizes;
     bits::compact_vector offsets;
     bits::bit_vector strings;
 
@@ -330,7 +342,7 @@ private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.pieces);
-        visitor.visit(t.num_super_kmers_before_bucket);
+        visitor.visit(t.bucket_sizes);
         visitor.visit(t.offsets);
         visitor.visit(t.strings);
     }

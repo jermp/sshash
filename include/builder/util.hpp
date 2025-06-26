@@ -27,31 +27,23 @@ struct compact_string_pool {
     compact_string_pool() {}
 
     struct builder {
-        builder(uint64_t k) : k(k), offset(0), num_super_kmers(0) {
+        builder() : num_super_kmers(0) {
             const uint64_t num_bits = 8 * 8 * essentials::GB;  // 8 GB of memory
             bvb_strings.reserve(num_bits);
         }
 
         void build(compact_string_pool& pool) {
-            pool.m_num_super_kmers = num_super_kmers;
             pool.pieces.swap(pieces);
             bvb_strings.build(pool.strings);
         }
 
-        void append(char const* string, uint64_t size, bool glue) {
-            assert(size >= k);
-            uint64_t prefix = 0;
-            if (glue) {
-                prefix = k - 1;
-            } else { /* otherwise, start a new piece */
-                assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
-                pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
-            }
-            for (uint64_t i = prefix; i != size; ++i) {
-                bvb_strings.append_bits(kmer_t::char_to_uint(string[i]), kmer_t::bits_per_char);
-            }
-            num_super_kmers += 1;
-            offset = bvb_strings.num_bits() / kmer_t::bits_per_char;
+        void append(const char c) {
+            bvb_strings.append_bits(kmer_t::char_to_uint(c), kmer_t::bits_per_char);
+        }
+
+        void new_piece() {
+            assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
+            pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
         }
 
         void finalize() {
@@ -65,21 +57,15 @@ struct compact_string_pool {
             bvb_strings.append_bits(0, kmer_t::uint_kmer_bits);
         }
 
-        uint64_t k;
-        uint64_t offset;
         uint64_t num_super_kmers;
         std::vector<uint64_t> pieces;
         bits::bit_vector::builder bvb_strings;
     };
 
     uint64_t num_bits() const { return strings.num_bits(); }
-    uint64_t num_super_kmers() const { return m_num_super_kmers; }
 
     std::vector<uint64_t> pieces;
     bits::bit_vector strings;
-
-private:
-    uint64_t m_num_super_kmers;
 };
 
 typedef uint8_t num_kmers_in_super_kmer_uint_type;

@@ -7,8 +7,10 @@ namespace sshash {
 
 template <class kmer_t>
 struct parse_data {
-    parse_data(build_configuration const& build_config) : num_kmers(0), minimizers(build_config) {}
+    parse_data(build_configuration const& build_config)
+        : num_kmers(0), num_super_kmers(0), minimizers(build_config) {}
     uint64_t num_kmers;
+    uint64_t num_super_kmers;
     minimizers_tuples minimizers;
     compact_string_pool<kmer_t> strings;
     weights::builder weights_builder;
@@ -21,7 +23,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     const uint64_t k = build_config.k;
     const uint64_t m = build_config.m;
     const uint64_t max_num_kmers_in_super_kmer = k - m + 1;
-    const uint64_t block_size = 2 * k - m;  // max_num_kmers_in_super_kmer + k - 1
+    assert(k > 0 and m <= k);
+
     hasher_type hasher(build_config.seed);
 
     if (max_num_kmers_in_super_kmer >= (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8))) {
@@ -34,47 +37,11 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     /* fit into the wanted number of bits */
     assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
-    typename compact_string_pool<kmer_t>::builder builder(k);
+    typename compact_string_pool<kmer_t>::builder builder;
 
     std::string sequence;
-    uint64_t prev_minimizer = constants::invalid_uint64;
-
-    uint64_t begin = 0;  // begin of parsed super_kmer in sequence
-    uint64_t end = 0;    // end of parsed super_kmer in sequence
     uint64_t num_sequences = 0;
     uint64_t num_bases = 0;
-    bool glue = false;
-
-    auto append_super_kmer = [&]() {
-        if (sequence.empty() or prev_minimizer == constants::invalid_uint64 or begin == end) {
-            return;
-        }
-
-        assert(end > begin);
-        char const* super_kmer = sequence.data() + begin;
-        uint64_t size = (end - begin) + k - 1;
-        assert(util::is_valid<kmer_t>(super_kmer, size));
-
-        /* if num_kmers_in_super_kmer > k - m + 1, then split the super_kmer into blocks */
-        uint64_t num_kmers_in_super_kmer = end - begin;
-        uint64_t num_blocks = num_kmers_in_super_kmer / max_num_kmers_in_super_kmer +
-                              (num_kmers_in_super_kmer % max_num_kmers_in_super_kmer != 0);
-        assert(num_blocks > 0);
-        for (uint64_t i = 0; i != num_blocks; ++i) {
-            uint64_t n = block_size;
-            if (i == num_blocks - 1) n = size;
-            uint64_t num_kmers_in_block = n - k + 1;
-            assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-            data.minimizers.emplace_back(prev_minimizer, builder.offset, num_kmers_in_block);
-            builder.append(super_kmer + i * max_num_kmers_in_super_kmer, n, glue);
-            if (glue) {
-                assert(data.minimizers.back().offset > k - 1);
-                data.minimizers.back().offset -= k - 1;
-            }
-            size -= max_num_kmers_in_super_kmer;
-            glue = true;
-        }
-    };
 
     minimizer_enumerator<kmer_t> minimizer_enum(k, m, hasher);
     minimizer_enumerator<kmer_t> minimizer_enum_rc(k, m, hasher);
@@ -86,7 +53,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     uint64_t weight_value = constants::invalid_uint64;
     uint64_t weight_length = 0;
 
-    while (!is.eof())  //
+    while (true)  //
     {
         if constexpr (fmt == input_file_type::cf_seg) {
             std::getline(is, sequence, '\t');  // skip '\t'
@@ -151,17 +118,19 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             std::getline(is, sequence);  // DNA sequence
         }
 
-        if (sequence.length() < k) continue;
+        if (is.eof()) {
+            assert(sequence.empty());
+            break;
+        }
+
+        assert(sequence.length() >= k);
 
         if (++num_sequences % 100000 == 0) {
             std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
                       << data.num_kmers << " kmers" << std::endl;
         }
 
-        begin = 0;
-        end = 0;
-        glue = false;  // start a new piece
-        prev_minimizer = constants::invalid_uint64;
+        builder.new_piece();
         num_bases += sequence.length();
 
         if (build_config.weighted and seq_len != sequence.length()) {
@@ -170,55 +139,89 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             throw std::runtime_error("file is malformed");
         }
 
-        bool start = true;
-        kmer_t uint_kmer = 0;
-        while (end != sequence.length() - k + 1) {
-            char const* kmer = sequence.data() + end;
-            assert(util::is_valid<kmer_t>(kmer, k));
-
-            if (!start) {
-                uint_kmer.drop_char();
-                uint_kmer.set(k - 1, kmer_t::char_to_uint(kmer[k - 1]));
-                assert(uint_kmer == util::string_to_uint_kmer<kmer_t>(kmer, k));
-            } else {
-                uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer, k);
-            }
-
-            uint64_t minimizer = minimizer_enum.template next<false>(uint_kmer, start);
-            if (build_config.canonical) {
-                kmer_t uint_kmer_rc = uint_kmer;
-                uint_kmer_rc.reverse_complement_inplace(k);
-                uint64_t minimizer_rc = minimizer_enum_rc.template next<true>(uint_kmer_rc, start);
-                minimizer = std::min(minimizer, minimizer_rc);
-            }
-
-            if (prev_minimizer == constants::invalid_uint64) prev_minimizer = minimizer;
-            if (minimizer != prev_minimizer) {
-                append_super_kmer();
-                begin = end;
-                prev_minimizer = minimizer;
-                glue = true;
-            }
-
-            ++data.num_kmers;
-            ++end;
-            start = false;
+        data.num_kmers += sequence.length() - k + 1;
+        for (uint64_t i = 0; i != sequence.length(); ++i) {
+            assert(kmer_t::is_valid(sequence[i]));
+            builder.append(sequence[i]);
         }
-
-        append_super_kmer();
     }
 
-    data.minimizers.finalize();
     builder.finalize();
     builder.build(data.strings);
+
+    assert(data.strings.pieces.front() == 0);
+    assert(data.strings.pieces.size() == num_sequences + 1);
 
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
     std::cout << "num_kmers " << data.num_kmers << std::endl;
-    std::cout << "num_super_kmers " << data.strings.num_super_kmers() << std::endl;
-    std::cout << "num_pieces " << data.strings.pieces.size() << " (+"
-              << (2.0 * data.strings.pieces.size() * (k - 1)) / data.num_kmers << " [bits/kmer])"
-              << std::endl;
+    std::cout << "cost: 2.0 + "
+              << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) /
+                     data.num_kmers
+              << " [bits/kmer]" << std::endl;
+
+    for (uint64_t i = 0; i != num_sequences; ++i) {
+        const uint64_t begin = data.strings.pieces[i];
+        const uint64_t end = data.strings.pieces[i + 1];
+        const uint64_t sequence_len = end - begin;
+        assert(end > begin);
+        kmer_iterator<kmer_t> it(data.strings.strings, k, kmer_t::bits_per_char * begin);
+        uint64_t prev_minimizer = constants::invalid_uint64;
+        uint64_t prev_position = constants::invalid_uint64;
+        uint64_t num_kmers_in_block = 0;
+        minimizer_enum.set_position(begin);
+        // std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " <<
+        // begin
+        //           << ", end = " << end << std::endl;
+        for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
+            auto uint_kmer = it.get();
+
+            // std::cout << "kmer = '" << util::uint_kmer_to_string<kmer_t>(uint_kmer, k) <<
+            // "'\n";
+
+            auto [minimizer, position] =
+                minimizer_enum.template next_with_pos<false>(uint_kmer, j == 0);
+            assert(position < end - m + 1);
+
+            // std::cout << "minimizer = '" << util::uint_kmer_to_string<kmer_t>(minimizer, m)
+            //           << "'\n";
+            // std::cout << "pos of minimizer = " << position << '\n';
+
+            if (prev_minimizer == constants::invalid_uint64) {
+                prev_minimizer = minimizer;
+                prev_position = position;
+            }
+
+            if (position != prev_position) {
+                // std::cout << "saving minimzer = '"
+                //           << util::uint_kmer_to_string<kmer_t>(prev_minimizer, m)
+                //           << "' with position = " << prev_position
+                //           << " and num_kmers_in_block = " << num_kmers_in_block << "\n";
+                assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
+                data.minimizers.emplace_back(prev_minimizer, prev_position, num_kmers_in_block);
+                data.num_super_kmers += 1;
+                prev_minimizer = minimizer;
+                prev_position = position;
+                num_kmers_in_block = 0;
+            }
+
+            num_kmers_in_block += 1;
+            it.next();
+        }
+
+        // std::cout << "saving minimzer = '" << util::uint_kmer_to_string<kmer_t>(prev_minimizer,
+        // m)
+        //           << "' with position = " << prev_position
+        //           << " and num_kmers_in_block = " << num_kmers_in_block << "\n";
+        assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
+        data.minimizers.emplace_back(prev_minimizer, prev_position, num_kmers_in_block);
+        data.num_super_kmers += 1;
+    }
+
+    data.minimizers.finalize();
+
+    std::cout << "num_super_kmers " << data.num_super_kmers << std::endl;
+
     assert(data.strings.pieces.size() == num_sequences + 1);
 
     if (build_config.weighted) {

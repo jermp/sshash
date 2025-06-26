@@ -4,19 +4,22 @@ namespace sshash {
 
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
-    uint64_t minimizer = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
-    return lookup_uint_regular(uint_kmer, minimizer);
+    auto [minimizer, pos_minimizer_in_kmer] =
+        util::compute_minimizer_with_pos(uint_kmer, m_k, m_m, m_hasher);
+    return lookup_uint_regular(uint_kmer, minimizer, pos_minimizer_in_kmer);
 }
 
 template <class kmer_t>
-lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer, uint64_t minimizer) const {
+lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,  //
+                                                      uint64_t minimizer,
+                                                      uint64_t pos_minimizer_in_kmer) const  //
+{
     assert(minimizer == util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
 
     const uint64_t bucket_id = m_minimizers.lookup(minimizer);
 
     if (m_skew_index.empty()) {
-        return m_buckets.lookup(bucket_id, uint_kmer, minimizer,  //
-                                m_k, m_m, m_hasher);
+        return m_buckets.lookup(bucket_id, uint_kmer, minimizer, pos_minimizer_in_kmer, m_k, m_m);
     }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
@@ -26,12 +29,12 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer, uint64_t
         uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
         /* It must hold pos < num_super_kmers_in_bucket for the kmer to exist. */
         if (pos < num_super_kmers_in_bucket) {
-            return m_buckets.lookup_in_super_kmer(begin + pos, uint_kmer, m_k, m_m);
+            return m_buckets.lookup(begin + pos, uint_kmer, pos_minimizer_in_kmer, m_k);
         }
         return lookup_result();
     }
 
-    return m_buckets.lookup(begin, end, uint_kmer, minimizer, m_k, m_m, m_hasher);
+    return m_buckets.lookup(begin, end, uint_kmer, minimizer, pos_minimizer_in_kmer, m_k, m_m);
 }
 
 template <class kmer_t>

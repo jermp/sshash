@@ -238,6 +238,30 @@ uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
     return uint64_t(minimizer);
 }
 
+template <class kmer_t>
+std::pair<uint64_t, uint64_t>  //
+compute_minimizer_with_pos(kmer_t kmer, const uint64_t k, const uint64_t m,
+                           hasher_type const& hasher)  //
+{
+    assert(m <= kmer_t::max_m);
+    assert(m <= k);
+    uint64_t min_hash = constants::invalid_uint64;
+    kmer_t minimizer = kmer_t(-1);
+    uint64_t pos = 0;
+    for (uint64_t i = 0; i != k - m + 1; ++i) {
+        kmer_t mmer = kmer;
+        mmer.take_chars(m);
+        uint64_t hash = hasher.hash(uint64_t(mmer));
+        if (hash < min_hash) {
+            min_hash = hash;
+            minimizer = mmer;
+            pos = i;
+        }
+        kmer.drop_char();
+    }
+    return {uint64_t(minimizer), pos};
+}
+
 }  // namespace util
 
 // taken from tlx
