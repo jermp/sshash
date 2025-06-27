@@ -62,7 +62,6 @@ set(SSHASH_SOURCES
   src/build.cpp
   src/dictionary.cpp
   src/query.cpp
-  src/dump.cpp
   src/info.cpp
   src/statistics.cpp
 )

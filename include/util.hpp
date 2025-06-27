@@ -69,6 +69,19 @@ struct neighbourhood {
     std::array<lookup_result, kmer_t::alphabet_size> backward;
 };
 
+struct minimizer_info {
+    uint64_t minimizer;
+    uint64_t position_in_sequence;
+    uint64_t position_in_kmer;
+
+    bool operator==(minimizer_info rhs) const {
+        return minimizer == rhs.minimizer and                        //
+               position_in_sequence == rhs.position_in_sequence and  //
+               position_in_kmer == rhs.position_in_kmer;             //
+    }
+    bool operator!=(minimizer_info rhs) const { return !(*this == rhs); }
+};
+
 [[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
     bool good = true;
     if (expected.kmer_id != got.kmer_id) {
@@ -218,30 +231,8 @@ static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const u
     This implements the random minimizer.
 */
 template <class kmer_t>
-uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
-                           hasher_type const& hasher)  //
-{
-    assert(m <= kmer_t::max_m);
-    assert(m <= k);
-    uint64_t min_hash = constants::invalid_uint64;
-    kmer_t minimizer = kmer_t(-1);
-    for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t mmer = kmer;
-        mmer.take_chars(m);
-        uint64_t hash = hasher.hash(uint64_t(mmer));
-        if (hash < min_hash) {
-            min_hash = hash;
-            minimizer = mmer;
-        }
-        kmer.drop_char();
-    }
-    return uint64_t(minimizer);
-}
-
-template <class kmer_t>
-std::pair<uint64_t, uint64_t>  //
-compute_minimizer_with_pos(kmer_t kmer, const uint64_t k, const uint64_t m,
-                           hasher_type const& hasher)  //
+minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
+                                 hasher_type const& hasher)  //
 {
     assert(m <= kmer_t::max_m);
     assert(m <= k);
@@ -259,7 +250,7 @@ compute_minimizer_with_pos(kmer_t kmer, const uint64_t k, const uint64_t m,
         }
         kmer.drop_char();
     }
-    return {uint64_t(minimizer), pos};
+    return {uint64_t(minimizer), constants::invalid_uint64, pos};
 }
 
 }  // namespace util

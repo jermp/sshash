@@ -7,10 +7,14 @@ namespace sshash {
 template <class kmer_t>
 void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data,
                       buckets<kmer_t> const& m_buckets, build_configuration const& build_config,
-                      buckets_statistics const& buckets_stats) {
+                      buckets_statistics const& buckets_stats)  //
+{
     const uint64_t min_log2_size = m_skew_index.min_log2;
     const uint64_t max_log2_size = m_skew_index.max_log2;
     const uint64_t min_size = 1ULL << min_log2_size;
+    const uint64_t k = build_config.k;
+    const uint64_t m = build_config.m;
+    assert(k > 0 and m <= k);
 
     m_skew_index.log2_max_num_super_kmers_in_bucket =
         std::ceil(std::log2(buckets_stats.max_num_super_kmers_in_bucket()));
@@ -101,9 +105,8 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
             if (i == lists.size()) break;
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
-            for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
-                (void)offset;  // unused
-                num_kmers_in_partition[partition_id] += num_kmers_in_super_kmer;
+            for (auto mini_tuple : lists[i]) {
+                num_kmers_in_partition[partition_id] += mini_tuple.num_kmers_in_super_kmer;
             }
         }
         assert(partition_id == num_partitions - 1);
@@ -207,14 +210,16 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
 
             assert(lists[i].size() > lower and lists[i].size() <= upper);
             uint64_t super_kmer_id = 0;
-            for (auto [offset, num_kmers_in_super_kmer] : lists[i]) {
-                kmer_iterator<kmer_t> it(m_buckets.strings, build_config.k,
-                                         kmer_t::bits_per_char * offset);
-                for (uint64_t i = 0; i != num_kmers_in_super_kmer; ++i) {
+            for (auto mini_tuple : lists[i])  //
+            {
+                assert(mini_tuple.offset >= mini_tuple.jump_back);
+                uint64_t offset = mini_tuple.offset - mini_tuple.jump_back;
+                kmer_iterator<kmer_t> it(m_buckets.strings, k, kmer_t::bits_per_char * offset);
+                for (uint64_t i = 0; i != mini_tuple.num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
                     if (build_config.canonical) { /* take the canonical kmer */
                         auto kmer_rc = kmer;
-                        kmer_rc.reverse_complement_inplace(build_config.k);
+                        kmer_rc.reverse_complement_inplace(k);
                         kmer = std::min(kmer, kmer_rc);
                     }
                     keys_in_partition.push_back(kmer);

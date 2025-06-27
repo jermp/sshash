@@ -1,7 +1,7 @@
 #pragma once
 
 #include "external/gz/zip_stream.hpp"
-#include "include/minimizer_enumerator.hpp"
+#include "include/minimizer_iterator.hpp"
 
 namespace sshash {
 
@@ -25,8 +25,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     const uint64_t max_num_kmers_in_super_kmer = k - m + 1;
     assert(k > 0 and m <= k);
 
-    hasher_type hasher(build_config.seed);
-
     if (max_num_kmers_in_super_kmer >= (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8))) {
         throw std::runtime_error(
             "max_num_kmers_in_super_kmer " + std::to_string(max_num_kmers_in_super_kmer) +
@@ -43,8 +41,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     uint64_t num_sequences = 0;
     uint64_t num_bases = 0;
 
-    minimizer_enumerator<kmer_t> minimizer_enum(k, m, hasher);
-    minimizer_enumerator<kmer_t> minimizer_enum_rc(k, m, hasher);
+    hasher_type hasher(build_config.seed);
+    minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
+    minimizer_iterator<kmer_t> minimizer_it_rc(k, m, hasher);
     uint64_t seq_len = 0;
     uint64_t sum_of_weights = 0;
     data.weights_builder.init();
@@ -165,56 +164,48 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         const uint64_t end = data.strings.pieces[i + 1];
         const uint64_t sequence_len = end - begin;
         assert(end > begin);
+
         kmer_iterator<kmer_t> it(data.strings.strings, k, kmer_t::bits_per_char * begin);
-        uint64_t prev_minimizer = constants::invalid_uint64;
-        uint64_t prev_position = constants::invalid_uint64;
-        uint64_t num_kmers_in_block = 0;
-        minimizer_enum.set_position(begin);
+        minimizer_info prev_mini_info{constants::invalid_uint64,   //
+                                      constants::invalid_uint64,   //
+                                      constants::invalid_uint64};  //
+        uint64_t num_kmers_in_super_kmer = 0;
+        minimizer_it.set_position(begin);
         // std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " <<
         // begin
         //           << ", end = " << end << std::endl;
         for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
             auto uint_kmer = it.get();
+            auto mini_info = minimizer_it.template next_advanced<false>(uint_kmer, j == 0);
+            assert(mini_info.position_in_sequence < end - m + 1);
+            assert(mini_info.position_in_kmer < k - m + 1);
 
-            // std::cout << "kmer = '" << util::uint_kmer_to_string<kmer_t>(uint_kmer, k) <<
-            // "'\n";
+            if (prev_mini_info.minimizer == constants::invalid_uint64) prev_mini_info = mini_info;
 
-            auto [minimizer, position] =
-                minimizer_enum.template next_with_pos<false>(uint_kmer, j == 0);
-            assert(position < end - m + 1);
-
-            // std::cout << "minimizer = '" << util::uint_kmer_to_string<kmer_t>(minimizer, m)
-            //           << "'\n";
-            // std::cout << "pos of minimizer = " << position << '\n';
-
-            if (prev_minimizer == constants::invalid_uint64) {
-                prev_minimizer = minimizer;
-                prev_position = position;
-            }
-
-            if (position != prev_position) {
+            if (mini_info.position_in_sequence != prev_mini_info.position_in_sequence) {
                 // std::cout << "saving minimzer = '"
                 //           << util::uint_kmer_to_string<kmer_t>(prev_minimizer, m)
-                //           << "' with position = " << prev_position
-                //           << " and num_kmers_in_block = " << num_kmers_in_block << "\n";
-                assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-                data.minimizers.emplace_back(prev_minimizer, prev_position, num_kmers_in_block);
+                //           << "' with position = " << prev_position_in_sequence
+                //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
+                //           << " and prev_position_in_kmer = " << prev_position_in_kmer << "\n";
+                assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
+                data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer);
                 data.num_super_kmers += 1;
-                prev_minimizer = minimizer;
-                prev_position = position;
-                num_kmers_in_block = 0;
+                prev_mini_info = mini_info;
+                num_kmers_in_super_kmer = 0;
             }
 
-            num_kmers_in_block += 1;
+            num_kmers_in_super_kmer += 1;
             it.next();
         }
 
         // std::cout << "saving minimzer = '" << util::uint_kmer_to_string<kmer_t>(prev_minimizer,
         // m)
-        //           << "' with position = " << prev_position
-        //           << " and num_kmers_in_block = " << num_kmers_in_block << "\n";
-        assert(num_kmers_in_block <= max_num_kmers_in_super_kmer);
-        data.minimizers.emplace_back(prev_minimizer, prev_position, num_kmers_in_block);
+        //           << "' with position = " << prev_position_in_sequence
+        //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
+        //           << " and prev_position_in_kmer = " << prev_position_in_kmer << "\n";
+        assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
+        data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer);
         data.num_super_kmers += 1;
     }
 

@@ -146,7 +146,6 @@ Run `./sshash` as follows to see a list of available tools.
       query                  query a dictionary
       check                  check correctness of a dictionary
       bench                  run performance tests for a dictionary
-      dump                   write super-k-mers of a dictionary to a fasta file
       permute                permute a weighted input file
       compute-statistics     compute index statistics
 

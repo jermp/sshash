@@ -250,16 +250,16 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
              it.next())                                                                //
         {
             uint64_t bucket_id = it.minimizer();
-            uint64_t base = m_buckets.bucket_sizes.access(bucket_id) + bucket_id;
-            uint64_t num_super_kmers_in_bucket =
-                (m_buckets.bucket_sizes.access(bucket_id + 1) + bucket_id + 1) - base;
+            auto [begin, end] = m_buckets.locate_bucket(bucket_id);
+            uint64_t num_super_kmers_in_bucket = end - begin;
             assert(num_super_kmers_in_bucket > 0);
             tbs.add_num_super_kmers_in_bucket(num_super_kmers_in_bucket);
             uint64_t pos = 0;
             auto list = it.list();
-            for (auto [offset, num_kmers_in_super_kmer] : list) {
-                offsets_builder.set(base + pos++, offset);
-                tbs.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket, num_kmers_in_super_kmer);
+            for (auto mini_tuple : list) {
+                offsets_builder.set(begin + pos++, mini_tuple.offset);
+                tbs.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket,
+                                                mini_tuple.num_kmers_in_super_kmer);
             }
             assert(pos == num_super_kmers_in_bucket);
         }

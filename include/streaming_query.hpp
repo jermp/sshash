@@ -1,7 +1,7 @@
 #pragma once
 
 #include "include/dictionary.hpp"
-#include "include/minimizer_enumerator.hpp"
+#include "include/minimizer_iterator.hpp"
 #include "include/util.hpp"
 
 namespace sshash {
@@ -17,8 +17,8 @@ struct streaming_query {
         , m_kmer_rc(constants::invalid_uint64)
         , m_k(dict->m_k)
 
-        , m_minimizer_enum(dict->m_k, dict->m_m, dict->m_hasher)
-        , m_minimizer_enum_rc(dict->m_k, dict->m_m, dict->m_hasher)
+        , m_minimizer_it(dict->m_k, dict->m_m, dict->m_hasher)
+        , m_minimizer_it_rc(dict->m_k, dict->m_m, dict->m_hasher)
         , m_curr_minimizer(constants::invalid_uint64)
         , m_prev_minimizer(constants::invalid_uint64)
         , m_curr_minimizer_rc(constants::invalid_uint64)
@@ -73,8 +73,8 @@ struct streaming_query {
             m_kmer_rc.reverse_complement_inplace(m_k);
         }
 
-        uint64_t minimizer = m_minimizer_enum.template next<false>(m_kmer, m_start);
-        uint64_t minimizer_rc = m_minimizer_enum_rc.template next<true>(m_kmer_rc, m_start);
+        uint64_t minimizer = m_minimizer_it.template next<false>(m_kmer, m_start);
+        uint64_t minimizer_rc = m_minimizer_it_rc.template next<true>(m_kmer_rc, m_start);
         if constexpr (canonical) {
             m_curr_minimizer = std::min(minimizer, minimizer_rc);
         } else {
@@ -126,8 +126,8 @@ private:
     uint64_t m_k;
 
     /* minimizer state */
-    minimizer_enumerator<kmer_t> m_minimizer_enum;
-    minimizer_enumerator<kmer_t> m_minimizer_enum_rc;
+    minimizer_iterator<kmer_t> m_minimizer_it;
+    minimizer_iterator<kmer_t> m_minimizer_it_rc;
     uint64_t m_curr_minimizer, m_prev_minimizer;
     uint64_t m_curr_minimizer_rc, m_prev_minimizer_rc;
 

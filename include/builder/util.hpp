@@ -70,14 +70,20 @@ struct compact_string_pool {
 
 typedef uint8_t num_kmers_in_super_kmer_uint_type;
 
-#pragma pack(push, 1)
+#pragma pack(push, 2)
 struct minimizer_tuple {
     minimizer_tuple() {}
-    minimizer_tuple(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer)
-        : minimizer(minimizer), offset(offset), num_kmers_in_super_kmer(num_kmers_in_super_kmer) {}
+    minimizer_tuple(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer,
+                    uint64_t jump_back)
+        : minimizer(minimizer)
+        , offset(offset)
+        , num_kmers_in_super_kmer(num_kmers_in_super_kmer)
+        , jump_back(jump_back) {}
+
     uint64_t minimizer;
     uint64_t offset;
     num_kmers_in_super_kmer_uint_type num_kmers_in_super_kmer;
+    num_kmers_in_super_kmer_uint_type jump_back;
 
     bool operator>(minimizer_tuple other) const {
         if (minimizer != other.minimizer) return minimizer > other.minimizer;
@@ -93,9 +99,7 @@ struct list_type {
     struct iterator {
         iterator(minimizer_tuple const* begin) : m_begin(begin) {}
 
-        inline std::pair<uint64_t, uint64_t> operator*() const {
-            return {(*m_begin).offset, (*m_begin).num_kmers_in_super_kmer};
-        }
+        inline minimizer_tuple operator*() const { return *m_begin; }
 
         inline void operator++() { ++m_begin; }
         bool operator==(iterator const& other) const { return m_begin == other.m_begin; }
@@ -169,7 +173,7 @@ private:
 struct minimizers_tuples {
     minimizers_tuples() {}
     minimizers_tuples(build_configuration const& build_config)
-        /* allocate half memory because __gnu::parallel_sort is not in-place */
+        /* allocate half memory because parallel_sort is not in-place */
         : m_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
                         (2 * sizeof(minimizer_tuple)))
         , m_num_minimizers(0)
@@ -183,9 +187,10 @@ struct minimizers_tuples {
 
     void init() { m_num_files_to_merge = 0; }
 
-    void emplace_back(uint64_t minimizer, uint64_t offset, uint64_t num_kmers_in_super_kmer) {
+    void emplace_back(minimizer_info mini_info, uint64_t num_kmers_in_super_kmer) {
         if (m_buffer.size() == m_buffer_size) sort_and_flush();
-        m_buffer.emplace_back(minimizer, offset, num_kmers_in_super_kmer);
+        m_buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
+                              num_kmers_in_super_kmer, mini_info.position_in_kmer);
     }
 
     minimizer_tuple& back() { return m_buffer.back(); }

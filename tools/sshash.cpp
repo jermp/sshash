@@ -9,7 +9,6 @@
 #include "src/build.cpp"
 #include "src/dictionary.cpp"
 #include "src/query.cpp"
-#include "src/dump.cpp"
 #include "src/info.cpp"
 #include "src/statistics.cpp"
 
@@ -53,22 +52,6 @@ int bench(int argc, char** argv) {
 }
 
 template <class kmer_t>
-int dump(int argc, char** argv) {
-    cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
-    parser.add("output_filename", "A FASTA file where the output will be saved.", "-o", true);
-    parser.add("verbose", "Verbose output.", "--verbose", false, true);
-    if (!parser.parse()) return 1;
-    auto index_filename = parser.get<std::string>("index_filename");
-    auto output_filename = parser.get<std::string>("output_filename");
-    bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t> dict;
-    load_dictionary(dict, index_filename, verbose);
-    dict.dump(output_filename);
-    return 0;
-}
-
-template <class kmer_t>
 int compute_statistics(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
@@ -92,7 +75,6 @@ int help(char* arg0) {
               << "  query              \t query a dictionary \n"
               << "  check              \t check correctness of a dictionary \n"
               << "  bench              \t run performance tests for a dictionary \n"
-              << "  dump               \t write super-k-mers of a dictionary to a fasta file \n"
               << "  permute            \t permute a weighted input file \n"
               << "  compute-statistics \t compute index statistics " << std::endl;
     return 1;
@@ -109,8 +91,6 @@ int main(int argc, char** argv) {
         return check<default_kmer_t>(argc - 1, argv + 1);
     } else if (tool == "bench") {
         return bench<default_kmer_t>(argc - 1, argv + 1);
-    } else if (tool == "dump") {
-        return dump<default_kmer_t>(argc - 1, argv + 1);
     } else if (tool == "permute") {
         return permute<default_kmer_t>(argc - 1, argv + 1);
     } else if (tool == "compute-statistics") {

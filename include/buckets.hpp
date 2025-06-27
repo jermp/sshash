@@ -82,10 +82,6 @@ struct buckets  //
             uint64_t pos_minimizer_in_string = offsets.access(begin);
             uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
                 strings, m, kmer_t::bits_per_char * pos_minimizer_in_string));
-            // std::cout << "  minimizer = " << util::uint_minimizer_to_string<kmer_t>(minimizer, m)
-            //           << std::endl;
-            // std::cout << "  read_mmer = " << util::uint_minimizer_to_string<kmer_t>(read_mmer, m)
-            //           << std::endl;
             if (read_mmer != minimizer) {
                 auto res = lookup_result();
                 res.minimizer_found = false;
@@ -93,8 +89,8 @@ struct buckets  //
             }
         }
 
-        for (uint64_t i = begin; i != end; ++i) {
-            auto res = lookup(i, kmer, pos_minimizer_in_kmer, k);
+        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
+            auto res = lookup(super_kmer_id, kmer, pos_minimizer_in_kmer, k);
             if (res.kmer_id != constants::invalid_uint64) {
                 assert(is_valid(res));
                 return res;
@@ -104,25 +100,17 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup(const uint64_t i, const kmer_t kmer,   //
-                         const uint64_t pos_minimizer_in_kmer,  //
-                         const uint64_t k) const                //
+    lookup_result lookup(const uint64_t super_kmer_id, const kmer_t kmer,  //
+                         const uint64_t pos_minimizer_in_kmer,             //
+                         const uint64_t k) const                           //
     {
-        uint64_t pos_minimizer_in_string = offsets.access(i);
-
-        // std::cout << "  pos_minimizer_in_string = " << pos_minimizer_in_string << std::endl;
-        // std::cout << "  pos_minimizer_in_kmer = " << pos_minimizer_in_kmer << std::endl;
-
+        uint64_t pos_minimizer_in_string = offsets.access(super_kmer_id);
         if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
             uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;
             auto res = offset_to_id(offset, k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =
                     util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
-                // std::cout << "  kmer '" << util::uint_kmer_to_string(kmer, k) << "'" <<
-                // std::endl; std::cout << "  read_kmer '" << util::uint_kmer_to_string(read_kmer,
-                // k) << "'"
-                //           << std::endl;
                 if (read_kmer == kmer) {
                     assert(is_valid(res));
                     return res;
@@ -182,8 +170,9 @@ struct buckets  //
             auto read_kmer = util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
             kmer_t read_kmer_rc = read_kmer;
             read_kmer_rc.reverse_complement_inplace(k);
-            uint64_t minimizer = std::min(util::compute_minimizer(read_kmer, k, m, hasher),
-                                          util::compute_minimizer(read_kmer_rc, k, m, hasher));
+            uint64_t minimizer =
+                std::min(util::compute_minimizer(read_kmer, k, m, hasher).minimizer,
+                         util::compute_minimizer(read_kmer_rc, k, m, hasher).minimizer);
             if (minimizer != target_minimizer) {
                 auto res = lookup_result();
                 res.minimizer_found = false;

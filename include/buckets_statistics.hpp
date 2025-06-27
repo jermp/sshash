@@ -108,6 +108,7 @@ struct buckets_statistics {
                 total_kmers += string_size * m_string_sizes[string_size];
             }
         }
+        assert(total_kmers == m_num_kmers);
         std::cout << "total_super_kmers " << total_super_kmers << "/" << m_num_super_kmers << "("
                   << (total_super_kmers * 100.0) / m_num_super_kmers << "%)" << std::endl;
         std::cout << "total_kmers " << total_kmers << "/" << m_num_kmers << " ("

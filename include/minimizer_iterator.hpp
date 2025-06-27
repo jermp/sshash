@@ -8,17 +8,21 @@ namespace sshash {
     "Re-scan" method.
 */
 template <class kmer_t>
-struct minimizer_enumerator {
-    minimizer_enumerator() {}
+struct minimizer_iterator {
+    minimizer_iterator() {}
 
-    minimizer_enumerator(uint64_t k, uint64_t m, hasher_type const& hasher)
+    minimizer_iterator(uint64_t k, uint64_t m, hasher_type const& hasher)
         : m_k(k)
         , m_m(m)
         , m_position(0)
+        , m_min_position_in_kmer(0)
         , m_min_value(constants::invalid_uint64)
         , m_min_position(0)
         , m_min_hash(constants::invalid_uint64)
-        , m_hasher(hasher) {}
+        , m_hasher(hasher)  //
+    {
+        assert(k > 0 and m <= k);
+    }
 
     void set_position(uint64_t position) { m_position = position; }
 
@@ -29,15 +33,14 @@ struct minimizer_enumerator {
     }
 
     template <bool reverse = false>
-    std::pair<uint64_t, uint64_t>  // (minimizer, pos of minimizer in sequence)
-    next_with_pos(kmer_t kmer, bool clear) {
+    minimizer_info next_advanced(kmer_t kmer, bool clear) {
         _next<reverse>(kmer, clear);
-        return {m_min_value, m_min_position};
+        return {m_min_value, m_min_position, m_min_position_in_kmer};
     }
 
 private:
     uint64_t m_k, m_m;
-    uint64_t m_position;
+    uint64_t m_position, m_min_position_in_kmer;
     uint64_t m_min_value, m_min_position, m_min_hash;
     hasher_type m_hasher;
 
@@ -47,9 +50,6 @@ private:
             rescan<reverse>(kmer);
         } else {
             m_position += 1;
-            // std::cout << "m_min_position + (m_k - m_m + 1) = " << (m_min_position + (m_k - m_m +
-            // 1))
-            //           << "; m_position = " << m_position << std::endl;
             if (m_min_position + (m_k - m_m + 1) <= m_position) {
                 /* min leaves the window: re-scan to compute the new min */
                 m_position = m_min_position + 1;
@@ -66,17 +66,23 @@ private:
                     m_min_hash = hash;
                     m_min_value = uint64_t(mmer);
                     m_min_position = m_position;
+                    m_min_position_in_kmer = m_k - m_m;
+                } else {
+                    assert(m_min_position_in_kmer > 0);
+                    m_min_position_in_kmer -= 1;
                 }
             }
         }
-        assert(m_min_value == util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
+        assert(m_min_position_in_kmer <= m_k - m_m);
+        assert((minimizer_info{m_min_value, constants::invalid_uint64, m_min_position_in_kmer}) ==
+               util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
     }
 
     template <bool reverse = false>
     void rescan(kmer_t kmer) {
-        // std::cout << "RESCAN at position " << m_position << std::endl;
         m_min_hash = constants::invalid_uint64;
         m_min_value = constants::invalid_uint64;
+        m_min_position_in_kmer = 0;
         for (uint64_t i = 0; i != m_k - m_m + 1; ++i) {
             kmer_t mmer = kmer;
             if constexpr (reverse) {
@@ -90,6 +96,7 @@ private:
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);
                 m_min_position = m_position;
+                m_min_position_in_kmer = i;
             }
             m_position += 1;
         }
