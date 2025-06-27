@@ -62,18 +62,44 @@ private:
                     mmer.drop_chars(m_k - m_m);
                 }
                 uint64_t hash = m_hasher.hash(uint64_t(mmer));
-                if (hash < m_min_hash) {
-                    m_min_hash = hash;
-                    m_min_value = uint64_t(mmer);
-                    m_min_position = m_position;
-                    m_min_position_in_kmer = m_k - m_m;
+
+                if constexpr (reverse) {
+                    if (hash <= m_min_hash) {
+                        m_min_hash = hash;
+                        m_min_value = uint64_t(mmer);
+                        m_min_position = m_position;
+                        m_min_position_in_kmer = 0;
+                    } else {
+                        m_min_position_in_kmer += 1;
+                        assert(m_min_position_in_kmer <= m_k - m_m);
+                    }
                 } else {
-                    assert(m_min_position_in_kmer > 0);
-                    m_min_position_in_kmer -= 1;
+                    if (hash < m_min_hash) {
+                        m_min_hash = hash;
+                        m_min_value = uint64_t(mmer);
+                        m_min_position = m_position;
+                        m_min_position_in_kmer = m_k - m_m;
+                    } else {
+                        assert(m_min_position_in_kmer > 0);
+                        m_min_position_in_kmer -= 1;
+                    }
                 }
             }
         }
-        assert(m_min_position_in_kmer <= m_k - m_m);
+
+        // auto got = minimizer_info{m_min_value, constants::invalid_uint64,
+        // m_min_position_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
+        // m_hasher); if (got != expected) {
+        //     std::cout << "kmer " << util::uint_kmer_to_string<kmer_t>(kmer, m_k) << std::endl;
+        //     std::cout << "expected minimizer = "
+        //               << util::uint_minimizer_to_string<kmer_t>(expected.minimizer, m_m)
+        //               << std::endl;
+        //     std::cout << "got minimizer = "
+        //               << util::uint_minimizer_to_string<kmer_t>(got.minimizer, m_m) << std::endl;
+        //     std::cout << "expected pos in kmer = " << expected.position_in_kmer << std::endl;
+        //     std::cout << "got pos in kmer = " << got.position_in_kmer << std::endl;
+        // }
+
         assert((minimizer_info{m_min_value, constants::invalid_uint64, m_min_position_in_kmer}) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
     }
@@ -92,12 +118,23 @@ private:
             }
             mmer.take_chars(m_m);
             uint64_t hash = m_hasher.hash(uint64_t(mmer));
-            if (hash < m_min_hash) {
-                m_min_hash = hash;
-                m_min_value = uint64_t(mmer);
-                m_min_position = m_position;
-                m_min_position_in_kmer = i;
+
+            if constexpr (reverse) {  // rightmost
+                if (hash <= m_min_hash) {
+                    m_min_hash = hash;
+                    m_min_value = uint64_t(mmer);
+                    m_min_position = m_position;
+                    m_min_position_in_kmer = m_k - m_m - i;
+                }
+            } else {  // leftmost
+                if (hash < m_min_hash) {
+                    m_min_hash = hash;
+                    m_min_value = uint64_t(mmer);
+                    m_min_position = m_position;
+                    m_min_position_in_kmer = i;
+                }
             }
+
             m_position += 1;
         }
         m_position -= 1;

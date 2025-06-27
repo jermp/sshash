@@ -166,9 +166,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         assert(end > begin);
 
         kmer_iterator<kmer_t> it(data.strings.strings, k, kmer_t::bits_per_char * begin);
-        minimizer_info prev_mini_info{constants::invalid_uint64,   //
-                                      constants::invalid_uint64,   //
-                                      constants::invalid_uint64};  //
+        minimizer_info prev_mini_info;
+        assert(prev_mini_info.minimizer == constants::invalid_uint64);
         uint64_t num_kmers_in_super_kmer = 0;
         minimizer_it.set_position(begin);
         // std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " <<
