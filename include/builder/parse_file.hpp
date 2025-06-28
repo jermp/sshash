@@ -20,6 +20,9 @@ template <class kmer_t, input_file_type fmt>
 void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 build_configuration const& build_config)  //
 {
+    essentials::timer_type timer;
+    timer.start();
+
     const uint64_t k = build_config.k;
     const uint64_t m = build_config.m;
     const uint64_t max_num_kmers_in_super_kmer = k - m + 1;
@@ -151,6 +154,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     assert(data.strings.pieces.front() == 0);
     assert(data.strings.pieces.size() == num_sequences + 1);
 
+    timer.stop();
+    print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding_input'");
+
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
     std::cout << "num_kmers " << data.num_kmers << std::endl;
@@ -159,6 +165,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                      data.num_kmers
               << " [bits/kmer]" << std::endl;
 
+    timer.reset();
+    timer.start();
+
+    /*
+        We could distribute the sequences to multiple threads
+        and do this computation in parallel.
+    */
     for (uint64_t i = 0; i != num_sequences; ++i) {
         const uint64_t begin = data.strings.pieces[i];
         const uint64_t end = data.strings.pieces[i + 1];
@@ -210,9 +223,10 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
     data.minimizers.finalize();
 
-    std::cout << "num_super_kmers " << data.num_super_kmers << std::endl;
+    timer.stop();
+    print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing_minimizers_tuples'");
 
-    assert(data.strings.pieces.size() == num_sequences + 1);
+    std::cout << "num_super_kmers " << data.num_super_kmers << std::endl;
 
     if (build_config.weighted) {
         std::cout << "sum_of_weights " << sum_of_weights << std::endl;
