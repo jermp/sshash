@@ -38,11 +38,11 @@ void dictionary<kmer_t>::compute_statistics() const  //
             minimizer_it.set_position(offset);
             uint64_t num_kmers_in_super_kmer = 0;
             auto kmer = it.get();
-            auto mini_info = minimizer_it.template next_advanced<false>(kmer, true);
+            auto mini_info = minimizer_it.next(kmer);
             while (mini_info.position_in_sequence < position_in_sequence) {
                 it.next();
                 kmer = it.get();
-                mini_info = minimizer_it.template next_advanced<false>(kmer, false);
+                mini_info = minimizer_it.next(kmer);
             }
             while (mini_info.position_in_sequence == position_in_sequence and
                    (mini_info.position_in_sequence - mini_info.position_in_kmer + m_k) <=
@@ -51,7 +51,7 @@ void dictionary<kmer_t>::compute_statistics() const  //
                 num_kmers_in_super_kmer += 1;
                 it.next();
                 kmer = it.get();
-                mini_info = minimizer_it.template next_advanced<false>(kmer, false);
+                mini_info = minimizer_it.next(kmer);
             }
             assert(num_kmers_in_super_kmer > 0);
             buckets_stats.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket,

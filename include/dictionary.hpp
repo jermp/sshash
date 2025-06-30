@@ -165,8 +165,7 @@ private:
     weights m_weights;
 
     lookup_result lookup_uint_regular(kmer_t uint_kmer) const;
-    lookup_result lookup_uint_regular(kmer_t uint_kmer,  //
-                                      uint64_t minimizer, uint64_t pos_minimizer_in_kmer) const;
+    lookup_result lookup_uint_regular(kmer_t uint_kmer, minimizer_info mini_info) const;
 
     lookup_result lookup_uint_canonical(kmer_t uint_kmer) const;
     lookup_result lookup_uint_canonical(kmer_t uint_kmer, kmer_t uint_kmer_rc,

@@ -5,20 +5,22 @@ namespace sshash {
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer) const {
     auto mini_info = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
-    return lookup_uint_regular(uint_kmer, mini_info.minimizer, mini_info.position_in_kmer);
+    return lookup_uint_regular(uint_kmer, mini_info);
 }
 
 template <class kmer_t>
-lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,  //
-                                                      uint64_t minimizer,
-                                                      uint64_t pos_minimizer_in_kmer) const  //
+lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,                //
+                                                      minimizer_info mini_info) const  //
 {
-    assert(minimizer == util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher).minimizer);
+    assert(minimizer_info(mini_info.minimizer, constants::invalid_uint64,
+                          mini_info.position_in_kmer) ==
+           util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
 
-    const uint64_t bucket_id = m_minimizers.lookup(minimizer);
+    const uint64_t bucket_id = m_minimizers.lookup(mini_info.minimizer);
 
     if (m_skew_index.empty()) {
-        return m_buckets.lookup(bucket_id, uint_kmer, minimizer, pos_minimizer_in_kmer, m_k, m_m);
+        return m_buckets.lookup(bucket_id, uint_kmer, mini_info.minimizer,
+                                mini_info.position_in_kmer, m_k, m_m);
     }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
@@ -28,12 +30,13 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,  //
         uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
         /* It must hold pos < num_super_kmers_in_bucket for the kmer to exist. */
         if (pos < num_super_kmers_in_bucket) {
-            return m_buckets.lookup(begin + pos, uint_kmer, pos_minimizer_in_kmer, m_k);
+            return m_buckets.lookup(begin + pos, uint_kmer, mini_info.position_in_kmer, m_k);
         }
         return lookup_result();
     }
 
-    return m_buckets.lookup(begin, end, uint_kmer, minimizer, pos_minimizer_in_kmer, m_k, m_m);
+    return m_buckets.lookup(begin, end, uint_kmer, mini_info.minimizer, mini_info.position_in_kmer,
+                            m_k, m_m);
 }
 
 template <class kmer_t>
@@ -41,9 +44,11 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer) const 
 {
     kmer_t uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
-    uint64_t minimizer =
-        std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher).minimizer,
-                 util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher).minimizer);
+    auto mini_info = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
+    auto mini_info_rc = util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher);
+    // if ()
+    uint64_t minimizer = std::min(mini_info.minimizer, mini_info_rc.minimizer);
+    // TODO...
     return lookup_uint_canonical(uint_kmer, uint_kmer_rc, minimizer);
 }
 
