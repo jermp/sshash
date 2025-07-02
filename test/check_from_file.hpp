@@ -45,6 +45,9 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
         for (uint64_t i = 0; i + k <= sequence.length(); ++i) {
             assert(util::is_valid<kmer_t>(sequence.data() + i, k));
 
+            // std::cout << "lookup kmer '" << std::string(sequence.data() + i, k) << "'" <<
+            // std::endl;
+
             kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(sequence.data() + i, k);
             auto orientation = constants::forward_orientation;
 

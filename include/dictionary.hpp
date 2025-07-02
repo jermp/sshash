@@ -169,7 +169,7 @@ private:
 
     lookup_result lookup_uint_canonical(kmer_t uint_kmer) const;
     lookup_result lookup_uint_canonical(kmer_t uint_kmer, kmer_t uint_kmer_rc,
-                                        uint64_t minimizer) const;
+                                        minimizer_info mini_info) const;
 
     void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
                             bool check_reverse_complement) const;

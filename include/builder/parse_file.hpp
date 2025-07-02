@@ -223,19 +223,26 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 assert(mini_info_rc.position_in_sequence < end - m + 1);
                 assert(mini_info_rc.position_in_kmer < k - m + 1);
 
-                // if (mini_info_rc.minimizer < std::min(mini_info.minimizer,
-                // prev_mini_info.minimizer)) {
-                if (mini_info_rc.minimizer < mini_info.minimizer and
-                    mini_info.minimizer != prev_mini_info.minimizer)  //
-                {
-                    mini_info = mini_info_rc;
-                    // std::cout << "minimizer_rc is min!" << std::endl;
-                }
+                // std::cout << "prev_mini_info.minimizer = '"
+                //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
+                //           << "' with position in sequence = " <<
+                //           prev_mini_info.position_in_sequence
+                //           << " and position in kmer_rc = " << prev_mini_info.position_in_kmer
+                //           << "\n";
+
+                // if (mini_info_rc.minimizer < mini_info.minimizer) {
+                //     std::cout << "  minimizer_rc is min!" << std::endl;
+                // } else {
+                //     std::cout << "  minimizer is min!" << std::endl;
+                // }
+
+                if (mini_info_rc.minimizer < mini_info.minimizer) mini_info = mini_info_rc;
             }
 
             if (prev_mini_info.minimizer == constants::invalid_uint64) prev_mini_info = mini_info;
 
-            if (mini_info.position_in_sequence != prev_mini_info.position_in_sequence) {
+            if (mini_info.minimizer != prev_mini_info.minimizer or
+                mini_info.position_in_sequence != prev_mini_info.position_in_sequence) {
                 std::cout << "saving minimizer = '"
                           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
                           << "' with position in sequence = " << prev_mini_info.position_in_sequence

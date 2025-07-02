@@ -16,6 +16,7 @@ struct streaming_query {
         , m_kmer(constants::invalid_uint64)
         , m_kmer_rc(constants::invalid_uint64)
         , m_k(dict->m_k)
+        , m_m(dict->m_m)
 
         , m_minimizer_it(dict->m_k, dict->m_m, dict->m_hasher)
         , m_minimizer_it_rc(dict->m_k, dict->m_m, dict->m_hasher)
@@ -78,8 +79,11 @@ struct streaming_query {
         m_curr_mini_info = m_minimizer_it.next(m_kmer);
         m_curr_mini_info_rc = m_minimizer_it_rc.next(m_kmer_rc);
         if constexpr (canonical) {
-            m_curr_mini_info.minimizer =
-                std::min(m_curr_mini_info.minimizer, m_curr_mini_info_rc.minimizer);
+            if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
+                m_curr_mini_info.minimizer = m_curr_mini_info_rc.minimizer;
+                m_curr_mini_info.position_in_kmer =
+                    m_k - m_m - m_curr_mini_info_rc.position_in_kmer;
+            }
         }
 
         /* 3. compute result */
@@ -123,7 +127,7 @@ private:
     /* kmer state */
     bool m_start;
     kmer_t m_kmer, m_kmer_rc;
-    uint64_t m_k;
+    uint64_t m_k, m_m;
 
     /* minimizer state */
     minimizer_iterator<kmer_t> m_minimizer_it;
@@ -158,7 +162,7 @@ private:
         }
 
         if constexpr (canonical) {
-            m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info.minimizer);
+            m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
             if (m_res.kmer_id == constants::invalid_uint64) {
                 m_num_negative += 1;
                 return;

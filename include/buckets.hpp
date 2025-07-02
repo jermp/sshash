@@ -120,60 +120,30 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_canonical(uint64_t bucket_id, kmer_t target_kmer, kmer_t target_kmer_rc,
-                                   uint64_t target_minimizer,           //
-                                   const uint64_t k, const uint64_t m,  //
-                                   hasher_type const& hasher) const     //
+    lookup_result lookup_canonical(uint64_t bucket_id, kmer_t kmer, kmer_t kmer_rc,
+                                   uint64_t minimizer, uint64_t pos_minimizer_in_kmer,  //
+                                   const uint64_t k, const uint64_t m) const            //
     {
         auto [begin, end] = locate_bucket(bucket_id);
-        return lookup_canonical(begin, end, target_kmer, target_kmer_rc,  //
-                                target_minimizer, k, m, hasher);
+        return lookup_canonical(begin, end, kmer, kmer_rc, minimizer, pos_minimizer_in_kmer, k, m);
     }
 
-    lookup_result lookup_canonical_in_super_kmer(uint64_t super_kmer_id,                     //
-                                                 kmer_t target_kmer, kmer_t target_kmer_rc,  //
-                                                 const uint64_t k, const uint64_t m) const   //
-    {
-        uint64_t offset = offsets.access(super_kmer_id);
-        auto res = offset_to_id(offset, k);
-        kmer_iterator<kmer_t> it(strings, k, kmer_t::bits_per_char * offset);
-        uint64_t window_size = std::min<uint64_t>(k - m + 1, res.contig_end(k) - offset - k + 1);
-        for (uint64_t w = 0; w != window_size; ++w) {
-            auto read_kmer = it.get();
-            if (read_kmer == target_kmer) {
-                res.kmer_id += w;
-                res.kmer_id_in_contig += w;
-                res.kmer_orientation = constants::forward_orientation;
-                assert(is_valid(res));
-                return res;
-            }
-            if (read_kmer == target_kmer_rc) {
-                res.kmer_id += w;
-                res.kmer_id_in_contig += w;
-                res.kmer_orientation = constants::backward_orientation;
-                assert(is_valid(res));
-                return res;
-            }
-            it.next();
-        }
-        return lookup_result();
-    }
-
-    lookup_result lookup_canonical(uint64_t begin, uint64_t end,               //
-                                   kmer_t target_kmer, kmer_t target_kmer_rc,  //
-                                   uint64_t target_minimizer,                  //
-                                   const uint64_t k, const uint64_t m,         //
-                                   hasher_type const& hasher) const            //
+    lookup_result lookup_canonical(uint64_t begin, uint64_t end,                        //
+                                   kmer_t kmer, kmer_t kmer_rc,                         //
+                                   uint64_t minimizer, uint64_t pos_minimizer_in_kmer,  //
+                                   const uint64_t k, const uint64_t m) const            //
     {
         { /* check minimizer first */
-            uint64_t offset = offsets.access(begin);
-            auto read_kmer = util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
-            kmer_t read_kmer_rc = read_kmer;
-            read_kmer_rc.reverse_complement_inplace(k);
-            uint64_t minimizer =
-                std::min(util::compute_minimizer(read_kmer, k, m, hasher).minimizer,
-                         util::compute_minimizer(read_kmer_rc, k, m, hasher).minimizer);
-            if (minimizer != target_minimizer) {
+            uint64_t pos_minimizer_in_string = offsets.access(begin);
+            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
+                strings, m, kmer_t::bits_per_char * pos_minimizer_in_string));
+            // std::cout << "read mmer = '" << util::uint_kmer_to_string<kmer_t>(read_mmer, m) <<
+            // "'"
+            //           << std::endl;
+            auto tmp = kmer_t(minimizer);
+            tmp.reverse_complement_inplace(m);
+            uint64_t minimizer_rc = uint64_t(tmp);
+            if (read_mmer != minimizer and read_mmer != minimizer_rc) {
                 auto res = lookup_result();
                 res.minimizer_found = false;
                 return res;
@@ -181,31 +151,39 @@ struct buckets  //
         }
 
         for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            uint64_t offset = offsets.access(super_kmer_id);
-            auto res = offset_to_id(offset, k);
-            kmer_iterator<kmer_t> it(strings, k, kmer_t::bits_per_char * offset);
-            uint64_t window_size =
-                std::min<uint64_t>(k - m + 1, res.contig_end(k) - offset - k + 1);
-            for (uint64_t w = 0; w != window_size; ++w) {
-                auto read_kmer = it.get();
-                if (read_kmer == target_kmer) {
-                    res.kmer_id += w;
-                    res.kmer_id_in_contig += w;
-                    res.kmer_orientation = constants::forward_orientation;
-                    assert(is_valid(res));
-                    return res;
-                }
-                if (read_kmer == target_kmer_rc) {
-                    res.kmer_id += w;
-                    res.kmer_id_in_contig += w;
-                    res.kmer_orientation = constants::backward_orientation;
-                    assert(is_valid(res));
-                    return res;
-                }
-                it.next();
+            auto res = lookup_canonical(super_kmer_id, kmer, kmer_rc, pos_minimizer_in_kmer, k);
+            if (res.kmer_id != constants::invalid_uint64) {
+                assert(is_valid(res));
+                return res;
             }
         }
 
+        return lookup_result();
+    }
+
+    lookup_result lookup_canonical(uint64_t super_kmer_id, kmer_t kmer, kmer_t kmer_rc,     //
+                                   uint64_t pos_minimizer_in_kmer, const uint64_t k) const  //
+    {
+        uint64_t pos_minimizer_in_string = offsets.access(super_kmer_id);
+        if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
+            uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;
+            auto res = offset_to_id(offset, k);
+            if (offset + k - 1 < res.contig_end(k)) {
+                auto read_kmer =
+                    util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
+                // std::cout << "read kmer = '" << util::uint_kmer_to_string(read_kmer, k) << "'"
+                //           << std::endl;
+                if (read_kmer == kmer) {
+                    assert(is_valid(res));
+                    return res;
+                }
+                if (read_kmer == kmer_rc) {
+                    assert(is_valid(res));
+                    res.kmer_orientation = constants::backward_orientation;
+                    return res;
+                }
+            }
+        }
         return lookup_result();
     }
 
