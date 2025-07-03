@@ -143,6 +143,12 @@ struct buckets  //
             auto tmp = kmer_t(minimizer);
             tmp.reverse_complement_inplace(m);
             uint64_t minimizer_rc = uint64_t(tmp);
+            // if (read_mmer == minimizer) {
+            //     std::cout << "minimizer found in forward strand" << std::endl;
+            // }
+            // if (read_mmer == minimizer_rc) {
+            //     std::cout << "minimizer found in backward strand" << std::endl;
+            // }
             if (read_mmer != minimizer and read_mmer != minimizer_rc) {
                 auto res = lookup_result();
                 res.minimizer_found = false;
