@@ -173,32 +173,53 @@ private:
 struct minimizers_tuples {
     minimizers_tuples() {}
     minimizers_tuples(build_configuration const& build_config)
-        /* allocate half memory because parallel_sort is not in-place */
-        : m_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
-                        (2 * sizeof(minimizer_tuple)))
-        , m_num_minimizers(0)
+        : m_num_minimizers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
         , m_num_threads(build_config.num_threads)
         , m_tmp_dirname(build_config.tmp_dirname)  //
     {
         init();
+        set_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
+                        (3 * sizeof(minimizer_tuple)));
         m_buffer.reserve(m_buffer_size);
+        m_buffer_rc.reserve(m_buffer_size);
     }
 
     void init() { m_num_files_to_merge = 0; }
 
-    void emplace_back(minimizer_info mini_info, uint64_t num_kmers_in_super_kmer) {
-        if (m_buffer.size() == m_buffer_size) sort_and_flush();
-        m_buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
-                              num_kmers_in_super_kmer, mini_info.position_in_kmer);
+    void set_buffer_size(uint64_t buffer_size) { m_buffer_size = buffer_size; }
+
+    void emplace_back(minimizer_info mini_info, uint64_t num_kmers_in_super_kmer, bool rc) {
+        if (rc) {
+            emplace_back(m_buffer_rc, mini_info, num_kmers_in_super_kmer);
+        } else {
+            emplace_back(m_buffer, mini_info, num_kmers_in_super_kmer);
+        }
     }
 
-    minimizer_tuple& back() { return m_buffer.back(); }
+    void emplace_back(std::vector<minimizer_tuple>& buffer, minimizer_info mini_info,
+                      uint64_t num_kmers_in_super_kmer) {
+        if (!buffer.empty() and buffer.back().minimizer == mini_info.minimizer) {
+            if (buffer.back().offset == mini_info.position_in_sequence) {
+                // std::cout << "minimizer is the same with position_in_sequence = "
+                //           << mini_info.position_in_sequence << std::endl;
+                buffer.back().num_kmers_in_super_kmer += num_kmers_in_super_kmer;
+            } else {
+                buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
+                                    num_kmers_in_super_kmer, mini_info.position_in_kmer);
+            }
+            return;
+        }
+        if (buffer.size() == m_buffer_size) sort_and_flush(buffer);
+        // std::cout << "minimizer is NEW with position_in_sequence = "
+        //           << mini_info.position_in_sequence << std::endl;
+        buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
+                            num_kmers_in_super_kmer, mini_info.position_in_kmer);
+    }
 
-    void sort_and_flush() {
-        // std::cout << "sorting buffer..." << std::endl;
-        m_temp_buffer.resize(m_buffer.size());
-        parallel_sort(m_buffer, m_temp_buffer, m_num_threads,
+    void sort_and_flush(std::vector<minimizer_tuple>& buffer) {
+        m_temp_buffer.resize(buffer.size());
+        parallel_sort(buffer, m_temp_buffer, m_num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or
                                  (x.minimizer == y.minimizer and x.offset < y.offset);
@@ -207,16 +228,16 @@ struct minimizers_tuples {
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
         if (!out.is_open()) throw std::runtime_error("cannot open file");
-        out.write(reinterpret_cast<char const*>(m_buffer.data()),
-                  m_buffer.size() * sizeof(minimizer_tuple));
+        out.write(reinterpret_cast<char const*>(buffer.data()),
+                  buffer.size() * sizeof(minimizer_tuple));
         out.close();
-        // std::cout << "DONE" << std::endl;
-        m_buffer.clear();
+        buffer.clear();
         ++m_num_files_to_merge;
     }
 
     void finalize() {
-        if (!m_buffer.empty()) sort_and_flush();
+        if (!m_buffer.empty()) sort_and_flush(m_buffer);
+        if (!m_buffer_rc.empty()) sort_and_flush(m_buffer_rc);
     }
 
     std::string get_minimizers_filename() const {
@@ -247,6 +268,8 @@ struct minimizers_tuples {
 
         if (m_num_files_to_merge == 0) return;
 
+        // Note: m_num_files_to_merge is always at least 2 for canonical indexes,
+        // so for regular indexes we do not count the number of super_kmers...
         if (m_num_files_to_merge == 1) {
             if (m_num_minimizers != 0) return;
             /* just count num. distinct minimizers and do not write twice on disk */
@@ -267,27 +290,59 @@ struct minimizers_tuples {
         file_merging_iterator<bytes_iterator_type> fm_iterator(files_name_iterator_begin(),
                                                                m_num_files_to_merge);
 
+        std::cout << "saving tuples to '" << get_minimizers_filename() << "'" << std::endl;
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
         m_num_minimizers = 0;
-        uint64_t num_written_tuples = 0;
+        m_num_super_kmers = 0;
         uint64_t prev_minimizer = constants::invalid_uint64;
+        uint64_t prev_offset = constants::invalid_uint64;
+        minimizer_tuple to_write;
         while (fm_iterator.has_next()) {
             auto file_it = *fm_iterator;
             minimizer_tuple mt = *file_it;
-            out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
-            num_written_tuples += 1;
+
             if (mt.minimizer != prev_minimizer) {
                 prev_minimizer = mt.minimizer;
+                to_write = mt;
                 ++m_num_minimizers;
+                // std::cout << "writing to_write.minimizer = "
+                //           << util::uint_minimizer_to_string<default_kmer_t>(to_write.minimizer,
+                //           13)
+                //           << " to_write.offset = " << to_write.offset
+                //           << " to_write.jump_back = " << int(to_write.jump_back)
+                //           << " to_write.num_kmers_in_super_kmer = "
+                //           << int(to_write.num_kmers_in_super_kmer) << std::endl;
+                out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
+                m_num_super_kmers += 1;
+                prev_offset = mt.offset;
+            } else {
+                if (mt.offset != prev_offset) {
+                    to_write = mt;
+                    out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
+                    m_num_super_kmers += 1;
+                    prev_offset = mt.offset;
+                    // std::cout << "writing to_write.minimizer = "
+                    //           <<
+                    //           util::uint_minimizer_to_string<default_kmer_t>(to_write.minimizer,
+                    //                                                             13)
+                    //           << " to_write.offset = " << to_write.offset
+                    //           << " to_write.jump_back = " << int(to_write.jump_back)
+                    //           << " to_write.num_kmers_in_super_kmer = "
+                    //           << int(to_write.num_kmers_in_super_kmer) << std::endl;
+                } else {
+                    to_write.num_kmers_in_super_kmer += mt.num_kmers_in_super_kmer;
+                }
             }
-            if (num_written_tuples % 50000000 == 0) {
-                std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
+
+            if (m_num_super_kmers % 50000000 == 0) {
+                std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
             }
+
             fm_iterator.next();
         }
-        std::cout << "num_written_tuples = " << num_written_tuples << std::endl;
+        std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
 
         out.close();
         fm_iterator.close();
@@ -300,20 +355,23 @@ struct minimizers_tuples {
     }
 
     uint64_t num_minimizers() const { return m_num_minimizers; }
+    uint64_t num_super_kmers() const { return m_num_super_kmers; }
     uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
     uint64_t buffer_size() const { return m_buffer_size; }
     std::vector<minimizer_tuple>& buffer() { return m_buffer; }
+    std::vector<minimizer_tuple>& buffer_rc() { return m_buffer_rc; }
 
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
 private:
     uint64_t m_buffer_size;
     uint64_t m_num_files_to_merge;
-    uint64_t m_num_minimizers;
+    uint64_t m_num_minimizers, m_num_super_kmers;
     uint64_t m_run_identifier;
     uint64_t m_num_threads;
     std::string m_tmp_dirname;
     std::vector<minimizer_tuple> m_buffer;
+    std::vector<minimizer_tuple> m_buffer_rc;
     std::vector<minimizer_tuple> m_temp_buffer;
 
     std::string get_tmp_output_filename(uint64_t id) const {

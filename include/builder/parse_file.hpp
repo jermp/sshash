@@ -188,6 +188,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " << begin
                   << ", end = " << end << std::endl;
 
+        bool uint_kmer_rc_is_min = false;
         for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
             auto uint_kmer = it.get();
             auto mini_info = minimizer_it.next(uint_kmer);
@@ -200,13 +201,24 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             //           << "' with position in sequence = " << mini_info.position_in_sequence
             //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
 
+            uint_kmer_rc_is_min = false;
             if (build_config.canonical) {
                 auto uint_kmer_rc = uint_kmer;
                 uint_kmer_rc.reverse_complement_inplace(k);
+                assert(uint_kmer != uint_kmer_rc);  // because k is odd
+
+                /*
+                    Note: since we are streaming, we must always compute the
+                    minimizer of the reverse complement, even when we don't
+                    needed (i.e., when uint_kmer < uint_kmer_rc).
+                */
                 auto mini_info_rc = minimizer_it_rc.next(uint_kmer_rc);
+                assert(mini_info_rc.position_in_sequence < end - m + 1);
+                assert(mini_info_rc.position_in_kmer < k - m + 1);
 
                 // std::cout << "kmer_rc = '" << util::uint_kmer_to_string(uint_kmer_rc, k) << "'"
                 //           << std::endl;
+
                 // std::cout << "minimizer_rc = '"
                 //           << util::uint_kmer_to_string<kmer_t>(mini_info_rc.minimizer, m)
                 //           << "' with position in sequence = " <<
@@ -214,43 +226,35 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 //           << " and position in kmer_rc = " << mini_info_rc.position_in_kmer <<
                 //           "\n";
 
-                // kmer_t mini_rc = mini_info_rc.minimizer;
-                // mini_rc.reverse_complement_inplace(m);
-                // std::cout << "rc(minimizer_rc) = '" << util::uint_kmer_to_string<kmer_t>(mini_rc,
-                // m)
-                //           << "'" << std::endl;
-
-                assert(mini_info_rc.position_in_sequence < end - m + 1);
-                assert(mini_info_rc.position_in_kmer < k - m + 1);
-
-                // std::cout << "prev_mini_info.minimizer = '"
-                //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                //           << "' with position in sequence = " <<
-                //           prev_mini_info.position_in_sequence
-                //           << " and position in kmer_rc = " << prev_mini_info.position_in_kmer
-                //           << "\n";
-
-                // if (mini_info_rc.minimizer < mini_info.minimizer) {
-                //     std::cout << "  minimizer_rc is min!" << std::endl;
-                // } else {
-                //     std::cout << "  minimizer is min!" << std::endl;
+                if (uint_kmer_rc < uint_kmer) {
+                    // kmer_t mini_rc = mini_info_rc.minimizer;
+                    // mini_rc.reverse_complement_inplace(m);
+                    // std::cout << "rc(minimizer_rc) = '"
+                    //           << util::uint_kmer_to_string<kmer_t>(mini_rc, m) << "'" <<
+                    //           std::endl;
+                    // std::cout << "kmer_rc is min" << std::endl;
+                    mini_info = mini_info_rc;
+                    uint_kmer_rc_is_min = true;
+                }
+                // else {
+                //     std::cout << "kmer is min" << std::endl;
                 // }
-
-                if (mini_info_rc.minimizer < mini_info.minimizer) mini_info = mini_info_rc;
             }
 
             if (prev_mini_info.minimizer == constants::invalid_uint64) prev_mini_info = mini_info;
 
             if (mini_info.minimizer != prev_mini_info.minimizer or
                 mini_info.position_in_sequence != prev_mini_info.position_in_sequence) {
-                std::cout << "saving minimizer = '"
-                          << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                          << "' with position in sequence = " << prev_mini_info.position_in_sequence
-                          << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
-                          << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
+                // std::cout << "saving minimizer = '"
+                //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
+                //           << "' with position in sequence = " <<
+                //           prev_mini_info.position_in_sequence
+                //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
+                //           << " and position in kmer = " << prev_mini_info.position_in_kmer <<
+                //           "\n";
                 assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
-                data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer);
-                data.num_super_kmers += 1;
+                data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer,
+                                             uint_kmer_rc_is_min);
                 prev_mini_info = mini_info;
                 num_kmers_in_super_kmer = 0;
             }
@@ -261,22 +265,19 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             // std::cout << std::endl;
         }
 
-        std::cout << "saving minimizer = '"
-                  << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                  << "' with position in sequence = " << prev_mini_info.position_in_sequence
-                  << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
-                  << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
+        // std::cout << "saving minimizer = '"
+        //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
+        //           << "' with position in sequence = " << prev_mini_info.position_in_sequence
+        //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
+        //           << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
         assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
-        data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer);
-        data.num_super_kmers += 1;
+        data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer, uint_kmer_rc_is_min);
     }
 
     data.minimizers.finalize();
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing_minimizers_tuples'");
-
-    std::cout << "num_super_kmers " << data.num_super_kmers << std::endl;
 
     if (build_config.weighted) {
         std::cout << "sum_of_weights " << sum_of_weights << std::endl;

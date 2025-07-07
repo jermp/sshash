@@ -177,7 +177,6 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
                                            mm::advice::sequential);
     minimizer_tuple const* begin = input.data();
     minimizer_tuple const* end = input.data() + input.size();
-    assert(input.size() == num_super_kmers);
 
     bucket_pairs bucket_pairs_manager(build_config.tmp_dirname);
     uint64_t num_singletons = 0;

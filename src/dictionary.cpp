@@ -42,79 +42,24 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
 template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer) const  //
 {
-    kmer_t uint_kmer_rc = uint_kmer;
+    auto uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
-    auto mini_info = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
-    auto mini_info_rc = util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher);
+    auto uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
+    auto mini_info = util::compute_minimizer(uint_kmer_canon, m_k, m_m, m_hasher);
 
     // std::cout << "minimizer = '" << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
     //           << "' and position in kmer = " << mini_info.position_in_kmer << "\n";
-    // std::cout << "minimizer_rc = '"
-    //           << util::uint_kmer_to_string<kmer_t>(mini_info_rc.minimizer, m_m)
-    //           << "' and position in kmer = " << mini_info_rc.position_in_kmer << "\n";
 
-    if (mini_info_rc.minimizer < mini_info.minimizer) {
-        // std::cout << "minimizer_rc MIN" << std::endl;
+    auto res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
+    if (res.kmer_id == constants::invalid_uint64) {
+        std::cout << "KMER NOT FOUND, so checking other offset" << std::endl;
+        mini_info.position_in_kmer = m_k - m_m - mini_info.position_in_kmer;
         // std::cout << "looking for minimizer = '"
         //           << util::uint_kmer_to_string<kmer_t>(mini_info_rc.minimizer, m_m)
         //           << " and position in kmer = " << mini_info_rc.position_in_kmer << "\n";
-        auto res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info_rc);
-        if (res.kmer_id == constants::invalid_uint64) {
-            // std::cout << "KMER NOT FOUND, so checking other offset" << std::endl;
-            mini_info_rc.position_in_kmer = m_k - m_m - mini_info_rc.position_in_kmer;
-            // std::cout << "looking for minimizer = '"
-            //           << util::uint_kmer_to_string<kmer_t>(mini_info_rc.minimizer, m_m)
-            //           << " and position in kmer = " << mini_info_rc.position_in_kmer << "\n";
-            return lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info_rc);
-        }
-        return res;
-    } else if (mini_info_rc.minimizer > mini_info.minimizer) {
-        // std::cout << "minimizer MIN" << std::endl;
-        // std::cout << "looking for minimizer = '"
-        //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
-        //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-        auto res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
-        if (res.kmer_id == constants::invalid_uint64) {
-            // std::cout << "KMER NOT FOUND, so checking other offset" << std::endl;
-            mini_info.position_in_kmer = m_k - m_m - mini_info.position_in_kmer;
-            // std::cout << "looking for minimizer = '"
-            //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
-            //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-            return lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
-        }
-        return res;
-    } else {
-        // std::cout << "minimizers ARE EQUAL" << std::endl;
-        // std::cout << "looking for minimizer = '"
-        //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
-        //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-        auto res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
-        if (res.kmer_id == constants::invalid_uint64) {
-            // std::cout << "KMER NOT FOUND, so checking other offset" << std::endl;
-            mini_info.position_in_kmer = m_k - m_m - mini_info.position_in_kmer;
-            // std::cout << "looking for minimizer = '"
-            //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
-            //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-            res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
-        }
-        if (res.kmer_id == constants::invalid_uint64) {
-            // std::cout << "KMER NOT FOUND, so checking other offset" << std::endl;
-            mini_info.position_in_kmer = mini_info_rc.position_in_kmer;
-            // std::cout << "looking for minimizer = '"
-            //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
-            //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-            res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
-        }
-        if (res.kmer_id == constants::invalid_uint64) {
-            // std::cout << "KMER NOT FOUND, so checking other offset" << std::endl;
-            mini_info.position_in_kmer = m_k - m_m - mini_info_rc.position_in_kmer;
-            // std::cout << "looking for minimizer = '"
-            //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m_m)
-            //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-            res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
-        }
-        return res;
+        return lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
     }
+    return res;
 }
 
 template <class kmer_t>
@@ -122,15 +67,14 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
                                                         minimizer_info mini_info) const  //
 {
     assert(mini_info.minimizer ==
-           std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher).minimizer,
-                    util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher).minimizer));
+           util::compute_minimizer(uint_kmer < uint_kmer_rc ? uint_kmer : uint_kmer_rc, m_k, m_m,
+                                   m_hasher)
+               .minimizer);
 
     const uint64_t bucket_id = m_minimizers.lookup(mini_info.minimizer);
 
     if (m_skew_index.empty()) {
-        return m_buckets.lookup_canonical(bucket_id, uint_kmer, uint_kmer_rc,               //
-                                          mini_info.minimizer, mini_info.position_in_kmer,  //
-                                          m_k, m_m);                                        //
+        return m_buckets.lookup_canonical(bucket_id, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m);
     }
 
     auto [begin, end] = m_buckets.locate_bucket(bucket_id);
@@ -147,8 +91,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
         return lookup_result();
     }
 
-    return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc,  //
-                                      mini_info.minimizer, mini_info.position_in_kmer, m_k, m_m);
+    return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m);
 }
 
 template <class kmer_t>
