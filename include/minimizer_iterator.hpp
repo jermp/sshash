@@ -72,7 +72,7 @@ struct minimizer_iterator {
         //     std::cout << "got pos in kmer = " << got.position_in_kmer << std::endl;
         // }
 
-        assert(minimizer_info(m_min_value, constants::invalid_uint64, m_min_position_in_kmer) ==
+        assert(minimizer_info(m_min_value, m_min_position_in_kmer) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
 
         return {m_min_value, m_min_position, m_min_position_in_kmer};
@@ -167,7 +167,7 @@ struct minimizer_iterator_rc {
         //     std::cout << "got pos in kmer = " << got.position_in_kmer << std::endl;
         // }
 
-        assert((minimizer_info{m_min_value, constants::invalid_uint64, m_min_position_in_kmer}) ==
+        assert((minimizer_info{m_min_value, m_min_position_in_kmer}) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
 
         return {m_min_value, m_min_position, m_min_position_in_kmer};

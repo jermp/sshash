@@ -169,6 +169,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     timer.start();
 
     /*
+        TODO:
         We could distribute the sequences to multiple threads
         and do this computation in parallel.
     */
@@ -185,8 +186,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         minimizer_it.set_position(begin);
         minimizer_it_rc.set_position(begin);
 
-        std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " << begin
-                  << ", end = " << end << std::endl;
+        // std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " <<
+        // begin
+        //           << ", end = " << end << std::endl;
 
         bool uint_kmer_rc_is_min = false;
         for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
