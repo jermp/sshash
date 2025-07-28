@@ -174,6 +174,7 @@ struct minimizers_tuples {
     minimizers_tuples() {}
     minimizers_tuples(build_configuration const& build_config)
         : m_num_minimizers(0)
+        , m_num_super_kmers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
         , m_num_threads(build_config.num_threads)
         , m_tmp_dirname(build_config.tmp_dirname)  //
@@ -201,8 +202,6 @@ struct minimizers_tuples {
                       uint64_t num_kmers_in_super_kmer) {
         if (!buffer.empty() and buffer.back().minimizer == mini_info.minimizer) {
             if (buffer.back().offset == mini_info.position_in_sequence) {
-                // std::cout << "minimizer is the same with position_in_sequence = "
-                //           << mini_info.position_in_sequence << std::endl;
                 buffer.back().num_kmers_in_super_kmer += num_kmers_in_super_kmer;
             } else {
                 buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
@@ -211,8 +210,6 @@ struct minimizers_tuples {
             return;
         }
         if (buffer.size() == m_buffer_size) sort_and_flush(buffer);
-        // std::cout << "minimizer is NEW with position_in_sequence = "
-        //           << mini_info.position_in_sequence << std::endl;
         buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
                             num_kmers_in_super_kmer, mini_info.position_in_kmer);
     }
@@ -242,7 +239,7 @@ struct minimizers_tuples {
 
     std::string get_minimizers_filename() const {
         assert(m_num_files_to_merge > 0);
-        if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
+        // if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
         return filename.str();
@@ -268,16 +265,18 @@ struct minimizers_tuples {
 
         if (m_num_files_to_merge == 0) return;
 
-        // Note: m_num_files_to_merge is always at least 2 for canonical indexes,
-        // so for regular indexes we do not count the number of super_kmers...
         if (m_num_files_to_merge == 1) {
+            std::rename(get_tmp_output_filename(0).c_str(), get_minimizers_filename().c_str());
             if (m_num_minimizers != 0) return;
+            assert(m_num_minimizers == 0);
+            assert(m_num_super_kmers == 0);
             /* just count num. distinct minimizers and do not write twice on disk */
             mm::file_source<minimizer_tuple> input(get_minimizers_filename(),
                                                    mm::advice::sequential);
             for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
                  it.has_next(); it.next()) {
                 ++m_num_minimizers;
+                m_num_super_kmers += it.list().size();
             }
             input.close();
             return;
@@ -342,7 +341,6 @@ struct minimizers_tuples {
 
             fm_iterator.next();
         }
-        std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
 
         out.close();
         fm_iterator.close();
