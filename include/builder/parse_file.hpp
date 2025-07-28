@@ -193,12 +193,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             assert(mini_info.position_in_sequence < end - m + 1);
             assert(mini_info.position_in_kmer < k - m + 1);
 
-            // std::cout << "kmer = '" << util::uint_kmer_to_string(uint_kmer, k) << "'" <<
-            // std::endl; std::cout << "minimizer = '"
-            //           << util::uint_kmer_to_string<kmer_t>(mini_info.minimizer, m)
-            //           << "' with position in sequence = " << mini_info.position_in_sequence
-            //           << " and position in kmer = " << mini_info.position_in_kmer << "\n";
-
             rc = false;
             if (build_config.canonical) {
                 auto uint_kmer_rc = uint_kmer;
@@ -216,13 +210,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
             if (mini_info.minimizer != prev_mini_info.minimizer or
                 mini_info.position_in_sequence != prev_mini_info.position_in_sequence) {
-                // std::cout << "saving minimizer = '"
-                //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                //           << "' with position in sequence = " <<
-                //           prev_mini_info.position_in_sequence
-                //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
-                //           << " and position in kmer = " << prev_mini_info.position_in_kmer <<
-                //           "\n";
                 assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
                 data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer, rc);
                 prev_mini_info = mini_info;
@@ -233,11 +220,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             it.next();
         }
 
-        // std::cout << "saving minimizer = '"
-        //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-        //           << "' with position in sequence = " << prev_mini_info.position_in_sequence
-        //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
-        //           << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
         assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
         data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer, rc);
     }

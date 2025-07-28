@@ -239,7 +239,6 @@ struct minimizers_tuples {
 
     std::string get_minimizers_filename() const {
         assert(m_num_files_to_merge > 0);
-        // if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
         std::stringstream filename;
         filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
         return filename.str();
@@ -306,13 +305,6 @@ struct minimizers_tuples {
                 prev_minimizer = mt.minimizer;
                 to_write = mt;
                 ++m_num_minimizers;
-                // std::cout << "writing to_write.minimizer = "
-                //           << util::uint_minimizer_to_string<default_kmer_t>(to_write.minimizer,
-                //           13)
-                //           << " to_write.offset = " << to_write.offset
-                //           << " to_write.jump_back = " << int(to_write.jump_back)
-                //           << " to_write.num_kmers_in_super_kmer = "
-                //           << int(to_write.num_kmers_in_super_kmer) << std::endl;
                 out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
                 m_num_super_kmers += 1;
                 prev_offset = mt.offset;
@@ -322,14 +314,6 @@ struct minimizers_tuples {
                     out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
                     m_num_super_kmers += 1;
                     prev_offset = mt.offset;
-                    // std::cout << "writing to_write.minimizer = "
-                    //           <<
-                    //           util::uint_minimizer_to_string<default_kmer_t>(to_write.minimizer,
-                    //                                                             13)
-                    //           << " to_write.offset = " << to_write.offset
-                    //           << " to_write.jump_back = " << int(to_write.jump_back)
-                    //           << " to_write.num_kmers_in_super_kmer = "
-                    //           << int(to_write.num_kmers_in_super_kmer) << std::endl;
                 } else {
                     to_write.num_kmers_in_super_kmer += mt.num_kmers_in_super_kmer;
                 }
