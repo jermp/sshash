@@ -169,6 +169,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     timer.start();
 
     /*
+        TODO:
         We could distribute the sequences to multiple threads
         and do this computation in parallel.
     */
@@ -185,8 +186,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         minimizer_it.set_position(begin);
         minimizer_it_rc.set_position(begin);
 
-        std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " << begin
-                  << ", end = " << end << std::endl;
+        // std::cout << "===> sequence " << i << ", length = " << sequence_len << ", begin = " <<
+        // begin
+        //           << ", end = " << end << std::endl;
 
         for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
             auto uint_kmer = it.get();
@@ -243,11 +245,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
             if (mini_info.minimizer != prev_mini_info.minimizer or
                 mini_info.position_in_sequence != prev_mini_info.position_in_sequence) {
-                std::cout << "saving minimizer = '"
-                          << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                          << "' with position in sequence = " << prev_mini_info.position_in_sequence
-                          << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
-                          << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
+                // std::cout << "saving minimizer = '"
+                //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
+                //           << "' with position in sequence = " <<
+                //           prev_mini_info.position_in_sequence
+                //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
+                //           << " and position in kmer = " << prev_mini_info.position_in_kmer <<
+                //           "\n";
                 assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
                 data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer);
                 data.num_super_kmers += 1;
@@ -261,11 +265,11 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             // std::cout << std::endl;
         }
 
-        std::cout << "saving minimizer = '"
-                  << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                  << "' with position in sequence = " << prev_mini_info.position_in_sequence
-                  << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
-                  << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
+        // std::cout << "saving minimizer = '"
+        //           << util::uint_kmer_to_string<kmer_t>(prev_mini_info.minimizer, m)
+        //           << "' with position in sequence = " << prev_mini_info.position_in_sequence
+        //           << " and num_kmers_in_super_kmer = " << num_kmers_in_super_kmer
+        //           << " and position in kmer = " << prev_mini_info.position_in_kmer << "\n";
         assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
         data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer);
         data.num_super_kmers += 1;

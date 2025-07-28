@@ -75,6 +75,9 @@ struct minimizer_info {
         , position_in_sequence(constants::invalid_uint64)
         , position_in_kmer(constants::invalid_uint64) {}
 
+    minimizer_info(uint64_t mm, uint64_t pk)
+        : minimizer(mm), position_in_sequence(constants::invalid_uint64), position_in_kmer(pk) {}
+
     minimizer_info(uint64_t mm, uint64_t ps, uint64_t pk)
         : minimizer(mm), position_in_sequence(ps), position_in_kmer(pk) {}
 
@@ -258,7 +261,7 @@ minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m
         }
         kmer.drop_char();
     }
-    return {uint64_t(minimizer), constants::invalid_uint64, pos};
+    return {uint64_t(minimizer), pos};
 }
 
 }  // namespace util
