@@ -214,14 +214,23 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
             {
                 assert(mini_tuple.offset >= mini_tuple.jump_back);
                 uint64_t offset = mini_tuple.offset - mini_tuple.jump_back;
+                // std::cout << "mini_tuple.minimizer = " << mini_tuple.minimizer
+                //           << " mini_tuple.offset = " << mini_tuple.offset
+                //           << " mini_tuple.jump_back = " << int(mini_tuple.jump_back)
+                //           << " offset = " << offset << std::endl;
                 kmer_iterator<kmer_t> it(m_buckets.strings, k, kmer_t::bits_per_char * offset);
                 for (uint64_t i = 0; i != mini_tuple.num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
+                    // std::cout << "kmer '" << util::uint_kmer_to_string(kmer, k) << "'" <<
+                    // std::endl;
                     if (build_config.canonical) { /* take the canonical kmer */
                         auto kmer_rc = kmer;
                         kmer_rc.reverse_complement_inplace(k);
                         kmer = std::min(kmer, kmer_rc);
                     }
+                    // std::cout << "  (canonical kmer '" << util::uint_kmer_to_string(kmer, k) <<
+                    // "')"
+                    //           << std::endl;
                     keys_in_partition.push_back(kmer);
                     super_kmer_ids_in_partition.push_back(super_kmer_id);
                     it.next();

@@ -92,6 +92,14 @@ struct minimizer_tuple {
 };
 #pragma pack(pop)
 
+inline std::ostream& operator<<(std::ostream& os, minimizer_tuple const& mt) {
+    os << "minimizer = " << mt.minimizer << std::endl;
+    os << "offset = " << mt.offset << std::endl;
+    os << "num_kmers_in_super_kmer = " << int(mt.num_kmers_in_super_kmer) << std::endl;
+    os << "jump_back = " << int(mt.jump_back) << std::endl;
+    return os;
+}
+
 struct list_type {
     list_type(minimizer_tuple const* begin, minimizer_tuple const* end)
         : m_begin(begin), m_end(end), m_size(std::distance(begin, end)) {}
@@ -199,9 +207,11 @@ struct minimizers_tuples {
     }
 
     void emplace_back(std::vector<minimizer_tuple>& buffer, minimizer_info mini_info,
-                      uint64_t num_kmers_in_super_kmer) {
+                      uint64_t num_kmers_in_super_kmer)  //
+    {
         if (!buffer.empty() and buffer.back().minimizer == mini_info.minimizer) {
-            if (buffer.back().offset == mini_info.position_in_sequence) {
+            if (buffer.back().offset == mini_info.position_in_sequence and
+                buffer.back().jump_back == mini_info.position_in_kmer) {
                 buffer.back().num_kmers_in_super_kmer += num_kmers_in_super_kmer;
             } else {
                 buffer.emplace_back(mini_info.minimizer, mini_info.position_in_sequence,
@@ -292,6 +302,7 @@ struct minimizers_tuples {
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
 
+        uint64_t num_super_kmers = 0;
         m_num_minimizers = 0;
         m_num_super_kmers = 0;
         uint64_t prev_minimizer = constants::invalid_uint64;
@@ -301,23 +312,40 @@ struct minimizers_tuples {
             auto file_it = *fm_iterator;
             minimizer_tuple mt = *file_it;
 
+            // std::cout << "----" << std::endl;
+            // std::cout << mt << std::endl;
+
+            // if (mt.minimizer != prev_minimizer) {
+            //     prev_minimizer = mt.minimizer;
+            //     to_write = mt;
+            //     ++m_num_minimizers;
+            //     out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
+            //     m_num_super_kmers += 1;
+            //     prev_offset = mt.offset;
+            // } else {
+            //     if (mt.offset != prev_offset) {
+            //         to_write = mt;
+            //         out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
+            //         m_num_super_kmers += 1;
+            //         prev_offset = mt.offset;
+            //     } else {
+            //         to_write.num_kmers_in_super_kmer += mt.num_kmers_in_super_kmer;
+            //     }
+            // }
+
             if (mt.minimizer != prev_minimizer) {
                 prev_minimizer = mt.minimizer;
-                to_write = mt;
                 ++m_num_minimizers;
-                out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
-                m_num_super_kmers += 1;
-                prev_offset = mt.offset;
+                ++num_super_kmers;
             } else {
                 if (mt.offset != prev_offset) {
-                    to_write = mt;
-                    out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
-                    m_num_super_kmers += 1;
                     prev_offset = mt.offset;
-                } else {
-                    to_write.num_kmers_in_super_kmer += mt.num_kmers_in_super_kmer;
+                    ++num_super_kmers;
                 }
             }
+            to_write = mt;
+            out.write(reinterpret_cast<char const*>(&to_write), sizeof(minimizer_tuple));
+            m_num_super_kmers += 1;
 
             if (m_num_super_kmers % 50000000 == 0) {
                 std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
@@ -325,6 +353,8 @@ struct minimizers_tuples {
 
             fm_iterator.next();
         }
+
+        std::cout << "NUM SUPER KMERS = " << num_super_kmers << std::endl;
 
         out.close();
         fm_iterator.close();
