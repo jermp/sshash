@@ -5,16 +5,17 @@
 namespace sshash {
 
 template <class kmer_t>
-void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data,
-                      buckets<kmer_t> const& m_buckets, build_configuration const& build_config,
+void build_skew_index(skew_index<kmer_t>& m_skew_index,         //
+                      parse_data<kmer_t>& data,                 //
+                      buckets<kmer_t> const& m_buckets,         //
+                      build_configuration const& build_config,  //
                       buckets_statistics const& buckets_stats)  //
 {
     const uint64_t min_log2_size = m_skew_index.min_log2;
     const uint64_t max_log2_size = m_skew_index.max_log2;
     const uint64_t min_size = 1ULL << min_log2_size;
     const uint64_t k = build_config.k;
-    const uint64_t m = build_config.m;
-    assert(k > 0 and m <= k);
+    assert(build_config.k > 0 and build_config.m <= build_config.k);
 
     m_skew_index.log2_max_bucket_size = std::ceil(std::log2(buckets_stats.max_bucket_size()));
 
@@ -73,7 +74,7 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
     }
     std::cout << "num_partitions " << num_partitions << std::endl;
 
-    std::vector<uint64_t> num_kmers_in_partition(num_partitions, 0);
+    std::vector<uint64_t> num_kmers(num_partitions, 0);
     m_skew_index.mphfs.resize(num_partitions);
     m_skew_index.positions.resize(num_partitions);
 
@@ -88,9 +89,8 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
             while (i == buckets.size() or buckets[i].size() > upper) {
                 std::cout << "  partition_id = " << partition_id
                           << ": num_kmers belonging to buckets of size > " << lower
-                          << " and <= " << upper << ": " << num_kmers_in_partition[partition_id]
-                          << std::endl;
-                num_kmers_in_skew_index += num_kmers_in_partition[partition_id];
+                          << " and <= " << upper << ": " << num_kmers[partition_id] << std::endl;
+                num_kmers_in_skew_index += num_kmers[partition_id];
 
                 if (i == buckets.size()) break;
 
@@ -103,17 +103,14 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
             if (i == buckets.size()) break;
 
             assert(buckets[i].size() > lower and buckets[i].size() <= upper);
-            for (auto mt : buckets[i]) {
-                num_kmers_in_partition[partition_id] += mt.num_kmers_in_super_kmer;
-            }
+            for (auto mt : buckets[i]) { num_kmers[partition_id] += mt.num_kmers_in_super_kmer; }
         }
         assert(partition_id == num_partitions - 1);
         std::cout << "num_kmers_in_skew_index " << num_kmers_in_skew_index << " ("
                   << (num_kmers_in_skew_index * 100.0) / buckets_stats.num_kmers() << "%)"
                   << std::endl;
-        assert(num_kmers_in_skew_index == std::accumulate(num_kmers_in_partition.begin(),
-                                                          num_kmers_in_partition.end(),
-                                                          uint64_t(0)));
+        assert(num_kmers_in_skew_index ==
+               std::accumulate(num_kmers.begin(), num_kmers.end(), uint64_t(0)));
     }
 
     {
@@ -132,31 +129,29 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
         uint64_t upper = 2 * lower;
         uint64_t num_bits_per_pos = min_log2_size + 1;
 
-        /* tmp storage for kmers and minimizer_occ_ids ******/
-        std::vector<kmer_t> kmers_in_partition;
-        std::vector<uint32_t> minimizer_occ_ids_in_partition;
-        kmers_in_partition.reserve(num_kmers_in_partition[partition_id]);
-        minimizer_occ_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
+        /* Temporary storage for kmers and positions within a partition. */
+        std::vector<kmer_t> kmers;
+        std::vector<uint32_t> positions_in_bucket;
         bits::compact_vector::builder cvb_positions;
-        cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
-        /*******/
+        kmers.reserve(num_kmers[partition_id]);
+        positions_in_bucket.reserve(num_kmers[partition_id]);
+        cvb_positions.resize(num_kmers[partition_id], num_bits_per_pos);
 
         for (uint64_t i = 0; i <= buckets.size(); ++i) {
             while (i == buckets.size() or buckets[i].size() > upper) {
-                std::cout << "  lower " << lower << "; upper " << upper << "; num_bits_per_pos "
-                          << num_bits_per_pos << "; kmers_in_partition.size() "
-                          << kmers_in_partition.size() << std::endl;
-                assert(num_kmers_in_partition[partition_id] == kmers_in_partition.size());
-                assert(num_kmers_in_partition[partition_id] ==
-                       minimizer_occ_ids_in_partition.size());
+                std::cout << "  lower = " << lower << "; upper = " << upper
+                          << "; num_bits_per_pos = " << num_bits_per_pos
+                          << "; num_kmers_in_partition = " << kmers.size() << std::endl;
+                assert(num_kmers[partition_id] == kmers.size());
+                assert(num_kmers[partition_id] == positions_in_bucket.size());
 
-                if (num_kmers_in_partition[partition_id] > 0)  //
+                if (num_kmers[partition_id] > 0)  //
                 {
                     if (build_config.verbose) {
-                        const uint64_t avg_partition_size = pthash::compute_avg_partition_size(
-                            kmers_in_partition.size(), mphf_build_config);
-                        const uint64_t num_partitions = pthash::compute_num_partitions(
-                            kmers_in_partition.size(), avg_partition_size);
+                        const uint64_t avg_partition_size =
+                            pthash::compute_avg_partition_size(kmers.size(), mphf_build_config);
+                        const uint64_t num_partitions =
+                            pthash::compute_num_partitions(kmers.size(), avg_partition_size);
                         assert(num_partitions > 0);
                         std::cout << "    building MPHF with " << mphf_build_config.num_threads
                                   << " threads and " << num_partitions
@@ -165,19 +160,18 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
                     }
 
                     auto& mphf = m_skew_index.mphfs[partition_id];
-                    mphf.build_in_internal_memory(kmers_in_partition.begin(),
-                                                  kmers_in_partition.size(), mphf_build_config);
+                    mphf.build_in_internal_memory(kmers.begin(), kmers.size(), mphf_build_config);
 
-                    std::cout << "    built mphs[" << partition_id << "] for "
-                              << kmers_in_partition.size() << " kmers; bits/key = "
+                    std::cout << "    built mphs[" << partition_id << "] for " << kmers.size()
+                              << " kmers; bits/key = "
                               << static_cast<double>(mphf.num_bits()) / mphf.num_keys()
                               << std::endl;
 
-                    for (uint64_t i = 0; i != kmers_in_partition.size(); ++i) {
-                        kmer_t kmer = kmers_in_partition[i];
+                    for (uint64_t i = 0; i != kmers.size(); ++i) {
+                        kmer_t kmer = kmers[i];
                         uint64_t pos = mphf(kmer);
-                        uint32_t minimizer_occ_id = minimizer_occ_ids_in_partition[i];
-                        cvb_positions.set(pos, minimizer_occ_id);
+                        uint32_t pos_in_bucket = positions_in_bucket[i];
+                        cvb_positions.set(pos, pos_in_bucket);
                     }
                     auto& positions = m_skew_index.positions[partition_id];
                     cvb_positions.build(positions);
@@ -198,23 +192,23 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
                     num_bits_per_pos = m_skew_index.log2_max_bucket_size;
                 }
 
-                kmers_in_partition.clear();
-                minimizer_occ_ids_in_partition.clear();
-                kmers_in_partition.reserve(num_kmers_in_partition[partition_id]);
-                minimizer_occ_ids_in_partition.reserve(num_kmers_in_partition[partition_id]);
-                cvb_positions.resize(num_kmers_in_partition[partition_id], num_bits_per_pos);
+                kmers.clear();
+                positions_in_bucket.clear();
+                kmers.reserve(num_kmers[partition_id]);
+                positions_in_bucket.reserve(num_kmers[partition_id]);
+                cvb_positions.resize(num_kmers[partition_id], num_bits_per_pos);
             }
 
             if (i == buckets.size()) break;
 
             assert(buckets[i].size() > lower and buckets[i].size() <= upper);
-            uint64_t minimizer_occ_id = -1;
+            uint64_t pos_in_bucket = -1;
             uint64_t prev_pos_in_seq = constants::invalid_uint64;
             for (auto mt : buckets[i])  //
             {
                 if (mt.pos_in_seq != prev_pos_in_seq) {
                     prev_pos_in_seq = mt.pos_in_seq;
-                    ++minimizer_occ_id;
+                    ++pos_in_bucket;
                 }
                 assert(mt.pos_in_seq >= mt.pos_in_kmer);
                 const uint64_t starting_pos_of_super_kmer = mt.pos_in_seq - mt.pos_in_kmer;
@@ -227,11 +221,11 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index, parse_data<kmer_t>& data
                         kmer_rc.reverse_complement_inplace(k);
                         kmer = std::min(kmer, kmer_rc);
                     }
-                    kmers_in_partition.push_back(kmer);
-                    minimizer_occ_ids_in_partition.push_back(minimizer_occ_id);
+                    kmers.push_back(kmer);
+                    positions_in_bucket.push_back(pos_in_bucket);
                     it.next();
                 }
-                assert(minimizer_occ_id < (1ULL << cvb_positions.width()));
+                assert(pos_in_bucket < (1ULL << cvb_positions.width()));
             }
         }
         assert(partition_id == num_partitions - 1);

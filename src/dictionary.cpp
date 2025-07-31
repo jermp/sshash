@@ -22,13 +22,13 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
         return m_buckets.lookup(begin, end, uint_kmer, mini_info, m_k, m_m);
     }
 
-    const uint64_t num_super_kmers_in_bucket = end - begin;
-    const uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(num_super_kmers_in_bucket);
+    const uint64_t bucket_size = end - begin;
+    const uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(bucket_size);
     if (log2_bucket_size > m_skew_index.min_log2) {
-        uint64_t pos = m_skew_index.lookup(uint_kmer, log2_bucket_size);
-        /* It must hold pos < num_super_kmers_in_bucket for the kmer to exist. */
-        if (pos < num_super_kmers_in_bucket) {
-            return m_buckets.lookup(begin + pos, uint_kmer, mini_info, m_k, m_m);
+        uint64_t pos_in_bucket = m_skew_index.lookup(uint_kmer, log2_bucket_size);
+        /* It must hold pos_in_bucket < bucket_size for the kmer to exist. */
+        if (pos_in_bucket < bucket_size) {
+            return m_buckets.lookup(begin + pos_in_bucket, uint_kmer, mini_info, m_k, m_m);
         }
         return lookup_result();
     }
@@ -71,14 +71,14 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
         return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m);
     }
 
-    const uint64_t num_super_kmers_in_bucket = end - begin;
-    const uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(num_super_kmers_in_bucket);
+    const uint64_t bucket_size = end - begin;
+    const uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(bucket_size);
     if (log2_bucket_size > m_skew_index.min_log2) {
         auto uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
-        uint64_t pos = m_skew_index.lookup(uint_kmer_canon, log2_bucket_size);
-        if (pos < num_super_kmers_in_bucket) {
-            auto res = m_buckets.lookup_canonical(begin + pos, uint_kmer, uint_kmer_rc, mini_info,
-                                                  m_k, m_m);
+        uint64_t pos_in_bucket = m_skew_index.lookup(uint_kmer_canon, log2_bucket_size);
+        if (pos_in_bucket < bucket_size) {
+            auto res = m_buckets.lookup_canonical(begin + pos_in_bucket, uint_kmer, uint_kmer_rc,
+                                                  mini_info, m_k, m_m);
             if (res.kmer_id != constants::invalid_uint64) return res;
         }
         return lookup_result();

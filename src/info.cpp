@@ -49,9 +49,9 @@ void dictionary<kmer_t>::print_space_breakdown() const {
               << " [bits/key]) -- " << perc(m_minimizers.num_bits(), num_bits()) << "%\n";
     std::cout << "  pieces: " << (8.0 * m_buckets.pieces.num_bytes()) / size() << " [bits/kmer] -- "
               << perc(m_buckets.pieces.num_bytes() * 8, num_bits()) << "%\n";
-    std::cout << "  num_super_kmers_before_bucket: "
-              << (m_buckets.bucket_sizes.num_bytes() * 8.0) / size() << " [bits/kmer] -- "
-              << perc(m_buckets.bucket_sizes.num_bytes() * 8, num_bits()) << "%\n";
+    std::cout << "  sizes: " << (m_buckets.bucket_sizes.num_bytes() * 8.0) / size()
+              << " [bits/kmer] -- " << perc(m_buckets.bucket_sizes.num_bytes() * 8, num_bits())
+              << "%\n";
     std::cout << "  offsets: " << (8.0 * m_buckets.offsets.num_bytes()) / size()
               << " [bits/kmer] -- " << perc(8 * m_buckets.offsets.num_bytes(), num_bits()) << "%\n";
     std::cout << "  strings: " << (8.0 * m_buckets.strings.num_bytes()) / size()
@@ -60,7 +60,7 @@ void dictionary<kmer_t>::print_space_breakdown() const {
               << " [bits/kmer] -- " << perc(m_skew_index.num_bits(), num_bits()) << "%\n";
     std::cout << "  weights: " << static_cast<double>(m_weights.num_bits()) / size()
               << " [bits/kmer] -- " << perc(m_weights.num_bits(), num_bits()) << "%\n";
-    m_weights.print_space_breakdown(size());
+    if (weighted()) m_weights.print_space_breakdown(size());
     std::cout << "  --------------\n";
     std::cout << "  total: " << static_cast<double>(num_bits()) / size() << " [bits/kmer]"
               << std::endl;

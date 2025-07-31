@@ -70,9 +70,9 @@ struct buckets  //
                          const uint64_t k, const uint64_t m) const  //
     {
         { /* check minimizer first */
-            uint64_t pos_minimizer_in_string = offsets.access(begin);
-            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
-                strings, m, kmer_t::bits_per_char * pos_minimizer_in_string));
+            uint64_t pos_in_seq = offsets.access(begin);
+            uint64_t read_mmer = uint64_t(
+                util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * pos_in_seq));
             if (read_mmer != mini_info.minimizer) {
                 auto res = lookup_result();
                 res.minimizer_found = false;
@@ -91,13 +91,13 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup(uint64_t super_kmer_id, kmer_t kmer, minimizer_info mini_info,
-                         const uint64_t k, const uint64_t m) const  //
+    lookup_result lookup(uint64_t i, kmer_t kmer, minimizer_info mini_info, const uint64_t k,
+                         const uint64_t m) const  //
     {
         (void)m;
-        uint64_t pos_minimizer_in_string = offsets.access(super_kmer_id);
-        if (pos_minimizer_in_string >= mini_info.pos_in_kmer) {
-            uint64_t offset = pos_minimizer_in_string - mini_info.pos_in_kmer;
+        uint64_t pos_in_seq = offsets.access(i);
+        if (pos_in_seq >= mini_info.pos_in_kmer) {
+            uint64_t offset = pos_in_seq - mini_info.pos_in_kmer;
             auto res = offset_to_id(offset, k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =
@@ -111,15 +111,14 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_canonical(uint64_t begin, uint64_t end,              //
-                                   kmer_t kmer, kmer_t kmer_rc,               //
-                                   minimizer_info mini_info,                  //
-                                   const uint64_t k, const uint64_t m) const  //
+    lookup_result lookup_canonical(uint64_t begin, uint64_t end, kmer_t kmer, kmer_t kmer_rc,
+                                   minimizer_info mini_info, const uint64_t k,
+                                   const uint64_t m) const  //
     {
         { /* check minimizer first */
-            uint64_t pos_minimizer_in_string = offsets.access(begin);
-            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
-                strings, m, kmer_t::bits_per_char * pos_minimizer_in_string));
+            uint64_t pos_in_seq = offsets.access(begin);
+            uint64_t read_mmer = uint64_t(
+                util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * pos_in_seq));
             auto tmp = kmer_t(mini_info.minimizer);
             tmp.reverse_complement_inplace(m);
             uint64_t minimizer_rc = uint64_t(tmp);
@@ -141,15 +140,15 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_canonical(uint64_t super_kmer_id, kmer_t kmer, kmer_t kmer_rc,
-                                   minimizer_info mini_info,                  //
-                                   const uint64_t k, const uint64_t m) const  //
+    lookup_result lookup_canonical(uint64_t i, kmer_t kmer, kmer_t kmer_rc,
+                                   minimizer_info mini_info, const uint64_t k,
+                                   const uint64_t m) const  //
     {
-        uint64_t pos_minimizer_in_string = offsets.access(super_kmer_id);
-        uint64_t pos_minimizer_in_kmer = mini_info.pos_in_kmer;
+        uint64_t pos_in_seq = offsets.access(i);
 
-        if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
-            uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;
+        uint64_t pos_in_kmer = mini_info.pos_in_kmer;
+        if (pos_in_seq >= pos_in_kmer) {
+            uint64_t offset = pos_in_seq - pos_in_kmer;
             auto res = offset_to_id(offset, k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =
@@ -166,10 +165,9 @@ struct buckets  //
             }
         }
 
-        pos_minimizer_in_kmer = k - m - mini_info.pos_in_kmer;
-
-        if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
-            uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;
+        pos_in_kmer = k - m - mini_info.pos_in_kmer;
+        if (pos_in_seq >= pos_in_kmer) {
+            uint64_t offset = pos_in_seq - pos_in_kmer;
             auto res = offset_to_id(offset, k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =

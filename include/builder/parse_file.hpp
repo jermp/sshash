@@ -192,13 +192,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             assert(mini_info.pos_in_seq < end - m + 1);
             assert(mini_info.pos_in_kmer < k - m + 1);
 
-            // std::cout << "minimizer '"
-            //           << util::uint_minimizer_to_string<kmer_t>(mini_info.minimizer, m)
-            //           << "' at position " << mini_info.pos_in_seq
-            //           << " in sequence and at position " << mini_info.pos_in_kmer
-            //           << " in kmer '" << util::uint_kmer_to_string<kmer_t>(uint_kmer, k) << "'"
-            //           << std::endl;
-
             bool mini_rc_is_min = false;
             if (build_config.canonical) {
                 auto uint_kmer_rc = uint_kmer;
@@ -208,16 +201,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 assert(mini_info_rc.pos_in_kmer < k - m + 1);
                 if (mini_info_rc.minimizer < mini_info.minimizer) {
                     mini_info = mini_info_rc;
+                    mini_info.pos_in_kmer = k - m - mini_info.pos_in_kmer;
                     mini_rc_is_min = true;
                 }
-
-                // std::cout << "minimizer_rc '"
-                //           << util::uint_minimizer_to_string<kmer_t>(mini_info_rc.minimizer, m)
-                //           << "' at position " << mini_info_rc.pos_in_seq
-                //           << " in sequence and at position " << mini_info_rc.pos_in_kmer
-                //           << " in kmer_rc '" << util::uint_kmer_to_string<kmer_t>(uint_kmer_rc,
-                //           k)
-                //           << "'" << std::endl;
             }
 
             if (prev_mini_info.minimizer == constants::invalid_uint64) {
@@ -228,14 +214,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             if (mini_info.minimizer != prev_mini_info.minimizer or
                 mini_info.pos_in_seq != prev_mini_info.pos_in_seq) {
                 assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
-                if (prev_mini_rc_is_min) {
-                    prev_mini_info.pos_in_kmer = k - m - prev_mini_info.pos_in_kmer;
-                }
-                // std::cout << "saving minimizer '"
-                //           << util::uint_minimizer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-                //           << "' at position " << prev_mini_info.pos_in_seq
-                //           << " in sequence and at position " << prev_mini_info.pos_in_kmer
-                //           << " in kmer" << std::endl;
                 data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer,
                                              prev_mini_rc_is_min);
                 prev_mini_info = mini_info;
@@ -247,14 +225,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             it.next();
         }
 
-        if (prev_mini_rc_is_min) {
-            prev_mini_info.pos_in_kmer = k - m - prev_mini_info.pos_in_kmer;
-        }
-        // std::cout << "saving minimizer '"
-        //           << util::uint_minimizer_to_string<kmer_t>(prev_mini_info.minimizer, m)
-        //           << "' at position " << prev_mini_info.pos_in_seq
-        //           << " in sequence and at position " << prev_mini_info.pos_in_kmer
-        //           << " in kmer" << std::endl;
         assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
         data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer, prev_mini_rc_is_min);
     }
