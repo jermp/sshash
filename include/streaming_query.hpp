@@ -81,8 +81,7 @@ struct streaming_query {
         if constexpr (canonical) {
             if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
                 m_curr_mini_info.minimizer = m_curr_mini_info_rc.minimizer;
-                m_curr_mini_info.position_in_kmer =
-                    m_k - m_m - m_curr_mini_info_rc.position_in_kmer;
+                m_curr_mini_info.pos_in_kmer = m_k - m_m - m_curr_mini_info_rc.pos_in_kmer;
             }
         }
 

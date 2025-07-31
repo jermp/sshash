@@ -96,8 +96,8 @@ struct buckets  //
     {
         (void)m;
         uint64_t pos_minimizer_in_string = offsets.access(super_kmer_id);
-        if (pos_minimizer_in_string >= mini_info.position_in_kmer) {
-            uint64_t offset = pos_minimizer_in_string - mini_info.position_in_kmer;
+        if (pos_minimizer_in_string >= mini_info.pos_in_kmer) {
+            uint64_t offset = pos_minimizer_in_string - mini_info.pos_in_kmer;
             auto res = offset_to_id(offset, k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =
@@ -146,7 +146,7 @@ struct buckets  //
                                    const uint64_t k, const uint64_t m) const  //
     {
         uint64_t pos_minimizer_in_string = offsets.access(super_kmer_id);
-        uint64_t pos_minimizer_in_kmer = mini_info.position_in_kmer;
+        uint64_t pos_minimizer_in_kmer = mini_info.pos_in_kmer;
 
         if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
             uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;
@@ -166,7 +166,7 @@ struct buckets  //
             }
         }
 
-        pos_minimizer_in_kmer = k - m - mini_info.position_in_kmer;
+        pos_minimizer_in_kmer = k - m - mini_info.pos_in_kmer;
 
         if (pos_minimizer_in_string >= pos_minimizer_in_kmer) {
             uint64_t offset = pos_minimizer_in_string - pos_minimizer_in_kmer;

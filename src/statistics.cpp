@@ -17,15 +17,15 @@ void dictionary<kmer_t>::compute_statistics() const  //
     minimizer_iterator<kmer_t> minimizer_it(m_k, m_m, m_hasher);
 
     for (uint64_t bucket_id = 0; bucket_id != num_minimizers; ++bucket_id) {
-        auto [begin, end] = m_buckets.locate_bucket(bucket_id);
-        uint64_t num_super_kmers_in_bucket = end - begin;
-        buckets_stats.add_num_super_kmers_in_bucket(num_super_kmers_in_bucket);
-        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            const uint64_t position_in_sequence = m_buckets.offsets.access(super_kmer_id);
-            auto p = m_buckets.pieces.locate(position_in_sequence);
+        const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
+        const uint64_t bucket_size = end - begin;
+        buckets_stats.add_bucket_size(bucket_size);
+        for (uint64_t i = begin; i != end; ++i) {
+            const uint64_t pos_in_seq = m_buckets.offsets.access(i);
+            auto p = m_buckets.pieces.locate(pos_in_seq);
             const uint64_t contig_begin = p.first.val;
             const uint64_t contig_end = p.second.val;
-            uint64_t offset = position_in_sequence;
+            uint64_t offset = pos_in_seq;
             if (offset <= m_k - m_m) {
                 assert(contig_begin == 0);
                 offset = 0;
@@ -39,14 +39,13 @@ void dictionary<kmer_t>::compute_statistics() const  //
             uint64_t num_kmers_in_super_kmer = 0;
             auto kmer = it.get();
             auto mini_info = minimizer_it.next(kmer);
-            while (mini_info.position_in_sequence < position_in_sequence) {
+            while (mini_info.pos_in_seq < pos_in_seq) {
                 it.next();
                 kmer = it.get();
                 mini_info = minimizer_it.next(kmer);
             }
-            while (mini_info.position_in_sequence == position_in_sequence and
-                   (mini_info.position_in_sequence - mini_info.position_in_kmer + m_k) <=
-                       contig_end)  //
+            while (mini_info.pos_in_seq == pos_in_seq and
+                   (mini_info.pos_in_seq - mini_info.pos_in_kmer + m_k) <= contig_end)  //
             {
                 num_kmers_in_super_kmer += 1;
                 it.next();
@@ -54,8 +53,7 @@ void dictionary<kmer_t>::compute_statistics() const  //
                 mini_info = minimizer_it.next(kmer);
             }
             assert(num_kmers_in_super_kmer > 0);
-            buckets_stats.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket,
-                                                      num_kmers_in_super_kmer);
+            buckets_stats.add_num_kmers_in_super_kmer(bucket_size, num_kmers_in_super_kmer);
         }
     }
 

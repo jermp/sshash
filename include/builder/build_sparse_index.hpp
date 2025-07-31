@@ -156,15 +156,16 @@ private:
 
 template <class kmer_t>
 buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
-                                      const uint64_t num_buckets,
                                       build_configuration const& build_config)  //
 {
     const uint64_t num_kmers = data.num_kmers;
-    const uint64_t num_super_kmers = data.num_super_kmers;
+    const uint64_t num_minimizer_positions = data.minimizers.num_minimizer_positions();
+    const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
+    const uint64_t num_buckets = data.minimizers.num_minimizers();
     const uint64_t num_threads = build_config.num_threads;
 
     bits::compact_vector::builder offsets_builder;
-    offsets_builder.resize(num_super_kmers,
+    offsets_builder.resize(num_minimizer_positions,
                            std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char)));
 
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / kmer_t::bits_per_char
@@ -181,11 +182,11 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     bucket_pairs bucket_pairs_manager(build_config.tmp_dirname);
     uint64_t num_singletons = 0;
     for (minimizers_tuples_iterator it(begin, end); it.has_next(); it.next()) {
-        uint32_t list_size = it.list().size();
-        assert(list_size > 0);
-        if (list_size != 1) {
+        const uint64_t bucket_size = it.bucket().size();
+        assert(bucket_size > 0);
+        if (bucket_size != 1) {
             uint64_t bucket_id = it.minimizer();
-            bucket_pairs_manager.emplace_back(bucket_id + 1, list_size - 1);
+            bucket_pairs_manager.emplace_back(bucket_id + 1, bucket_size - 1);
         } else {
             ++num_singletons;
         }
@@ -203,20 +204,22 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
             bucket_pairs_manager.get_bucket_pairs_filename(), mm::advice::sequential);
         bucket_pairs_iterator iterator(bucket_pairs_file.data(),
                                        bucket_pairs_file.data() + bucket_pairs_file.size());
-        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1, num_super_kmers - num_buckets);
+        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1,
+                                      num_minimizer_positions - num_buckets);
         bucket_pairs_file.close();
         bucket_pairs_manager.remove_tmp_file();
     } else {
         /* all buckets are singletons, thus pass an empty iterator that always returns 0 */
         bucket_pairs_iterator iterator(nullptr, nullptr);
-        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1, num_super_kmers - num_buckets);
+        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1,
+                                      num_minimizer_positions - num_buckets);
     }
     timer.stop();
     std::cout << "building: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
     timer.reset();
 
-    buckets_statistics buckets_stats(num_buckets, num_kmers, num_super_kmers);
+    buckets_statistics buckets_stats(num_buckets, num_kmers, num_minimizer_positions);
 
     timer.start();
     uint64_t block_size = (num_super_kmers + num_threads - 1) / num_threads;
@@ -248,26 +251,30 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
              it.has_next();                                                            //
              it.next())                                                                //
         {
-            uint64_t bucket_id = it.minimizer();
-            auto [begin, end] = m_buckets.locate_bucket(bucket_id);
-            uint64_t num_super_kmers_in_bucket = end - begin;
-            assert(num_super_kmers_in_bucket > 0);
-            tbs.add_num_super_kmers_in_bucket(num_super_kmers_in_bucket);
+            const uint64_t bucket_id = it.minimizer();
+            const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
+            assert(end > begin);
+            const uint64_t bucket_size = end - begin;
+            assert(bucket_size == it.bucket().size());
+            tbs.add_bucket_size(bucket_size);
             uint64_t pos = 0;
-            auto list = it.list();
-            for (auto mini_tuple : list) {
-                offsets_builder.set(begin + pos++, mini_tuple.offset);
-                tbs.add_num_kmers_in_super_kmer(num_super_kmers_in_bucket,
-                                                mini_tuple.num_kmers_in_super_kmer);
+            auto bucket = it.bucket();
+            uint64_t prev_pos_in_seq = constants::invalid_uint64;
+            for (auto mt : bucket) {
+                if (mt.pos_in_seq != prev_pos_in_seq) {
+                    offsets_builder.set(begin + pos++, mt.pos_in_seq);
+                    prev_pos_in_seq = mt.pos_in_seq;
+                }
+                tbs.add_num_kmers_in_super_kmer(bucket_size, mt.num_kmers_in_super_kmer);
             }
-            assert(pos == num_super_kmers_in_bucket);
+            assert(pos == bucket_size);
         }
     };
 
     std::vector<std::thread> threads(num_threads);
     for (uint64_t thread_id = 0; thread_id != num_threads; ++thread_id) {
         threads_buckets_stats[thread_id] =
-            buckets_statistics(num_buckets, num_kmers, num_super_kmers);
+            buckets_statistics(num_buckets, num_kmers, num_minimizer_positions);
         threads[thread_id] = std::thread(exe, thread_id);
     }
     for (auto& t : threads) {

@@ -72,23 +72,23 @@ struct neighbourhood {
 struct minimizer_info {
     minimizer_info()
         : minimizer(constants::invalid_uint64)
-        , position_in_sequence(constants::invalid_uint64)
-        , position_in_kmer(constants::invalid_uint64) {}
+        , pos_in_seq(constants::invalid_uint64)
+        , pos_in_kmer(constants::invalid_uint64) {}
 
     minimizer_info(uint64_t mm, uint64_t pk)
-        : minimizer(mm), position_in_sequence(constants::invalid_uint64), position_in_kmer(pk) {}
+        : minimizer(mm), pos_in_seq(constants::invalid_uint64), pos_in_kmer(pk) {}
 
     minimizer_info(uint64_t mm, uint64_t ps, uint64_t pk)
-        : minimizer(mm), position_in_sequence(ps), position_in_kmer(pk) {}
+        : minimizer(mm), pos_in_seq(ps), pos_in_kmer(pk) {}
 
     uint64_t minimizer;
-    uint64_t position_in_sequence;
-    uint64_t position_in_kmer;
+    uint64_t pos_in_seq;
+    uint64_t pos_in_kmer;
 
     bool operator==(minimizer_info rhs) const {
-        return minimizer == rhs.minimizer and                        //
-               position_in_sequence == rhs.position_in_sequence and  //
-               position_in_kmer == rhs.position_in_kmer;             //
+        return minimizer == rhs.minimizer and    //
+               pos_in_seq == rhs.pos_in_seq and  //
+               pos_in_kmer == rhs.pos_in_kmer;   //
     }
     bool operator!=(minimizer_info rhs) const { return !(*this == rhs); }
 };

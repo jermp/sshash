@@ -75,14 +75,10 @@ void dictionary<kmer_t>::build(std::string const& filename,
     data.minimizers.merge();
     const uint64_t num_minimizers = data.minimizers.num_minimizers();
     const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
-    assert(num_super_kmers > 0);
-    std::cout << "num_super_kmers = " << num_super_kmers << std::endl;
-    data.num_super_kmers = num_super_kmers;
     {
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-        if (build_config.verbose) std::cout << "num_minimizers " << num_minimizers << std::endl;
         m_minimizers.build(iterator, num_minimizers, build_config);
         input.close();
         assert(m_minimizers.size() == num_minimizers);
@@ -154,7 +150,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_sparse_index(data, m_buckets, num_minimizers, build_config);
+    auto buckets_stats = build_sparse_index(data, m_buckets, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build_sparse_index'");

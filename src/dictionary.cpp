@@ -12,7 +12,7 @@ template <class kmer_t>
 lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,                //
                                                       minimizer_info mini_info) const  //
 {
-    assert(minimizer_info(mini_info.minimizer, mini_info.position_in_kmer) ==
+    assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
            util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
 
     const uint64_t bucket_id = m_minimizers.lookup(mini_info.minimizer);
@@ -75,8 +75,6 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
     const uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(num_super_kmers_in_bucket);
     if (log2_bucket_size > m_skew_index.min_log2) {
         auto uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
-        // std::cout << "looking for canonical kmer '"
-        //           << util::uint_kmer_to_string(uint_kmer_canon, m_k) << "'" << std::endl;
         uint64_t pos = m_skew_index.lookup(uint_kmer_canon, log2_bucket_size);
         if (pos < num_super_kmers_in_bucket) {
             auto res = m_buckets.lookup_canonical(begin + pos, uint_kmer, uint_kmer_rc, mini_info,

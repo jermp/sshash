@@ -28,7 +28,7 @@ struct minimizer_iterator {
     }
 
     void reset() {
-        m_min_position_in_kmer = 0;
+        m_min_pos_in_kmer = 0;
         m_min_position = m_position - 1;
     }
 
@@ -39,7 +39,7 @@ struct minimizer_iterator {
         //           << std::endl;
         // std::cout << "  m_position = " << m_position << std::endl;
 
-        if (m_min_position_in_kmer == 0) {
+        if (m_min_pos_in_kmer == 0) {
             /* min leaves the window: re-scan to compute the new min */
             m_position = m_min_position + 1;
             rescan(kmer);
@@ -52,15 +52,15 @@ struct minimizer_iterator {
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);
                 m_min_position = m_position;
-                m_min_position_in_kmer = m_k - m_m;
+                m_min_pos_in_kmer = m_k - m_m;
             } else {
-                assert(m_min_position_in_kmer > 0);
-                m_min_position_in_kmer -= 1;
+                assert(m_min_pos_in_kmer > 0);
+                m_min_pos_in_kmer -= 1;
             }
         }
 
         // auto got = minimizer_info{m_min_value, constants::invalid_uint64,
-        // m_min_position_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
+        // m_min_pos_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
         // m_hasher); if (got != expected) {
         //     std::cout << "kmer " << util::uint_kmer_to_string<kmer_t>(kmer, m_k) << std::endl;
         //     std::cout << "expected minimizer = "
@@ -68,26 +68,26 @@ struct minimizer_iterator {
         //               << std::endl;
         //     std::cout << "got minimizer = "
         //               << util::uint_minimizer_to_string<kmer_t>(got.minimizer, m_m) << std::endl;
-        //     std::cout << "expected pos in kmer = " << expected.position_in_kmer << std::endl;
-        //     std::cout << "got pos in kmer = " << got.position_in_kmer << std::endl;
+        //     std::cout << "expected pos in kmer = " << expected.pos_in_kmer << std::endl;
+        //     std::cout << "got pos in kmer = " << got.pos_in_kmer << std::endl;
         // }
 
-        assert(minimizer_info(m_min_value, m_min_position_in_kmer) ==
+        assert(minimizer_info(m_min_value, m_min_pos_in_kmer) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
 
-        return {m_min_value, m_min_position, m_min_position_in_kmer};
+        return {m_min_value, m_min_position, m_min_pos_in_kmer};
     }
 
 private:
     uint64_t m_k, m_m;
-    uint64_t m_position, m_min_position_in_kmer;
+    uint64_t m_position, m_min_pos_in_kmer;
     uint64_t m_min_value, m_min_position, m_min_hash;
     hasher_type m_hasher;
 
     void rescan(kmer_t kmer) {
         m_min_hash = constants::invalid_uint64;
         m_min_value = constants::invalid_uint64;
-        m_min_position_in_kmer = 0;
+        m_min_pos_in_kmer = 0;
         uint64_t begin = m_position;
         for (uint64_t i = 0; i != m_k - m_m + 1; ++i, ++m_position) {
             kmer_t mmer = kmer;
@@ -97,11 +97,11 @@ private:
             if (hash < m_min_hash) {  // leftmost
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);
-                m_min_position_in_kmer = i;
+                m_min_pos_in_kmer = i;
             }
         }
         m_position -= 1;
-        m_min_position = begin + m_min_position_in_kmer;
+        m_min_position = begin + m_min_pos_in_kmer;
     }
 };
 
@@ -129,12 +129,12 @@ struct minimizer_iterator_rc {
     }
 
     void reset() {
-        m_min_position_in_kmer = m_k - m_m;
+        m_min_pos_in_kmer = m_k - m_m;
         m_min_position = m_position - 1;
     }
 
     minimizer_info next(kmer_t kmer) {
-        if (m_min_position_in_kmer == m_k - m_m) {
+        if (m_min_pos_in_kmer == m_k - m_m) {
             /* min leaves the window: re-scan to compute the new min */
             m_position = m_min_position + 1;
             rescan(kmer);
@@ -147,15 +147,15 @@ struct minimizer_iterator_rc {
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);
                 m_min_position = m_position;
-                m_min_position_in_kmer = 0;
+                m_min_pos_in_kmer = 0;
             } else {
-                m_min_position_in_kmer += 1;
-                assert(m_min_position_in_kmer <= m_k - m_m);
+                m_min_pos_in_kmer += 1;
+                assert(m_min_pos_in_kmer <= m_k - m_m);
             }
         }
 
         // auto got = minimizer_info{m_min_value, constants::invalid_uint64,
-        // m_min_position_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
+        // m_min_pos_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
         // m_hasher); if (got != expected) {
         //     std::cout << "kmer " << util::uint_kmer_to_string<kmer_t>(kmer, m_k) << std::endl;
         //     std::cout << "expected minimizer = "
@@ -163,26 +163,26 @@ struct minimizer_iterator_rc {
         //               << std::endl;
         //     std::cout << "got minimizer = "
         //               << util::uint_minimizer_to_string<kmer_t>(got.minimizer, m_m) << std::endl;
-        //     std::cout << "expected pos in kmer = " << expected.position_in_kmer << std::endl;
-        //     std::cout << "got pos in kmer = " << got.position_in_kmer << std::endl;
+        //     std::cout << "expected pos in kmer = " << expected.pos_in_kmer << std::endl;
+        //     std::cout << "got pos in kmer = " << got.pos_in_kmer << std::endl;
         // }
 
-        assert((minimizer_info{m_min_value, m_min_position_in_kmer}) ==
+        assert((minimizer_info{m_min_value, m_min_pos_in_kmer}) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
 
-        return {m_min_value, m_min_position, m_min_position_in_kmer};
+        return {m_min_value, m_min_position, m_min_pos_in_kmer};
     }
 
 private:
     uint64_t m_k, m_m;
-    uint64_t m_position, m_min_position_in_kmer;
+    uint64_t m_position, m_min_pos_in_kmer;
     uint64_t m_min_value, m_min_position, m_min_hash;
     hasher_type m_hasher;
 
     void rescan(kmer_t kmer) {
         m_min_hash = constants::invalid_uint64;
         m_min_value = constants::invalid_uint64;
-        m_min_position_in_kmer = 0;
+        m_min_pos_in_kmer = 0;
         uint64_t begin = m_position;
         for (int64_t i = m_k - m_m; i >= 0; --i, ++m_position) {
             kmer_t mmer = kmer;
@@ -192,11 +192,11 @@ private:
             if (hash <= m_min_hash) {  // rightmost
                 m_min_hash = hash;
                 m_min_value = uint64_t(mmer);
-                m_min_position_in_kmer = i;
+                m_min_pos_in_kmer = i;
             }
         }
         m_position -= 1;
-        m_min_position = begin + (m_k - m_min_position_in_kmer - m_m);
+        m_min_position = begin + (m_k - m_min_pos_in_kmer - m_m);
     }
 };
 
