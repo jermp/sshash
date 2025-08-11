@@ -138,6 +138,7 @@ struct dictionary {
     }
 
     const buckets<kmer_t>& data() const { return m_buckets; }
+    const minimizers& get_minimizers() const { return m_minimizers; }
 
 private:
     template <typename Visitor, typename T>
