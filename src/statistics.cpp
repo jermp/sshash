@@ -26,7 +26,7 @@ void dictionary<kmer_t>::compute_statistics() const  //
             const uint64_t contig_begin = p.first.val;
             const uint64_t contig_end = p.second.val;
             uint64_t offset = pos_in_seq;
-            if (offset <= m_k - m_m) {
+            if (offset <= uint64_t(m_k - m_m)) {
                 assert(contig_begin == 0);
                 offset = 0;
             } else if (offset - (m_k - m_m) < contig_begin) {
