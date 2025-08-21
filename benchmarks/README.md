@@ -15,7 +15,7 @@ The datasets and queries used in these benchmarks can be downloaded
 by running the script
 
 ```
-bash donwload-datasets.sh
+bash download-datasets.sh
 ```
 
 To run the benchmarks, from within the `build` directory, run
