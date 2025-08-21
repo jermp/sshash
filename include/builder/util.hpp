@@ -333,10 +333,6 @@ struct minimizers_tuples {
         while (fm_iterator.has_next()) {
             auto file_it = *fm_iterator;
             minimizer_tuple mt = *file_it;
-
-            // std::cout << "---" << std::endl;
-            // std::cout << mt << std::endl;
-
             if (mt.minimizer != prev_minimizer) {
                 prev_minimizer = mt.minimizer;
                 ++m_num_minimizers;

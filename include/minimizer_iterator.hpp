@@ -33,12 +33,6 @@ struct minimizer_iterator {
     }
 
     minimizer_info next(kmer_t kmer) {
-        // std::cout << "  m_min_position = " << m_min_position << std::endl;
-        // std::cout << "  m_min_position + (m_k - m_m + 1) = " << m_min_position + (m_k - m_m +
-        // 1)
-        //           << std::endl;
-        // std::cout << "  m_position = " << m_position << std::endl;
-
         if (m_min_pos_in_kmer == 0) {
             /* min leaves the window: re-scan to compute the new min */
             m_position = m_min_position + 1;
@@ -58,19 +52,6 @@ struct minimizer_iterator {
                 m_min_pos_in_kmer -= 1;
             }
         }
-
-        // auto got = minimizer_info{m_min_value, constants::invalid_uint64,
-        // m_min_pos_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
-        // m_hasher); if (got != expected) {
-        //     std::cout << "kmer " << util::uint_kmer_to_string<kmer_t>(kmer, m_k) << std::endl;
-        //     std::cout << "expected minimizer = "
-        //               << util::uint_minimizer_to_string<kmer_t>(expected.minimizer, m_m)
-        //               << std::endl;
-        //     std::cout << "got minimizer = "
-        //               << util::uint_minimizer_to_string<kmer_t>(got.minimizer, m_m) << std::endl;
-        //     std::cout << "expected pos in kmer = " << expected.pos_in_kmer << std::endl;
-        //     std::cout << "got pos in kmer = " << got.pos_in_kmer << std::endl;
-        // }
 
         assert(minimizer_info(m_min_value, m_min_pos_in_kmer) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
@@ -154,20 +135,7 @@ struct minimizer_iterator_rc {
             }
         }
 
-        // auto got = minimizer_info{m_min_value, constants::invalid_uint64,
-        // m_min_pos_in_kmer}; auto expected = util::compute_minimizer<kmer_t>(kmer, m_k, m_m,
-        // m_hasher); if (got != expected) {
-        //     std::cout << "kmer " << util::uint_kmer_to_string<kmer_t>(kmer, m_k) << std::endl;
-        //     std::cout << "expected minimizer = "
-        //               << util::uint_minimizer_to_string<kmer_t>(expected.minimizer, m_m)
-        //               << std::endl;
-        //     std::cout << "got minimizer = "
-        //               << util::uint_minimizer_to_string<kmer_t>(got.minimizer, m_m) << std::endl;
-        //     std::cout << "expected pos in kmer = " << expected.pos_in_kmer << std::endl;
-        //     std::cout << "got pos in kmer = " << got.pos_in_kmer << std::endl;
-        // }
-
-        assert((minimizer_info{m_min_value, m_min_pos_in_kmer}) ==
+        assert(minimizer_info(m_min_value, m_min_pos_in_kmer) ==
                util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
 
         return {m_min_value, m_min_position, m_min_pos_in_kmer};
