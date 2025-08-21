@@ -228,7 +228,7 @@ Both queries should originate the following report (reported here for reference)
     num_extensions = 4/46 (8.69565%)
 
 The canonical dictionary can be twice as fast as the regular dictionary
-for low-hit workloads, even on this tiny example, for only +0.4 bits/k-mer.
+for low-hit workloads, even on this tiny example, for only +0.3 bits/k-mer.
 
 ### Example 4
 

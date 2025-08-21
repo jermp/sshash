@@ -78,12 +78,6 @@ struct streaming_query {
 
         m_curr_mini_info = m_minimizer_it.next(m_kmer);
         m_curr_mini_info_rc = m_minimizer_it_rc.next(m_kmer_rc);
-        if constexpr (canonical) {
-            if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
-                m_curr_mini_info.minimizer = m_curr_mini_info_rc.minimizer;
-                m_curr_mini_info.pos_in_kmer = m_k - m_m - m_curr_mini_info_rc.pos_in_kmer;
-            }
-        }
 
         /* 3. compute result */
         if (m_remaining_contig_bases == 0) {
@@ -150,8 +144,7 @@ private:
 
         /* if minimizer does not change and previous minimizer was not found,
            surely any kmer having the same minimizer cannot be found as well */
-        if (m_curr_mini_info.minimizer == m_prev_mini_info.minimizer and  //
-            /* always true for canonical = true */
+        if (m_curr_mini_info.minimizer == m_prev_mini_info.minimizer and        //
             m_curr_mini_info_rc.minimizer == m_prev_mini_info_rc.minimizer and  //
             m_res.minimizer_found == false)                                     //
         {
@@ -161,10 +154,15 @@ private:
         }
 
         if constexpr (canonical) {
-            m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
-            if (m_res.kmer_id == constants::invalid_uint64) {
-                m_num_negative += 1;
-                return;
+            if (m_curr_mini_info.minimizer < m_curr_mini_info_rc.minimizer) {
+                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
+            } else if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
+                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
+            } else {
+                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
+                if (m_res.kmer_id == constants::invalid_uint64) {
+                    m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
+                }
             }
         } else {
             m_res = m_dict->lookup_uint_regular(m_kmer, m_curr_mini_info);
@@ -175,11 +173,12 @@ private:
                 m_res.kmer_orientation = constants::backward_orientation;
                 bool minimizer_rc_found = m_res.minimizer_found;
                 m_res.minimizer_found = minimizer_rc_found or minimizer_found;
-                if (m_res.kmer_id == constants::invalid_uint64) {
-                    m_num_negative += 1;
-                    return;
-                }
             }
+        }
+
+        if (m_res.kmer_id == constants::invalid_uint64) {
+            m_num_negative += 1;
+            return;
         }
 
         assert(m_res.minimizer_found == true);
