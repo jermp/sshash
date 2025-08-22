@@ -24,8 +24,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
     const uint64_t k = build_config.k;
     const uint64_t m = build_config.m;
+    assert(k > 0 and k >= m);
     const uint64_t max_num_kmers_in_super_kmer = k - m + 1;
-    assert(k > 0 and m <= k);
 
     if (max_num_kmers_in_super_kmer >= (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8))) {
         throw std::runtime_error(
@@ -68,11 +68,10 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 /*
                     Heder format:
                     >[id] LN:i:[seq_len] ab:Z:[weight_seq]
-                    where [weight_seq] is a space-separated sequence of integer counters (the
-                   weights), whose length is equal to [seq_len]-k+1
+                    where [weight_seq] is a space-separated sequence of integer counters
+                    (the weights), whose length is equal to [seq_len]-k+1.
+                    Example: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
                 */
-
-                // example header: '>12 LN:i:41 ab:Z:2 2 2 2 2 2 2 2 2 2 2'
 
                 expect(sequence[0], '>');
                 uint64_t i = 0;
@@ -101,10 +100,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
                     uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
                     i = sequence.find_first_of(' ', i) + 1;
-
                     data.weights_builder.eat(weight);
                     sum_of_weights += weight;
-
                     if (weight == weight_value) {
                         weight_length += 1;
                     } else {
@@ -168,68 +165,118 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     timer.start();
 
     /*
-        TODO:
-        We could distribute the sequences to multiple threads
-        and do this computation in parallel.
+        Distribute the sequences to worker threads.
+        One writer thread flushes all blocks (std::vector<minimizer_tuple>) to disk.
     */
-    for (uint64_t i = 0; i != num_sequences; ++i) {
-        const uint64_t begin = data.strings.pieces[i];
-        const uint64_t end = data.strings.pieces[i + 1];
-        const uint64_t sequence_len = end - begin;
-        assert(end > begin);
 
-        kmer_iterator<kmer_t> it(data.strings.strings, k, kmer_t::bits_per_char * begin);
-        minimizer_info prev_mini_info;
-        assert(prev_mini_info.minimizer == constants::invalid_uint64);
-        bool prev_mini_rc_is_min = false;
-        uint64_t num_kmers_in_super_kmer = 0;
-        minimizer_it.set_position(begin);
-        minimizer_it_rc.set_position(begin);
+    thread_safe_queue<std::vector<minimizer_tuple>> Q;
 
-        for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
-            auto uint_kmer = it.get();
-            auto mini_info = minimizer_it.next(uint_kmer);
-            assert(mini_info.pos_in_seq < end - m + 1);
-            assert(mini_info.pos_in_kmer < k - m + 1);
+    /* writer thread */
+    std::thread writer([&] {
+        std::vector<minimizer_tuple> buf;
+        while (Q.pop(buf)) data.minimizers.sort_and_flush(buf);
+    });
 
-            bool mini_rc_is_min = false;
-            if (build_config.canonical) {
-                auto uint_kmer_rc = uint_kmer;
-                uint_kmer_rc.reverse_complement_inplace(k);
-                auto mini_info_rc = minimizer_it_rc.next(uint_kmer_rc);
-                assert(mini_info_rc.pos_in_seq < end - m + 1);
-                assert(mini_info_rc.pos_in_kmer < k - m + 1);
-                if (mini_info_rc.minimizer < mini_info.minimizer) {
-                    mini_info = mini_info_rc;
-                    mini_info.pos_in_kmer = k - m - mini_info.pos_in_kmer;
-                    mini_rc_is_min = true;
-                }
-            }
+    const uint64_t num_workers = build_config.num_threads < 2 ? 1 : build_config.num_threads - 1;
+    const uint64_t num_sequences_per_worker = (num_sequences + num_workers - 1) / num_workers;
 
-            if (prev_mini_info.minimizer == constants::invalid_uint64) {
-                prev_mini_info = mini_info;
-                prev_mini_rc_is_min = mini_rc_is_min;
-            }
+    /* worker threads */
+    std::vector<std::thread> workers;
+    workers.reserve(num_workers);
 
-            if (mini_info.minimizer != prev_mini_info.minimizer or
-                mini_info.pos_in_seq != prev_mini_info.pos_in_seq) {
+    for (uint64_t t = 0; t != num_workers; ++t)  //
+    {
+        workers.emplace_back([&, t] {
+            std::vector<minimizer_tuple> buffer;
+            const uint64_t buffer_size = (build_config.ram_limit_in_GiB * essentials::GiB) /
+                                         (sizeof(minimizer_tuple) * num_workers);
+            buffer.reserve(buffer_size);
+
+            auto save = [&Q, &buffer, &buffer_size, &max_num_kmers_in_super_kmer](
+                            minimizer_info mini_info,
+                            uint64_t num_kmers_in_super_kmer)  //
+            {
                 assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
-                data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer,
-                                             prev_mini_rc_is_min);
-                prev_mini_info = mini_info;
-                prev_mini_rc_is_min = mini_rc_is_min;
-                num_kmers_in_super_kmer = 0;
+                if (!buffer.empty() and                                   //
+                    buffer.back().minimizer == mini_info.minimizer and    //
+                    buffer.back().pos_in_seq == mini_info.pos_in_seq and  //
+                    buffer.back().pos_in_kmer == mini_info.pos_in_kmer)   //
+                {
+                    buffer.back().num_kmers_in_super_kmer += num_kmers_in_super_kmer;
+                    return;
+                }
+                if (buffer.size() == buffer_size) {
+                    Q.push(std::move(buffer));
+                    buffer.clear();
+                    buffer.reserve(buffer_size);
+                }
+                buffer.emplace_back(mini_info, num_kmers_in_super_kmer);
+            };
+
+            const uint64_t index_begin = t * num_sequences_per_worker;
+            const uint64_t index_end =
+                std::min<uint64_t>(index_begin + num_sequences_per_worker, num_sequences);
+
+            for (uint64_t i = index_begin; i != index_end; ++i)  //
+            {
+                const uint64_t begin = data.strings.pieces[i];
+                const uint64_t end = data.strings.pieces[i + 1];
+                const uint64_t sequence_len = end - begin;
+                assert(sequence_len >= k);
+
+                kmer_iterator<kmer_t> it(data.strings.strings, k, kmer_t::bits_per_char * begin);
+                minimizer_info prev_mini_info;
+                assert(prev_mini_info.minimizer == constants::invalid_uint64);
+                uint64_t num_kmers_in_super_kmer = 0;
+
+                minimizer_iterator<kmer_t> minimizer_it(k, m, hasher, begin);
+                minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher, begin);
+
+                for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
+                    auto uint_kmer = it.get();
+                    auto mini_info = minimizer_it.next(uint_kmer);
+                    assert(mini_info.pos_in_seq < end - m + 1);
+                    assert(mini_info.pos_in_kmer < k - m + 1);
+
+                    if (build_config.canonical) {
+                        auto uint_kmer_rc = uint_kmer;
+                        uint_kmer_rc.reverse_complement_inplace(k);
+                        auto mini_info_rc = minimizer_it_rc.next(uint_kmer_rc);
+                        assert(mini_info_rc.pos_in_seq < end - m + 1);
+                        assert(mini_info_rc.pos_in_kmer < k - m + 1);
+                        if (mini_info_rc.minimizer < mini_info.minimizer) {
+                            mini_info = mini_info_rc;
+                            mini_info.pos_in_kmer = k - m - mini_info.pos_in_kmer;
+                        }
+                    }
+
+                    if (prev_mini_info.minimizer == constants::invalid_uint64) {
+                        prev_mini_info = mini_info;
+                    }
+
+                    if (mini_info.minimizer != prev_mini_info.minimizer or
+                        mini_info.pos_in_seq != prev_mini_info.pos_in_seq)  //
+                    {
+                        save(prev_mini_info, num_kmers_in_super_kmer);
+                        prev_mini_info = mini_info;
+                        num_kmers_in_super_kmer = 0;
+                    }
+
+                    num_kmers_in_super_kmer += 1;
+                    it.next();
+                }
+
+                save(prev_mini_info, num_kmers_in_super_kmer);
             }
 
-            num_kmers_in_super_kmer += 1;
-            it.next();
-        }
-
-        assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
-        data.minimizers.emplace_back(prev_mini_info, num_kmers_in_super_kmer, prev_mini_rc_is_min);
+            /* flush leftover */
+            if (!buffer.empty()) Q.push(std::move(buffer));
+        });
     }
 
-    data.minimizers.finalize();
+    for (auto& w : workers) w.join();  // wait for all workers
+    Q.close();                         // signal writer to finish
+    writer.join();                     // wait for writer to drain queue
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing_minimizers_tuples'");

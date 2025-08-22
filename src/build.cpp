@@ -101,19 +101,18 @@ void dictionary<kmer_t>::build(std::string const& filename,
         const uint64_t num_files_to_merge = data.minimizers.num_files_to_merge();
 
         data.minimizers.init();
-        data.minimizers.set_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
-                                        (2 * sizeof(minimizer_tuple)));
 
-        const uint64_t buffer_size =
-            num_files_to_merge == 1 ? num_super_kmers : data.minimizers.buffer_size();
+        const uint64_t buffer_size = num_files_to_merge == 1
+                                         ? num_super_kmers
+                                         : ((build_config.ram_limit_in_GiB * essentials::GiB) /
+                                            (2 * sizeof(minimizer_tuple)));
         const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
         assert(num_super_kmers > (num_blocks - 1) * buffer_size);
 
         std::vector<std::thread> threads;
         threads.reserve(num_threads);
 
-        auto& buffer = data.minimizers.buffer();
-
+        std::vector<minimizer_tuple> buffer;
         for (uint64_t i = 0; i != num_blocks; ++i) {
             const uint64_t n = (i == num_blocks - 1)
                                    ? num_super_kmers - (num_blocks - 1) * buffer_size
@@ -138,7 +137,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
             data.minimizers.sort_and_flush(buffer);
         }
 
-        data.minimizers.finalize();
+        assert(buffer.empty());
         data.minimizers.merge();
         input.close();
     }

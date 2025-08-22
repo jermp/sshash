@@ -1,5 +1,12 @@
 #pragma once
 
+#include <thread>
+#include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
 
@@ -209,39 +216,9 @@ struct minimizers_tuples {
         , m_tmp_dirname(build_config.tmp_dirname)  //
     {
         init();
-        set_buffer_size((build_config.ram_limit_in_GiB * essentials::GiB) /
-                        (3 * sizeof(minimizer_tuple)));
-        m_buffer.reserve(m_buffer_size);
-        m_buffer_rc.reserve(m_buffer_size);
     }
 
     void init() { m_num_files_to_merge = 0; }
-
-    void set_buffer_size(uint64_t buffer_size) { m_buffer_size = buffer_size; }
-
-    void emplace_back(minimizer_info mini_info, uint64_t num_kmers_in_super_kmer, bool rc) {
-        if (rc) {
-            emplace_back(m_buffer_rc, mini_info, num_kmers_in_super_kmer);
-        } else {
-            emplace_back(m_buffer, mini_info, num_kmers_in_super_kmer);
-        }
-    }
-
-    void emplace_back(std::vector<minimizer_tuple>& buffer, minimizer_info mini_info,
-                      uint64_t num_kmers_in_super_kmer)  //
-    {
-        if (!buffer.empty() and buffer.back().minimizer == mini_info.minimizer) {
-            if (buffer.back().pos_in_seq == mini_info.pos_in_seq and
-                buffer.back().pos_in_kmer == mini_info.pos_in_kmer) {
-                buffer.back().num_kmers_in_super_kmer += num_kmers_in_super_kmer;
-            } else {
-                buffer.emplace_back(mini_info, num_kmers_in_super_kmer);
-            }
-            return;
-        }
-        if (buffer.size() == m_buffer_size) sort_and_flush(buffer);
-        buffer.emplace_back(mini_info, num_kmers_in_super_kmer);
-    }
 
     void sort_and_flush(std::vector<minimizer_tuple>& buffer) {
         m_temp_buffer.resize(buffer.size());
@@ -259,11 +236,6 @@ struct minimizers_tuples {
         out.close();
         buffer.clear();
         ++m_num_files_to_merge;
-    }
-
-    void finalize() {
-        if (!m_buffer.empty()) sort_and_flush(m_buffer);
-        if (!m_buffer_rc.empty()) sort_and_flush(m_buffer_rc);
     }
 
     std::string get_minimizers_filename() const {
@@ -287,8 +259,6 @@ struct minimizers_tuples {
     files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
 
     void merge() {
-        assert(m_buffer.empty());
-        std::vector<minimizer_tuple>().swap(m_buffer);
         std::vector<minimizer_tuple>().swap(m_temp_buffer);
 
         if (m_num_files_to_merge == 0) return;
@@ -371,9 +341,6 @@ struct minimizers_tuples {
     uint64_t num_minimizer_positions() const { return m_num_minimizer_positions; }
     uint64_t num_super_kmers() const { return m_num_super_kmers; }
 
-    std::vector<minimizer_tuple>& buffer() { return m_buffer; }
-    std::vector<minimizer_tuple>& buffer_rc() { return m_buffer_rc; }
-
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
 private:
@@ -387,8 +354,6 @@ private:
     uint64_t m_run_identifier;
     uint64_t m_num_threads;
     std::string m_tmp_dirname;
-    std::vector<minimizer_tuple> m_buffer;
-    std::vector<minimizer_tuple> m_buffer_rc;
     std::vector<minimizer_tuple> m_temp_buffer;
 
     std::string get_tmp_output_filename(uint64_t id) const {
@@ -397,6 +362,42 @@ private:
                  << ".bin";
         return filename.str();
     }
+};
+
+template <typename T>
+struct thread_safe_queue {
+    thread_safe_queue() : m_done(false) {}
+
+    void push(T&& obj) {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_queue.emplace(std::move(obj));
+        }
+        m_cv.notify_one();
+    }
+
+    bool pop(T& obj) {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_cv.wait(lock, [&] { return !m_queue.empty() or m_done; });
+        if (m_queue.empty()) return false;
+        obj = std::move(m_queue.front());
+        m_queue.pop();
+        return true;
+    }
+
+    void close() {
+        {
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_done = true;
+        }
+        m_cv.notify_all();
+    }
+
+private:
+    std::queue<T> m_queue;
+    std::mutex m_mutex;
+    std::condition_variable m_cv;
+    bool m_done;
 };
 
 }  // namespace sshash

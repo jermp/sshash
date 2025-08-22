@@ -11,7 +11,7 @@ template <class kmer_t>
 struct minimizer_iterator {
     minimizer_iterator() {}
 
-    minimizer_iterator(uint64_t k, uint64_t m, hasher_type const& hasher)
+    minimizer_iterator(uint64_t k, uint64_t m, hasher_type const& hasher, uint64_t position = 0)
         : m_k(k)
         , m_m(m)
         , m_min_value(constants::invalid_uint64)
@@ -19,7 +19,7 @@ struct minimizer_iterator {
         , m_hasher(hasher)  //
     {
         assert(k > 0 and m <= k);
-        set_position(0);
+        set_position(position);
     }
 
     void set_position(uint64_t position) {
@@ -93,7 +93,7 @@ template <class kmer_t>
 struct minimizer_iterator_rc {
     minimizer_iterator_rc() {}
 
-    minimizer_iterator_rc(uint64_t k, uint64_t m, hasher_type const& hasher)
+    minimizer_iterator_rc(uint64_t k, uint64_t m, hasher_type const& hasher, uint64_t position = 0)
         : m_k(k)
         , m_m(m)
         , m_min_value(constants::invalid_uint64)
@@ -101,7 +101,7 @@ struct minimizer_iterator_rc {
         , m_hasher(hasher)  //
     {
         assert(k > 0 and m <= k);
-        set_position(0);
+        set_position(position);
     }
 
     void set_position(uint64_t position) {
