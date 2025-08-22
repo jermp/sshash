@@ -6,15 +6,12 @@ namespace sshash {
 
 template <class kmer_t>
 struct skew_index {
-    skew_index()
-        : min_log2(constants::min_l)
-        , max_log2(constants::max_l)
-        , log2_max_num_super_kmers_in_bucket(0) {
+    skew_index() : min_log2(constants::min_l), max_log2(constants::max_l), log2_max_bucket_size(0) {
         mphfs.resize(0);
         positions.resize(0);
     }
 
-    /* Returns the number of k-mers in the index. */
+    /* Returns the number of kmers in the index. */
     uint64_t print_info() const {
         uint64_t num_partitions = mphfs.size();
         uint64_t lower = 1ULL << min_log2;
@@ -39,9 +36,9 @@ struct skew_index {
 
     uint64_t lookup(kmer_t uint_kmer, uint64_t log2_bucket_size) const {
         assert(log2_bucket_size >= uint64_t(min_log2 + 1));
-        assert(log2_bucket_size <= log2_max_num_super_kmers_in_bucket);
+        assert(log2_bucket_size <= log2_max_bucket_size);
         uint64_t partition_id = log2_bucket_size - (min_log2 + 1);
-        if (log2_bucket_size == log2_max_num_super_kmers_in_bucket or log2_bucket_size > max_log2) {
+        if (log2_bucket_size == log2_max_bucket_size or log2_bucket_size > max_log2) {
             partition_id = mphfs.size() - 1;
         }
         assert(partition_id < mphfs.size());
@@ -52,10 +49,9 @@ struct skew_index {
     }
 
     uint64_t num_bits() const {
-        uint64_t n =
-            (sizeof(min_log2) + sizeof(max_log2) + sizeof(log2_max_num_super_kmers_in_bucket) +
-             2 * sizeof(size_t) /* for std::vector::size */) *
-            8;
+        uint64_t n = (sizeof(min_log2) + sizeof(max_log2) + sizeof(log2_max_bucket_size) +
+                      2 * sizeof(size_t) /* for std::vector::size */) *
+                     8;
         for (uint64_t partition_id = 0; partition_id != mphfs.size(); ++partition_id) {
             auto const& f = mphfs[partition_id];
             auto const& p = positions[partition_id];
@@ -76,7 +72,7 @@ struct skew_index {
 
     uint16_t min_log2;
     uint16_t max_log2;
-    uint32_t log2_max_num_super_kmers_in_bucket;
+    uint32_t log2_max_bucket_size;
     std::vector<kmers_pthash_type<kmer_t>> mphfs;
     std::vector<bits::compact_vector> positions;
 
@@ -85,7 +81,7 @@ private:
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.min_log2);
         visitor.visit(t.max_log2);
-        visitor.visit(t.log2_max_num_super_kmers_in_bucket);
+        visitor.visit(t.log2_max_bucket_size);
         visitor.visit(t.mphfs);
         visitor.visit(t.positions);
     }

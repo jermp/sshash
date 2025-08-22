@@ -146,7 +146,6 @@ Run `./sshash` as follows to see a list of available tools.
       query                  query a dictionary
       check                  check correctness of a dictionary
       bench                  run performance tests for a dictionary
-      dump                   write super-k-mers of a dictionary to a fasta file
       permute                permute a weighted input file
       compute-statistics     compute index statistics
 
@@ -229,7 +228,7 @@ Both queries should originate the following report (reported here for reference)
     num_extensions = 4/46 (8.69565%)
 
 The canonical dictionary can be twice as fast as the regular dictionary
-for low-hit workloads, even on this tiny example, for only +0.4 bits/k-mer.
+for low-hit workloads, even on this tiny example, for only +0.3 bits/k-mer.
 
 ### Example 4
 

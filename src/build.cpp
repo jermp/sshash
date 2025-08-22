@@ -74,13 +74,11 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.start();
     data.minimizers.merge();
     const uint64_t num_minimizers = data.minimizers.num_minimizers();
-    const uint64_t num_super_kmers = data.strings.num_super_kmers();
+    const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
     {
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-        assert(input.size() == num_super_kmers);
-        if (build_config.verbose) std::cout << "num_minimizers " << num_minimizers << std::endl;
         m_minimizers.build(iterator, num_minimizers, build_config);
         input.close();
         assert(m_minimizers.size() == num_minimizers);
@@ -95,7 +93,8 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.start();
     {
         if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
-        std::ifstream input(data.minimizers.get_minimizers_filename(), std::ifstream::binary);
+        std::string filename = data.minimizers.get_minimizers_filename();
+        std::ifstream input(filename, std::ifstream::binary);
 
         auto const& f = m_minimizers;
         const uint64_t num_threads = build_config.num_threads;
@@ -103,29 +102,31 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
         data.minimizers.init();
 
-        const uint64_t buffer_size =
-            num_files_to_merge == 1 ? num_super_kmers : data.minimizers.buffer_size();
+        const uint64_t buffer_size = num_files_to_merge == 1
+                                         ? num_super_kmers
+                                         : ((build_config.ram_limit_in_GiB * essentials::GiB) /
+                                            (2 * sizeof(minimizer_tuple)));
         const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
         assert(num_super_kmers > (num_blocks - 1) * buffer_size);
 
         std::vector<std::thread> threads;
         threads.reserve(num_threads);
 
-        auto& buff = data.minimizers.buffer();
-
+        std::vector<minimizer_tuple> buffer;
         for (uint64_t i = 0; i != num_blocks; ++i) {
             const uint64_t n = (i == num_blocks - 1)
                                    ? num_super_kmers - (num_blocks - 1) * buffer_size
                                    : buffer_size;
-            buff.resize(n);
-            input.read(reinterpret_cast<char*>(buff.data()), buff.size() * sizeof(minimizer_tuple));
+            buffer.resize(n);
+            input.read(reinterpret_cast<char*>(buffer.data()),
+                       buffer.size() * sizeof(minimizer_tuple));
             const uint64_t chunk_size = (n + num_threads - 1) / num_threads;
             for (uint64_t t = 0; t != num_threads; ++t) {
                 uint64_t begin = t * chunk_size;
                 uint64_t end = (t == num_threads - 1) ? n : begin + chunk_size;
-                threads.emplace_back([begin, end, &buff, &f]() {
+                threads.emplace_back([begin, end, &buffer, &f]() {
                     for (uint64_t i = begin; i != end; ++i) {
-                        buff[i].minimizer = f.lookup(buff[i].minimizer);
+                        buffer[i].minimizer = f.lookup(buffer[i].minimizer);
                     }
                 });
             }
@@ -133,10 +134,10 @@ void dictionary<kmer_t>::build(std::string const& filename,
                 if (t.joinable()) t.join();
             }
             threads.clear();
-            data.minimizers.sort_and_flush();
+            data.minimizers.sort_and_flush(buffer);
         }
 
-        data.minimizers.finalize();
+        assert(buffer.empty());
         data.minimizers.merge();
         input.close();
     }
@@ -148,7 +149,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     /* step 3: build index ***/
     timer.start();
-    auto buckets_stats = build_sparse_index(data, m_buckets, num_minimizers, build_config);
+    auto buckets_stats = build_sparse_index(data, m_buckets, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build_sparse_index'");
