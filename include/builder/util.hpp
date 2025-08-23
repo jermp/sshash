@@ -221,13 +221,13 @@ struct minimizers_tuples {
     void init() { m_num_files_to_merge = 0; }
 
     void sort_and_flush(std::vector<minimizer_tuple>& buffer) {
-        m_temp_buffer.resize(buffer.size());
-        parallel_sort(buffer, m_temp_buffer, m_num_threads,
+        parallel_sort(buffer, m_num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or
                                  (x.minimizer == y.minimizer and x.pos_in_seq < y.pos_in_seq);
                       });
-        auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
+        uint64_t id = m_num_files_to_merge.fetch_add(1);
+        auto tmp_output_filename = get_tmp_output_filename(id);
         std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
         if (!out.is_open()) throw std::runtime_error("cannot open file");
@@ -235,7 +235,6 @@ struct minimizers_tuples {
                   buffer.size() * sizeof(minimizer_tuple));
         out.close();
         buffer.clear();
-        ++m_num_files_to_merge;
     }
 
     std::string get_minimizers_filename() const {
@@ -259,8 +258,6 @@ struct minimizers_tuples {
     files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
 
     void merge() {
-        std::vector<minimizer_tuple>().swap(m_temp_buffer);
-
         if (m_num_files_to_merge == 0) return;
 
         if (m_num_files_to_merge == 1) {
@@ -345,7 +342,7 @@ struct minimizers_tuples {
 
 private:
     uint64_t m_buffer_size;
-    uint64_t m_num_files_to_merge;
+    std::atomic<uint64_t> m_num_files_to_merge;
 
     uint64_t m_num_minimizers;
     uint64_t m_num_minimizer_positions;
@@ -354,7 +351,6 @@ private:
     uint64_t m_run_identifier;
     uint64_t m_num_threads;
     std::string m_tmp_dirname;
-    std::vector<minimizer_tuple> m_temp_buffer;
 
     std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;
@@ -362,42 +358,6 @@ private:
                  << ".bin";
         return filename.str();
     }
-};
-
-template <typename T>
-struct thread_safe_queue {
-    thread_safe_queue() : m_done(false) {}
-
-    void push(T&& obj) {
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_queue.emplace(std::move(obj));
-        }
-        m_cv.notify_one();
-    }
-
-    bool pop(T& obj) {
-        std::unique_lock<std::mutex> lock(m_mutex);
-        m_cv.wait(lock, [&] { return !m_queue.empty() or m_done; });
-        if (m_queue.empty()) return false;
-        obj = std::move(m_queue.front());
-        m_queue.pop();
-        return true;
-    }
-
-    void close() {
-        {
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_done = true;
-        }
-        m_cv.notify_all();
-    }
-
-private:
-    std::queue<T> m_queue;
-    std::mutex m_mutex;
-    std::condition_variable m_cv;
-    bool m_done;
 };
 
 }  // namespace sshash

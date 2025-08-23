@@ -55,10 +55,10 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                   //
     working memory, which must be of same size as data.
 */
 template <typename T, typename Compare>
-void parallel_sort(std::vector<T>& data, std::vector<T>& temp_data,  //
-                   const uint64_t num_threads, Compare comp)         //
+void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare comp)  //
 {
-    assert(data.size() == temp_data.size());
+    std::vector<T> temp_data;
+    temp_data.resize(data.size());
 
     if (num_threads <= 1) {
         std::sort(data.begin(), data.end(), comp);

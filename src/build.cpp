@@ -44,7 +44,8 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
     /* step 1: parse the input file and build compact string pool ***/
     timer.start();
-    parse_data<kmer_t> data = parse_file<kmer_t>(filename, build_config);
+    parse_data<kmer_t> data(build_config);
+    parse_file<kmer_t>(filename, data, build_config);
     m_size = data.num_kmers;
     timer.stop();
     timings.push_back(timer.elapsed());
