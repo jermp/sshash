@@ -29,6 +29,6 @@ bash ../script/streaming-query-low-hit.sh [prefix]
 
 where `[prefix]` should be replaced by a suitable basename, e.g., the current date.
 
-These are the results obtained on 18/06/25 (see logs [here](results-18-06-25)).
+These are the results obtained on 22/08/25 (see logs [here](results-22-08-25)).
 
-![](results-18-06-25/results.png)
+![](results-22-08-25/results.png)
