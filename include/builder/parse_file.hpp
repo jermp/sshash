@@ -164,36 +164,20 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     timer.reset();
     timer.start();
 
-    /*
-        Distribute the sequences to worker threads.
-        One writer thread flushes all blocks (std::vector<minimizer_tuple>) to disk.
-    */
+    const uint64_t num_threads = build_config.num_threads;
+    const uint64_t num_sequences_per_thread = (num_sequences + num_threads - 1) / num_threads;
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
 
-    thread_safe_queue<std::vector<minimizer_tuple>> Q;
-
-    /* writer thread */
-    std::thread writer([&] {
-        std::vector<minimizer_tuple> buf;
-        while (Q.pop(buf)) data.minimizers.sort_and_flush(buf);
-    });
-
-    const uint64_t num_workers = build_config.num_threads < 2 ? 1 : build_config.num_threads - 1;
-    const uint64_t num_sequences_per_worker = (num_sequences + num_workers - 1) / num_workers;
-
-    /* worker threads */
-    std::vector<std::thread> workers;
-    workers.reserve(num_workers);
-
-    for (uint64_t t = 0; t != num_workers; ++t)  //
+    for (uint64_t t = 0; t != num_threads; ++t)  //
     {
-        workers.emplace_back([&, t] {
+        threads.emplace_back([&, t] {
             std::vector<minimizer_tuple> buffer;
             const uint64_t buffer_size = (build_config.ram_limit_in_GiB * essentials::GiB) /
-                                         (sizeof(minimizer_tuple) * num_workers);
+                                         (2 * sizeof(minimizer_tuple) * num_threads);
             buffer.reserve(buffer_size);
 
-            auto save = [&Q, &buffer, &buffer_size, &max_num_kmers_in_super_kmer](
-                            minimizer_info mini_info,
+            auto save = [&](minimizer_info mini_info,
                             uint64_t num_kmers_in_super_kmer)  //
             {
                 assert(num_kmers_in_super_kmer <= max_num_kmers_in_super_kmer);
@@ -206,16 +190,19 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                     return;
                 }
                 if (buffer.size() == buffer_size) {
-                    Q.push(std::move(buffer));
+                    data.minimizers.sort_and_flush(buffer);
                     buffer.clear();
-                    buffer.reserve(buffer_size);
                 }
                 buffer.emplace_back(mini_info, num_kmers_in_super_kmer);
             };
 
-            const uint64_t index_begin = t * num_sequences_per_worker;
+            const uint64_t index_begin = t * num_sequences_per_thread;
             const uint64_t index_end =
-                std::min<uint64_t>(index_begin + num_sequences_per_worker, num_sequences);
+                std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
+
+            kmer_iterator<kmer_t> it(data.strings.strings, k);
+            minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
+            minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
 
             for (uint64_t i = index_begin; i != index_end; ++i)  //
             {
@@ -224,13 +211,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 const uint64_t sequence_len = end - begin;
                 assert(sequence_len >= k);
 
-                kmer_iterator<kmer_t> it(data.strings.strings, k, kmer_t::bits_per_char * begin);
                 minimizer_info prev_mini_info;
                 assert(prev_mini_info.minimizer == constants::invalid_uint64);
                 uint64_t num_kmers_in_super_kmer = 0;
 
-                minimizer_iterator<kmer_t> minimizer_it(k, m, hasher, begin);
-                minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher, begin);
+                it.at(kmer_t::bits_per_char * begin);
+                minimizer_it.set_position(begin);
+                minimizer_it_rc.set_position(begin);
 
                 for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
                     auto uint_kmer = it.get();
@@ -270,13 +257,13 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             }
 
             /* flush leftover */
-            if (!buffer.empty()) Q.push(std::move(buffer));
+            if (!buffer.empty()) data.minimizers.sort_and_flush(buffer);
         });
     }
 
-    for (auto& w : workers) w.join();  // wait for all workers
-    Q.close();                         // signal writer to finish
-    writer.join();                     // wait for writer to drain queue
+    for (auto& t : threads) {
+        if (t.joinable()) t.join();
+    }
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing_minimizers_tuples'");
@@ -289,12 +276,12 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 }
 
 template <class kmer_t>
-parse_data<kmer_t> parse_file(std::string const& filename,
-                              build_configuration const& build_config) {
+void parse_file(std::string const& filename, parse_data<kmer_t>& data,
+                build_configuration const& build_config)  //
+{
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     std::cout << "reading file '" << filename << "'..." << std::endl;
-    parse_data<kmer_t> data(build_config);
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
@@ -310,7 +297,6 @@ parse_data<kmer_t> parse_file(std::string const& filename,
         }
     }
     is.close();
-    return data;
 }
 
 }  // namespace sshash
