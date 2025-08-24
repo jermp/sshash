@@ -57,13 +57,12 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     while (true)  //
     {
         if constexpr (fmt == input_file_type::cf_seg) {
-            std::getline(is, sequence, '\t');  // skip '\t'
-            std::getline(is, sequence);        // DNA sequence
+            std::getline(is, sequence, '\t');  // skip until and consume '\t'
         } else {
             static_assert(fmt == input_file_type::fasta);
-            std::getline(is, sequence);   // header sequence
-            if (build_config.weighted) {  // parse header
-                if (sequence.empty()) return;
+            if (build_config.weighted) {     // parse header
+                std::getline(is, sequence);  // header sequence
+                if (sequence.empty()) break;
 
                 /*
                     Heder format:
@@ -112,36 +111,48 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                         weight_length = 1;
                     }
                 }
+            } else {
+                // skip header sequence
+                is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
             }
-            std::getline(is, sequence);  // DNA sequence
         }
 
-        if (is.eof()) {
-            assert(sequence.empty());
-            break;
-        }
+        std::getline(is, sequence);  // DNA sequence
 
-        assert(sequence.length() >= k);
+        if (is.eof()) break;
 
-        if (++num_sequences % 100000 == 0) {
+        const uint64_t n = sequence.length();
+        assert(n >= k);
+
+        ++num_sequences;
+        if (num_sequences % 100000 == 0) {
             std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
                       << data.num_kmers << " kmers" << std::endl;
         }
 
         builder.new_piece();
-        num_bases += sequence.length();
+        num_bases += n;
 
-        if (build_config.weighted and seq_len != sequence.length()) {
+        if (build_config.weighted and seq_len != n) {
             std::cout << "ERROR: expected a sequence of length " << seq_len
-                      << " but got one of length " << sequence.length() << std::endl;
+                      << " but got one of length " << n << std::endl;
             throw std::runtime_error("file is malformed");
         }
 
-        data.num_kmers += sequence.length() - k + 1;
-        for (uint64_t i = 0; i != sequence.length(); ++i) {
-            assert(kmer_t::is_valid(sequence[i]));
-            builder.append(sequence[i]);
+        data.num_kmers += n - k + 1;
+
+        uint64_t i = 0;
+        if constexpr (kmer_t::bits_per_char == 2) {
+#ifndef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+            /* process 32 bytes at a time */
+            for (; i + 32 <= n; i += 32) {
+                __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
+                uint64_t word = pack2bits_shift1(v);
+                builder.append(word);
+            }
+#endif
         }
+        for (; i < n; ++i) builder.append(sequence[i]);
     }
 
     builder.finalize();

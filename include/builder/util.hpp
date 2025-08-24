@@ -1,11 +1,10 @@
 #pragma once
 
-#include <thread>
 #include <vector>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
 #include <atomic>
+
+#include <immintrin.h>
+#include <x86intrin.h>
 
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
@@ -29,12 +28,39 @@ struct parse_runtime_error : public std::runtime_error {
     }
 }
 
+/*
+    This function takes 32 bytes and packs the two bits
+    in positions 1 and 2 (from right) of each byte into
+    a single 64-bit word.
+
+    This works with the map:
+    A -> 00; C -> 01; G -> 11; T -> 10.
+*/
+inline uint64_t pack2bits_shift1(__m256i v) {
+    // shift >> 1, then mask by 3 to isolate the relevant bits
+    __m256i shifted = _mm256_srli_epi16(v, 1);
+    __m256i values = _mm256_and_si256(shifted, _mm256_set1_epi8(3));
+
+    // collect bit-0 plane
+    __m256i bit0 = _mm256_slli_epi16(values, 7);
+    uint32_t mask0 = _mm256_movemask_epi8(bit0);
+
+    // collect bit-1 plane
+    __m256i bit1 = _mm256_slli_epi16(values, 6);
+    uint32_t mask1 = _mm256_movemask_epi8(bit1);
+
+    // interleave into the 64-bit result
+    uint64_t even = _pdep_u64(mask0, 0x5555555555555555ULL);  // 010101...
+    uint64_t odd = _pdep_u64(mask1, 0xAAAAAAAAAAAAAAAAULL);   // 101010...
+    return even | odd;
+}
+
 template <class kmer_t>
 struct compact_string_pool {
     compact_string_pool() {}
 
     struct builder {
-        builder() : num_super_kmers(0) {
+        builder() {
             const uint64_t num_bits = 8 * 8 * essentials::GB;  // 8 GB of memory
             bvb_strings.reserve(num_bits);
         }
@@ -47,6 +73,8 @@ struct compact_string_pool {
         void append(const char c) {
             bvb_strings.append_bits(kmer_t::char_to_uint(c), kmer_t::bits_per_char);
         }
+
+        void append(const uint64_t word) { bvb_strings.append_bits(word, 64); }
 
         void new_piece() {
             assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
@@ -64,7 +92,6 @@ struct compact_string_pool {
             bvb_strings.append_bits(0, kmer_t::uint_kmer_bits);
         }
 
-        uint64_t num_super_kmers;
         std::vector<uint64_t> pieces;
         bits::bit_vector::builder bvb_strings;
     };
@@ -313,7 +340,6 @@ struct minimizers_tuples {
             if (m_num_super_kmers % 50000000 == 0) {
                 std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
             }
-
             fm_iterator.next();
         }
 
