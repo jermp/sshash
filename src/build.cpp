@@ -47,19 +47,14 @@ void dictionary<kmer_t>::build(std::string const& filename,
     parse_data<kmer_t> data(build_config);
     parse_file<kmer_t>(filename, data, build_config);
     m_size = data.num_kmers;
-    timer.stop();
-    timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
-    timer.reset();
-    /******/
 
     if (build_config.weighted) {
-        /* step 1.1: compress weights ***/
+        /* step 1.3: compress weights ***/
         timer.start();
         data.weights_builder.build(m_weights);
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 1.1.: 'build_weights'");
+        print_time(timings.back(), data.num_kmers, "step 1.3: 'build_weights'");
         timer.reset();
         /******/
         if (build_config.verbose) {
@@ -71,9 +66,20 @@ void dictionary<kmer_t>::build(std::string const& filename,
         }
     }
 
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
+    timer.reset();
+    /******/
+
     /* step 2: merge minimizers and build MPHF ***/
     timer.start();
     data.minimizers.merge();
+    timer.stop();
+    timings.push_back(timer.elapsed());
+    print_time(timings.back(), data.num_kmers, "step 2.1: 'merging_minimizers_tuples'");
+    timer.reset();
+    timer.start();
     const uint64_t num_minimizers = data.minimizers.num_minimizers();
     const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
     {
@@ -86,7 +92,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     }
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 2: 'build_minimizers'");
+    print_time(timings.back(), data.num_kmers, "step 2.2: 'build_minimizers_mphf'");
     timer.reset();
     /******/
 
@@ -144,7 +150,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     }
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 2.1: 're-sorting minimizers tuples'");
+    print_time(timings.back(), data.num_kmers, "step 2.3: 're-sorting_minimizers_tuples'");
     timer.reset();
     /******/
 
