@@ -172,6 +172,21 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                      data.num_kmers
               << " [bits/kmer]" << std::endl;
 
+    /*
+        The parameter m (minimizer length) should be at least
+            ceil(log_s(N))+1
+        where N is the number of nucleotides in the input and s is the alphabet size.
+        We warn the user if the used m is less than this lower bound.
+    */
+    const uint64_t s = uint64_t(1) << kmer_t::bits_per_char;
+    const uint64_t lower_bound_on_m = std::ceil(std::log(num_bases) / std::log(s)) + 1;
+    if (m < lower_bound_on_m) {
+        std::cout << "\n--> WARNING: using minimizer length " << m
+                  << " but it should be at least ceil(log_" << s << "(" << num_bases
+                  << "))+1 = " << lower_bound_on_m << '\n'
+                  << std::endl;
+    }
+
     timer.reset();
     timer.start();
 

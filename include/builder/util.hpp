@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <atomic>
-
 #include <immintrin.h>
 #include <x86intrin.h>
 
@@ -357,9 +356,7 @@ struct minimizers_tuples {
         }
     }
 
-    uint64_t buffer_size() const { return m_buffer_size; }
     uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
-
     uint64_t num_minimizers() const { return m_num_minimizers; }
     uint64_t num_minimizer_positions() const { return m_num_minimizer_positions; }
     uint64_t num_super_kmers() const { return m_num_super_kmers; }
@@ -367,9 +364,7 @@ struct minimizers_tuples {
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
 private:
-    uint64_t m_buffer_size;
     std::atomic<uint64_t> m_num_files_to_merge;
-
     uint64_t m_num_minimizers;
     uint64_t m_num_minimizer_positions;
     uint64_t m_num_super_kmers;

@@ -39,10 +39,10 @@ void dictionary<kmer_t>::build(std::string const& filename,
     m_hasher.seed(build_config.seed);
 
     std::vector<double> timings;
-    timings.reserve(6);
+    timings.reserve(7);
     essentials::timer_type timer;
 
-    /* step 1: parse the input file and build compact string pool ***/
+    /* step 1: parse the input file, encode sequences, and compute minimizer tuples ***/
     timer.start();
     parse_data<kmer_t> data(build_config);
     parse_file<kmer_t>(filename, data, build_config);
@@ -154,7 +154,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.reset();
     /******/
 
-    /* step 3: build index ***/
+    /* step 3: build sparse index ***/
     timer.start();
     auto buckets_stats = build_sparse_index(data, m_buckets, build_config);
     timer.stop();
