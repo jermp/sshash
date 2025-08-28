@@ -22,9 +22,6 @@ struct dictionary {
     /* Build from input file. */
     void build(std::string const& input_filename, build_configuration const& build_config);
 
-    /* Write super-k-mers to output file in FASTA format. */
-    void dump(std::string const& output_filename) const;
-
     essentials::version_number vnum() const { return m_vnum; }
     uint64_t size() const { return m_size; }
     uint64_t k() const { return m_k; }
