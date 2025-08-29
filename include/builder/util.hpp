@@ -165,6 +165,18 @@ struct bucket_type {
 
     iterator begin() const { return iterator(m_begin); }
     iterator end() const { return iterator(m_end); }
+
+    /*
+        When a canonical index is built (option `--canonical`),
+        a minimizer offset can correspond to more than one super-kmer.
+        A super-kmer is uniquely identified by the couple
+          (minimizer offset, position of minimizer in the first kmer of the super-kmer).
+        These two components, together, give the
+        starting position of a super-kmer in the sequence.
+
+        So the method size() returns the number of minimizer
+        positions which is <= the number of superkmers.
+    */
     uint64_t num_super_kmers() const { return m_num_super_kmers; }
     uint64_t size() const { return m_num_minimizer_positions; }
 
@@ -183,8 +195,10 @@ private:
     the sorted list of minimizer tuples
     (minimizer, pos_in_seq, pos_in_kmer, num_kmers_in_superkmer).
 */
-struct minimizers_tuples_iterator : std::forward_iterator_tag {
+struct minimizers_tuples_iterator  //: std::forward_iterator_tag
+{
     typedef minimizer_tuple value_type;
+    using iterator_category = std::forward_iterator_tag;
 
     minimizers_tuples_iterator(minimizer_tuple const* begin, minimizer_tuple const* end)
         : m_bucket_begin(begin), m_bucket_end(begin), m_end(end) {
@@ -216,19 +230,6 @@ private:
         }
         return begin;
     }
-};
-
-template <typename ValueType>
-struct bytes_iterator {
-    bytes_iterator(uint8_t const* begin, uint8_t const* end) : m_begin(begin), m_end(end) {}
-
-    void next() { m_begin += sizeof(ValueType); }
-    bool has_next() const { return m_begin != m_end; }
-    ValueType operator*() const { return *reinterpret_cast<ValueType const*>(m_begin); }
-
-private:
-    uint8_t const* m_begin;
-    uint8_t const* m_end;
 };
 
 struct minimizers_tuples {
@@ -310,9 +311,23 @@ struct minimizers_tuples {
         std::cout << " == files to merge = " << m_num_files_to_merge << std::endl;
 
         assert(m_num_files_to_merge > 1);
-        typedef bytes_iterator<minimizer_tuple> bytes_iterator_type;
-        file_merging_iterator<bytes_iterator_type> fm_iterator(files_name_iterator_begin(),
-                                                               m_num_files_to_merge);
+
+        struct bytes_iterator {
+            bytes_iterator(uint8_t const* begin, uint8_t const* end) : m_begin(begin), m_end(end) {}
+
+            void next() { m_begin += sizeof(minimizer_tuple); }
+            bool has_next() const { return m_begin != m_end; }
+            minimizer_tuple operator*() const {
+                return *reinterpret_cast<minimizer_tuple const*>(m_begin);
+            }
+
+        private:
+            uint8_t const* m_begin;
+            uint8_t const* m_end;
+        };
+
+        file_merging_iterator<bytes_iterator> fm_iterator(files_name_iterator_begin(),
+                                                          m_num_files_to_merge);
 
         std::cout << "saving tuples to '" << get_minimizers_filename() << "'" << std::endl;
         std::ofstream out(get_minimizers_filename().c_str());

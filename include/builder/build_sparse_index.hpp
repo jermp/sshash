@@ -1,157 +1,29 @@
 #pragma once
 
-#include "file_merging_iterator.hpp"
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
 
-#pragma pack(push, 4)
-struct bucket_pair {
-    bucket_pair(uint64_t id, uint32_t size) : id(id), size(size) {}
-    uint64_t id;
-    uint32_t size;
-
-    bool operator>(bucket_pair other) const { return id > other.id; }
-};
-#pragma pack(pop)
-
-struct bucket_pairs_iterator {
+struct bucket_size_iterator {
     using iterator_category = std::forward_iterator_tag;
 
-    bucket_pairs_iterator(bucket_pair const* begin, bucket_pair const* end)
-        : m_begin(begin)
-        , m_end(end)
-        , m_i(0)
-        , m_val(0)  // first returned val is always 0
-    {}
+    bucket_size_iterator(minimizer_tuple const* begin, minimizer_tuple const* end)
+        : m_val(0)  // first returned value is always 0
+        , m_it(begin, end) {}
 
     uint64_t operator*() const { return m_val; }
+
     void operator++() {
-        ++m_i;
-        if (m_begin != nullptr and m_end != nullptr and m_i == (*m_begin).id) {
-            m_val += (*m_begin).size;
-            ++m_begin;
-            assert(m_begin <= m_end);
-        }
+        if (!m_it.has_next()) return;
+        uint64_t size = m_it.bucket().size();
+        assert(size > 0);
+        m_val += size - 1;  // directly compute the cumulative sum
+        m_it.next();
     }
 
 private:
-    bucket_pair const* m_begin;
-    bucket_pair const* m_end;
-    uint64_t m_i;
     uint64_t m_val;
-};
-
-struct bucket_pairs {
-    static constexpr uint64_t ram_limit = 0.25 * essentials::GB;
-
-    bucket_pairs(std::string const& tmp_dirname)
-        : m_buffer_size(ram_limit / sizeof(bucket_pair))
-        , m_num_files_to_merge(0)
-        , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
-        , m_tmp_dirname(tmp_dirname) {}
-
-    void emplace_back(uint64_t id, uint32_t size) {
-        if (m_buffer.size() == m_buffer_size) sort_and_flush();
-        m_buffer.emplace_back(id, size);
-    }
-
-    void sort_and_flush() {
-        std::cout << "sorting buffer..." << std::endl;
-        std::sort(m_buffer.begin(), m_buffer.end(),
-                  [](bucket_pair const& x, bucket_pair const& y) { return x.id < y.id; });
-
-        auto tmp_output_filename = get_tmp_output_filename(m_num_files_to_merge);
-        std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
-        std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
-        out.write(reinterpret_cast<char const*>(m_buffer.data()),
-                  m_buffer.size() * sizeof(bucket_pair));
-        out.close();
-
-        m_buffer.clear();
-        ++m_num_files_to_merge;
-    }
-
-    void finalize() {
-        if (!m_buffer.empty()) sort_and_flush();
-    }
-
-    std::string get_bucket_pairs_filename() const {
-        assert(m_num_files_to_merge > 0);
-        if (m_num_files_to_merge == 1) return get_tmp_output_filename(0);
-        std::stringstream filename;
-        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".bucket_pairs.bin";
-        return filename.str();
-    }
-
-    struct files_name_iterator {
-        files_name_iterator(bucket_pairs const* ptr) : m_id(0), m_ptr(ptr) {}
-
-        std::string operator*() { return m_ptr->get_tmp_output_filename(m_id); }
-        void operator++() { ++m_id; }
-
-    private:
-        uint64_t m_id;
-        bucket_pairs const* m_ptr;
-    };
-
-    files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
-
-    void merge() {
-        if (m_num_files_to_merge <= 1) return;
-        assert(m_num_files_to_merge > 1);
-
-        std::cout << " == files to merge = " << m_num_files_to_merge << std::endl;
-
-        typedef bytes_iterator<bucket_pair> bytes_iterator_type;
-        file_merging_iterator<bytes_iterator_type> fm_iterator(files_name_iterator_begin(),
-                                                               m_num_files_to_merge);
-
-        std::ofstream out(get_bucket_pairs_filename().c_str());
-        if (!out.is_open()) throw std::runtime_error("cannot open file");
-
-        uint64_t num_written_pairs = 0;
-        while (fm_iterator.has_next()) {
-            auto file_it = *fm_iterator;
-            bucket_pair val = *file_it;
-            out.write(reinterpret_cast<char const*>(&val), sizeof(bucket_pair));
-            num_written_pairs += 1;
-            if (num_written_pairs % 50000000 == 0) {
-                std::cout << "num_written_pairs = " << num_written_pairs << std::endl;
-            }
-            fm_iterator.next();
-        }
-        std::cout << "num_written_pairs = " << num_written_pairs << std::endl;
-
-        out.close();
-        fm_iterator.close();
-
-        /* remove tmp files */
-        for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
-            auto tmp_output_filename = get_tmp_output_filename(i);
-            std::remove(tmp_output_filename.c_str());
-        }
-
-        std::vector<bucket_pair>().swap(m_buffer);
-    }
-
-    uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
-    void remove_tmp_file() { std::remove(get_bucket_pairs_filename().c_str()); }
-
-private:
-    uint64_t m_buffer_size;
-    uint64_t m_num_files_to_merge;
-    uint64_t m_run_identifier;
-    std::string m_tmp_dirname;
-    std::vector<bucket_pair> m_buffer;
-
-    std::string get_tmp_output_filename(uint64_t id) const {
-        std::stringstream filename;
-        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".bucket_pairs."
-                 << id << ".bin";
-        return filename.str();
-    }
+    minimizers_tuples_iterator m_it;
 };
 
 template <class kmer_t>
@@ -179,43 +51,12 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     minimizer_tuple const* begin = input.data();
     minimizer_tuple const* end = input.data() + input.size();
 
-    bucket_pairs bucket_pairs_manager(build_config.tmp_dirname);
-    uint64_t num_singletons = 0;
-    for (minimizers_tuples_iterator it(begin, end); it.has_next(); it.next()) {
-        const uint64_t bucket_size = it.bucket().size();
-        assert(bucket_size > 0);
-        if (bucket_size != 1) {
-            uint64_t bucket_id = it.minimizer();
-            bucket_pairs_manager.emplace_back(bucket_id + 1, bucket_size - 1);
-        } else {
-            ++num_singletons;
-        }
-    }
-    bucket_pairs_manager.finalize();
-
-    std::cout << "num_singletons " << num_singletons << "/" << num_buckets << " ("
-              << (num_singletons * 100.0) / num_buckets << "%)" << std::endl;
-
     essentials::timer_type timer;
     timer.start();
-    if (bucket_pairs_manager.num_files_to_merge() > 0) {
-        bucket_pairs_manager.merge();
-        mm::file_source<bucket_pair> bucket_pairs_file(
-            bucket_pairs_manager.get_bucket_pairs_filename(), mm::advice::sequential);
-        bucket_pairs_iterator iterator(bucket_pairs_file.data(),
-                                       bucket_pairs_file.data() + bucket_pairs_file.size());
-        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1,
-                                      num_minimizer_positions - num_buckets);
-        bucket_pairs_file.close();
-        bucket_pairs_manager.remove_tmp_file();
-    } else {
-        /* all buckets are singletons, thus pass an empty iterator that always returns 0 */
-        bucket_pairs_iterator iterator(nullptr, nullptr);
-        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1,
-                                      num_minimizer_positions - num_buckets);
-    }
+    bucket_size_iterator iterator(begin, end);
+    m_buckets.bucket_sizes.encode(iterator, num_buckets + 1, num_minimizer_positions - num_buckets);
     timer.stop();
-    std::cout << "building: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+    std::cout << "encoding bucket sizes: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
     timer.reset();
 
@@ -288,6 +129,7 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
               << std::endl;
 
     timer.reset();
+
     timer.start();
     m_buckets.pieces.encode(data.strings.pieces.begin(),  //
                             data.strings.pieces.size(),   //
@@ -295,7 +137,8 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     offsets_builder.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings.strings);
     timer.stop();
-    std::cout << "encoding: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
+    std::cout << "encoding string boundaries and building offsets: " << timer.elapsed() / 1000000
+              << " [sec]" << std::endl;
 
     return buckets_stats;
 }
