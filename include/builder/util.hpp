@@ -195,8 +195,7 @@ private:
     the sorted list of minimizer tuples
     (minimizer, pos_in_seq, pos_in_kmer, num_kmers_in_superkmer).
 */
-struct minimizers_tuples_iterator  //: std::forward_iterator_tag
-{
+struct minimizers_tuples_iterator {
     typedef minimizer_tuple value_type;
     using iterator_category = std::forward_iterator_tag;
 
@@ -312,22 +311,8 @@ struct minimizers_tuples {
 
         assert(m_num_files_to_merge > 1);
 
-        struct bytes_iterator {
-            bytes_iterator(uint8_t const* begin, uint8_t const* end) : m_begin(begin), m_end(end) {}
-
-            void next() { m_begin += sizeof(minimizer_tuple); }
-            bool has_next() const { return m_begin != m_end; }
-            minimizer_tuple operator*() const {
-                return *reinterpret_cast<minimizer_tuple const*>(m_begin);
-            }
-
-        private:
-            uint8_t const* m_begin;
-            uint8_t const* m_end;
-        };
-
-        file_merging_iterator<bytes_iterator> fm_iterator(files_name_iterator_begin(),
-                                                          m_num_files_to_merge);
+        file_merging_iterator<minimizer_tuple> fm_iterator(files_name_iterator_begin(),
+                                                           m_num_files_to_merge);
 
         std::cout << "saving tuples to '" << get_minimizers_filename() << "'" << std::endl;
         std::ofstream out(get_minimizers_filename().c_str());
@@ -339,8 +324,7 @@ struct minimizers_tuples {
         uint64_t prev_minimizer = constants::invalid_uint64;
         uint64_t prev_pos_in_seq = constants::invalid_uint64;
         while (fm_iterator.has_next()) {
-            auto file_it = *fm_iterator;
-            minimizer_tuple mt = *file_it;
+            minimizer_tuple mt = *fm_iterator;
             if (mt.minimizer != prev_minimizer) {
                 prev_minimizer = mt.minimizer;
                 ++m_num_minimizers;
