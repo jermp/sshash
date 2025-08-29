@@ -53,8 +53,11 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
 
     essentials::timer_type timer;
     timer.start();
-    bucket_size_iterator iterator(begin, end);
-    m_buckets.bucket_sizes.encode(iterator, num_buckets + 1, num_minimizer_positions - num_buckets);
+    {
+        bucket_size_iterator iterator(begin, end);
+        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1,
+                                      num_minimizer_positions - num_buckets);
+    }
     timer.stop();
     std::cout << "encoding bucket sizes: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
@@ -131,11 +134,9 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     timer.reset();
 
     timer.start();
-    m_buckets.pieces.encode(data.strings.pieces.begin(),  //
-                            data.strings.pieces.size(),   //
-                            data.strings.pieces.back());  //
+    m_buckets.pieces.encode(data.pieces.begin(), data.pieces.size(), data.pieces.back());
     offsets_builder.build(m_buckets.offsets);
-    m_buckets.strings.swap(data.strings.strings);
+    m_buckets.strings.swap(data.strings);
     timer.stop();
     std::cout << "encoding string boundaries and building offsets: " << timer.elapsed() / 1000000
               << " [sec]" << std::endl;

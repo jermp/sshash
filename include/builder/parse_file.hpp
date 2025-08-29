@@ -11,7 +11,9 @@ struct parse_data {
 
     uint64_t num_kmers;
     minimizers_tuples minimizers;
-    compact_string_pool<kmer_t> strings;
+    // compact_string_pool<kmer_t> strings;
+    std::vector<uint64_t> pieces;
+    bits::bit_vector strings;
     weights::builder weights_builder;
 };
 
@@ -37,7 +39,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     /* fit into the wanted number of bits */
     assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
-    typename compact_string_pool<kmer_t>::builder builder;
+    const uint64_t num_bits = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
+    bits::bit_vector::builder bvb_strings;
+    bvb_strings.reserve(num_bits);
 
     std::string sequence;
     uint64_t num_sequences = 0;
@@ -130,7 +134,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                       << data.num_kmers << " kmers" << std::endl;
         }
 
-        builder.new_piece();
+        assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
+        data.pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
+
         num_bases += n;
 
         if (build_config.weighted and seq_len != n) {
@@ -148,18 +154,30 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             for (; i + 32 <= n; i += 32) {
                 __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
                 uint64_t word = pack2bits_shift1(v);
-                builder.append(word);
+                bvb_strings.append_bits(word, 64);
             }
 #endif
         }
-        for (; i < n; ++i) builder.append(sequence[i]);
+        for (; i < n; ++i) {
+            bvb_strings.append_bits(kmer_t::char_to_uint(sequence[i]), kmer_t::bits_per_char);
+        }
     }
 
-    builder.finalize();
-    builder.build(data.strings);
+    /*
+        So pieces will be of size p+1, where p is the number of DNA sequences
+        in the input file.
+    */
+    data.pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
+    assert(data.pieces.front() == 0);
 
-    assert(data.strings.pieces.front() == 0);
-    assert(data.strings.pieces.size() == num_sequences + 1);
+    /* Push a final sentinel (dummy) value to avoid bounds' checking in
+       kmer_iterator::fill_buff(). */
+    bvb_strings.append_bits(0, kmer_t::uint_kmer_bits);
+
+    bvb_strings.build(data.strings);
+
+    assert(data.pieces.front() == 0);
+    assert(data.pieces.size() == num_sequences + 1);
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding_input'");
@@ -226,14 +244,14 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             const uint64_t index_end =
                 std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
 
-            kmer_iterator<kmer_t> it(data.strings.strings, k);
+            kmer_iterator<kmer_t> it(data.strings, k);
             minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
             minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
 
             for (uint64_t i = index_begin; i != index_end; ++i)  //
             {
-                const uint64_t begin = data.strings.pieces[i];
-                const uint64_t end = data.strings.pieces[i + 1];
+                const uint64_t begin = data.pieces[i];
+                const uint64_t end = data.pieces[i + 1];
                 const uint64_t sequence_len = end - begin;
                 assert(sequence_len >= k);
 

@@ -54,53 +54,6 @@ inline uint64_t pack2bits_shift1(__m256i v) {
     return even | odd;
 }
 
-template <class kmer_t>
-struct compact_string_pool {
-    compact_string_pool() {}
-
-    struct builder {
-        builder() {
-            const uint64_t num_bits = 8 * 8 * essentials::GB;  // 8 GB of memory
-            bvb_strings.reserve(num_bits);
-        }
-
-        void build(compact_string_pool& pool) {
-            pool.pieces.swap(pieces);
-            bvb_strings.build(pool.strings);
-        }
-
-        void append(const char c) {
-            bvb_strings.append_bits(kmer_t::char_to_uint(c), kmer_t::bits_per_char);
-        }
-
-        void append(const uint64_t word) { bvb_strings.append_bits(word, 64); }
-
-        void new_piece() {
-            assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
-            pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
-        }
-
-        void finalize() {
-            /* So pieces will be of size p+1, where p is the number of DNA sequences
-               in the input file. */
-            pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
-            assert(pieces.front() == 0);
-
-            /* Push a final sentinel (dummy) value to avoid bounds' checking in
-               kmer_iterator::fill_buff(). */
-            bvb_strings.append_bits(0, kmer_t::uint_kmer_bits);
-        }
-
-        std::vector<uint64_t> pieces;
-        bits::bit_vector::builder bvb_strings;
-    };
-
-    uint64_t num_bits() const { return strings.num_bits(); }
-
-    std::vector<uint64_t> pieces;
-    bits::bit_vector strings;
-};
-
 typedef uint8_t num_kmers_in_super_kmer_uint_type;
 
 #pragma pack(push, 2)
