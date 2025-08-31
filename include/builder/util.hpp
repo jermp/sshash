@@ -252,9 +252,9 @@ struct minimizers_tuples {
                  it.has_next(); it.next())  //
             {
                 auto bucket = it.bucket();
-                ++m_num_minimizers;
                 m_num_minimizer_positions += bucket.size();
                 m_num_super_kmers += bucket.num_super_kmers();
+                ++m_num_minimizers;
             }
             input.close();
             return;

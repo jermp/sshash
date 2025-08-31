@@ -66,7 +66,7 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     buckets_statistics buckets_stats(num_buckets, num_kmers, num_minimizer_positions);
 
     timer.start();
-    uint64_t block_size = (num_super_kmers + num_threads - 1) / num_threads;
+    const uint64_t block_size = (num_super_kmers + num_threads - 1) / num_threads;
     std::vector<uint64_t> offsets;
     offsets.reserve(num_threads + 1);
     for (uint64_t offset = -1; offset != num_super_kmers;) {

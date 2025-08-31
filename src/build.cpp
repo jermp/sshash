@@ -42,21 +42,17 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timings.reserve(7);
     essentials::timer_type timer;
 
-    /* step 1: parse the input file, encode sequences, and compute minimizer tuples ***/
+    /* step 1: parse the input file, encode sequences (1.1), and compute minimizer tuples (1.2) ***/
     timer.start();
     parse_data<kmer_t> data(build_config);
     parse_file<kmer_t>(filename, data, build_config);
     m_size = data.num_kmers;
-
     if (build_config.weighted) {
-        /* step 1.3: compress weights ***/
+        essentials::timer_type timer;
         timer.start();
         data.weights_builder.build(m_weights);
         timer.stop();
-        timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 1.3: 'build_weights'");
-        timer.reset();
-        /******/
+        print_time(timer.elapsed(), data.num_kmers, "step 1.3: 'build_weights'");
         if (build_config.verbose) {
             double entropy_weights = data.weights_builder.print_info(data.num_kmers);
             double avg_bits_per_weight = static_cast<double>(m_weights.num_bits()) / data.num_kmers;
@@ -65,41 +61,42 @@ void dictionary<kmer_t>::build(std::string const& filename,
                       << "x smaller than the empirical entropy)" << std::endl;
         }
     }
-
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
     timer.reset();
     /******/
 
-    /* step 2: merge minimizers and build MPHF ***/
-    timer.start();
-    data.minimizers.merge();
-    timer.stop();
-    timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 2.1: 'merging_minimizers_tuples'");
-    timer.reset();
-    timer.start();
-    const uint64_t num_minimizers = data.minimizers.num_minimizers();
-    const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
+    /* step 2: merge minimizer tuples and build MPHF ***/
     {
+        timer.start();
+        data.minimizers.merge();
+        timer.stop();
+        timings.push_back(timer.elapsed());
+        print_time(timings.back(), data.num_kmers, "step 2.1: 'merging_minimizers_tuples'");
+
+        timer.reset();
+
+        timer.start();
+        const uint64_t num_minimizers = data.minimizers.num_minimizers();
         mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                                mm::advice::sequential);
         minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
         m_minimizers.build(iterator, num_minimizers, build_config);
         input.close();
         assert(m_minimizers.size() == num_minimizers);
-    }
-    timer.stop();
-    timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 2.2: 'build_minimizers_mphf'");
-    timer.reset();
-    /******/
+        timer.stop();
+        timings.push_back(timer.elapsed());
+        print_time(timings.back(), data.num_kmers, "step 2.2: 'build_minimizers_mphf'");
 
-    /* step 2.1: resort minimizers by MPHF order ***/
-    timer.start();
+        timer.reset();
+    }
+
     {
         if (build_config.verbose) std::cout << "re-sorting minimizer tuples..." << std::endl;
+
+        timer.start();
+
         std::string filename = data.minimizers.get_minimizers_filename();
         std::ifstream input(filename, std::ifstream::binary);
 
@@ -109,6 +106,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
 
         data.minimizers.init();
 
+        const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
         const uint64_t buffer_size = num_files_to_merge == 1
                                          ? num_super_kmers
                                          : ((build_config.ram_limit_in_GiB * essentials::GiB) /
@@ -143,15 +141,22 @@ void dictionary<kmer_t>::build(std::string const& filename,
             threads.clear();
             data.minimizers.sort_and_flush(buffer);
         }
-
         assert(buffer.empty());
+
+        timer.stop();
+        timings.push_back(timer.elapsed());
+        print_time(timings.back(), data.num_kmers,
+                   "step 2.3: 'replacing minimizer values with MPHF hashes'");
+        timer.reset();
+
+        timer.start();
         data.minimizers.merge();
         input.close();
+        timer.stop();
+        timings.push_back(timer.elapsed());
+        print_time(timings.back(), data.num_kmers, "step 2.4: 'merging_minimizers_tuples '");
+        timer.reset();
     }
-    timer.stop();
-    timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 2.3: 're-sorting_minimizers_tuples'");
-    timer.reset();
     /******/
 
     /* step 3: build sparse index ***/
@@ -172,6 +177,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.reset();
     /******/
 
+    assert(timings.size() == 7);
     double total_time = std::accumulate(timings.begin(), timings.end(), 0.0);
     print_time(total_time, data.num_kmers, "total_time");
 

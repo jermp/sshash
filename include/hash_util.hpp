@@ -47,7 +47,7 @@ using minimizers_pthash_type =
                             pthash::skew_bucketer,                          // bucketer type
                             pthash::dictionary_dictionary,                  // encoder type
                             true,                                           // minimal output
-                            pthash::pthash_search_type::xor_displacement>;  // search type>;
+                            pthash::pthash_search_type::xor_displacement>;  // search type
 
 template <class kmer_t>
 using kmers_base_hasher_type = kmers_pthash_hasher_128<kmer_t>;
@@ -58,7 +58,7 @@ using kmers_pthash_type =
                             pthash::skew_bucketer,                          // bucketer type
                             pthash::dictionary_dictionary,                  // encoder type
                             true,                                           // minimal output
-                            pthash::pthash_search_type::xor_displacement>;  // search type>;
+                            pthash::pthash_search_type::xor_displacement>;  // search type
 
 struct murmurhash2_64 {
     murmurhash2_64() { seed(0); }
