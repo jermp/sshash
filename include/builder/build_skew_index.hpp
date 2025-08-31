@@ -31,8 +31,7 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index,         //
          it.next())  //
     {
         auto bucket = it.bucket();
-        uint64_t bucket_size = bucket.size();
-        if (bucket_size > min_size) {
+        if (bucket.size() > min_size) {
             num_super_kmers_in_skew_index += bucket.num_super_kmers();
             ++num_buckets_in_skew_index;
         }
