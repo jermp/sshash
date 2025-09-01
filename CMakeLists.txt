@@ -89,3 +89,7 @@ target_link_libraries(check
   sshash_static
   z
 )
+
+install(TARGETS sshash
+  RUNTIME DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)
