@@ -149,7 +149,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
         uint64_t i = 0;
         if constexpr (kmer_t::bits_per_char == 2) {
-#ifndef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+#if !defined(SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING) and defined(__x86_64__)
+
             /* process 32 bytes at a time */
             for (; i + 32 <= n; i += 32) {
                 __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
