@@ -2,8 +2,11 @@
 
 #include <vector>
 #include <atomic>
+
+#if defined(__x86_64__)
 #include <immintrin.h>
 #include <x86intrin.h>
+#endif
 
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
@@ -27,6 +30,7 @@ struct parse_runtime_error : public std::runtime_error {
     }
 }
 
+#if defined(__x86_64__)
 /*
     This function takes 32 bytes and packs the two bits
     in positions 1 and 2 (from right) of each byte into
@@ -53,6 +57,7 @@ inline uint64_t pack2bits_shift1(__m256i v) {
     uint64_t odd = _pdep_u64(mask1, 0xAAAAAAAAAAAAAAAAULL);   // 101010...
     return even | odd;
 }
+#endif
 
 typedef uint8_t num_kmers_in_super_kmer_uint_type;
 
