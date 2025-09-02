@@ -298,9 +298,12 @@ To create a new release, run the following command *from the parent directory*:
 
 for example
 
-    bash script/create_release.sh --release-name sshash-v4.0.0
+    bash script/create_release.sh --format zip v4.0.0.tar.gz
 
-**Note**: The sha256 hash code printed at the end is needed for distribution via Bioconda.
+**Note 1**: The sha256 hash code printed at the end is needed for distribution via Bioconda.
+
+**Note 2**: Avoid dashes in the name of the release because Bioconda does not like them.
+
 
 References
 -----
