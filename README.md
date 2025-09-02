@@ -289,12 +289,13 @@ Using the option `-all-abundance-counts` of BCALM2, it is possible to also inclu
 Create a New Release
 --------------------
 
-It is recommended to create a new release with the script `script/create_release.sh` which also includes the source code for the dependencies in `external`
+It is recommended to create a new release with the script `script/create_release.sh` which
+**also includes the source code for the dependencies** in `external`
 (this is not done by GitHub).
 
 To create a new release, run the following command *from the parent directory*:
 
-    bash script/create_release.sh --release-name [RELEASE-NAME]
+    bash script/create_release.sh --format zip [RELEASE-NAME]
 
 for example
 
