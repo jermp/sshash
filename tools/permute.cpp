@@ -28,7 +28,7 @@ int permute(int argc, char** argv) {
                    constants::default_tmp_dirname + "'.",
                "-d", false);
 
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
 
     auto input_filename = parser.get<std::string>("input_filename");
     auto k = parser.get<uint64_t>("k");

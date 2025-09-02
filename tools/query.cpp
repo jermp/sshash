@@ -16,7 +16,7 @@ int query(int argc, char** argv) {
                " Only valid for FASTA files (not FASTQ).",
                "--multiline", false, true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
 
     auto index_filename = parser.get<std::string>("index_filename");
     auto query_filename = parser.get<std::string>("query_filename");

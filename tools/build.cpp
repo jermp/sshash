@@ -54,7 +54,7 @@ int build(int argc, char** argv) {
     parser.add("bench", "Run benchmark after construction.", "--bench", false, true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
 
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
 
     auto input_filename = parser.get<std::string>("input_filename");
     auto k = parser.get<uint64_t>("k");

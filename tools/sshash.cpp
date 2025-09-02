@@ -23,7 +23,7 @@ int check(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
     dictionary<kmer_t> dict;
@@ -40,7 +40,7 @@ int bench(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
     dictionary<kmer_t> dict;
@@ -56,7 +56,7 @@ int compute_statistics(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
     dictionary<kmer_t> dict;
@@ -77,7 +77,7 @@ int help(char* arg0) {
               << "  bench              \t run performance tests for a dictionary \n"
               << "  permute            \t permute a weighted input file \n"
               << "  compute-statistics \t compute index statistics " << std::endl;
-    return 1;
+    return 0;
 }
 
 int main(int argc, char** argv) {
