@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     parser.add("query_filename", "Must be a FASTQ file (.fq/fastq extension) compressed with gzip.",
                "-q", true);
     parser.add("k", "K-mer length (must be <= 31).", "-k", true);
-    if (!parser.parse()) return 1;
+    if (!parser.parse()) return 0;
 
     auto k = parser.get<uint64_t>("k");
     if (k > 31) {

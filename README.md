@@ -47,6 +47,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Tools and Usage](#tools-and-usage)
 * [Examples](#Examples)
 * [Input Files](#input-files)
+* [Create a New Release](#create-a-new-release)
 * [References](#references)
 
 Compiling the Code
@@ -284,6 +285,26 @@ For the experiments in [2] and [3], we used the datasets available on [Zenodo](h
 
 #### Weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
+
+Create a New Release
+--------------------
+
+It is recommended to create a new release with the script `script/create_release.sh` which
+**also includes the source code for the dependencies** in `external`
+(this is not done by GitHub).
+
+To create a new release, run the following command *from the parent directory*:
+
+    bash script/create_release.sh --format zip [RELEASE-NAME]
+
+for example
+
+    bash script/create_release.sh --format zip v4.0.0.tar.gz
+
+**Note 1**: The sha256 hash code printed at the end is needed for distribution via Bioconda.
+
+**Note 2**: Avoid dashes in the name of the release because Bioconda does not like them.
+
 
 References
 -----
