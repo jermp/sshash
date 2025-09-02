@@ -42,7 +42,15 @@ if (UNIX)
 
 endif()
 
+if (CONDA_BUILD)
+  set(CONDA_BUILD TRUE)
+else()
+  set(CONDA_BUILD FALSE)
+endif()
+
 MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+MESSAGE(STATUS "Conda build: ${CONDA_BUILD}")
+MESSAGE(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 MESSAGE(STATUS "Compiling for processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
 MESSAGE(STATUS "Compiling with flags:${CMAKE_CXX_FLAGS}")
 
@@ -90,6 +98,8 @@ target_link_libraries(check
   z
 )
 
-install(TARGETS sshash
-  RUNTIME DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-)
+if (CONDA_BUILD)
+  install(TARGETS sshash
+    RUNTIME DESTINATION bin
+  )
+endif()
