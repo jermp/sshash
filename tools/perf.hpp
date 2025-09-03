@@ -34,13 +34,13 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
         for (uint64_t i = 0; i != num_queries; ++i) {
             uint64_t id = distr.gen();
             dict.access(id, kmer.data());
-            if ((i & 1) == 0) {
-                /* transform 50% of the kmers into their reverse complements */
-                kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
-                lookup_queries.push_back(kmer_rc);
-            } else {
-                lookup_queries.push_back(kmer);
-            }
+            // if ((i & 1) == 0) {
+            //     /* transform 50% of the kmers into their reverse complements */
+            //     kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+            //     lookup_queries.push_back(kmer_rc);
+            // } else {
+            lookup_queries.push_back(kmer);
+            // }
         }
         essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
         t.start();
@@ -80,6 +80,12 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
             So, it looks like the version with also loop-unrolling is a lot
             beneficial for canonical indexes, indicating a better pipelining
             for canonical indexes.
+
+            Clearly, if we do NOT transform kmers into their reverse complements,
+            regular indexes are faster, e.g.:
+                1. avg_nanosec_per_positive_lookup 982.258
+            wherease performance does not change for canonical indexes because
+            one bucket is inspected anyway.
         */
         essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
         t.start();
