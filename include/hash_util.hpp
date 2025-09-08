@@ -6,15 +6,13 @@
 namespace sshash {
 
 using minimizers_base_hasher_type = pthash::xxhash_128;
-
-using minimizers_pthash_type =
-    pthash::partitioned_phf<minimizers_base_hasher_type,  // base hasher
-                            pthash::skew_bucketer,        //
-                                                          // bucketer type
-                            // pthash::opt_bucketer,
-                            pthash::dictionary_dictionary,  // encoder type
-                            // pthash::compact_compact,
-                            true>;  // minimal output
+using minimizers_pthash_type =        //
+    pthash::partitioned_phf<          //
+        minimizers_base_hasher_type,  // base hasher
+        pthash::opt_bucketer,         // bucketer type
+        pthash::compact,              // encoder type
+        true                          // minimal output
+        >;                            //
 
 template <class kmer_t>
 struct kmers_pthash_hasher_128 {
@@ -28,12 +26,14 @@ struct kmers_pthash_hasher_128 {
 
 template <class kmer_t>
 using kmers_base_hasher_type = kmers_pthash_hasher_128<kmer_t>;
-
 template <class kmer_t>
-using kmers_pthash_type = pthash::partitioned_phf<kmers_base_hasher_type<kmer_t>,  // base hasher
-                                                  pthash::skew_bucketer,           // bucketer type
-                                                  pthash::dictionary_dictionary,   // encoder type
-                                                  true>;                           // minimal output
+using kmers_pthash_type =                //
+    pthash::partitioned_phf<             //
+        kmers_base_hasher_type<kmer_t>,  // base hasher
+        pthash::opt_bucketer,            // bucketer type
+        pthash::compact,                 // encoder type
+        true                             // minimal output
+        >;                               //
 
 struct mixer_64 {
     mixer_64() { seed(0); }
