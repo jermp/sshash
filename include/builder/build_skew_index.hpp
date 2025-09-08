@@ -229,10 +229,6 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index,         //
         }
         assert(partition_id == num_partitions - 1);
     }
-
-    std::cout << "num_bits_for_skew_index " << m_skew_index.num_bits() << "("
-              << static_cast<double>(m_skew_index.num_bits()) / buckets_stats.num_kmers()
-              << " [bits/kmer])" << std::endl;
 }
 
 }  // namespace sshash

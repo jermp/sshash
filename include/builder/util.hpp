@@ -302,10 +302,6 @@ struct minimizers_tuples {
         out.close();
         fm_iterator.close();
 
-        std::cout << "num_minimizers = " << m_num_minimizers << std::endl;
-        std::cout << "num_minimizer_positions = " << m_num_minimizer_positions << std::endl;
-        std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
-
         /* remove tmp files */
         for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
             auto tmp_output_filename = get_tmp_output_filename(i);

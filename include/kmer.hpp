@@ -20,6 +20,9 @@ struct uint_kmer_t {
     uint_kmer_t() {}
     uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
 
+    uint8_t const* begin() const { return reinterpret_cast<uint8_t const*>(&kmer); }
+    uint8_t const* end() const { return begin() + sizeof(kmer); }
+
     virtual ~uint_kmer_t() = default;
 
     explicit operator uint64_t() const {
@@ -30,7 +33,6 @@ struct uint_kmer_t {
         }
     }
 
-    // TODO: change to <=> when switching to C++20
     bool operator==(uint_kmer_t const& t) const { return kmer == t.kmer; }
     bool operator!=(uint_kmer_t const& t) const { return kmer != t.kmer; }
     bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }

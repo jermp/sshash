@@ -75,6 +75,11 @@ void dictionary<kmer_t>::build(std::string const& filename,
         timings.push_back(timer.elapsed());
         print_time(timings.back(), data.num_kmers, "step 2.1: 'merging_minimizers_tuples'");
 
+        std::cout << "num_minimizers = " << data.minimizers.num_minimizers() << std::endl;
+        std::cout << "num_minimizer_positions = " << data.minimizers.num_minimizer_positions()
+                  << std::endl;
+        std::cout << "num_super_kmers = " << data.minimizers.num_super_kmers() << std::endl;
+
         timer.reset();
 
         timer.start();

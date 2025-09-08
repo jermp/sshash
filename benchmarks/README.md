@@ -29,6 +29,8 @@ bash ../script/streaming-query-low-hit.sh [prefix]
 
 where `[prefix]` should be replaced by a suitable basename, e.g., the current date.
 
-These are the results obtained on 22/08/25 (see logs [here](results-22-08-25)).
+These are the results obtained on 22/08/25 (see logs [here](results-22-08-25))
+on a machine equipped with an Intel Xeon W-2245 CPU @ 3.90GHz, and running Ubuntu 18.04.6.
+The code was compiled with `gcc` 9.4.
 
 ![](results-22-08-25/results.png)
