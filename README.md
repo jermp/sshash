@@ -51,6 +51,7 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Examples](#Examples)
 * [Input Files](#input-files)
 * [Create a New Release](#create-a-new-release)
+* [Benchmarks](#benchmarks)
 * [References](#references)
 
 Compiling the Code
@@ -308,9 +309,13 @@ for example
 
 **Note 2**: Avoid dashes in the name of the release because Bioconda does not like them.
 
+Benchmarks
+----------
+
+The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
 
 References
------
+----------
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
 * [2] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
 * [3] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
