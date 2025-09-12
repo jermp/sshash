@@ -64,10 +64,6 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
         {
             const uint64_t bucket_id = it.minimizer();
             assert(bucket_id < num_minimizers);
-            // const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
-            // assert(end > begin);
-            // const uint64_t bucket_size = end - begin;
-            // assert(bucket_size == it.bucket().size());
             auto bucket = it.bucket();
             const uint64_t bucket_size = bucket.size();
             tbs.add_bucket_size(bucket_size);
@@ -166,11 +162,6 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
                   << (num_buckets_in_skew_index * 100.0) / buckets_stats.num_buckets() << "%)"
                   << std::endl;
 
-        // if (num_buckets_in_skew_index == 0) {
-        //     input.close();
-        //     return;
-        // }
-
         std::vector<bucket_type> buckets;
         buckets.reserve(num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
         std::vector<minimizer_tuple> tuples;  // backed memory
@@ -244,6 +235,9 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
                         lower = upper;
                         upper = 2 * lower;
                         partition_id += 1;
+                        if (partition_id == num_partitions - 1) {
+                            upper = buckets_stats.max_bucket_size();
+                        }
                     }
                 }
                 list_id = 0;
