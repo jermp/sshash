@@ -103,30 +103,6 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     }
     // {
     // perf test positive lookup, using a single std::string with all kmers contatenated
-    //     /*
-    //         ./sshash build -i ~/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz -k 31 -m 21 -t
-    //         8 -g 16 --verbose -o human.index -d tmp_dir
-    //         ./sshash build -i ~/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz -k 31 -m 20 -t
-    //         8 -g 16 --canonical --verbose -o human.canon.index - d tmp_dir
-
-    //         ./sshash bench -i human.index
-    //         1. avg_nanosec_per_positive_lookup 1379.05
-    //         2. avg_nanosec_per_positive_lookup 1298.91
-
-    //         ./sshash bench -i human.canon.index
-    //         1. avg_nanosec_per_positive_lookup 1136.06
-    //         2. avg_nanosec_per_positive_lookup 840.417
-
-    //         So, it looks like the version with also loop-unrolling is a lot
-    //         beneficial for canonical indexes, indicating a better pipelining
-    //         for canonical indexes.
-
-    //         Clearly, if we do NOT transform kmers into their reverse complements,
-    //         regular indexes are faster, e.g.:
-    //             1. avg_nanosec_per_positive_lookup 982.258
-    //         wherease performance does not change for canonical indexes because
-    //         one bucket is inspected anyway.
-    //     */
     // essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
     // t.start();
     // uint64_t pos = 0;
@@ -174,26 +150,26 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     //     std::cout << "2. avg_nanosec_per_positive_lookup " << nanosec_per_lookup << std::endl;
     // }
 
-    // {
-    //     // perf test negative lookup
-    //     std::vector<std::string> lookup_queries;
-    //     lookup_queries.reserve(num_queries);
-    //     for (uint64_t i = 0; i != num_queries; ++i) {
-    //         random_kmer(kmer.data(), k);
-    //         lookup_queries.push_back(kmer);
-    //     }
-    //     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
-    //     t.start();
-    //     for (uint64_t r = 0; r != runs; ++r) {
-    //         for (auto const& string : lookup_queries) {
-    //             auto id = dict.lookup(string.c_str());
-    //             essentials::do_not_optimize_away(id);
-    //         }
-    //     }
-    //     t.stop();
-    //     double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-    //     std::cout << "avg_nanosec_per_negative_lookup " << nanosec_per_lookup << std::endl;
-    // }
+    {
+        // perf test negative lookup
+        std::vector<std::string> lookup_queries;
+        lookup_queries.reserve(num_queries);
+        for (uint64_t i = 0; i != num_queries; ++i) {
+            random_kmer(kmer.data(), k);
+            lookup_queries.push_back(kmer);
+        }
+        essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+        t.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            for (auto const& string : lookup_queries) {
+                auto id = dict.lookup(string.c_str());
+                essentials::do_not_optimize_away(id);
+            }
+        }
+        t.stop();
+        double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
+        std::cout << "avg_nanosec_per_negative_lookup " << nanosec_per_lookup << std::endl;
+    }
     // {
     //     // perf test positive lookup_advanced
     //     std::vector<std::string> lookup_queries;

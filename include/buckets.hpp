@@ -59,13 +59,6 @@ struct buckets  //
                                           kmer_t::bits_per_char * (contig_end - k + 1));
     }
 
-    // std::pair<uint64_t, uint64_t> locate_bucket(const uint64_t bucket_id) const {
-    //     uint64_t begin = bucket_sizes.access(bucket_id) + bucket_id;
-    //     uint64_t end = bucket_sizes.access(bucket_id + 1) + bucket_id + 1;
-    //     assert(begin < end);
-    //     return {begin, end};
-    // }
-
     lookup_result lookup(uint64_t begin, uint64_t end, kmer_t kmer, minimizer_info mini_info,
                          const uint64_t k, const uint64_t m) const  //
     {
@@ -324,9 +317,7 @@ struct buckets  //
     }
 
     bits::elias_fano<true, false> pieces;
-    // bits::elias_fano<false, false> bucket_sizes;
-
-    std::vector<uint64_t> start_lists_of_size;
+    std::vector<uint32_t> start_lists_of_size;
     bits::compact_vector offsets;
     bits::compact_vector offsets2;
     bits::compact_vector offsets3;
@@ -337,8 +328,6 @@ private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.pieces);
-        // visitor.visit(t.bucket_sizes);
-
         visitor.visit(t.start_lists_of_size);
         visitor.visit(t.offsets);
         visitor.visit(t.offsets2);
