@@ -59,18 +59,19 @@ struct buckets  //
                                           kmer_t::bits_per_char * (contig_end - k + 1));
     }
 
-    std::pair<uint64_t, uint64_t> locate_bucket(const uint64_t bucket_id) const {
-        uint64_t begin = bucket_sizes.access(bucket_id) + bucket_id;
-        uint64_t end = bucket_sizes.access(bucket_id + 1) + bucket_id + 1;
-        assert(begin < end);
-        return {begin, end};
-    }
+    // std::pair<uint64_t, uint64_t> locate_bucket(const uint64_t bucket_id) const {
+    //     uint64_t begin = bucket_sizes.access(bucket_id) + bucket_id;
+    //     uint64_t end = bucket_sizes.access(bucket_id + 1) + bucket_id + 1;
+    //     assert(begin < end);
+    //     return {begin, end};
+    // }
 
     lookup_result lookup(uint64_t begin, uint64_t end, kmer_t kmer, minimizer_info mini_info,
                          const uint64_t k, const uint64_t m) const  //
     {
         { /* check minimizer first */
-            uint64_t pos_in_seq = offsets.access(begin);
+            // uint64_t pos_in_seq = offsets.access(begin);
+            uint64_t pos_in_seq = offsets2.access(begin);
             uint64_t read_mmer = uint64_t(
                 util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * pos_in_seq));
             if (read_mmer != mini_info.minimizer) {
@@ -95,7 +96,35 @@ struct buckets  //
                          const uint64_t m) const  //
     {
         (void)m;
-        uint64_t pos_in_seq = offsets.access(i);
+        // uint64_t pos_in_seq = offsets.access(i);
+        uint64_t pos_in_seq = offsets2.access(i);
+        if (pos_in_seq >= mini_info.pos_in_kmer) {
+            uint64_t offset = pos_in_seq - mini_info.pos_in_kmer;
+            auto res = offset_to_id(offset, k);
+            if (offset + k - 1 < res.contig_end(k)) {
+                auto read_kmer =
+                    util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
+                if (read_kmer == kmer) {
+                    assert(is_valid(res));
+                    return res;
+                }
+            }
+        }
+        return lookup_result();
+    }
+
+    lookup_result lookup_at_offset(uint64_t pos_in_seq, kmer_t kmer, minimizer_info mini_info,
+                                   const uint64_t k, const uint64_t m) const  //
+    {
+        { /* check minimizer first */
+            uint64_t read_mmer = uint64_t(
+                util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * pos_in_seq));
+            if (read_mmer != mini_info.minimizer) {
+                auto res = lookup_result();
+                res.minimizer_found = false;
+                return res;
+            }
+        }
         if (pos_in_seq >= mini_info.pos_in_kmer) {
             uint64_t offset = pos_in_seq - mini_info.pos_in_kmer;
             auto res = offset_to_id(offset, k);
@@ -278,7 +307,9 @@ struct buckets  //
     }
 
     uint64_t num_bits() const {
-        return 8 * (pieces.num_bytes() + bucket_sizes.num_bytes() + offsets.num_bytes() +
+        return 8 * (pieces.num_bytes() +
+                    essentials::vec_bytes(start_lists_of_size) +  // bucket_sizes.num_bytes() + //
+                    offsets.num_bytes() + offsets2.num_bytes() + offsets3.num_bytes() +  //
                     strings.num_bytes());
     }
 
@@ -293,16 +324,25 @@ struct buckets  //
     }
 
     bits::elias_fano<true, false> pieces;
-    bits::elias_fano<false, false> bucket_sizes;
+    // bits::elias_fano<false, false> bucket_sizes;
+
+    std::vector<uint64_t> start_lists_of_size;
     bits::compact_vector offsets;
+    bits::compact_vector offsets2;
+    bits::compact_vector offsets3;
+
     bits::bit_vector strings;
 
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.pieces);
-        visitor.visit(t.bucket_sizes);
+        // visitor.visit(t.bucket_sizes);
+
+        visitor.visit(t.start_lists_of_size);
         visitor.visit(t.offsets);
+        visitor.visit(t.offsets2);
+        visitor.visit(t.offsets3);
         visitor.visit(t.strings);
     }
 

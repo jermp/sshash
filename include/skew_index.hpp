@@ -34,13 +34,21 @@ struct skew_index {
 
     bool empty() const { return mphfs.empty(); }
 
-    uint64_t lookup(kmer_t uint_kmer, uint64_t log2_bucket_size) const {
-        assert(log2_bucket_size >= uint64_t(min_log2 + 1));
-        assert(log2_bucket_size <= log2_max_bucket_size);
-        uint64_t partition_id = log2_bucket_size - (min_log2 + 1);
-        if (log2_bucket_size == log2_max_bucket_size or log2_bucket_size > max_log2) {
-            partition_id = mphfs.size() - 1;
-        }
+    // uint64_t lookup(kmer_t uint_kmer, uint64_t log2_bucket_size) const {
+    //     assert(log2_bucket_size >= uint64_t(min_log2 + 1));
+    //     assert(log2_bucket_size <= log2_max_bucket_size);
+    //     uint64_t partition_id = log2_bucket_size - (min_log2 + 1);
+    //     if (log2_bucket_size == log2_max_bucket_size or log2_bucket_size > max_log2) {
+    //         partition_id = mphfs.size() - 1;
+    //     }
+    //     assert(partition_id < mphfs.size());
+    //     auto const& f = mphfs[partition_id];
+    //     auto const& p = positions[partition_id];
+    //     uint64_t position = p.access(f(uint_kmer));
+    //     return position;
+    // }
+
+    uint64_t lookup(kmer_t uint_kmer, uint64_t partition_id) const {
         assert(partition_id < mphfs.size());
         auto const& f = mphfs[partition_id];
         auto const& p = positions[partition_id];

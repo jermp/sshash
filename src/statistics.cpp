@@ -17,7 +17,11 @@ void dictionary<kmer_t>::compute_statistics() const  //
     minimizer_iterator<kmer_t> minimizer_it(m_k, m_m, m_hasher);
 
     for (uint64_t bucket_id = 0; bucket_id != num_minimizers; ++bucket_id) {
-        const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
+        // const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
+
+        // TODO: fixme
+        uint64_t begin = 0;
+        uint64_t end = 0;
         const uint64_t bucket_size = end - begin;
         buckets_stats.add_bucket_size(bucket_size);
         for (uint64_t i = begin; i != end; ++i) {

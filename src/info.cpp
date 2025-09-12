@@ -49,11 +49,24 @@ void dictionary<kmer_t>::print_space_breakdown() const {
               << " [bits/key]) -- " << perc(m_minimizers.num_bits(), num_bits()) << "%\n";
     std::cout << "  pieces: " << (8.0 * m_buckets.pieces.num_bytes()) / size() << " [bits/kmer] -- "
               << perc(m_buckets.pieces.num_bytes() * 8, num_bits()) << "%\n";
-    std::cout << "  sizes: " << (m_buckets.bucket_sizes.num_bytes() * 8.0) / size()
-              << " [bits/kmer] -- " << perc(m_buckets.bucket_sizes.num_bytes() * 8, num_bits())
-              << "%\n";
+    // std::cout << "  sizes: " << (m_buckets.bucket_sizes.num_bytes() * 8.0) / size()
+    //           << " [bits/kmer] -- " << perc(m_buckets.bucket_sizes.num_bytes() * 8, num_bits())
+    //           << "%\n";
+
     std::cout << "  offsets: " << (8.0 * m_buckets.offsets.num_bytes()) / size()
               << " [bits/kmer] -- " << perc(8 * m_buckets.offsets.num_bytes(), num_bits()) << "%\n";
+    std::cout << "  offsets2: " << (8.0 * m_buckets.offsets2.num_bytes()) / size()
+              << " [bits/kmer] -- " << perc(8 * m_buckets.offsets2.num_bytes(), num_bits())
+              << "%\n";
+    std::cout << "  offsets3: " << (8.0 * m_buckets.offsets3.num_bytes()) / size()
+              << " [bits/kmer] -- " << perc(8 * m_buckets.offsets3.num_bytes(), num_bits())
+              << "%\n";
+    std::cout << "  start_lists_of_size: "
+              << (8.0 * essentials::vec_bytes(m_buckets.start_lists_of_size)) / size()
+              << " [bits/kmer] -- "
+              << perc(8 * essentials::vec_bytes(m_buckets.start_lists_of_size), num_bits())
+              << "%\n";
+
     std::cout << "  strings: " << (8.0 * m_buckets.strings.num_bytes()) / size()
               << " [bits/kmer] -- " << perc(8 * m_buckets.strings.num_bytes(), num_bits()) << "%\n";
     std::cout << "  skew_index: " << static_cast<double>(m_skew_index.num_bits()) / size()

@@ -4,28 +4,6 @@
 
 namespace sshash {
 
-struct bucket_size_iterator {
-    using iterator_category = std::forward_iterator_tag;
-
-    bucket_size_iterator(minimizer_tuple const* begin, minimizer_tuple const* end)
-        : m_val(0)  // first returned value is always 0
-        , m_it(begin, end) {}
-
-    uint64_t operator*() const { return m_val; }
-
-    void operator++() {
-        if (!m_it.has_next()) return;
-        uint64_t size = m_it.bucket().size();
-        assert(size > 0);
-        m_val += size - 1;  // directly compute the cumulative sum
-        m_it.next();
-    }
-
-private:
-    uint64_t m_val;
-    minimizers_tuples_iterator m_it;
-};
-
 template <class kmer_t>
 buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
                                       build_configuration const& build_config)  //
@@ -33,37 +11,26 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     const uint64_t num_kmers = data.num_kmers;
     const uint64_t num_minimizer_positions = data.minimizers.num_minimizer_positions();
     const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
-    const uint64_t num_buckets = data.minimizers.num_minimizers();
+    const uint64_t num_minimizers = data.minimizers.num_minimizers();
     const uint64_t num_threads = build_config.num_threads;
 
+    const uint64_t num_bits_per_offset =
+        std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char));
     bits::compact_vector::builder offsets_builder;
-    offsets_builder.resize(num_minimizer_positions,
-                           std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char)));
+    offsets_builder.resize(num_minimizers, num_bits_per_offset + 1);
 
-    std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / kmer_t::bits_per_char
-              << ")) = " << std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char))
+    std::cout << "num_bits_per_offset = ceil(log2("
+              << data.strings.num_bits() / kmer_t::bits_per_char << ")) = " << num_bits_per_offset
               << std::endl;
 
-    std::cout << "reading from '" << data.minimizers.get_minimizers_filename() << "'..."
-              << std::endl;
     mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                            mm::advice::sequential);
     minimizer_tuple const* begin = input.data();
     minimizer_tuple const* end = input.data() + input.size();
 
     essentials::timer_type timer;
-    timer.start();
-    {
-        bucket_size_iterator iterator(begin, end);
-        m_buckets.bucket_sizes.encode(iterator, num_buckets + 1,
-                                      num_minimizer_positions - num_buckets);
-    }
-    timer.stop();
-    std::cout << "encoding bucket sizes: " << timer.elapsed() / 1000000 << " [sec]" << std::endl;
 
-    timer.reset();
-
-    buckets_statistics buckets_stats(num_buckets, num_kmers, num_minimizer_positions);
+    buckets_statistics buckets_stats(num_minimizers, num_kmers, num_minimizer_positions);
 
     timer.start();
     const uint64_t block_size = (num_super_kmers + num_threads - 1) / num_threads;
@@ -96,29 +63,35 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
              it.next())                                                                //
         {
             const uint64_t bucket_id = it.minimizer();
-            const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
-            assert(end > begin);
-            const uint64_t bucket_size = end - begin;
-            assert(bucket_size == it.bucket().size());
-            tbs.add_bucket_size(bucket_size);
-            uint64_t pos = 0;
+            assert(bucket_id < num_minimizers);
+            // const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
+            // assert(end > begin);
+            // const uint64_t bucket_size = end - begin;
+            // assert(bucket_size == it.bucket().size());
             auto bucket = it.bucket();
+            const uint64_t bucket_size = bucket.size();
+            tbs.add_bucket_size(bucket_size);
             uint64_t prev_pos_in_seq = constants::invalid_uint64;
             for (auto mt : bucket) {
-                if (mt.pos_in_seq != prev_pos_in_seq) {
-                    offsets_builder.set(begin + pos++, mt.pos_in_seq);
+                if (bucket_size == 1 and mt.pos_in_seq != prev_pos_in_seq) {
+                    /*
+                        For minimizers occurring once, store a (log(N)+1)-bit
+                        code, as follows: |offset|0|, i.e., the last bit is 0.
+                    */
+                    uint64_t code = mt.pos_in_seq << 1;  // first LS bit encodes status code: 0
+                    assert(code < (uint64_t(1) << (num_bits_per_offset + 1)));
+                    offsets_builder.set(bucket_id, code);
                     prev_pos_in_seq = mt.pos_in_seq;
                 }
                 tbs.add_num_kmers_in_super_kmer(bucket_size, mt.num_kmers_in_super_kmer);
             }
-            assert(pos == bucket_size);
         }
     };
 
     std::vector<std::thread> threads(num_threads);
     for (uint64_t thread_id = 0; thread_id != num_threads; ++thread_id) {
         threads_buckets_stats[thread_id] =
-            buckets_statistics(num_buckets, num_kmers, num_minimizer_positions);
+            buckets_statistics(num_minimizers, num_kmers, num_minimizer_positions);
         threads[thread_id] = std::thread(exe, thread_id);
     }
     for (auto& t : threads) {
@@ -135,11 +108,192 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
 
     timer.start();
     m_buckets.pieces.encode(data.pieces.begin(), data.pieces.size(), data.pieces.back());
-    offsets_builder.build(m_buckets.offsets);
     m_buckets.strings.swap(data.strings);
     timer.stop();
     std::cout << "encoding string boundaries and building offsets: " << timer.elapsed() / 1000000
               << " [sec]" << std::endl;
+
+    /*******/
+    {
+        assert(buckets_stats.num_buckets() == num_minimizers);
+
+        const uint64_t min_log2_size = constants::min_l;  // m_skew_index.min_log2;
+        const uint64_t max_log2_size = constants::max_l;  // m_skew_index.max_log2;
+        const uint64_t min_size = 1ULL << min_log2_size;
+        const uint64_t log2_max_bucket_size = std::ceil(std::log2(buckets_stats.max_bucket_size()));
+
+        std::cout << "min_log2_size = " << min_log2_size << std::endl;
+        std::cout << "min_size = " << min_size << std::endl;
+
+        std::cout << "max_bucket_size " << buckets_stats.max_bucket_size() << std::endl;
+        std::cout << "log2_max_bucket_size " << log2_max_bucket_size << std::endl;
+
+        mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+                                               mm::advice::sequential);
+
+        uint64_t num_buckets_larger_than_1_not_in_skew_index = 0;
+        uint64_t num_buckets_in_skew_index = 0;
+        uint64_t num_super_kmers_in_buckets_larger_than_1 = 0;
+
+        uint64_t num_minimizer_positions_of_buckets_larger_than_1 = 0;
+        uint64_t num_minimizer_positions_of_buckets_in_skew_index = 0;
+
+        for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
+             it.has_next(); it.next())  //
+        {
+            auto bucket = it.bucket();
+            const uint64_t bucket_size = bucket.size();
+            if (bucket_size > 1) {
+                if (bucket_size <= min_size) {
+                    ++num_buckets_larger_than_1_not_in_skew_index;
+                    num_minimizer_positions_of_buckets_larger_than_1 += bucket_size;
+                } else {
+                    ++num_buckets_in_skew_index;
+                    num_minimizer_positions_of_buckets_in_skew_index += bucket_size;
+                }
+                num_super_kmers_in_buckets_larger_than_1 += bucket.num_super_kmers();
+            }
+        }
+
+        std::cout << "num_buckets_larger_than_1_not_in_skew_index "
+                  << num_buckets_larger_than_1_not_in_skew_index << "/"
+                  << buckets_stats.num_buckets() << " ("
+                  << (num_buckets_larger_than_1_not_in_skew_index * 100.0) /
+                         buckets_stats.num_buckets()
+                  << "%)" << std::endl;
+        std::cout << "num_buckets_in_skew_index " << num_buckets_in_skew_index << "/"
+                  << buckets_stats.num_buckets() << " ("
+                  << (num_buckets_in_skew_index * 100.0) / buckets_stats.num_buckets() << "%)"
+                  << std::endl;
+
+        // if (num_buckets_in_skew_index == 0) {
+        //     input.close();
+        //     return;
+        // }
+
+        std::vector<bucket_type> buckets;
+        buckets.reserve(num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
+        std::vector<minimizer_tuple> tuples;  // backed memory
+        tuples.reserve(num_super_kmers_in_buckets_larger_than_1);
+        for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
+             it.has_next(); it.next())  //
+        {
+            auto bucket = it.bucket();
+            if (bucket.size() > 1) {
+                minimizer_tuple const* begin = tuples.data() + tuples.size();
+                std::copy(bucket.begin_ptr(), bucket.end_ptr(), std::back_inserter(tuples));
+                minimizer_tuple const* end = tuples.data() + tuples.size();
+                buckets.push_back(bucket_type(begin, end));
+            }
+        }
+        assert(buckets.size() ==
+               num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
+        input.close();
+
+        std::sort(buckets.begin(), buckets.end(),
+                  [](bucket_type const& x, bucket_type const& y) { return x.size() < y.size(); });
+
+        uint64_t num_partitions = max_log2_size - min_log2_size + 1;
+        if (buckets_stats.max_bucket_size() < (1ULL << max_log2_size)) {
+            num_partitions = log2_max_bucket_size - min_log2_size;
+        }
+        std::cout << "skew index num_partitions " << num_partitions << std::endl;
+        assert(num_partitions <= 8);  // so that we need 3 bits to encode a partition_id
+
+        std::cout << "num_minimizer_positions_of_buckets_larger_than_1 "
+                  << num_minimizer_positions_of_buckets_larger_than_1 << "/"
+                  << num_minimizer_positions << " ("
+                  << (num_minimizer_positions_of_buckets_larger_than_1 * 100.0) /
+                         num_minimizer_positions
+                  << "%)" << std::endl;
+        std::cout << "num_minimizer_positions_of_buckets_in_skew_index "
+                  << num_minimizer_positions_of_buckets_in_skew_index << "/"
+                  << num_minimizer_positions << " ("
+                  << (num_minimizer_positions_of_buckets_in_skew_index * 100.0) /
+                         num_minimizer_positions
+                  << "%)" << std::endl;
+
+        bits::compact_vector::builder offsets2_builder;
+        bits::compact_vector::builder offsets3_builder;
+        offsets2_builder.resize(num_minimizer_positions_of_buckets_larger_than_1,
+                                num_bits_per_offset);
+        offsets3_builder.resize(num_minimizer_positions_of_buckets_in_skew_index,
+                                num_bits_per_offset);
+
+        uint64_t curr_bucket_size = 2;
+        uint64_t list_id = 0;
+
+        m_buckets.start_lists_of_size.resize(min_size + 1, 0);
+        uint64_t offsets2_curr_size = 0;
+        uint64_t offsets3_curr_size = 0;
+
+        uint64_t partition_id = 0;
+        uint64_t lower = min_size;
+        uint64_t upper = 2 * lower;
+
+        for (auto bucket : buckets) {
+            const uint64_t bucket_size = bucket.size();
+            assert(bucket_size >= 2);
+
+            if (bucket_size > curr_bucket_size) {
+                while (bucket_size > curr_bucket_size) ++curr_bucket_size;
+                if (curr_bucket_size <= min_size) {
+                    m_buckets.start_lists_of_size[curr_bucket_size] = offsets2_curr_size;
+                } else {
+                    while (curr_bucket_size > upper) {
+                        lower = upper;
+                        upper = 2 * lower;
+                        partition_id += 1;
+                    }
+                }
+                list_id = 0;
+            }
+
+            if (curr_bucket_size <= min_size) {
+                uint64_t prev_pos_in_seq = constants::invalid_uint64;
+                for (auto mt : bucket) {
+                    if (prev_pos_in_seq == constants::invalid_uint64) {  // only once
+                        uint64_t p = (list_id << min_log2_size) | (curr_bucket_size - 2);
+                        uint64_t code = (p << 2) | 1;  // first two LS bits encode status code: 01
+                        assert(code < (uint64_t(1) << (num_bits_per_offset + 1)));
+                        offsets_builder.set(mt.minimizer, code);
+                    }
+                    if (mt.pos_in_seq != prev_pos_in_seq) {
+                        offsets2_builder.push_back(mt.pos_in_seq);
+                        prev_pos_in_seq = mt.pos_in_seq;
+                        offsets2_curr_size += 1;
+                    }
+                }
+                ++list_id;
+            } else {
+                uint64_t prev_pos_in_seq = constants::invalid_uint64;
+                for (auto mt : bucket) {
+                    if (prev_pos_in_seq == constants::invalid_uint64) {  // only once
+                        assert(partition_id < 8);
+                        uint64_t p = (offsets3_curr_size << 3) | partition_id;
+                        uint64_t code = (p << 2) | 3;  // first two LS bits encode status code: 11
+                        assert(code < (uint64_t(1) << (num_bits_per_offset + 1)));
+                        offsets_builder.set(mt.minimizer, code);
+                    }
+                    if (mt.pos_in_seq != prev_pos_in_seq) {
+                        offsets3_builder.push_back(mt.pos_in_seq);
+                        prev_pos_in_seq = mt.pos_in_seq;
+                        offsets3_curr_size += 1;
+                    }
+                }
+            }
+        }
+
+        offsets2_builder.build(m_buckets.offsets2);
+        offsets3_builder.build(m_buckets.offsets3);
+    }
+
+    offsets_builder.build(m_buckets.offsets);
+
+    for (uint64_t i = 0; i != m_buckets.start_lists_of_size.size(); ++i) {
+        std::cout << "start of lists of size " << i << ": " << m_buckets.start_lists_of_size[i]
+                  << std::endl;
+    }
 
     return buckets_stats;
 }

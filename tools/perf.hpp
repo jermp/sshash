@@ -27,22 +27,21 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     std::string kmer(k, 0);
     std::string kmer_rc(k, 0);
 
-    std::string kmers;
+    // std::string kmers;
     {
         // perf test positive lookup, using a std::vector<std::string>
-
         std::vector<std::string> lookup_queries;
         lookup_queries.reserve(num_queries);
         for (uint64_t i = 0; i != num_queries; ++i) {
             uint64_t id = distr.gen();
             dict.access(id, kmer.data());
-            // if ((i & 1) == 0) {
-            //     /* transform 50% of the kmers into their reverse complements */
-            //     kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
-            //     lookup_queries.push_back(kmer_rc);
-            // } else {
-            lookup_queries.push_back(kmer);
-            // }
+            if ((i & 1) == 0) {
+                /* transform 50% of the kmers into their reverse complements */
+                kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
+                lookup_queries.push_back(kmer_rc);
+            } else {
+                lookup_queries.push_back(kmer);
+            }
         }
 
         essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
@@ -103,12 +102,12 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
         // }
     }
     // {
-    //     // perf test positive lookup, using a single std::string with all kmers contatenated
+    // perf test positive lookup, using a single std::string with all kmers contatenated
     //     /*
-    //         ./sshash build -i ~/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz -k 31 -m 21 -t 8
-    //         -g 16 --verbose -o human.index -d tmp_dir
-    //         ./sshash build -i ~/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz -k 31 -m 20 -t 8
-    //         -g 16 --canonical --verbose -o human.canon.index - d tmp_dir
+    //         ./sshash build -i ~/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz -k 31 -m 21 -t
+    //         8 -g 16 --verbose -o human.index -d tmp_dir
+    //         ./sshash build -i ~/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz -k 31 -m 20 -t
+    //         8 -g 16 --canonical --verbose -o human.canon.index - d tmp_dir
 
     //         ./sshash bench -i human.index
     //         1. avg_nanosec_per_positive_lookup 1379.05
@@ -128,15 +127,15 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     //         wherease performance does not change for canonical indexes because
     //         one bucket is inspected anyway.
     //     */
-    //     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
-    //     t.start();
-    //     uint64_t pos = 0;
-    //     for (uint64_t r = 0; r != runs; ++r) {
-    //         // for (uint64_t i = 0; i != num_queries; ++i, pos += k) {
-    //         //     auto id = dict.lookup(kmers.data() + pos);
-    //         //     essentials::do_not_optimize_away(id);
-    //         // }
-    //         // pos = 0;
+    // essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    // t.start();
+    // uint64_t pos = 0;
+    // for (uint64_t r = 0; r != runs; ++r) {
+    //     for (uint64_t i = 0; i != num_queries; ++i, pos += k) {
+    //         auto id = dict.lookup(kmers.data() + pos);
+    //         essentials::do_not_optimize_away(id);
+    //     }
+    //     pos = 0;
 
     //         /*
     //             loop-unrolling
@@ -263,7 +262,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     //     access_queries.size()); std::cout << "avg_nanosec_per_access " << nanosec_per_access <<
     //     std::endl;
     // }
-}
+}  // namespace sshash
 
 template <class kmer_t>
 void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {

@@ -15,7 +15,6 @@ void build_skew_index(skew_index<kmer_t>& m_skew_index,         //
     const uint64_t max_log2_size = m_skew_index.max_log2;
     const uint64_t min_size = 1ULL << min_log2_size;
     const uint64_t k = build_config.k;
-    assert(build_config.k > 0 and build_config.m <= build_config.k);
 
     m_skew_index.log2_max_bucket_size = std::ceil(std::log2(buckets_stats.max_bucket_size()));
 
