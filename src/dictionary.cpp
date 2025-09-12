@@ -74,30 +74,40 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
                     util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher).minimizer));
 
     const uint64_t bucket_id = m_minimizers.lookup(mini_info.minimizer);
-    // const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
 
-    // TODO: fix
-    uint64_t begin = 0;
-    uint64_t end = 0;
-
-    if (m_skew_index.empty()) {
-        return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m);
+    uint64_t code = m_buckets.offsets.access(bucket_id);
+    uint64_t status = code & 1;
+    if (status == 0) {  // minimizer occurs once
+        uint64_t offset = code >> 1;
+        return m_buckets.lookup_canonical_at_offset(              //
+            offset, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
+        );
     }
 
-    const uint64_t bucket_size = end - begin;
-    const uint64_t log2_bucket_size = bits::util::ceil_log2_uint32(bucket_size);
-    if (log2_bucket_size > m_skew_index.min_log2) {
-        auto uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
-        uint64_t pos_in_bucket = m_skew_index.lookup(uint_kmer_canon, log2_bucket_size);
-        if (pos_in_bucket < bucket_size) {
-            auto res = m_buckets.lookup_canonical(begin + pos_in_bucket, uint_kmer, uint_kmer_rc,
-                                                  mini_info, m_k, m_m);
-            if (res.kmer_id != constants::invalid_uint64) return res;
-        }
-        return lookup_result();
+    status = code & 3;
+    code >>= 2;
+    if (status == 1) {  // minimizer occurs more than once, but is not part of the skew index
+        constexpr uint64_t mask = (uint64_t(1) << constants::min_l) - 1;
+        uint64_t list_size = (code & mask) + 2;
+        uint64_t list_id = code >> constants::min_l;
+        assert(list_size < m_buckets.start_lists_of_size.size());
+        uint64_t begin = m_buckets.start_lists_of_size[list_size] + list_id * list_size;
+        uint64_t end = begin + list_size;
+        return m_buckets.lookup_canonical(                            //
+            begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
+        );
     }
 
-    return m_buckets.lookup_canonical(begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m);
+    // minimizer is part of the skew index
+    assert(status == 3);
+    uint64_t partition_id = code & 7;
+    uint64_t begin = code >> 3;
+    const auto uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
+    uint64_t pos_in_bucket = m_skew_index.lookup(uint_kmer_canon, partition_id);
+    uint64_t offset = m_buckets.offsets3.access(begin + pos_in_bucket);
+    return m_buckets.lookup_canonical_at_offset(              //
+        offset, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
+    );
 }
 
 template <class kmer_t>

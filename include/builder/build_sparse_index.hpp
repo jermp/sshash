@@ -284,10 +284,10 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
 
     offsets_builder.build(m_buckets.offsets);
 
-    for (uint64_t i = 0; i != m_buckets.start_lists_of_size.size(); ++i) {
-        std::cout << "start of lists of size " << i << ": " << m_buckets.start_lists_of_size[i]
-                  << std::endl;
-    }
+    // for (uint64_t i = 0; i != m_buckets.start_lists_of_size.size(); ++i) {
+    //     std::cout << "start of lists of size " << i << ": " << m_buckets.start_lists_of_size[i]
+    //               << std::endl;
+    // }
 
     return buckets_stats;
 }
