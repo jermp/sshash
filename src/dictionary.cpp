@@ -15,9 +15,9 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
     assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
            util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
 
-    const uint64_t bucket_id = m_minimizers.lookup(mini_info.minimizer);
+    const uint64_t minimizer_id = m_minimizers.lookup(mini_info.minimizer);
 
-    uint64_t code = m_buckets.offsets.access(bucket_id);
+    uint64_t code = m_buckets.offsets.access(minimizer_id);
     uint64_t status = code & 1;
     if (status == 0) {  // minimizer occurs once
         uint64_t offset = code >> 1;
@@ -42,7 +42,19 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
     uint64_t begin = code >> 3;
     uint64_t pos_in_bucket = m_skew_index.lookup(uint_kmer, partition_id);
     uint64_t offset = m_buckets.offsets3.access(begin + pos_in_bucket);
-    return m_buckets.lookup_at_offset(offset, uint_kmer, mini_info, m_k, m_m);
+    auto res = m_buckets.lookup_at_offset(offset, uint_kmer, mini_info, m_k, m_m);
+    /*
+        The function `lookup_at_offset` determines if the minimizer is found at the given
+        `offset`, not whether the minimizer does not appear at all.
+        It can happen that the `mini_info.minimizer` appears somewhere but not at the
+        computed `offset` because `pos_in_bucket` might be larger than the size of
+        the bucket (which we do not know for minimizers in the skew index).
+        Since for streaming queries we keep track of the presence
+        of minimizers, only in this special case we set `res.minimizer_found` to true
+        to indicate that we do not know whether the minimizer appears in the index or not.
+    */
+    res.minimizer_found = true;
+    return res;
 }
 
 template <class kmer_t>
@@ -73,9 +85,9 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
            std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher).minimizer,
                     util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher).minimizer));
 
-    const uint64_t bucket_id = m_minimizers.lookup(mini_info.minimizer);
+    const uint64_t minimizer_id = m_minimizers.lookup(mini_info.minimizer);
 
-    uint64_t code = m_buckets.offsets.access(bucket_id);
+    uint64_t code = m_buckets.offsets.access(minimizer_id);
     uint64_t status = code & 1;
     if (status == 0) {  // minimizer occurs once
         uint64_t offset = code >> 1;
@@ -105,9 +117,11 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
     const auto uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
     uint64_t pos_in_bucket = m_skew_index.lookup(uint_kmer_canon, partition_id);
     uint64_t offset = m_buckets.offsets3.access(begin + pos_in_bucket);
-    return m_buckets.lookup_canonical_at_offset(              //
+    auto res = m_buckets.lookup_canonical_at_offset(          //
         offset, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
     );
+    res.minimizer_found = true;  // see note above in the function `lookup_uint_regular`
+    return res;
 }
 
 template <class kmer_t>

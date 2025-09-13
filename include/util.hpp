@@ -60,6 +60,7 @@ inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
     os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
     os << "  == contig_id = " << res.contig_id << '\n';
     os << "  == contig_size = " << res.contig_size << '\n';
+    os << "  == minimizer_found = " << (res.minimizer_found ? "true" : "false") << '\n';
     return os;
 }
 

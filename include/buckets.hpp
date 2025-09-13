@@ -296,10 +296,9 @@ struct buckets  //
     }
 
     uint64_t num_bits() const {
-        return 8 * (pieces.num_bytes() +
-                    essentials::vec_bytes(start_lists_of_size) +  // bucket_sizes.num_bytes() + //
+        return 8 * (pieces.num_bytes() + essentials::vec_bytes(start_lists_of_size) +    //
                     offsets.num_bytes() + offsets2.num_bytes() + offsets3.num_bytes() +  //
-                    strings.num_bytes());
+                    strings.num_bytes());                                                //
     }
 
     template <typename Visitor>
