@@ -9,12 +9,13 @@ constexpr uint64_t default_ram_limit_in_GiB = 8;
 constexpr uint64_t seed = 1;
 
 /* for PTHash */
-constexpr double lambda = 7.0;
+constexpr double lambda = 5.0;
 constexpr uint64_t avg_partition_size = 3000000;
 
 constexpr uint64_t min_l = 6;
-constexpr uint64_t max_l = 12;
+constexpr uint64_t max_l = 13;
 static_assert(min_l < max_l);
+static_assert(max_l - min_l + 1 <= 8);
 
 static const std::string default_tmp_dirname(".");
 constexpr int forward_orientation = 1;

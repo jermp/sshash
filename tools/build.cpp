@@ -22,12 +22,6 @@ int build(int argc, char** argv) {
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
     parser.add("t", "Number of threads (default is 1). Must be a power of 2.", "-t", false);
-    parser.add("l",
-               "A (integer) constant that controls the space/time trade-off of the dictionary. "
-               "A reasonable values lies in [2.." +
-                   std::to_string(constants::max_l) + "). The default value is " +
-                   std::to_string(constants::min_l) + ".",
-               "-l", false);
     parser.add("lambda",
                "A (floating point) constant that trades construction speed for space effectiveness "
                "of minimal perfect hashing. "
@@ -51,7 +45,7 @@ int build(int argc, char** argv) {
     parser.add("weighted", "Also store the weights in compressed format.", "--weighted", false,
                true);
     parser.add("check", "Check correctness after construction.", "--check", false, true);
-    parser.add("bench", "Run benchmark after construction.", "--bench", false, true);
+    parser.add("bench", "Run performance benchmark after construction.", "--bench", false, true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
 
     if (!parser.parse()) return 0;
@@ -67,7 +61,6 @@ int build(int argc, char** argv) {
     build_config.m = m;
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
-    if (parser.parsed("l")) build_config.l = parser.get<double>("l");
     if (parser.parsed("lambda")) build_config.lambda = parser.get<double>("lambda");
     build_config.canonical = parser.get<bool>("canonical");
     build_config.weighted = parser.get<bool>("weighted");

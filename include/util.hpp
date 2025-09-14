@@ -128,12 +128,11 @@ struct minimizer_info {
 struct build_configuration {
     build_configuration()
         : k(31)
-        , m(17)
+        , m(20)
         , seed(constants::seed)
         , num_threads(1)
         , ram_limit_in_GiB(constants::default_ram_limit_in_GiB)
 
-        , l(constants::min_l)
         , lambda(constants::lambda)
 
         , canonical(false)
@@ -144,13 +143,12 @@ struct build_configuration {
 
     {}
 
-    uint64_t k;  // kmer size
-    uint64_t m;  // minimizer size
+    uint64_t k;  // kmer length
+    uint64_t m;  // minimizer length
     uint64_t seed;
     uint64_t num_threads;
     uint64_t ram_limit_in_GiB;
 
-    uint64_t l;     // drive dictionary trade-off
     double lambda;  // drive PTHash trade-off
 
     bool canonical;
@@ -162,10 +160,11 @@ struct build_configuration {
     void print() const {
         std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
                   << ", num_threads = " << num_threads
-                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", l = " << l
-                  << ", lambda = " << lambda << ", canonical = " << (canonical ? "true" : "false")
+                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", lambda = " << lambda
+                  << ", canonical = " << (canonical ? "true" : "false")
                   << ", weighted = " << (weighted ? "true" : "false")
-                  << ", verbose = " << (verbose ? "true" : "false") << std::endl;
+                  << ", verbose = " << (verbose ? "true" : "false") << ", tmp_dirname = '"
+                  << tmp_dirname << "'" << std::endl;
     }
 };
 

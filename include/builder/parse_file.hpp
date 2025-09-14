@@ -11,7 +11,6 @@ struct parse_data {
 
     uint64_t num_kmers;
     minimizers_tuples minimizers;
-    // compact_string_pool<kmer_t> strings;
     std::vector<uint64_t> pieces;
     bits::bit_vector strings;
     weights::builder weights_builder;
@@ -51,7 +50,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
     minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
     uint64_t seq_len = 0;
-    uint64_t sum_of_weights = 0;
     data.weights_builder.init();
 
     /* intervals of weights */
@@ -104,7 +102,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                     uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
                     i = sequence.find_first_of(' ', i) + 1;
                     data.weights_builder.eat(weight);
-                    sum_of_weights += weight;
                     if (weight == weight_value) {
                         weight_length += 1;
                     } else {
@@ -181,7 +178,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     assert(data.pieces.size() == num_sequences + 1);
 
     timer.stop();
-    print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding_input'");
+    print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding input'");
 
     std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
@@ -311,10 +308,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     }
 
     timer.stop();
-    print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing_minimizers_tuples'");
+    print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing minimizers tuples'");
 
     if (build_config.weighted) {
-        std::cout << "sum_of_weights " << sum_of_weights << std::endl;
         data.weights_builder.push_weight_interval(weight_value, weight_length);
         data.weights_builder.finalize(data.num_kmers);
     }

@@ -3,8 +3,7 @@
 #include "include/builder/util.hpp"
 
 #include "include/builder/parse_file.hpp"
-#include "include/builder/build_sparse_index.hpp"
-#include "include/builder/build_skew_index.hpp"
+#include "include/builder/build_sparse_and_skew_index.hpp"
 
 #include <numeric>  // for std::accumulate
 
@@ -25,9 +24,6 @@ void dictionary<kmer_t>::build(std::string const& filename,
                                  " but got m = " + std::to_string(build_config.m));
     }
     if (build_config.m > build_config.k) throw std::runtime_error("m must be <= k");
-    if (build_config.l >= constants::max_l) {
-        throw std::runtime_error("l must be < " + std::to_string(constants::max_l));
-    }
     if ((build_config.num_threads & (build_config.num_threads - 1)) != 0) {
         throw std::runtime_error("number of threads must be a power of 2");
     }
@@ -35,11 +31,10 @@ void dictionary<kmer_t>::build(std::string const& filename,
     m_k = build_config.k;
     m_m = build_config.m;
     m_canonical = build_config.canonical;
-    m_skew_index.min_log2 = build_config.l;
     m_hasher.seed(build_config.seed);
 
     std::vector<double> timings;
-    timings.reserve(7);
+    timings.reserve(6);
     essentials::timer_type timer;
 
     /* step 1: parse the input file, encode sequences (1.1), and compute minimizer tuples (1.2) ***/
@@ -52,7 +47,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
         timer.start();
         data.weights_builder.build(m_weights);
         timer.stop();
-        print_time(timer.elapsed(), data.num_kmers, "step 1.3: 'build_weights'");
+        print_time(timer.elapsed(), data.num_kmers, "step 1.3: 'build weights'");
         if (build_config.verbose) {
             double entropy_weights = data.weights_builder.print_info(data.num_kmers);
             double avg_bits_per_weight = static_cast<double>(m_weights.num_bits()) / data.num_kmers;
@@ -63,7 +58,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     }
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 1: 'parse_file'");
+    print_time(timings.back(), data.num_kmers, "step 1: 'parse file'");
     timer.reset();
     /******/
 
@@ -73,7 +68,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
         data.minimizers.merge();
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 2.1: 'merging_minimizers_tuples'");
+        print_time(timings.back(), data.num_kmers, "step 2.1: 'merging minimizers tuples'");
 
         std::cout << "num_minimizers = " << data.minimizers.num_minimizers() << std::endl;
         std::cout << "num_minimizer_positions = " << data.minimizers.num_minimizer_positions()
@@ -92,7 +87,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
         assert(m_minimizers.size() == num_minimizers);
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 2.2: 'build_minimizers_mphf'");
+        print_time(timings.back(), data.num_kmers, "step 2.2: 'build minimizers mphf'");
 
         timer.reset();
     }
@@ -159,30 +154,21 @@ void dictionary<kmer_t>::build(std::string const& filename,
         input.close();
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), data.num_kmers, "step 2.4: 'merging_minimizers_tuples '");
+        print_time(timings.back(), data.num_kmers, "step 2.4: 'merging minimizers tuples '");
         timer.reset();
     }
     /******/
 
-    /* step 3: build sparse index ***/
+    /* step 3: build sparse and skew index ***/
     timer.start();
-    auto buckets_stats = build_sparse_index(data, m_buckets, build_config);
+    auto buckets_stats = build_sparse_and_skew_index(data, m_buckets, m_skew_index, build_config);
     timer.stop();
     timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 3: 'build_sparse_index'");
+    print_time(timings.back(), data.num_kmers, "step 3: 'build sparse and skew index'");
     timer.reset();
     /******/
 
-    /* step 4: build skew index ***/
-    timer.start();
-    build_skew_index(m_skew_index, data, m_buckets, build_config, buckets_stats);
-    timer.stop();
-    timings.push_back(timer.elapsed());
-    print_time(timings.back(), data.num_kmers, "step 4: 'build_skew_index'");
-    timer.reset();
-    /******/
-
-    assert(timings.size() == 7);
+    assert(timings.size() == 6);
     double total_time = std::accumulate(timings.begin(), timings.end(), 0.0);
     print_time(total_time, data.num_kmers, "total_time");
 

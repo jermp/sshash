@@ -9,7 +9,7 @@ struct minimizers {
     void build(ForwardIterator begin, uint64_t size, build_configuration const& build_config)  //
     {
         pthash::build_configuration mphf_build_config;
-        mphf_build_config.lambda = 5.0;
+        mphf_build_config.lambda = build_config.lambda;
         mphf_build_config.alpha = 0.94;
         mphf_build_config.seed = util::get_seed_for_hash_function(build_config);
         mphf_build_config.verbose = false;
@@ -33,10 +33,7 @@ struct minimizers {
         m_mphf.build_in_external_memory(begin, size, mphf_build_config);
     }
 
-    uint64_t lookup(uint64_t uint64_minimizer) const {
-        uint64_t bucket_id = m_mphf(uint64_minimizer);
-        return bucket_id;
-    }
+    uint64_t lookup(uint64_t uint64_minimizer) const { return m_mphf(uint64_minimizer); }
 
     uint64_t size() const { return m_mphf.num_keys(); }
     uint64_t num_bits() const { return m_mphf.num_bits(); }
