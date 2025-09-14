@@ -1,0 +1,9 @@
+lookup: avg_nanosec_per_positive_lookup 882.07
+avg_nanosec_per_negative_lookup 698.712
+iterator: avg_nanosec_per_kmer 20.3053
+lookup: avg_nanosec_per_positive_lookup 744.84
+avg_nanosec_per_negative_lookup 742.651
+iterator: avg_nanosec_per_kmer 20.3387
+lookup: avg_nanosec_per_positive_lookup 1023.33
+avg_nanosec_per_negative_lookup 805.361
+iterator: avg_nanosec_per_kmer 20.314

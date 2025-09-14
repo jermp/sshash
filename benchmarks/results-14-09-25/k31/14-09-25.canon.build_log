@@ -1,0 +1,536 @@
+k = 31, m = 19, seed = 1, num_threads = 8, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, tmp_dirname = 'tmp_dir'
+reading file '/home/giulio/sshash_datasets/cod.k31.unitigs.fa.ust.fa.gz'...
+read 100000 sequences, 27657185 bases, 24657215 kmers
+read 200000 sequences, 54659411 bases, 48659441 kmers
+read 300000 sequences, 82042065 bases, 73042095 kmers
+read 400000 sequences, 109137740 bases, 97137770 kmers
+read 500000 sequences, 135591611 bases, 120591641 kmers
+read 600000 sequences, 162605989 bases, 144606019 kmers
+read 700000 sequences, 189421730 bases, 168421760 kmers
+read 800000 sequences, 214809276 bases, 190809306 kmers
+read 900000 sequences, 240465564 bases, 213465594 kmers
+read 1000000 sequences, 265968295 bases, 235968325 kmers
+read 1100000 sequences, 291953235 bases, 258953265 kmers
+read 1200000 sequences, 316684260 bases, 280684290 kmers
+read 1300000 sequences, 341304215 bases, 302304245 kmers
+read 1400000 sequences, 365519325 bases, 323519355 kmers
+read 1500000 sequences, 388985606 bases, 343985636 kmers
+read 1600000 sequences, 411705914 bases, 363705944 kmers
+read 1700000 sequences, 434632801 bases, 383632831 kmers
+read 1800000 sequences, 456140575 bases, 402140605 kmers
+read 1900000 sequences, 477396896 bases, 420396926 kmers
+read 2000000 sequences, 498761432 bases, 438761462 kmers
+read 2100000 sequences, 518417062 bases, 455417092 kmers
+read 2200000 sequences, 537930862 bases, 471930892 kmers
+read 2300000 sequences, 556305688 bases, 487305718 kmers
+read 2400000 sequences, 573938040 bases, 501938070 kmers
+=== step 1.1: 'encoding input' 2.30442 [sec] (4.58623 [ns/kmer])
+read 2406269 sequences, 574653270 bases, 502465200 kmers
+num_kmers 502465200
+cost: 2.0 + 0.287336 [bits/kmer]
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.7.bin'...
+=== step 1.2: 'computing minimizers tuples' 2.07889 [sec] (4.13738 [ns/kmer])
+=== step 1: 'parse file' 4.38347 [sec] (8.72392 [ns/kmer])
+ == files to merge = 8
+saving tuples to 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.bin'
+num_super_kmers = 50000000
+=== step 2.1: 'merging minimizers tuples' 4.30239 [sec] (8.56257 [ns/kmer])
+num_minimizers = 79426371
+num_minimizer_positions = 88821250
+num_super_kmers = 92441796
+building minimizers MPHF with 8 threads and 27 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 5.36126 [sec] (10.6699 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1757864109788551078.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 3.75247 [sec] (7.46813 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 2.59288 [sec] (5.16032 [ns/kmer])
+num_bits_per_offset = ceil(log2(574653302)) = 30
+constants::min_l = 6
+min_size = 64
+max_bucket_size 155775
+log2_max_bucket_size 18
+num_buckets_larger_than_1_not_in_skew_index 3198593/79426371 (4.02712%)
+num_buckets_in_skew_index 7428/79426371 (0.00935206%)
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 10916988/88821250 (12.291%)
+num_minimizer_positions_of_buckets_in_skew_index 1683912/88821250 (1.89584%)
+computing minimizers offsets: 1.26063 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 2268785
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 1392132
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 1162932
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 935073
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 655983
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 438277
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 431217
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 155775: 832367
+num_kmers_in_skew_index 8116766 (1.61539%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 2268785
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 2268785)...
+    built mphs[0] for 2268785 kmers; bits/key = 2.56
+    built positions[0] for 2268785 kmers; bits/key = 7.00016
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 1392132
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 1392132)...
+    built mphs[1] for 1392132 kmers; bits/key = 2.5606
+    built positions[1] for 1392132 kmers; bits/key = 8.00025
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 1162932
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 1162932)...
+    built mphs[2] for 1162932 kmers; bits/key = 2.56092
+    built positions[2] for 1162932 kmers; bits/key = 9.00031
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 935073
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 935073)...
+    built mphs[3] for 935073 kmers; bits/key = 2.4185
+    built positions[3] for 935073 kmers; bits/key = 10.0004
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 655983
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 655983)...
+    built mphs[4] for 655983 kmers; bits/key = 2.56224
+    built positions[4] for 655983 kmers; bits/key = 11.0006
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 438277
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 438277)...
+    built mphs[5] for 438277 kmers; bits/key = 2.56404
+    built positions[5] for 438277 kmers; bits/key = 12.0007
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 431217
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 431217)...
+    built mphs[6] for 431217 kmers; bits/key = 2.42117
+    built positions[6] for 431217 kmers; bits/key = 13.0007
+  lower = 8192; upper = 155775; num_bits_per_pos = 18; num_kmers_in_partition = 832367
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 832367)...
+    built mphs[7] for 832367 kmers; bits/key = 2.41872
+    built positions[7] for 832367 kmers; bits/key = 18.0004
+computing skew index took: 6.00298 [sec]
+=== step 3: 'build sparse and skew index' 7.33897 [sec] (14.6059 [ns/kmer])
+=== total_time 27.7314 [sec] (55.1908 [ns/kmer])
+total index size: 543132456 [B] -- 543.132 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.452782 [bits/kmer] (2.86438 [bits/key]) -- 5.236%
+  pieces: 0.0549683 [bits/kmer] -- 0.635657%
+  offsets: 4.90028 [bits/kmer] -- 56.6671%
+  offsets2: 0.651806 [bits/kmer] -- 7.53753%
+  offsets3: 0.10054 [bits/kmer] -- 1.16265%
+  start_lists_of_size: 4.26696e-06 [bits/kmer] -- 4.93434e-05%
+  strings: 2.28734 [bits/kmer] -- 26.4509%
+  skew_index: 0.199768 [bits/kmer] -- 2.31013%
+  weights: 2.92956e-06 [bits/kmer] -- 3.38776e-05%
+  --------------
+  total: 8.64748 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 95.9635%
+buckets with 2 minimizer positions = 2.5093%
+buckets with 3 minimizer positions = 0.679399%
+buckets with 4 minimizer positions = 0.290103%
+buckets with 5 minimizer positions = 0.153452%
+buckets with 6 minimizer positions = 0.0927941%
+buckets with 7 minimizer positions = 0.0610528%
+buckets with 8 minimizer positions = 0.0427541%
+buckets with 9 minimizer positions = 0.0312239%
+buckets with 10 minimizer positions = 0.0239568%
+buckets with 11 minimizer positions = 0.0190289%
+buckets with 12 minimizer positions = 0.0152078%
+buckets with 13 minimizer positions = 0.0127741%
+buckets with 14 minimizer positions = 0.0104008%
+buckets with 15 minimizer positions = 0.00880816%
+buckets with 16 minimizer positions = 0.00755039%
+max_bucket_size 155775
+2025-09-14 17:35:37: saving data structure to disk...
+2025-09-14 17:35:37: DONE
+k = 31, m = 19, seed = 1, num_threads = 8, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, tmp_dirname = 'tmp_dir'
+reading file '/home/giulio/sshash_datasets/kestrel.k31.unitigs.fa.ust.fa.gz'...
+read 100000 sequences, 158452704 bases, 155452734 kmers
+read 200000 sequences, 318155284 bases, 312155314 kmers
+read 300000 sequences, 484429755 bases, 475429785 kmers
+read 400000 sequences, 657902795 bases, 645902825 kmers
+read 500000 sequences, 832407154 bases, 817407184 kmers
+read 600000 sequences, 1004979671 bases, 986979701 kmers
+=== step 1.1: 'encoding input' 4.30204 [sec] (3.73961 [ns/kmer])
+read 682245 sequences, 1170866555 bases, 1150399205 kmers
+num_kmers 1150399205
+cost: 2.0 + 0.035583 [bits/kmer]
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.7.bin'...
+=== step 1.2: 'computing minimizers tuples' 4.76409 [sec] (4.14125 [ns/kmer])
+=== step 1: 'parse file' 9.06626 [sec] (7.88097 [ns/kmer])
+ == files to merge = 8
+saving tuples to 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+num_super_kmers = 200000000
+=== step 2.1: 'merging minimizers tuples' 9.60368 [sec] (8.34812 [ns/kmer])
+num_minimizers = 193802281
+num_minimizer_positions = 200287417
+num_super_kmers = 208975066
+building minimizers MPHF with 8 threads and 65 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 12.9909 [sec] (11.2925 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1757864137927613060.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 8.50973 [sec] (7.3972 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 2.25649 [sec] (1.96148 [ns/kmer])
+num_bits_per_offset = ceil(log2(1170866587)) = 31
+constants::min_l = 6
+min_size = 64
+max_bucket_size 3788
+log2_max_bucket_size 12
+num_buckets_larger_than_1_not_in_skew_index 3847569/193802281 (1.98531%)
+num_buckets_in_skew_index 3592/193802281 (0.00185344%)
+skew index num_partitions 6
+num_minimizer_positions_of_buckets_larger_than_1 9809818/200287417 (4.89787%)
+num_minimizer_positions_of_buckets_in_skew_index 526479/200287417 (0.262862%)
+computing minimizers offsets: 2.00298 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 1179637
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 821390
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 443904
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 212956
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 176522
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 3788: 79585
+num_kmers_in_skew_index 2913994 (0.253303%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 1179637
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 1179637)...
+    built mphs[0] for 1179637 kmers; bits/key = 2.56086
+    built positions[0] for 1179637 kmers; bits/key = 7.00028
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 821390
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 821390)...
+    built mphs[1] for 821390 kmers; bits/key = 2.56173
+    built positions[1] for 821390 kmers; bits/key = 8.00041
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 443904
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 443904)...
+    built mphs[2] for 443904 kmers; bits/key = 2.42106
+    built positions[2] for 443904 kmers; bits/key = 9.00072
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 212956
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 212956)...
+    built mphs[3] for 212956 kmers; bits/key = 2.42657
+    built positions[3] for 212956 kmers; bits/key = 10.0017
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 176522
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 176522)...
+    built mphs[4] for 176522 kmers; bits/key = 2.42852
+    built positions[4] for 176522 kmers; bits/key = 11.0019
+  lower = 2048; upper = 3788; num_bits_per_pos = 12; num_kmers_in_partition = 79585
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 79585)...
+    built mphs[5] for 79585 kmers; bits/key = 2.44287
+    built positions[5] for 79585 kmers; bits/key = 12.0047
+computing skew index took: 2.18121 [sec]
+=== step 3: 'build sparse and skew index' 4.34837 [sec] (3.77988 [ns/kmer])
+=== total_time 46.7754 [sec] (40.6602 [ns/kmer])
+total index size: 1181985390 [B] -- 1181.99 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.479119 [bits/kmer] (2.84403 [bits/key]) -- 5.82895%
+  pieces: 0.00841122 [bits/kmer] -- 0.102331%
+  offsets: 5.39089 [bits/kmer] -- 65.5853%
+  offsets2: 0.264347 [bits/kmer] -- 3.21604%
+  offsets3: 0.0141874 [bits/kmer] -- 0.172604%
+  start_lists_of_size: 1.8637e-06 [bits/kmer] -- 2.26737e-05%
+  strings: 2.03558 [bits/kmer] -- 24.7648%
+  skew_index: 0.0271139 [bits/kmer] -- 0.329867%
+  weights: 1.27956e-06 [bits/kmer] -- 1.5567e-05%
+  --------------
+  total: 8.21965 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 98.0128%
+buckets with 2 minimizer positions = 1.66457%
+buckets with 3 minimizer positions = 0.165762%
+buckets with 4 minimizer positions = 0.0545515%
+buckets with 5 minimizer positions = 0.0276849%
+buckets with 6 minimizer positions = 0.0167021%
+buckets with 7 minimizer positions = 0.0112088%
+buckets with 8 minimizer positions = 0.00793438%
+buckets with 9 minimizer positions = 0.00591686%
+buckets with 10 minimizer positions = 0.00451181%
+buckets with 11 minimizer positions = 0.00358923%
+buckets with 12 minimizer positions = 0.00282092%
+buckets with 13 minimizer positions = 0.00235962%
+buckets with 14 minimizer positions = 0.00195251%
+buckets with 15 minimizer positions = 0.00164394%
+buckets with 16 minimizer positions = 0.00140556%
+max_bucket_size 3788
+2025-09-14 17:36:25: saving data structure to disk...
+2025-09-14 17:36:25: DONE
+k = 31, m = 20, seed = 1, num_threads = 8, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, tmp_dirname = 'tmp_dir'
+reading file '/home/giulio/sshash_datasets/human.k31.unitigs.fa.ust.fa.gz'...
+read 100000 sequences, 21756494 bases, 18756524 kmers
+read 200000 sequences, 43415082 bases, 37415112 kmers
+read 300000 sequences, 65780160 bases, 56780190 kmers
+read 400000 sequences, 87471486 bases, 75471516 kmers
+read 500000 sequences, 109226866 bases, 94226896 kmers
+read 600000 sequences, 131648019 bases, 113648049 kmers
+read 700000 sequences, 153316395 bases, 132316425 kmers
+read 800000 sequences, 176702606 bases, 152702636 kmers
+read 900000 sequences, 198938131 bases, 171938161 kmers
+read 1000000 sequences, 220949217 bases, 190949247 kmers
+read 1100000 sequences, 244049472 bases, 211049502 kmers
+read 1200000 sequences, 267074826 bases, 231074856 kmers
+read 1300000 sequences, 288917293 bases, 249917323 kmers
+read 1400000 sequences, 311411250 bases, 269411280 kmers
+read 1500000 sequences, 333749577 bases, 288749607 kmers
+read 1600000 sequences, 356425695 bases, 308425725 kmers
+read 1700000 sequences, 378782863 bases, 327782893 kmers
+read 1800000 sequences, 401743561 bases, 347743591 kmers
+read 1900000 sequences, 424135183 bases, 367135213 kmers
+read 2000000 sequences, 446879049 bases, 386879079 kmers
+read 2100000 sequences, 468734269 bases, 405734299 kmers
+read 2200000 sequences, 490603237 bases, 424603267 kmers
+read 2300000 sequences, 513905163 bases, 444905193 kmers
+read 2400000 sequences, 537439218 bases, 465439248 kmers
+read 2500000 sequences, 560503353 bases, 485503383 kmers
+read 2600000 sequences, 583973645 bases, 505973675 kmers
+read 2700000 sequences, 606563596 bases, 525563626 kmers
+read 2800000 sequences, 629471143 bases, 545471173 kmers
+read 2900000 sequences, 653036453 bases, 566036483 kmers
+read 3000000 sequences, 676313831 bases, 586313861 kmers
+read 3100000 sequences, 700155099 bases, 607155129 kmers
+read 3200000 sequences, 723256428 bases, 627256458 kmers
+read 3300000 sequences, 745736801 bases, 646736831 kmers
+read 3400000 sequences, 768718458 bases, 666718488 kmers
+read 3500000 sequences, 791774449 bases, 686774479 kmers
+read 3600000 sequences, 814593816 bases, 706593846 kmers
+read 3700000 sequences, 838379879 bases, 727379909 kmers
+read 3800000 sequences, 860634933 bases, 746634963 kmers
+read 3900000 sequences, 884047075 bases, 767047105 kmers
+read 4000000 sequences, 907479686 bases, 787479716 kmers
+read 4100000 sequences, 930543338 bases, 807543368 kmers
+read 4200000 sequences, 953267462 bases, 827267492 kmers
+read 4300000 sequences, 976927833 bases, 847927863 kmers
+read 4400000 sequences, 1000738248 bases, 868738278 kmers
+read 4500000 sequences, 1024531209 bases, 889531239 kmers
+read 4600000 sequences, 1047717223 bases, 909717253 kmers
+read 4700000 sequences, 1071027493 bases, 930027523 kmers
+read 4800000 sequences, 1094084552 bases, 950084582 kmers
+read 4900000 sequences, 1117956137 bases, 970956167 kmers
+read 5000000 sequences, 1141125024 bases, 991125054 kmers
+read 5100000 sequences, 1164319107 bases, 1011319137 kmers
+read 5200000 sequences, 1187390563 bases, 1031390593 kmers
+read 5300000 sequences, 1211053129 bases, 1052053159 kmers
+read 5400000 sequences, 1234026672 bases, 1072026702 kmers
+read 5500000 sequences, 1257295769 bases, 1092295799 kmers
+read 5600000 sequences, 1279760698 bases, 1111760728 kmers
+read 5700000 sequences, 1303188807 bases, 1132188837 kmers
+read 5800000 sequences, 1326902250 bases, 1152902280 kmers
+read 5900000 sequences, 1350165652 bases, 1173165682 kmers
+read 6000000 sequences, 1373185888 bases, 1193185918 kmers
+read 6100000 sequences, 1396446455 bases, 1213446485 kmers
+read 6200000 sequences, 1420887422 bases, 1234887452 kmers
+read 6300000 sequences, 1444176084 bases, 1255176114 kmers
+read 6400000 sequences, 1467761803 bases, 1275761833 kmers
+read 6500000 sequences, 1491517469 bases, 1296517499 kmers
+read 6600000 sequences, 1515086149 bases, 1317086179 kmers
+read 6700000 sequences, 1537506202 bases, 1336506232 kmers
+read 6800000 sequences, 1560946391 bases, 1356946421 kmers
+read 6900000 sequences, 1583945488 bases, 1376945518 kmers
+read 7000000 sequences, 1606825999 bases, 1396826029 kmers
+read 7100000 sequences, 1630889570 bases, 1417889600 kmers
+read 7200000 sequences, 1653502338 bases, 1437502368 kmers
+read 7300000 sequences, 1676836074 bases, 1457836104 kmers
+read 7400000 sequences, 1700581893 bases, 1478581923 kmers
+read 7500000 sequences, 1723991216 bases, 1498991246 kmers
+read 7600000 sequences, 1747267694 bases, 1519267724 kmers
+read 7700000 sequences, 1769997128 bases, 1538997158 kmers
+read 7800000 sequences, 1793090725 bases, 1559090755 kmers
+read 7900000 sequences, 1816572169 bases, 1579572199 kmers
+read 8000000 sequences, 1839912405 bases, 1599912435 kmers
+read 8100000 sequences, 1863462142 bases, 1620462172 kmers
+read 8200000 sequences, 1887689183 bases, 1641689213 kmers
+read 8300000 sequences, 1911245326 bases, 1662245356 kmers
+read 8400000 sequences, 1934891774 bases, 1682891804 kmers
+read 8500000 sequences, 1958265360 bases, 1703265390 kmers
+read 8600000 sequences, 1981114530 bases, 1723114560 kmers
+read 8700000 sequences, 2005160537 bases, 1744160567 kmers
+read 8800000 sequences, 2028270585 bases, 1764270615 kmers
+read 8900000 sequences, 2051383223 bases, 1784383253 kmers
+read 9000000 sequences, 2074474142 bases, 1804474172 kmers
+read 9100000 sequences, 2096460797 bases, 1823460827 kmers
+read 9200000 sequences, 2119508963 bases, 1843508993 kmers
+read 9300000 sequences, 2142674047 bases, 1863674077 kmers
+read 9400000 sequences, 2164744513 bases, 1882744543 kmers
+read 9500000 sequences, 2187346618 bases, 1902346648 kmers
+read 9600000 sequences, 2209977347 bases, 1921977377 kmers
+read 9700000 sequences, 2232411621 bases, 1941411651 kmers
+read 9800000 sequences, 2254902856 bases, 1960902886 kmers
+read 9900000 sequences, 2277498326 bases, 1980498356 kmers
+read 10000000 sequences, 2299499706 bases, 1999499736 kmers
+read 10100000 sequences, 2321026083 bases, 2018026113 kmers
+read 10200000 sequences, 2343732502 bases, 2037732532 kmers
+read 10300000 sequences, 2364673146 bases, 2055673176 kmers
+read 10400000 sequences, 2386756547 bases, 2074756577 kmers
+read 10500000 sequences, 2407972829 bases, 2092972859 kmers
+read 10600000 sequences, 2429720496 bases, 2111720526 kmers
+read 10700000 sequences, 2450999850 bases, 2129999880 kmers
+read 10800000 sequences, 2471991237 bases, 2147991267 kmers
+read 10900000 sequences, 2492905716 bases, 2165905746 kmers
+read 11000000 sequences, 2514209537 bases, 2184209567 kmers
+read 11100000 sequences, 2535680432 bases, 2202680462 kmers
+read 11200000 sequences, 2556527106 bases, 2220527136 kmers
+read 11300000 sequences, 2577149683 bases, 2238149713 kmers
+read 11400000 sequences, 2597185570 bases, 2255185600 kmers
+read 11500000 sequences, 2617632290 bases, 2272632320 kmers
+read 11600000 sequences, 2638223488 bases, 2290223518 kmers
+read 11700000 sequences, 2658091095 bases, 2307091125 kmers
+read 11800000 sequences, 2676727586 bases, 2322727616 kmers
+read 11900000 sequences, 2695970855 bases, 2338970885 kmers
+read 12000000 sequences, 2714887902 bases, 2354887932 kmers
+read 12100000 sequences, 2733216523 bases, 2370216553 kmers
+read 12200000 sequences, 2751654575 bases, 2385654605 kmers
+read 12300000 sequences, 2769824681 bases, 2400824711 kmers
+read 12400000 sequences, 2788136547 bases, 2416136577 kmers
+read 12500000 sequences, 2806066941 bases, 2431066971 kmers
+read 12600000 sequences, 2823691733 bases, 2445691763 kmers
+read 12700000 sequences, 2841752082 bases, 2460752112 kmers
+read 12800000 sequences, 2859305620 bases, 2475305650 kmers
+read 12900000 sequences, 2876642001 bases, 2489642031 kmers
+read 13000000 sequences, 2893631233 bases, 2503631263 kmers
+=== step 1.1: 'encoding input' 11.4321 [sec] (4.5629 [ns/kmer])
+read 13014214 sequences, 2895872181 bases, 2505445761 kmers
+num_kmers 2505445761
+cost: 2.0 + 0.311662 [bits/kmer]
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.13.bin'...
+=== step 1.2: 'computing minimizers tuples' 11.1395 [sec] (4.4461 [ns/kmer])
+=== step 1: 'parse file' 22.5717 [sec] (9.00907 [ns/kmer])
+ == files to merge = 14
+saving tuples to 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+num_super_kmers = 200000000
+num_super_kmers = 250000000
+num_super_kmers = 300000000
+num_super_kmers = 350000000
+num_super_kmers = 400000000
+num_super_kmers = 450000000
+=== step 2.1: 'merging minimizers tuples' 26.7822 [sec] (10.6896 [ns/kmer])
+num_minimizers = 417553335
+num_minimizer_positions = 474828363
+num_super_kmers = 493836140
+building minimizers MPHF with 8 threads and 140 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 27.6125 [sec] (11.021 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.1.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 20.3951 [sec] (8.1403 [ns/kmer])
+ == files to merge = 2
+saving tuples to 'tmp_dir/sshash.tmp.run_1757864185539968457.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+num_super_kmers = 200000000
+num_super_kmers = 250000000
+num_super_kmers = 300000000
+num_super_kmers = 350000000
+num_super_kmers = 400000000
+num_super_kmers = 450000000
+=== step 2.4: 'merging minimizers tuples ' 37.8879 [sec] (15.1222 [ns/kmer])
+num_bits_per_offset = ceil(log2(2895872213)) = 32
+constants::min_l = 6
+min_size = 64
+max_bucket_size 33191
+log2_max_bucket_size 16
+num_buckets_larger_than_1_not_in_skew_index 16634505/417553335 (3.9838%)
+num_buckets_in_skew_index 75846/417553335 (0.0181644%)
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 59861399/474828363 (12.607%)
+num_minimizer_positions_of_buckets_in_skew_index 14123980/474828363 (2.97454%)
+computing minimizers offsets: 6.62443 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 18483007
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 14289333
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 10220043
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 7256268
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 4841792
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 2658327
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 1446373
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 33191: 1382491
+num_kmers_in_skew_index 60577634 (2.41784%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 18483007
+    building MPHF with 8 threads and 7 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 18483007 kmers; bits/key = 2.64291
+    built positions[0] for 18483007 kmers; bits/key = 7.00002
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 14289333
+    building MPHF with 8 threads and 5 partitions (avg. partition size = 3000000)...
+    built mphs[1] for 14289333 kmers; bits/key = 2.51635
+    built positions[1] for 14289333 kmers; bits/key = 8.00002
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 10220043
+    building MPHF with 8 threads and 4 partitions (avg. partition size = 3000000)...
+    built mphs[2] for 10220043 kmers; bits/key = 2.63949
+    built positions[2] for 10220043 kmers; bits/key = 9.00003
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 7256268
+    building MPHF with 8 threads and 3 partitions (avg. partition size = 3000000)...
+    built mphs[3] for 7256268 kmers; bits/key = 2.72044
+    built positions[3] for 7256268 kmers; bits/key = 10
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 4841792
+    building MPHF with 8 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[4] for 4841792 kmers; bits/key = 2.71841
+    built positions[4] for 4841792 kmers; bits/key = 11.0001
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 2658327
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 2658327)...
+    built mphs[5] for 2658327 kmers; bits/key = 2.55987
+    built positions[5] for 2658327 kmers; bits/key = 12.0001
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 1446373
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 1446373)...
+    built mphs[6] for 1446373 kmers; bits/key = 2.56056
+    built positions[6] for 1446373 kmers; bits/key = 13.0002
+  lower = 8192; upper = 33191; num_bits_per_pos = 16; num_kmers_in_partition = 1382491
+    building MPHF with 8 threads and 1 partitions (avg. partition size = 1382491)...
+    built mphs[7] for 1382491 kmers; bits/key = 2.5606
+    built positions[7] for 1382491 kmers; bits/key = 16.0002
+computing skew index took: 14.4326 [sec]
+=== step 3: 'build sparse and skew index' 21.4682 [sec] (8.5686 [ns/kmer])
+=== total_time 156.718 [sec] (62.5508 [ns/kmer])
+total index size: 2995577954 [B] -- 2995.58 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.473465 [bits/kmer] (2.84093 [bits/key]) -- 4.94996%
+  pieces: 0.0585865 [bits/kmer] -- 0.612509%
+  offsets: 5.49972 [bits/kmer] -- 57.4983%
+  offsets2: 0.764561 [bits/kmer] -- 7.9933%
+  offsets3: 0.180394 [bits/kmer] -- 1.88598%
+  start_lists_of_size: 8.55736e-07 [bits/kmer] -- 8.94652e-06%
+  strings: 2.31166 [bits/kmer] -- 24.1679%
+  skew_index: 0.27662 [bits/kmer] -- 2.892%
+  weights: 5.8752e-07 [bits/kmer] -- 6.14239e-06%
+  --------------
+  total: 9.56501 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 95.998%
+buckets with 2 minimizer positions = 2.57019%
+buckets with 3 minimizer positions = 0.580253%
+buckets with 4 minimizer positions = 0.252657%
+buckets with 5 minimizer positions = 0.141401%
+buckets with 6 minimizer positions = 0.0899801%
+buckets with 7 minimizer positions = 0.0622388%
+buckets with 8 minimizer positions = 0.0453985%
+buckets with 9 minimizer positions = 0.0345565%
+buckets with 10 minimizer positions = 0.0272049%
+buckets with 11 minimizer positions = 0.0217699%
+buckets with 12 minimizer positions = 0.0179227%
+buckets with 13 minimizer positions = 0.0150204%
+buckets with 14 minimizer positions = 0.0126494%
+buckets with 15 minimizer positions = 0.0108367%
+buckets with 16 minimizer positions = 0.00935378%
+max_bucket_size 33191
+2025-09-14 17:39:02: saving data structure to disk...
+2025-09-14 17:39:04: DONE
