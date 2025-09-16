@@ -14,7 +14,6 @@ namespace sshash {
 
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
-    using uint_t = Kmer;
     Kmer kmer;
 
     uint_kmer_t() {}
@@ -88,7 +87,6 @@ struct uint_kmer_t {
 
     static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);
     static constexpr uint8_t bits_per_char = BitsPerChar;
-
     static_assert(uint_kmer_bits % 64 == 0, "Kmer must use 64*k bits");
     static_assert(bits_per_char < 64, "BitsPerChar must be less than 64");
 
@@ -111,7 +109,7 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
     [[maybe_unused]] virtual void reverse_complement_inplace(uint64_t) {}
     [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
                                                             uint64_t size) {
-        for (uint64_t i = 0; i != size; ++i) { output[i] = input[i]; }
+        for (uint64_t i = 0; i != size; ++i) output[i] = input[i];
     }
 };
 
