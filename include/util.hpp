@@ -190,7 +190,7 @@ template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
     kmer_t x = 0;
-    for (int i = k - 1; i >= 0; i--) x.append_char(kmer_t::char_to_uint(str[i]));
+    for (uint64_t i = 0; i != k; ++i) x.set(i, kmer_t::char_to_uint(str[i]));
     return x;
 }
 

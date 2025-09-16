@@ -68,18 +68,14 @@ struct uint_kmer_t {
         return res;
     }
 
-    void append(uint16_t b, uint64_t n) {
-        assert(b < uint_kmer_bits);
-        kmer = (kmer << b) | Kmer(n);
-    }
     void append64(uint64_t n) {
         if constexpr (uint_kmer_bits == 64) {
             kmer = n;
         } else {
-            append(64, n);
+            assert(64 < uint_kmer_bits);
+            kmer = (kmer << 64) | Kmer(n);
         }
     }
-    void append_char(uint64_t c) { append(bits_per_char, c); }
 
     /* Set the char at position i to c,
        assuming that the position is empty. */

@@ -38,9 +38,16 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     /* fit into the wanted number of bits */
     assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
-    const uint64_t num_bits = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
     bits::bit_vector::builder bvb_strings;
-    bvb_strings.reserve(num_bits);
+    {
+        const uint64_t num_bits = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
+        bvb_strings.reserve(num_bits);
+
+        const uint64_t num_sequences = 100000000;
+        data.pieces.reserve(num_sequences);
+    }
+
+    // std::unordered_map<uint64_t, uint64_t> seq_lengths;
 
     std::string sequence;
     uint64_t num_sequences = 0;
@@ -125,6 +132,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         const uint64_t n = sequence.length();
         assert(n >= k);
 
+        // seq_lengths[n] += 1;
+
         ++num_sequences;
         if (num_sequences % 100000 == 0) {
             std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
@@ -187,6 +196,40 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
               << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) /
                      data.num_kmers
               << " [bits/kmer]" << std::endl;
+
+    // std::vector<std::pair<uint64_t, uint64_t>> seq_lengths_with_freq;
+    // seq_lengths_with_freq.reserve(seq_lengths.size());
+    // for (auto p : seq_lengths) seq_lengths_with_freq.push_back(p);
+    // std::sort(seq_lengths_with_freq.begin(), seq_lengths_with_freq.end(),
+    //           [](auto const& x, auto const& y) {
+    //               auto log2x_first = std::ceil(std::log2(x.first));
+    //               auto log2y_first = std::ceil(std::log2(y.first));
+    //               if (log2x_first == log2y_first)
+    //                   return std::ceil(std::log2(x.first * x.second)) >
+    //                          std::ceil(std::log2(y.first * y.second));
+    //               return log2x_first < log2y_first;
+    //           });
+    // uint64_t count = 0;
+    // uint64_t num_bits = 5;
+    // for (auto p : seq_lengths_with_freq) {
+    //     auto log2_len = std::ceil(std::log2(p.first));
+    //     if (log2_len > num_bits) {
+    //         auto log2_count = std::ceil(std::log2(count));
+    //         std::cerr << "log2(num. sequence with log2(length) = " << num_bits
+    //                   << ") = " << log2_count << std::endl;
+    //         count = 0;
+    //         while (log2_len > num_bits) ++num_bits;
+    //     }
+    //     std::cerr << "num. sequences with length " << p.first << " = " << p.second
+    //               << "; log2(length) = " << log2_len
+    //               << "; log2(num. sequences) = " << std::ceil(std::log2(p.second))
+    //               << "; log2(total length) = " << std::ceil(std::log2(p.first * p.second)) <<
+    //               '\n';
+    //     ++count;
+    // }
+    // auto log2_count = std::ceil(std::log2(count));
+    // std::cerr << "log2(num. sequence with log2(length) = " << num_bits << ") = " << log2_count
+    //           << std::endl;
 
     /*
         The parameter m (minimizer length) should be at least

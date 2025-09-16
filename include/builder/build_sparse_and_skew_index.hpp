@@ -104,12 +104,10 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
     assert(buckets_stats.num_buckets() == num_minimizers);
 
     const uint64_t min_size = 1ULL << constants::min_l;
-    const uint64_t log2_max_bucket_size = std::ceil(std::log2(buckets_stats.max_bucket_size()));
+    const uint64_t max_bucket_size = buckets_stats.max_bucket_size();
+    const uint64_t log2_max_bucket_size = std::ceil(std::log2(max_bucket_size));
 
-    std::cout << "constants::min_l = " << constants::min_l << std::endl;
-    std::cout << "min_size = " << min_size << std::endl;
-
-    std::cout << "max_bucket_size " << buckets_stats.max_bucket_size() << std::endl;
+    std::cout << "max_bucket_size " << max_bucket_size << std::endl;
     std::cout << "log2_max_bucket_size " << log2_max_bucket_size << std::endl;
 
     uint64_t num_buckets_larger_than_1_not_in_skew_index = 0;
@@ -119,8 +117,8 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
     uint64_t num_minimizer_positions_of_buckets_larger_than_1 = 0;
     uint64_t num_minimizer_positions_of_buckets_in_skew_index = 0;
 
-    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
-         it.next())  //
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
+         it.has_next(); it.next())                                                  //
     {
         auto bucket = it.bucket();
         const uint64_t bucket_size = bucket.size();
@@ -151,8 +149,8 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
     std::vector<minimizer_tuple> tuples;  // backed memory
     tuples.reserve(num_super_kmers_in_buckets_larger_than_1);
 
-    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size()); it.has_next();
-         it.next())  //
+    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
+         it.has_next(); it.next())                                                  //
     {
         auto bucket = it.bucket();
         if (bucket.size() > 1) {
@@ -171,7 +169,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
               [](bucket_type const& x, bucket_type const& y) { return x.size() < y.size(); });
 
     uint64_t num_partitions = constants::max_l - constants::min_l + 1;
-    if (buckets_stats.max_bucket_size() < (1ULL << constants::max_l)) {
+    if (max_bucket_size < (1ULL << constants::max_l)) {
         num_partitions = log2_max_bucket_size - constants::min_l;
     }
     std::cout << "skew index num_partitions " << num_partitions << std::endl;
@@ -219,9 +217,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                     lower = upper;
                     upper = 2 * lower;
                     partition_id += 1;
-                    if (partition_id == num_partitions - 1) {
-                        upper = buckets_stats.max_bucket_size();
-                    }
+                    if (partition_id == num_partitions - 1) upper = max_bucket_size;
                 }
             }
             list_id = 0;
@@ -306,7 +302,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                 lower = upper;
                 upper = 2 * lower;
                 partition_id += 1;
-                if (partition_id == num_partitions - 1) upper = buckets_stats.max_bucket_size();
+                if (partition_id == num_partitions - 1) upper = max_bucket_size;
             }
 
             if (i == buckets.size()) break;
@@ -404,7 +400,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                 num_bits_per_pos += 1;
                 partition_id += 1;
                 if (partition_id == num_partitions - 1) {
-                    upper = buckets_stats.max_bucket_size();
+                    upper = max_bucket_size;
                     num_bits_per_pos = log2_max_bucket_size;
                 }
 

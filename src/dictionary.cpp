@@ -1,5 +1,7 @@
 #include "include/dictionary.hpp"
 
+#include "include/builder/util.hpp"
+
 namespace sshash {
 
 template <class kmer_t>
@@ -127,6 +129,18 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
 template <class kmer_t>
 uint64_t dictionary<kmer_t>::lookup(char const* string_kmer, bool check_reverse_complement) const {
     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
+
+    /*
+        SIMD here does not help, as expected, because it is only used at the
+        beginning of each query. To be useful, we would need to process a
+        batch of random lookup queries and execute this preliminary step
+        for all queries in a first pass, then invoke
+        `lookup_uint(uint_kmer, check_reverse_complement)` directly.
+    */
+    // __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(string_kmer));
+    // uint64_t word = pack2bits_shift1(v);
+    // kmer_t uint_kmer(word);
+
     return lookup_uint(uint_kmer, check_reverse_complement);
 }
 template <class kmer_t>

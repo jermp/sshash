@@ -56,24 +56,24 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
         std::cout << "lookup: avg_nanosec_per_positive_lookup " << nanosec_per_lookup << std::endl;
 
-        // std::vector<kmer_t> lookup_queries_uint;
-        // lookup_queries_uint.reserve(num_queries);
-        // for (auto const& kmer : lookup_queries) {
-        //     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer.c_str(), k);
-        //     lookup_queries_uint.push_back(uint_kmer);
-        // }
-        // t.reset();
-        // t.start();
-        // for (uint64_t r = 0; r != runs; ++r) {
-        //     for (auto uint_kmer : lookup_queries_uint) {
-        //         auto id = dict.lookup_uint(uint_kmer);
-        //         essentials::do_not_optimize_away(id);
-        //     }
-        // }
-        // t.stop();
-        // nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-        // std::cout << "lookup_uint: avg_nanosec_per_positive_lookup " << nanosec_per_lookup
-        //           << std::endl;
+        std::vector<kmer_t> lookup_queries_uint;
+        lookup_queries_uint.reserve(num_queries);
+        for (auto const& kmer : lookup_queries) {
+            kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(kmer.c_str(), k);
+            lookup_queries_uint.push_back(uint_kmer);
+        }
+        t.reset();
+        t.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            for (auto uint_kmer : lookup_queries_uint) {
+                auto id = dict.lookup_uint(uint_kmer);
+                essentials::do_not_optimize_away(id);
+            }
+        }
+        t.stop();
+        nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
+        std::cout << "lookup_uint: avg_nanosec_per_positive_lookup " << nanosec_per_lookup
+                  << std::endl;
 
         // std::vector<std::pair<kmer_t, minimizer_info>> lookup_queries_uint_minimizer;
         // lookup_queries_uint_minimizer.reserve(num_queries);
