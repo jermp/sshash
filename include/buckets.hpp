@@ -11,10 +11,40 @@ template <class kmer_t>
 struct buckets  //
 {
     lookup_result offset_to_id(const uint64_t offset, const uint64_t k) const {
-        auto p = pieces.locate(offset);
-        uint64_t contig_id = p.first.pos;
-        uint64_t contig_begin = p.first.val;
-        uint64_t contig_end = p.second.val;
+        /* for bits::elias_fano */
+        // auto p = pieces.locate(offset);
+
+        /* for bits::compact_vector */
+        constexpr uint64_t linear_scan_threshold = 32;
+        uint64_t lo = 0;
+        uint64_t hi = pieces.size() - 1;
+        assert(pieces.access(0) == 0);
+        while (hi - lo > linear_scan_threshold) {
+            uint64_t mid = lo + (hi - lo) / 2;
+            uint64_t val = pieces.access(mid);
+            if (offset <= val) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        assert(lo < hi);
+        assert(hi < pieces.size());
+        for (auto it = pieces.get_iterator_at(lo); lo <= hi; ++lo, ++it) {
+            if (*it > offset) break;
+        }
+        assert(lo > 0);
+        --lo;
+
+        /* bits::compact_vector */
+        uint64_t contig_id = lo;
+        uint64_t contig_begin = pieces.access(lo);
+        uint64_t contig_end = pieces.access(lo + 1);
+
+        /* bits::elias_fano */
+        // uint64_t contig_id = p.first.pos;
+        // uint64_t contig_begin = p.first.val;
+        // uint64_t contig_end = p.second.val;
 
         /* The following facts hold. */
         assert(offset >= contig_id * (k - 1));
@@ -198,6 +228,28 @@ struct buckets  //
     }
 
     uint64_t id_to_offset(const uint64_t id, const uint64_t k) const {
+        // constexpr uint64_t linear_scan_threshold = 32;
+        // uint64_t lo = 0;
+        // uint64_t hi = pieces.size() - 1;
+        // assert(pieces.access(0) == 0);
+        // while (hi - lo > linear_scan_threshold) {
+        //     uint64_t mid = lo + (hi - lo) / 2;
+        //     uint64_t val = pieces.access(mid);
+        //     assert(val >= mid * (k - 1));
+        //     if (id <= val - mid * (k - 1)) {
+        //         hi = mid;
+        //     } else {
+        //         lo = mid + 1;
+        //     }
+        // }
+        // assert(lo < hi);
+        // assert(hi < pieces.size());
+        // for (auto it = pieces.get_iterator_at(lo); lo <= hi; ++lo, it.next()) {
+        //     uint64_t val = it.value() - lo * (k - 1);
+        //     if (val > id) break;
+        // }
+        // assert(lo > 0);
+        // return id + (lo - 1) * (k - 1);
         constexpr uint64_t linear_scan_threshold = 32;
         uint64_t lo = 0;
         uint64_t hi = pieces.size() - 1;
@@ -214,8 +266,8 @@ struct buckets  //
         }
         assert(lo < hi);
         assert(hi < pieces.size());
-        for (auto it = pieces.get_iterator_at(lo); lo <= hi; ++lo, it.next()) {
-            uint64_t val = it.value() - lo * (k - 1);
+        for (auto it = pieces.get_iterator_at(lo); lo <= hi; ++lo, ++it) {
+            uint64_t val = *it - lo * (k - 1);
             if (val > id) break;
         }
         assert(lo > 0);
@@ -241,11 +293,37 @@ struct buckets  //
             , m_it(ptr->strings, m_k)  //
         {
             m_offset = m_buckets->id_to_offset(m_begin_kmer_id, k);
-            auto [pos, piece_end] = m_buckets->pieces.next_geq(m_offset);
-            if (piece_end == m_offset) pos += 1;
-            m_pieces_it = m_buckets->pieces.get_iterator_at(pos);
-            next_piece();
+            // auto [pos, piece_end] = m_buckets->pieces.next_geq(m_offset);
+            // if (piece_end == m_offset) pos += 1;
+
+            constexpr uint64_t linear_scan_threshold = 32;
+            uint64_t lo = 0;
+            uint64_t hi = m_buckets->pieces.size() - 1;
+            assert(m_buckets->pieces.access(0) == 0);
+            while (hi - lo > linear_scan_threshold) {
+                uint64_t mid = lo + (hi - lo) / 2;
+                uint64_t val = m_buckets->pieces.access(mid);
+                if (m_offset <= val) {
+                    hi = mid;
+                } else {
+                    lo = mid + 1;
+                }
+            }
+            assert(lo < hi);
+            assert(hi < m_buckets->pieces.size());
+            for (m_pieces_it = m_buckets->pieces.get_iterator_at(lo); lo <= hi;
+                 ++lo, ++m_pieces_it) {
+                m_next_offset = *m_pieces_it;
+                if (m_next_offset > m_offset) break;
+            }
+
+            // assert(lo > 0);
+            // --lo;
+
+            // m_pieces_it = m_buckets->pieces.get_iterator_at(pos);
+            // next_piece();
             m_ret.second.resize(m_k, 0);
+            m_clear = true;
         }
 
         bool has_next() const { return m_begin_kmer_id != m_end_kmer_id; }
@@ -278,15 +356,18 @@ struct buckets  //
         uint64_t m_offset;
         uint64_t m_next_offset;
         kmer_iterator<kmer_t> m_it;
-        bits::elias_fano<true, false>::iterator m_pieces_it;
+        // bits::elias_fano<true, false>::iterator m_pieces_it;
+        bits::compact_vector::iterator m_pieces_it;
         bool m_clear;
 
         void next_piece() {
             m_it.at(kmer_t::bits_per_char * m_offset);
-            m_next_offset = m_pieces_it.value();
+            // m_next_offset = m_pieces_it.value();
+            m_next_offset = *m_pieces_it;
             assert(m_next_offset > m_offset);
             m_clear = true;
-            m_pieces_it.next();
+            // m_pieces_it.next();
+            ++m_pieces_it;
         }
     };
 
@@ -310,7 +391,9 @@ struct buckets  //
         visit_impl(visitor, *this);
     }
 
-    bits::elias_fano<true, false> pieces;
+    // bits::elias_fano<true, false> pieces;
+    bits::compact_vector pieces;
+
     std::vector<uint32_t> start_lists_of_size;
     bits::compact_vector offsets;
     bits::compact_vector offsets2;
