@@ -2,9 +2,13 @@
 
 namespace sshash {
 
+namespace perf {
+using timer_type = essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds>;
+}
+
 template <class kmer_t>
 void perf_test_iterator(dictionary<kmer_t> const& dict) {
-    essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    perf::timer_type t;
     t.start();
     auto it = dict.begin();
     while (it.has_next()) {
@@ -44,7 +48,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
             }
         }
 
-        essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+        perf::timer_type t;
         t.start();
         for (uint64_t r = 0; r != runs; ++r) {
             for (auto const& string : lookup_queries) {
@@ -103,7 +107,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     }
     // {
     // perf test positive lookup, using a single std::string with all kmers contatenated
-    // essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    // perf::timer_type t;
     // t.start();
     // uint64_t pos = 0;
     // for (uint64_t r = 0; r != runs; ++r) {
@@ -158,7 +162,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
             random_kmer(kmer.data(), k);
             lookup_queries.push_back(kmer);
         }
-        essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+        perf::timer_type t;
         t.start();
         for (uint64_t r = 0; r != runs; ++r) {
             for (auto const& string : lookup_queries) {
@@ -185,7 +189,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     //             lookup_queries.push_back(kmer);
     //         }
     //     }
-    //     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    //     perf::timer_type t;
     //     t.start();
     //     for (uint64_t r = 0; r != runs; ++r) {
     //         for (auto const& string : lookup_queries) {
@@ -206,7 +210,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     //         random_kmer(kmer.data(), k);
     //         lookup_queries.push_back(kmer);
     //     }
-    //     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    //     perf::timer_type t;
     //     t.start();
     //     for (uint64_t r = 0; r != runs; ++r) {
     //         for (auto const& string : lookup_queries) {
@@ -219,25 +223,23 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     //     std::cout << "avg_nanosec_per_negative_lookup_advanced " << nanosec_per_lookup <<
     //     std::endl;
     // }
-    // {
-    //     // perf test access
-    //     std::vector<uint64_t> access_queries;
-    //     access_queries.reserve(num_queries);
-
-    //     for (uint64_t i = 0; i != num_queries; ++i) access_queries.push_back(distr.gen());
-    //     essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
-    //     t.start();
-    //     for (uint64_t r = 0; r != runs; ++r) {
-    //         for (auto id : access_queries) {
-    //             dict.access(id, kmer.data());
-    //             essentials::do_not_optimize_away(kmer[0]);
-    //         }
-    //     }
-    //     t.stop();
-    //     double nanosec_per_access = t.elapsed() / static_cast<double>(runs *
-    //     access_queries.size()); std::cout << "avg_nanosec_per_access " << nanosec_per_access <<
-    //     std::endl;
-    // }
+    {
+        // perf test access
+        std::vector<uint64_t> access_queries;
+        access_queries.reserve(num_queries);
+        for (uint64_t i = 0; i != num_queries; ++i) access_queries.push_back(distr.gen());
+        perf::timer_type t;
+        t.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            for (auto id : access_queries) {
+                dict.access(id, kmer.data());
+                essentials::do_not_optimize_away(kmer[0]);
+            }
+        }
+        t.stop();
+        double nanosec_per_access = t.elapsed() / static_cast<double>(runs * access_queries.size());
+        std::cout << "avg_nanosec_per_access " << nanosec_per_access << std::endl;
+    }
 }  // namespace sshash
 
 template <class kmer_t>
@@ -268,7 +270,7 @@ void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
         }
     }
 
-    essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds> t;
+    perf::timer_type t;
     t.start();
     for (uint64_t r = 0; r != runs; ++r) {
         for (auto const& string : lookup_queries) {

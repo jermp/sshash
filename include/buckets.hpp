@@ -198,18 +198,11 @@ struct buckets  //
     }
 
     uint64_t id_to_offset(const uint64_t id, const uint64_t k) const {
-        constexpr uint64_t linear_scan_threshold = 8;
+        constexpr uint64_t linear_scan_threshold = 32;
         uint64_t lo = 0;
         uint64_t hi = pieces.size() - 1;
         assert(pieces.access(0) == 0);
-        while (lo < hi) {
-            if (hi - lo <= linear_scan_threshold) {
-                for (; lo < hi; ++lo) {
-                    uint64_t val = pieces.access(lo) - lo * (k - 1);
-                    if (val > id) break;
-                }
-                break;
-            }
+        while (hi - lo > linear_scan_threshold) {
             uint64_t mid = lo + (hi - lo) / 2;
             uint64_t val = pieces.access(mid);
             assert(val >= mid * (k - 1));
@@ -219,8 +212,14 @@ struct buckets  //
                 lo = mid + 1;
             }
         }
-        if (lo < pieces.size() and pieces.access(lo) - lo * (k - 1) > id) --lo;
-        return id + lo * (k - 1);
+        assert(lo < hi);
+        assert(hi < pieces.size());
+        for (auto it = pieces.get_iterator_at(lo); lo <= hi; ++lo, it.next()) {
+            uint64_t val = it.value() - lo * (k - 1);
+            if (val > id) break;
+        }
+        assert(lo > 0);
+        return id + (lo - 1) * (k - 1);
     }
 
     void access(const uint64_t kmer_id, char* string_kmer, const uint64_t k) const {

@@ -169,7 +169,9 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
               [](bucket_type const& x, bucket_type const& y) { return x.size() < y.size(); });
 
     uint64_t num_partitions = constants::max_l - constants::min_l + 1;
-    if (max_bucket_size < (1ULL << constants::max_l)) {
+    if (max_bucket_size < min_size) {
+        num_partitions = 0;
+    } else if (max_bucket_size < (1ULL << constants::max_l)) {
         num_partitions = log2_max_bucket_size - constants::min_l;
     }
     std::cout << "skew index num_partitions " << num_partitions << std::endl;
