@@ -3,6 +3,7 @@
 // #include "bitpack.hpp"
 // #include <bitset>
 
+#include <cstdint>  // for uint types
 #include <cassert>
 #include <string>
 
