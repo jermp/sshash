@@ -3,6 +3,7 @@
 // #include "bitpack.hpp"
 // #include <bitset>
 
+#include <cassert>
 #include <string>
 
 // template <size_t N>
