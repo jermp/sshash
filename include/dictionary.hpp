@@ -26,7 +26,7 @@ struct dictionary {
     uint64_t size() const { return m_size; }
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
-    uint64_t num_contigs() const { return m_buckets.pieces.size() - 1; }
+    uint64_t num_contigs() const { return m_buckets.strings_endpoints.size() - 1; }
     bool canonical() const { return m_canonical; }
     bool weighted() const { return !m_weights.empty(); }
     hasher_type const& hasher() const { return m_hasher; }

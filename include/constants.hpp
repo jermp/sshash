@@ -1,7 +1,5 @@
 #pragma once
 
-#include "kmer.hpp"
-
 namespace sshash::constants {
 
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
@@ -22,7 +20,7 @@ constexpr int forward_orientation = 1;
 constexpr int backward_orientation = -1;
 
 namespace current_version_number {
-constexpr uint8_t x = 4;
+constexpr uint8_t x = 5;
 constexpr uint8_t y = 0;
 constexpr uint8_t z = 0;
 }  // namespace current_version_number

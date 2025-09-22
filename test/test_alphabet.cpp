@@ -1,3 +1,4 @@
+#include "include/kmer.hpp"
 #include "include/util.hpp"
 #include "tools/common.hpp"  // for random_kmer
 

@@ -11,7 +11,7 @@ struct parse_data {
 
     uint64_t num_kmers;
     minimizers_tuples minimizers;
-    std::vector<uint64_t> pieces;
+    std::vector<uint64_t> strings_endpoints;
     bits::bit_vector strings;
     weights::builder weights_builder;
 };
@@ -44,7 +44,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         bvb_strings.reserve(num_bits);
 
         const uint64_t num_sequences = 100000000;
-        data.pieces.reserve(num_sequences);
+        data.strings_endpoints.reserve(num_sequences);
     }
 
     // std::unordered_map<uint64_t, uint64_t> seq_lengths;
@@ -141,7 +141,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         }
 
         assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
-        data.pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
+        data.strings_endpoints.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
 
         num_bases += n;
 
@@ -171,11 +171,11 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     }
 
     /*
-        So pieces will be of size p+1, where p is the number of DNA sequences
+        So strings_endpoints will be of size p+1, where p is the number of DNA sequences
         in the input file.
     */
-    data.pieces.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
-    assert(data.pieces.front() == 0);
+    data.strings_endpoints.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
+    assert(data.strings_endpoints.front() == 0);
 
     /* Push a final sentinel (dummy) value to avoid bounds' checking in
        kmer_iterator::fill_buff(). */
@@ -183,8 +183,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
     bvb_strings.build(data.strings);
 
-    assert(data.pieces.front() == 0);
-    assert(data.pieces.size() == num_sequences + 1);
+    assert(data.strings_endpoints.front() == 0);
+    assert(data.strings_endpoints.size() == num_sequences + 1);
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding input'");
@@ -291,8 +291,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
             for (uint64_t i = index_begin; i != index_end; ++i)  //
             {
-                const uint64_t begin = data.pieces[i];
-                const uint64_t end = data.pieces[i + 1];
+                const uint64_t begin = data.strings_endpoints[i];
+                const uint64_t end = data.strings_endpoints[i + 1];
                 const uint64_t sequence_len = end - begin;
                 assert(sequence_len >= k);
 
