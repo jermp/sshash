@@ -45,9 +45,13 @@ int bench(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     dictionary<kmer_t> dict;
     load_dictionary(dict, index_filename, verbose);
-    perf_test_lookup_access(dict);
-    if (dict.weighted()) perf_test_lookup_weight(dict);
-    perf_test_iterator(dict);
+
+    perf_test_lookup_by_list_size(dict);
+
+    // perf_test_lookup_access(dict);
+    // if (dict.weighted()) perf_test_lookup_weight(dict);
+    // perf_test_iterator(dict);
+
     return 0;
 }
 

@@ -23,7 +23,9 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
     uint64_t status = code & 1;
     if (status == 0) {  // minimizer occurs once
         uint64_t offset = code >> 1;
-        return m_buckets.lookup_at_offset(offset, uint_kmer, mini_info, m_k, m_m);
+        auto res = m_buckets.lookup_at_offset(offset, uint_kmer, mini_info, m_k, m_m);
+        res.list_size = 1;
+        return res;
     }
 
     status = code & 3;
@@ -35,7 +37,9 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
         assert(list_size < m_buckets.start_lists_of_size.size());
         uint64_t begin = m_buckets.start_lists_of_size[list_size] + list_id * list_size;
         uint64_t end = begin + list_size;
-        return m_buckets.lookup(begin, end, uint_kmer, mini_info, m_k, m_m);
+        auto res = m_buckets.lookup(begin, end, uint_kmer, mini_info, m_k, m_m);
+        res.list_size = list_size;
+        return res;
     }
 
     // minimizer is part of the skew index
@@ -93,9 +97,11 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
     uint64_t status = code & 1;
     if (status == 0) {  // minimizer occurs once
         uint64_t offset = code >> 1;
-        return m_buckets.lookup_canonical_at_offset(              //
+        auto res = m_buckets.lookup_canonical_at_offset(          //
             offset, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
         );
+        res.list_size = 1;
+        return res;
     }
 
     status = code & 3;
@@ -107,9 +113,11 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
         assert(list_size < m_buckets.start_lists_of_size.size());
         uint64_t begin = m_buckets.start_lists_of_size[list_size] + list_id * list_size;
         uint64_t end = begin + list_size;
-        return m_buckets.lookup_canonical(                            //
+        auto res = m_buckets.lookup_canonical(                        //
             begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
         );
+        res.list_size = list_size;
+        return res;
     }
 
     // minimizer is part of the skew index
