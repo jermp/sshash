@@ -34,3 +34,44 @@ on a machine equipped with an Intel Xeon W-2245 CPU @ 3.90GHz, and running Ubunt
 The code was compiled with `gcc` 10.3.
 
 ![](results-14-09-25/results.png)
+
+
+## Linux with Intel x86 vs. Apple with M1 arm
+
+Very interestingly, random lookup queries on an Apple M1 arm processor are much faster than
+the same queries (actually, the queries are random, drawn uniformly from the set of indexed
+kmers using a randomly generated seed) under Linux with an Intel x86 processor.
+This matches the same observation made for PTHash, [here](https://github.com/jermp/pthash/tree/master/benchmarks).
+(The performance for streaming queries is the same, instead.)
+
+For access queries and negative lookups, the trend is the opposite.
+
+#### Linux, Intel x86
+
+Taken from [these logs](results-22-09-25).
+
+	./sshash bench -i human.k31.sshash
+	lookup: avg_nanosec_per_positive_lookup 880.499
+	lookup_uint: avg_nanosec_per_positive_lookup 827.422
+	avg_nanosec_per_negative_lookup 744.67
+	avg_nanosec_per_access 512.398
+
+	./sshash bench -i human.k31.canon.sshash
+	lookup: avg_nanosec_per_positive_lookup 702.591
+	lookup_uint: avg_nanosec_per_positive_lookup 679.425
+	avg_nanosec_per_negative_lookup 427.235
+	avg_nanosec_per_access 510.499
+
+#### Apple, M1 arm
+
+	./sshash bench -i human.k31.sshash
+	lookup: avg_nanosec_per_positive_lookup 578.065
+	lookup_uint: avg_nanosec_per_positive_lookup 499.311
+	avg_nanosec_per_negative_lookup 656.382
+	avg_nanosec_per_access 882.288
+
+	./sshash bench -i human.k31.canon.sshash
+	lookup: avg_nanosec_per_positive_lookup 622.091
+	lookup_uint: avg_nanosec_per_positive_lookup 604.484
+	avg_nanosec_per_negative_lookup 878.432
+	avg_nanosec_per_access 886.565
