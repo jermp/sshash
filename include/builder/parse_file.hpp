@@ -7,9 +7,10 @@ namespace sshash {
 
 template <class kmer_t>
 struct parse_data {
-    parse_data(build_configuration const& build_config) : num_kmers(0), minimizers(build_config) {}
+    parse_data(build_configuration const& build_config)
+        : num_kmers(0), num_sequences(0), minimizers(build_config) {}
 
-    uint64_t num_kmers;
+    uint64_t num_kmers, num_sequences;
     minimizers_tuples minimizers;
     std::vector<uint64_t> strings_endpoints;
     bits::bit_vector strings;
@@ -50,7 +51,6 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     // std::unordered_map<uint64_t, uint64_t> seq_lengths;
 
     std::string sequence;
-    uint64_t num_sequences = 0;
     uint64_t num_bases = 0;
 
     hasher_type hasher(build_config.seed);
@@ -134,9 +134,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
         // seq_lengths[n] += 1;
 
-        ++num_sequences;
-        if (num_sequences % 100000 == 0) {
-            std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
+        ++data.num_sequences;
+        if (data.num_sequences % 100000 == 0) {
+            std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
                       << data.num_kmers << " kmers" << std::endl;
         }
 
@@ -184,16 +184,16 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     bvb_strings.build(data.strings);
 
     assert(data.strings_endpoints.front() == 0);
-    assert(data.strings_endpoints.size() == num_sequences + 1);
+    assert(data.strings_endpoints.size() == data.num_sequences + 1);
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding input'");
 
-    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
+    std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
     std::cout << "num_kmers " << data.num_kmers << std::endl;
     std::cout << "cost: 2.0 + "
-              << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) /
+              << static_cast<double>(kmer_t::bits_per_char * data.num_sequences * (k - 1)) /
                      data.num_kmers
               << " [bits/kmer]" << std::endl;
 
@@ -250,7 +250,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     timer.start();
 
     const uint64_t num_threads = build_config.num_threads;
-    const uint64_t num_sequences_per_thread = (num_sequences + num_threads - 1) / num_threads;
+    const uint64_t num_sequences_per_thread = (data.num_sequences + num_threads - 1) / num_threads;
     std::vector<std::thread> threads;
     threads.reserve(num_threads);
 
@@ -283,7 +283,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
             const uint64_t index_begin = t * num_sequences_per_thread;
             const uint64_t index_end =
-                std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
+                std::min<uint64_t>(index_begin + num_sequences_per_thread, data.num_sequences);
 
             kmer_iterator<kmer_t> it(data.strings, k);
             minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);

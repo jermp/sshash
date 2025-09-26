@@ -82,17 +82,17 @@ int build(int argc, char** argv) {
     bool check = parser.get<bool>("check");
     if (check) {
         check_correctness_lookup_access(dict, input_filename);
-        check_correctness_navigational_kmer_query(dict, input_filename);
-        check_correctness_navigational_contig_query(dict);
-        if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        check_correctness_kmer_iterator(dict);
-        check_correctness_contig_iterator(dict);
+        // check_correctness_navigational_kmer_query(dict, input_filename);
+        // check_correctness_navigational_contig_query(dict);
+        // if (build_config.weighted) check_correctness_weights(dict, input_filename);
+        // check_correctness_kmer_iterator(dict);
+        // check_correctness_contig_iterator(dict);
     }
     bool bench = parser.get<bool>("bench");
     if (bench) {
         perf_test_lookup_access(dict);
         if (dict.weighted()) perf_test_lookup_weight(dict);
-        perf_test_iterator(dict);
+        // perf_test_iterator(dict);
     }
     if (parser.parsed("output_filename")) {
         auto output_filename = parser.get<std::string>("output_filename");

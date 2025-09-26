@@ -41,7 +41,8 @@ void dictionary<kmer_t>::build(std::string const& filename,
     timer.start();
     parse_data<kmer_t> data(build_config);
     parse_file<kmer_t>(filename, data, build_config);
-    m_size = data.num_kmers;
+    m_num_kmers = data.num_kmers;
+    m_num_strings = data.num_sequences;
     if (build_config.weighted) {
         essentials::timer_type timer;
         timer.start();

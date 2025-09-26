@@ -5,14 +5,14 @@ namespace sshash {
 template <class kmer_t>
 bool check_dictionary(dictionary<kmer_t> const& dict) {
     const uint64_t k = dict.k();
-    const uint64_t n = dict.size();
+    const uint64_t n = dict.num_kmers();
     std::cout << "checking correctness of access and positive lookup..." << std::endl;
     uint64_t id = 0;
     std::string kmer(k, 0);
     for (; id != n; ++id) {
         if (id != 0 and id % 5000000 == 0) std::cout << "checked " << id << " kmers" << std::endl;
         dict.access(id, kmer.data());
-        uint64_t got_id = dict.lookup(kmer.c_str());
+        uint64_t got_id = dict.lookup(kmer.c_str()).kmer_id;
         if (got_id == constants::invalid_uint64) {
             std::cout << "kmer '" << kmer << "' not found!" << std::endl;
             return false;
@@ -34,7 +34,7 @@ bool check_dictionary(dictionary<kmer_t> const& dict) {
 template <class kmer_t>
 bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
-    const uint64_t num_lookups = std::min<uint64_t>(1000000, dict.size());
+    const uint64_t num_lookups = std::min<uint64_t>(1000000, dict.num_kmers());
     std::string kmer(dict.k(), 0);
     for (uint64_t i = 0; i != num_lookups; ++i) {
         random_kmer(kmer.data(), dict.k());
@@ -42,8 +42,8 @@ bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
             We could use a std::unordered_set to check if kmer is really absent,
             but that would take much more memory...
         */
-        uint64_t id = dict.lookup(kmer.c_str());
-        if (id != constants::invalid_uint64) {
+        auto res = dict.lookup(kmer.c_str());
+        if (res.kmer_id != constants::invalid_uint64) {
             std::cout << "kmer '" << kmer << "' found!" << std::endl;
         }
     }
@@ -54,14 +54,14 @@ bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
 template <class kmer_t>
 bool check_correctness_navigational_contig_query(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
-    const uint64_t num_contigs = dict.num_contigs();
+    const uint64_t num_strings = dict.num_strings();
     const uint64_t k = dict.k();
     uint64_t kmer_id = 0;
     std::string kmer(k, 0);
     uint64_t contig_id = 0;
-    for (; contig_id != num_contigs; ++contig_id) {
+    for (; contig_id != num_strings; ++contig_id) {
         if (contig_id != 0 and contig_id % 1000000 == 0) {
-            std::cout << "checked " << contig_id << "/" << num_contigs << " contigs" << std::endl;
+            std::cout << "checked " << contig_id << "/" << num_strings << " contigs" << std::endl;
         }
 
         auto res = dict.contig_neighbours(contig_id);
@@ -92,7 +92,8 @@ bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of kmer iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
     constexpr uint64_t runs = 3;
-    essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
+    essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
+                                                essentials::get_random_seed());
     for (uint64_t run = 0; run != runs; ++run) {
         uint64_t from_kmer_id = distr.gen();
         auto it = dict.at_kmer_id(from_kmer_id);
@@ -108,7 +109,7 @@ bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
             }
             ++from_kmer_id;
         }
-        assert(from_kmer_id == dict.size());
+        assert(from_kmer_id == dict.num_kmers());
     }
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;
@@ -118,7 +119,7 @@ template <class kmer_t>
 bool check_correctness_contig_iterator(dictionary<kmer_t> const& dict) {
     std::cout << "checking correctness of contig iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
-    for (uint64_t contig_id = 0; contig_id != dict.num_contigs(); ++contig_id) {
+    for (uint64_t contig_id = 0; contig_id != dict.num_strings(); ++contig_id) {
         auto [begin, _] = dict.contig_offsets(contig_id);
         uint64_t from_kmer_id = begin - contig_id * (dict.k() - 1);
         auto it = dict.at_contig_id(contig_id);

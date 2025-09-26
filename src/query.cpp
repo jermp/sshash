@@ -21,7 +21,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
         report.num_kmers += num_kmers;
         for (uint64_t i = 0; i != num_kmers; ++i) {
             char const* kmer = buffer.data() + i;
-            query.lookup_advanced(kmer);
+            query.lookup(kmer);
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
@@ -60,7 +60,7 @@ streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const*
         report.num_kmers += num_kmers;
         for (uint64_t i = 0; i != num_kmers; ++i) {
             char const* kmer = line.data() + i;
-            query.lookup_advanced(kmer);
+            query.lookup(kmer);
         }
     }
     report.num_searches = query.num_searches();
@@ -90,7 +90,7 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
             report.num_kmers += num_kmers;
             for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
                 char const* kmer = line.data() + i;
-                query.lookup_advanced(kmer);
+                query.lookup(kmer);
             }
         }
         std::getline(is, line);  // skip '+'

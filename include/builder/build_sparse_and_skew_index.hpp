@@ -97,9 +97,11 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
     }
     for (auto const& tbs : threads_buckets_stats) buckets_stats += tbs;
 
-    m_buckets.strings_endpoints.encode(data.strings_endpoints.begin(),
-                                       data.strings_endpoints.size(),
-                                       data.strings_endpoints.back());
+    // m_buckets.strings_endpoints.encode(data.strings_endpoints.begin(),
+    //                                    data.strings_endpoints.size(),
+    //                                    data.strings_endpoints.back());
+    m_buckets.strings_endpoints.build(data.strings_endpoints);
+
     m_buckets.strings.swap(data.strings);
 
     /* compute offsets2 and offsets3 */

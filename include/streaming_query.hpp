@@ -50,7 +50,7 @@ struct streaming_query {
         m_minimizer_it_rc.reset();
     }
 
-    lookup_result lookup_advanced(char const* kmer)  //
+    lookup_result lookup(char const* kmer)  //
     {
         /* 1. validation */
         bool is_valid =
@@ -101,7 +101,7 @@ struct streaming_query {
         m_prev_mini_info_rc = m_curr_mini_info_rc;
         m_start = false;
 
-        assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
+        assert(equal_lookup_result(m_dict->lookup(kmer), m_res));
         return m_res;
     }
 

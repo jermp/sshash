@@ -71,7 +71,6 @@ set(SSHASH_SOURCES
   src/dictionary.cpp
   src/query.cpp
   src/info.cpp
-  src/statistics.cpp
 )
 
 # Create a static lib

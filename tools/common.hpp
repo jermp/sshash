@@ -17,7 +17,7 @@ void load_dictionary(dictionary<kmer_t>& dict, std::string const& index_filename
     if (verbose) {
         std::cout << "total index size: " << num_bytes_read << " [B] -- "
                   << essentials::convert(num_bytes_read, essentials::MB) << " [MB] ("
-                  << (num_bytes_read * 8.0) / dict.size() << " [bits/kmer])" << std::endl;
+                  << (num_bytes_read * 8.0) / dict.num_kmers() << " [bits/kmer])" << std::endl;
         dict.print_info();
     }
 }

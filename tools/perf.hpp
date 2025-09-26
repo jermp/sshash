@@ -6,20 +6,20 @@ namespace perf {
 using timer_type = essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds>;
 }
 
-template <class kmer_t>
-void perf_test_iterator(dictionary<kmer_t> const& dict) {
-    perf::timer_type t;
-    t.start();
-    auto it = dict.begin();
-    while (it.has_next()) {
-        auto [kmer_id, kmer] = it.next();
-        essentials::do_not_optimize_away(kmer_id);
-        essentials::do_not_optimize_away(kmer[0]);
-    }
-    t.stop();
-    double avg_nanosec = t.elapsed() / dict.size();
-    std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
-}
+// template <class kmer_t>
+// void perf_test_iterator(dictionary<kmer_t> const& dict) {
+//     perf::timer_type t;
+//     t.start();
+//     auto it = dict.begin();
+//     while (it.has_next()) {
+//         auto [kmer_id, kmer] = it.next();
+//         essentials::do_not_optimize_away(kmer_id);
+//         essentials::do_not_optimize_away(kmer[0]);
+//     }
+//     t.stop();
+//     double avg_nanosec = t.elapsed() / dict.num_kmers();
+//     std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
+// }
 
 template <class kmer_t>
 void perf_test_lookup_by_list_size(dictionary<kmer_t> const& dict) {
@@ -73,8 +73,8 @@ void perf_test_lookup_by_list_size(dictionary<kmer_t> const& dict) {
         t.start();
         for (uint64_t r = 0; r != runs; ++r) {
             for (auto const& string : lookup_queries[list_size]) {
-                auto id = dict.lookup(string.c_str());
-                essentials::do_not_optimize_away(id);
+                auto res = dict.lookup(string.c_str());
+                essentials::do_not_optimize_away(res.kmer_id);
             }
         }
         t.stop();
@@ -95,7 +95,8 @@ template <class kmer_t>
 void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
     constexpr uint64_t num_queries = 1000000;
     constexpr uint64_t runs = 5;
-    essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
+    essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
+                                                essentials::get_random_seed());
     const uint64_t k = dict.k();
     // const uint64_t m = dict.m();
     std::string kmer(k, 0);
@@ -122,13 +123,13 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
         t.start();
         for (uint64_t r = 0; r != runs; ++r) {
             for (auto const& string : lookup_queries) {
-                auto id = dict.lookup(string.c_str());
-                essentials::do_not_optimize_away(id);
+                auto res = dict.lookup(string.c_str());
+                essentials::do_not_optimize_away(res.kmer_id);
             }
         }
         t.stop();
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-        std::cout << "lookup: avg_nanosec_per_positive_lookup " << nanosec_per_lookup << std::endl;
+        std::cout << "avg_nanosec_per_positive_lookup " << nanosec_per_lookup << std::endl;
 
         // std::vector<kmer_t> lookup_queries_uint;
         // lookup_queries_uint.reserve(num_queries);
@@ -236,63 +237,15 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
         t.start();
         for (uint64_t r = 0; r != runs; ++r) {
             for (auto const& string : lookup_queries) {
-                auto id = dict.lookup(string.c_str());
-                essentials::do_not_optimize_away(id);
+                auto res = dict.lookup(string.c_str());
+                essentials::do_not_optimize_away(res.kmer_id);
             }
         }
         t.stop();
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
         std::cout << "avg_nanosec_per_negative_lookup " << nanosec_per_lookup << std::endl;
     }
-    // {
-    //     // perf test positive lookup_advanced
-    //     std::vector<std::string> lookup_queries;
-    //     lookup_queries.reserve(num_queries);
-    //     for (uint64_t i = 0; i != num_queries; ++i) {
-    //         uint64_t id = distr.gen();
-    //         dict.access(id, kmer.data());
-    //         if ((i & 1) == 0) {
-    //             /* transform 50% of the kmers into their reverse complements */
-    //             kmer_t::compute_reverse_complement(kmer.data(), kmer_rc.data(), k);
-    //             lookup_queries.push_back(kmer_rc);
-    //         } else {
-    //             lookup_queries.push_back(kmer);
-    //         }
-    //     }
-    //     perf::timer_type t;
-    //     t.start();
-    //     for (uint64_t r = 0; r != runs; ++r) {
-    //         for (auto const& string : lookup_queries) {
-    //             auto res = dict.lookup_advanced(string.c_str());
-    //             essentials::do_not_optimize_away(res.kmer_id);
-    //         }
-    //     }
-    //     t.stop();
-    //     double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-    //     std::cout << "avg_nanosec_per_positive_lookup_advanced " << nanosec_per_lookup <<
-    //     std::endl;
-    // }
-    // {
-    //     // perf test negative lookup_advanced
-    //     std::vector<std::string> lookup_queries;
-    //     lookup_queries.reserve(num_queries);
-    //     for (uint64_t i = 0; i != num_queries; ++i) {
-    //         random_kmer(kmer.data(), k);
-    //         lookup_queries.push_back(kmer);
-    //     }
-    //     perf::timer_type t;
-    //     t.start();
-    //     for (uint64_t r = 0; r != runs; ++r) {
-    //         for (auto const& string : lookup_queries) {
-    //             auto res = dict.lookup_advanced(string.c_str());
-    //             essentials::do_not_optimize_away(res.kmer_id);
-    //         }
-    //     }
-    //     t.stop();
-    //     double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-    //     std::cout << "avg_nanosec_per_negative_lookup_advanced " << nanosec_per_lookup <<
-    //     std::endl;
-    // }
+
     {
         // perf test access
         std::vector<uint64_t> access_queries;
@@ -310,6 +263,7 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
         double nanosec_per_access = t.elapsed() / static_cast<double>(runs * access_queries.size());
         std::cout << "avg_nanosec_per_access " << nanosec_per_access << std::endl;
     }
+
 }  // namespace sshash
 
 template <class kmer_t>
@@ -321,7 +275,8 @@ void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
 
     constexpr uint64_t num_queries = 1000000;
     constexpr uint64_t runs = 5;
-    essentials::uniform_int_rng<uint64_t> distr(0, dict.size() - 1, essentials::get_random_seed());
+    essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
+                                                essentials::get_random_seed());
     uint64_t k = dict.k();
     std::string kmer(k, 0);
     std::string kmer_rc(k, 0);
@@ -344,8 +299,8 @@ void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
     t.start();
     for (uint64_t r = 0; r != runs; ++r) {
         for (auto const& string : lookup_queries) {
-            auto id = dict.lookup(string.c_str());
-            auto w = dict.weight(id);
+            auto res = dict.lookup(string.c_str());
+            auto w = dict.weight(res.kmer_id);
             essentials::do_not_optimize_away(w);
         }
     }
