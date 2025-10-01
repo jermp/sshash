@@ -2,6 +2,32 @@
 
 namespace sshash {
 
+struct endpoints  //
+{
+    string_group_info get_string_group_info(uint64_t offset) const {
+        const uint64_t num_bits_super_group = bits::util::ceil_log2_uint64(m_data.size());
+        uint64_t super_group = offset & ((1ULL << num_bits_super_group) - 1);
+        offset >>= num_bits_super_group;
+
+        assert(super_group < m_data.size());
+        auto const& v = m_data[super_group];
+        const uint64_t num_bits_group = bits::util::ceil_log2_uint64(v.size());
+        uint64_t group = offset & ((1ULL << num_bits_group) - 1);
+        offset >>= num_bits_group;
+
+        return v[group];
+    }
+
+    struct string_group_info {
+        uint32_t string_length;  // all strings in the group have the same length
+        uint32_t string_id;      // absolute id of the first string in the group
+        uint64_t offset;         // absolute offset where this group of strings begins
+    };
+
+private:
+    std::vector<std::vector<string_group_info>> m_data;
+};
+
 /*
 
     If we sort the strings by increasing lengths,
