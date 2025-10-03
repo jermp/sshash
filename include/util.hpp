@@ -52,10 +52,15 @@ struct lookup_result {
     uint64_t contig_id;
     uint64_t contig_size;
     uint64_t list_size;
+
     bool minimizer_found;
 
+    uint64_t kmer_offset(const uint64_t k) const {  //
+        return kmer_id + contig_id * (k - 1);
+    }
+
     uint64_t contig_begin(const uint64_t k) const {  //
-        return kmer_id + contig_id * (k - 1) - kmer_id_in_contig;
+        return kmer_offset(k) - kmer_id_in_contig;
     }
 
     uint64_t contig_end(const uint64_t k) const {  //
@@ -147,6 +152,7 @@ struct build_configuration {
         , canonical(false)
         , weighted(false)
         , verbose(true)
+        , sorted(false)
 
         , tmp_dirname(constants::default_tmp_dirname)
 
@@ -163,6 +169,7 @@ struct build_configuration {
     bool canonical;
     bool weighted;
     bool verbose;
+    bool sorted;
 
     std::string tmp_dirname;
 

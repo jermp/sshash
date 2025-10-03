@@ -11,19 +11,45 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                                                build_configuration const& build_config)  //
 {
     const uint64_t num_kmers = data.num_kmers;
+    // const uint64_t num_sequences = data.num_sequences;
     const uint64_t num_minimizer_positions = data.minimizers.num_minimizer_positions();
     const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
     const uint64_t num_minimizers = data.minimizers.num_minimizers();
     const uint64_t num_threads = build_config.num_threads;
 
-    const uint64_t num_bits_per_offset =
-        std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char));
+    endpoints::builder endpoints_builder;
+    uint64_t num_bits_per_offset = endpoints_builder.build_from(data.strings_endpoints);
+    endpoints_builder.build(m_buckets.strings_endpoints);
+
+    std::cout << "num_bits_per_offset = " << num_bits_per_offset << std::endl;
+
+    {
+        // print
+        auto const& data = m_buckets.strings_endpoints.data();
+        for (uint64_t i = 0; i != data.size(); ++i) {
+            std::cout << "super_group " << i << ":\n\t";
+            for (uint64_t j = 0; j != data[i].size(); ++j) {
+                auto sg_info = data[i][j];
+                std::cout << "(" << sg_info.strings_length << "," << sg_info.first_id << ","
+                          << sg_info.group_offset << ")" << ' ';
+            }
+            std::cout << std::endl;
+            std::cout << "num_bits_per_group = "
+                      << m_buckets.strings_endpoints.num_bits_per_group(data[i].size())
+                      << std::endl;
+        }
+    }
+
+    if (!build_config.sorted) {
+        num_bits_per_offset = std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char));
+
+        std::cout << "num_bits_per_offset = ceil(log2("
+                  << data.strings.num_bits() / kmer_t::bits_per_char
+                  << ")) = " << num_bits_per_offset << std::endl;
+    }
+
     bits::compact_vector::builder offsets_builder;
     offsets_builder.resize(num_minimizers, num_bits_per_offset + 1);
-
-    std::cout << "num_bits_per_offset = ceil(log2("
-              << data.strings.num_bits() / kmer_t::bits_per_char << ")) = " << num_bits_per_offset
-              << std::endl;
 
     mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
                                            mm::advice::sequential);
@@ -100,7 +126,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
     // m_buckets.strings_endpoints.encode(data.strings_endpoints.begin(),
     //                                    data.strings_endpoints.size(),
     //                                    data.strings_endpoints.back());
-    m_buckets.strings_endpoints.build(data.strings_endpoints);
+    // m_buckets.strings_endpoints.build(data.strings_endpoints);
 
     m_buckets.strings.swap(data.strings);
 
@@ -429,6 +455,12 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                     ++pos_in_bucket;
                 }
                 assert(mt.pos_in_seq >= mt.pos_in_kmer);
+
+                if (build_config.sorted) {  // decode offset
+                    auto p = m_buckets.strings_endpoints.decode(mt.pos_in_seq);
+                    mt.pos_in_seq = p.first;  // absolute offset
+                }
+
                 const uint64_t starting_pos_of_super_kmer = mt.pos_in_seq - mt.pos_in_kmer;
                 kmer_iterator<kmer_t> it(m_buckets.strings, k,
                                          kmer_t::bits_per_char * starting_pos_of_super_kmer);

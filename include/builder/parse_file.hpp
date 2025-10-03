@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+
+#include "util.hpp"
 #include "external/gz/zip_stream.hpp"
 #include "include/minimizer_iterator.hpp"
 
@@ -40,18 +43,37 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
     bits::bit_vector::builder bvb_strings;
+
+    struct _string_group_info {
+        uint32_t super_group_id;
+        uint32_t group_id;
+        uint64_t group_offset;  // absolute offset where this group of strings begins
+    };
+
+    /* log2(string length) --> (super group id, current group id) */
+    std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> super_group_id(0);
+
+    /* string-length --> _string_group_info */
+    std::unordered_map<uint32_t, _string_group_info> string_groups_info(0);
+
     {
         const uint64_t num_bits = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
         bvb_strings.reserve(num_bits);
 
         const uint64_t num_sequences = 100000000;
         data.strings_endpoints.reserve(num_sequences);
-    }
 
-    // std::unordered_map<uint64_t, uint64_t> seq_lengths;
+        if (build_config.sorted) {
+            super_group_id.reserve(1ULL << 5);
+            string_groups_info.reserve(1ULL << 16);
+        }
+    }
 
     std::string sequence;
     uint64_t num_bases = 0;
+
+    uint32_t prev_len = 0;
+    uint32_t ceil_log2_prev_len = 0;
 
     hasher_type hasher(build_config.seed);
     minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
@@ -132,7 +154,30 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         const uint64_t n = sequence.length();
         assert(n >= k);
 
-        // seq_lengths[n] += 1;
+        if (build_config.sorted)  //
+        {
+            uint32_t ceil_log2_len = bits::util::ceil_log2_uint32(n);
+            if (ceil_log2_len > ceil_log2_prev_len) {
+                super_group_id[ceil_log2_len] = {super_group_id.size(), 0};
+            } else {
+                assert(ceil_log2_len == ceil_log2_prev_len);
+                if (n > prev_len) super_group_id[ceil_log2_len].second += 1;
+            }
+
+            if (!string_groups_info.empty()) {
+                if (n > prev_len) {
+                    uint64_t offset = bvb_strings.num_bits() / kmer_t::bits_per_char;
+                    auto p = super_group_id[ceil_log2_len];
+                    string_groups_info[n] = {p.first, p.second, offset};
+                }
+            } else {
+                auto p = super_group_id[ceil_log2_len];
+                string_groups_info[n] = {p.first, p.second, 0};
+            }
+
+            prev_len = n;
+            ceil_log2_prev_len = ceil_log2_len;
+        }
 
         ++data.num_sequences;
         if (data.num_sequences % 100000 == 0) {
@@ -197,39 +242,21 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                      data.num_kmers
               << " [bits/kmer]" << std::endl;
 
-    // std::vector<std::pair<uint64_t, uint64_t>> seq_lengths_with_freq;
-    // seq_lengths_with_freq.reserve(seq_lengths.size());
-    // for (auto p : seq_lengths) seq_lengths_with_freq.push_back(p);
-    // std::sort(seq_lengths_with_freq.begin(), seq_lengths_with_freq.end(),
-    //           [](auto const& x, auto const& y) {
-    //               auto log2x_first = std::ceil(std::log2(x.first));
-    //               auto log2y_first = std::ceil(std::log2(y.first));
-    //               if (log2x_first == log2y_first)
-    //                   return std::ceil(std::log2(x.first * x.second)) >
-    //                          std::ceil(std::log2(y.first * y.second));
-    //               return log2x_first < log2y_first;
-    //           });
-    // uint64_t count = 0;
-    // uint64_t num_bits = 5;
-    // for (auto p : seq_lengths_with_freq) {
-    //     auto log2_len = std::ceil(std::log2(p.first));
-    //     if (log2_len > num_bits) {
-    //         auto log2_count = std::ceil(std::log2(count));
-    //         std::cerr << "log2(num. sequence with log2(length) = " << num_bits
-    //                   << ") = " << log2_count << std::endl;
-    //         count = 0;
-    //         while (log2_len > num_bits) ++num_bits;
-    //     }
-    //     std::cerr << "num. sequences with length " << p.first << " = " << p.second
-    //               << "; log2(length) = " << log2_len
-    //               << "; log2(num. sequences) = " << std::ceil(std::log2(p.second))
-    //               << "; log2(total length) = " << std::ceil(std::log2(p.first * p.second)) <<
-    //               '\n';
-    //     ++count;
-    // }
-    // auto log2_count = std::ceil(std::log2(count));
-    // std::cerr << "log2(num. sequence with log2(length) = " << num_bits << ") = " << log2_count
-    //           << std::endl;
+    for (auto const& p : super_group_id) {
+        std::cout << "log2(string-length) = " << p.first << ": super_group_id = " << p.second.first
+                  << ", num. groups in super group = " << p.second.second + 1 << std::endl;
+    }
+    for (auto const& p : string_groups_info) {
+        std::cout << "string-length = " << p.first
+                  << ": super_group_id = " << p.second.super_group_id
+                  << ", group id = " << p.second.group_id
+                  << ", group_offset = " << p.second.group_offset << std::endl;
+    }
+
+    const uint64_t num_bits_per_super_group =
+        super_group_id.size() == 1 ? 1 : bits::util::ceil_log2_uint64(super_group_id.size());
+    assert(num_bits_per_super_group > 0);
+    std::cout << "num_bits_per_super_group = " << num_bits_per_super_group << std::endl;
 
     /*
         The parameter m (minimizer length) should be at least
@@ -320,6 +347,27 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                             mini_info = mini_info_rc;
                             mini_info.pos_in_kmer = k - m - mini_info.pos_in_kmer;
                         }
+                    }
+
+                    if (build_config.sorted) {  // encode mini_info.pos_in_seq
+                        auto p = string_groups_info[sequence_len];
+                        assert(mini_info.pos_in_seq >= p.group_offset);
+                        mini_info.pos_in_seq -= p.group_offset;  // relative to beginning of group
+
+                        uint32_t log2_seq_len = bits::util::ceil_log2_uint32(sequence_len);
+                        auto q = super_group_id[log2_seq_len];
+                        assert(p.group_id < q.second + 1);
+                        assert(p.super_group_id == q.first);
+                        const uint64_t num_bits_per_group =
+                            q.second + 1 == 1 ? 1 : bits::util::ceil_log2_uint64(q.second + 1);
+                        assert(num_bits_per_group > 0);
+                        // std::cout << "num_bits_per_group = " << num_bits_per_group << std::endl;
+                        mini_info.pos_in_seq <<= num_bits_per_group;
+                        mini_info.pos_in_seq += p.group_id;
+
+                        assert(p.super_group_id < (1ULL << num_bits_per_super_group));
+                        mini_info.pos_in_seq <<= num_bits_per_super_group;
+                        mini_info.pos_in_seq += p.super_group_id;
                     }
 
                     if (prev_mini_info.minimizer == constants::invalid_uint64) {

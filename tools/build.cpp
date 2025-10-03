@@ -47,6 +47,8 @@ int build(int argc, char** argv) {
     parser.add("check", "Check correctness after construction.", "--check", false, true);
     parser.add("bench", "Run performance benchmark after construction.", "--bench", false, true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
+    parser.add("sorted", "Assume that the input contains strings sorted by non-decreasing lengths.",
+               "--sorted", false, true);
 
     if (!parser.parse()) return 0;
 
@@ -65,6 +67,7 @@ int build(int argc, char** argv) {
     build_config.canonical = parser.get<bool>("canonical");
     build_config.weighted = parser.get<bool>("weighted");
     build_config.verbose = parser.get<bool>("verbose");
+    build_config.sorted = parser.get<bool>("sorted");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
         essentials::create_directory(build_config.tmp_dirname);
