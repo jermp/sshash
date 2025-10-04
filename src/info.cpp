@@ -2,6 +2,7 @@
 
 namespace sshash {
 
+[[maybe_unused]]
 static inline double bits_per_kmer_formula(uint64_t k, /* kmer length */
                                            uint64_t m, /* minimizer length */
                                            uint64_t n, /* num. kmers */
