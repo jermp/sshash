@@ -1,8 +1,11 @@
 #pragma once
 
 namespace sshash {
-// full binary tree of given height
-// with Int type in its leafs
+
+/*
+    A full binary tree of given height
+    with Int type in its leaves.
+*/
 template <typename Int, uint16_t height>
 struct bitpack {
     static_assert(height > 0);
@@ -58,4 +61,5 @@ struct bitpack {
 
     bitpack operator~() const { return {~a, ~b}; }
 };
+
 }  // namespace sshash

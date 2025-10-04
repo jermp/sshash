@@ -1,15 +1,17 @@
 #pragma once
 
-#include "bitpack.hpp"
-#include <bitset>
+// #include "bitpack.hpp"
+// #include <bitset>
+
 #include <string>
 
-template <size_t N>
-bool operator<(std::bitset<N> const& a, std::bitset<N> const& b) {
-    return a.to_string() < b.to_string();
-}
+// template <size_t N>
+// bool operator<(std::bitset<N> const& a, std::bitset<N> const& b) {
+//     return a.to_string() < b.to_string();
+// }
 
 namespace sshash {
+
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
     using uint_t = Kmer;
@@ -17,6 +19,8 @@ struct uint_kmer_t {
 
     uint_kmer_t() {}
     uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
+
+    virtual ~uint_kmer_t() = default;
 
     explicit operator uint64_t() const {
         if constexpr (std::is_constructible_v<uint64_t, Kmer>) {
@@ -31,16 +35,10 @@ struct uint_kmer_t {
     bool operator!=(uint_kmer_t const& t) const { return kmer != t.kmer; }
     bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }
 
-    void pad(uint16_t b) {
-        assert(b < uint_kmer_bits);
-        kmer <<= b;
-    }
+    void pad(uint16_t b) { kmer <<= b; }
     void pad_char() { pad(bits_per_char); }
 
-    void drop(uint16_t b) {
-        assert(b < uint_kmer_bits);
-        kmer >>= b;
-    }
+    void drop(uint16_t b) { kmer >>= b; }
     void drop64() {
         if constexpr (uint_kmer_bits == 64) {
             kmer = 0;
@@ -81,9 +79,14 @@ struct uint_kmer_t {
     }
     void append_char(uint64_t c) { append(bits_per_char, c); }
 
-    // assigns a character at k-th position
-    // assuming that the position is empty
-    void kth_char_or(uint16_t k, uint64_t c) { kmer |= Kmer(c) << (k * bits_per_char); }
+    /* Set the char at position i to c,
+       assuming that the position is empty. */
+    void set(uint16_t i, uint64_t c) { kmer |= Kmer(c) << (i * bits_per_char); }
+
+    /* Returns the char at position i. */
+    uint64_t at(uint16_t i) const {
+        return (kmer >> (i * bits_per_char)) & ((uint64_t(1) << bits_per_char) - 1);
+    }
 
     static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);
     static constexpr uint8_t bits_per_char = BitsPerChar;
@@ -126,6 +129,9 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
     using base::uint_kmer_bits;
     using base::bits_per_char;
     using base::base;
+
+    ~dna_uint_kmer_t() {}
+
     // Use odd lengths for DNA to avoid dealing with self-complements
     static constexpr uint16_t max_k = base::max_k - !(base::max_k % 2);
     static constexpr uint16_t max_m = base::max_m - !(base::max_m % 2);
@@ -159,7 +165,6 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
         assert(k <= max_k);
         dna_uint_kmer_t rev(0);
         for (uint16_t i = 0; i < uint_kmer_bits; i += 64) { rev.append64(crc64(base::pop64())); }
-        // res is full reverse-complement to x
         rev.drop(uint_kmer_bits - k * bits_per_char);
         *this = rev;
     }
@@ -167,29 +172,29 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
     /*
     char decimal  binary
-    A     65     01000001 -> 00
-    C     67     01000011 -> 01
-    G     71     01000111 -> 10
-    T     84     01010100 -> 11
+        A     65     01000001 -> 00
+        C     67     01000011 -> 01
+        G     71     01000111 -> 10
+        T     84     01010100 -> 11
 
-    a     97     01100001 -> 00
-    c     99     01100011 -> 01
-    g    103     01100111 -> 10
-    t    116     01110100 -> 11
+        a     97     01100001 -> 00
+        c     99     01100011 -> 01
+        g    103     01100111 -> 10
+        t    116     01110100 -> 11
     */
     static uint64_t char_to_uint(char c) { return (((c >> 1) ^ (c >> 2)) & 3); }
 #else
     /*
     char decimal  binary
-    A     65     01000.00.1 -> 00
-    C     67     01000.01.1 -> 01
-    G     71     01000.11.1 -> 11
-    T     84     01010.10.0 -> 10
+        A     65     01000.00.1 -> 00
+        C     67     01000.01.1 -> 01
+        G     71     01000.11.1 -> 11
+        T     84     01010.10.0 -> 10
 
-    a     97     01100.00.1 -> 00
-    c     99     01100.01.1 -> 01
-    g    103     01100.11.1 -> 11
-    t    116     01110.10.0 -> 10
+        a     97     01100.00.1 -> 00
+        c     99     01100.01.1 -> 01
+        g    103     01100.11.1 -> 11
+        t    116     01110.10.0 -> 10
     */
     static uint64_t char_to_uint(char c) { return (c >> 1) & 3; }
 #endif
@@ -220,14 +225,14 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
 
     /*
         Reverse character map:
-        65    A -> T    84
-        67    C -> G    71
-        71    G -> C    67
-        84    T -> A    65
-        97    a -> t   116
-        99    c -> g   103
-    103    g -> c    99
-    116    t -> a    97
+            65    A -> T    84
+            67    C -> G    71
+            71    G -> C    67
+            84    T -> A    65
+            97    a -> t   116
+            99    c -> g   103
+           103    g -> c    99
+           116    t -> a    97
         All other chars map to zero.
     */
     static constexpr char canonicalize_basepair_reverse_map[256] = {

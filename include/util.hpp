@@ -10,11 +10,21 @@
 
 namespace sshash {
 
+enum input_file_type { fasta, cf_seg };
+
 struct streaming_query_report {
     streaming_query_report()
-        : num_kmers(0), num_positive_kmers(0), num_searches(0), num_extensions(0) {}
+        : num_kmers(0)
+        , num_positive_kmers(0)
+        , num_negative_kmers(0)
+        , num_invalid_kmers(0)
+        , num_searches(0)
+        , num_extensions(0) {}
+
     uint64_t num_kmers;
     uint64_t num_positive_kmers;
+    uint64_t num_negative_kmers;
+    uint64_t num_invalid_kmers;
     uint64_t num_searches;
     uint64_t num_extensions;
 };
@@ -25,18 +35,62 @@ struct lookup_result {
         , kmer_id_in_contig(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
         , contig_id(constants::invalid_uint64)
-        , contig_size(constants::invalid_uint64) {}
+        , contig_size(constants::invalid_uint64)
+        , minimizer_found(true) {}
+
     uint64_t kmer_id;            // "absolute" kmer-id
     uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
-    uint64_t kmer_orientation;
+    int64_t kmer_orientation;
     uint64_t contig_id;
     uint64_t contig_size;
+    bool minimizer_found;
+
+    uint64_t contig_begin(const uint64_t k) const {  //
+        return kmer_id + contig_id * (k - 1) - kmer_id_in_contig;
+    }
+
+    uint64_t contig_end(const uint64_t k) const {  //
+        return contig_begin(k) + contig_size + k - 1;
+    }
 };
+
+inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
+    os << "  == kmer_id = " << res.kmer_id << '\n';
+    os << "  == kmer_id_in_contig = " << res.kmer_id_in_contig << '\n';
+    os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
+    os << "  == contig_id = " << res.contig_id << '\n';
+    os << "  == contig_size = " << res.contig_size << '\n';
+    return os;
+}
 
 template <class kmer_t>
 struct neighbourhood {
     std::array<lookup_result, kmer_t::alphabet_size> forward;
     std::array<lookup_result, kmer_t::alphabet_size> backward;
+};
+
+struct minimizer_info {
+    minimizer_info()
+        : minimizer(constants::invalid_uint64)
+        , pos_in_seq(constants::invalid_uint64)
+        , pos_in_kmer(constants::invalid_uint64) {}
+
+    minimizer_info(uint64_t mm, uint64_t pk)
+        : minimizer(mm), pos_in_seq(constants::invalid_uint64), pos_in_kmer(pk) {}
+
+    minimizer_info(uint64_t mm, uint64_t ps, uint64_t pk)
+        : minimizer(mm), pos_in_seq(ps), pos_in_kmer(pk) {}
+
+    uint64_t minimizer;
+    uint64_t pos_in_seq;
+    uint64_t pos_in_kmer;
+
+    bool operator==(minimizer_info rhs) const {
+        return minimizer == rhs.minimizer and    //
+               pos_in_seq == rhs.pos_in_seq and  //
+               pos_in_kmer == rhs.pos_in_kmer;   //
+    }
+    bool operator!=(minimizer_info rhs) const { return !(*this == rhs); }
 };
 
 [[maybe_unused]] static bool equal_lookup_result(lookup_result expected, lookup_result got) {
@@ -75,53 +129,57 @@ struct build_configuration {
         : k(31)
         , m(17)
         , seed(constants::seed)
-        , num_threads(std::thread::hardware_concurrency())
+        , num_threads(1)
+        , ram_limit_in_GiB(constants::default_ram_limit_in_GiB)
 
         , l(constants::min_l)
-        , c(constants::c)
+        , lambda(constants::lambda)
 
-        , canonical_parsing(false)
+        , canonical(false)
         , weighted(false)
         , verbose(true)
 
-        , tmp_dirname(constants::default_tmp_dirname) {}
+        , tmp_dirname(constants::default_tmp_dirname)
+
+    {}
 
     uint64_t k;  // kmer size
     uint64_t m;  // minimizer size
     uint64_t seed;
     uint64_t num_threads;
+    uint64_t ram_limit_in_GiB;
 
-    uint64_t l;  // drive dictionary trade-off
-    double c;    // drive PTHash trade-off
+    uint64_t l;     // drive dictionary trade-off
+    double lambda;  // drive PTHash trade-off
 
-    bool canonical_parsing;
+    bool canonical;
     bool weighted;
     bool verbose;
 
     std::string tmp_dirname;
 
     void print() const {
-        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed << ", l = " << l
-                  << ", c = " << c
-                  << ", canonical_parsing = " << (canonical_parsing ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false") << std::endl;
+        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
+                  << ", num_threads = " << num_threads
+                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", l = " << l
+                  << ", lambda = " << lambda << ", canonical = " << (canonical ? "true" : "false")
+                  << ", weighted = " << (weighted ? "true" : "false")
+                  << ", verbose = " << (verbose ? "true" : "false") << std::endl;
     }
 };
 
 namespace util {
 
-static uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
+static void check_version_number(essentials::version_number const& vnum) {
+    if (vnum.x != constants::current_version_number::x) {
+        throw std::runtime_error("MAJOR index version mismatch: SSHash index needs rebuilding");
+    }
+}
+
+static inline uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
     static const uint64_t my_favourite_seed = 1234567890;
     return build_config.seed != my_favourite_seed ? my_favourite_seed : ~my_favourite_seed;
 }
-
-/* return the position of the most significant bit */
-static inline uint32_t msb(uint32_t x) {
-    assert(x > 0);
-    return 31 - __builtin_clz(x);
-}
-
-static inline uint32_t ceil_log2_uint32(uint32_t x) { return (x > 1) ? msb(x - 1) + 1 : 0; }
 
 [[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
     if (pattern.size() > str.size()) return false;
@@ -132,14 +190,14 @@ template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
     kmer_t x = 0;
-    for (int i = k - 1; i >= 0; i--) { x.append_char(kmer_t::char_to_uint(str[i])); }
+    for (int i = k - 1; i >= 0; i--) x.append_char(kmer_t::char_to_uint(str[i]));
     return x;
 }
 
 template <class kmer_t>
 static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
-    for (uint64_t i = 0; i != k; ++i) { str[i] = kmer_t::uint64_to_char(x.pop_char()); }
+    for (uint64_t i = 0; i != k; ++i) str[i] = kmer_t::uint64_to_char(x.pop_char());
 }
 
 template <class kmer_t>
@@ -152,48 +210,50 @@ template <class kmer_t>
 }
 
 template <class kmer_t>
+[[maybe_unused]] static std::string uint_minimizer_to_string(uint64_t minimizer, uint64_t m) {
+    assert(m <= kmer_t::max_m);
+    std::string str;
+    str.resize(m);
+    kmer_t x = minimizer;
+    uint_kmer_to_string(x, str.data(), m);
+    return str;
+}
+
+template <class kmer_t>
 [[maybe_unused]] static bool is_valid(char const* str, uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
-        if (!kmer_t::is_valid(str[i])) { return false; }
+        if (!kmer_t::is_valid(str[i])) return false;
     }
     return true;
+}
+
+template <class kmer_t>
+static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const uint64_t pos) {
+    static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+    kmer_t kmer = 0;
+    for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
+        if (pos + i < bv.num_bits()) kmer.append64(bv.get_word64(pos + i));
+    }
+    kmer.take(kmer_t::bits_per_char * k);
+    return kmer;
 }
 
 /*
     This implements the random minimizer.
 */
-template <class kmer_t, typename Hasher = murmurhash2_64>
-uint64_t compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m, const uint64_t seed) {
+template <class kmer_t>
+minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
+                                 hasher_type const& hasher)  //
+{
     assert(m <= kmer_t::max_m);
     assert(m <= k);
-    uint64_t min_hash = uint64_t(-1);
-    kmer_t minimizer = kmer_t(-1);
-    for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t mmer = kmer;
-        mmer.take_chars(m);
-        uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
-        if (hash < min_hash) {
-            min_hash = hash;
-            minimizer = mmer;
-        }
-        kmer.drop_char();
-    }
-    return uint64_t(minimizer);
-}
-
-/* used in dump.cpp */
-template <class kmer_t, typename Hasher = murmurhash2_64>
-std::pair<kmer_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint64_t m,
-                                                  uint64_t seed) {
-    assert(m <= kmer_t::max_m);
-    assert(m <= k);
-    uint64_t min_hash = uint64_t(-1);
+    uint64_t min_hash = constants::invalid_uint64;
     kmer_t minimizer = kmer_t(-1);
     uint64_t pos = 0;
     for (uint64_t i = 0; i != k - m + 1; ++i) {
         kmer_t mmer = kmer;
         mmer.take_chars(m);
-        uint64_t hash = Hasher::hash(uint64_t(mmer), seed);
+        uint64_t hash = hasher.hash(uint64_t(mmer));
         if (hash < min_hash) {
             min_hash = hash;
             minimizer = mmer;
@@ -201,7 +261,7 @@ std::pair<kmer_t, uint64_t> compute_minimizer_pos(kmer_t kmer, uint64_t k, uint6
         }
         kmer.drop_char();
     }
-    return {minimizer, pos};
+    return {uint64_t(minimizer), pos};
 }
 
 }  // namespace util

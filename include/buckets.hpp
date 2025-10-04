@@ -1,35 +1,26 @@
 #pragma once
 
+#include "external/pthash/external/bits/include/elias_fano.hpp"
+
 #include "util.hpp"
-#include "bit_vector_iterator.hpp"
-#include "ef_sequence.hpp"
+#include "kmer_iterator.hpp"
 
 namespace sshash {
 
 template <class kmer_t>
-struct buckets {
-    std::pair<lookup_result, uint64_t> offset_to_id(uint64_t offset, uint64_t k) const {
-        auto [pos, contig_begin, contig_end] = pieces.locate(offset);
+struct buckets  //
+{
+    lookup_result offset_to_id(const uint64_t offset, const uint64_t k) const {
+        auto p = pieces.locate(offset);
+        uint64_t contig_id = p.first.pos;
+        uint64_t contig_begin = p.first.val;
+        uint64_t contig_end = p.second.val;
 
-        /* The following two facts hold. */
-        assert(pieces.access(pos) == contig_end);
-        assert(contig_end >= offset);
-
-        bool shift = contig_end > offset;
-        assert(pos >= shift);
-        uint64_t contig_id = pos - shift;
-
-        if (contig_end == offset) {
-            assert(shift == false);
-            assert(pos + 1 < pieces.size());
-            contig_begin = contig_end;
-            contig_end = pieces.access(pos + 1);
-        }
-
-        /* Now, the following facts hold. */
+        /* The following facts hold. */
         assert(offset >= contig_id * (k - 1));
         assert(contig_begin <= offset);
         assert(offset < contig_end);
+        /****************************/
 
         uint64_t absolute_kmer_id = offset - contig_id * (k - 1);
         uint64_t relative_kmer_id = offset - contig_begin;
@@ -42,8 +33,10 @@ struct buckets {
         res.kmer_id_in_contig = relative_kmer_id;
         res.contig_id = contig_id;
         res.contig_size = contig_size;
+        assert(contig_begin == res.contig_begin(k));
+        assert(contig_end == res.contig_end(k));
 
-        return {res, contig_end};
+        return res;
     }
 
     /* Return where the contig begins and ends in strings. */
@@ -55,87 +48,130 @@ struct buckets {
         return {begin, end};
     }
 
-    kmer_t contig_prefix(uint64_t contig_id, uint64_t k) const {
+    kmer_t contig_prefix(const uint64_t contig_id, const uint64_t k) const {
         uint64_t contig_begin = pieces.access(contig_id);
-        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * contig_begin);
-        return bv_it.read(kmer_t::bits_per_char * (k - 1));
+        return util::read_kmer_at<kmer_t>(strings, k - 1, kmer_t::bits_per_char * contig_begin);
     }
 
-    kmer_t contig_suffix(uint64_t contig_id, uint64_t k) const {
+    kmer_t contig_suffix(const uint64_t contig_id, const uint64_t k) const {
         uint64_t contig_end = pieces.access(contig_id + 1);
-        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * (contig_end - k + 1));
-        return bv_it.read(kmer_t::bits_per_char * (k - 1));
+        return util::read_kmer_at<kmer_t>(strings, k - 1,
+                                          kmer_t::bits_per_char * (contig_end - k + 1));
     }
 
-    std::pair<uint64_t, uint64_t> locate_bucket(uint64_t bucket_id) const {
-        uint64_t begin = num_super_kmers_before_bucket.access(bucket_id) + bucket_id;
-        uint64_t end = num_super_kmers_before_bucket.access(bucket_id + 1) + bucket_id + 1;
+    std::pair<uint64_t, uint64_t> locate_bucket(const uint64_t bucket_id) const {
+        uint64_t begin = bucket_sizes.access(bucket_id) + bucket_id;
+        uint64_t end = bucket_sizes.access(bucket_id + 1) + bucket_id + 1;
         assert(begin < end);
         return {begin, end};
     }
 
-    lookup_result lookup(uint64_t bucket_id, kmer_t target_kmer, uint64_t k, uint64_t m) const {
-        auto [begin, end] = locate_bucket(bucket_id);
-        return lookup(begin, end, target_kmer, k, m);
-    }
+    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t kmer, minimizer_info mini_info,
+                         const uint64_t k, const uint64_t m) const  //
+    {
+        { /* check minimizer first */
+            uint64_t pos_in_seq = offsets.access(begin);
+            uint64_t read_mmer = uint64_t(
+                util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * pos_in_seq));
+            if (read_mmer != mini_info.minimizer) {
+                auto res = lookup_result();
+                res.minimizer_found = false;
+                return res;
+            }
+        }
 
-    lookup_result lookup(uint64_t begin, uint64_t end, kmer_t target_kmer, uint64_t k,
-                         uint64_t m) const {
-        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            auto res = lookup_in_super_kmer(super_kmer_id, target_kmer, k, m);
+        for (uint64_t i = begin; i != end; ++i) {
+            auto res = lookup(i, kmer, mini_info, k, m);
             if (res.kmer_id != constants::invalid_uint64) {
                 assert(is_valid(res));
                 return res;
             }
         }
+
         return lookup_result();
     }
 
-    lookup_result lookup_in_super_kmer(uint64_t super_kmer_id, kmer_t target_kmer, uint64_t k,
-                                       uint64_t m) const {
-        uint64_t offset = offsets.access(super_kmer_id);
-        auto [res, contig_end] = offset_to_id(offset, k);
-        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
-        uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
-        for (uint64_t w = 0; w != window_size; ++w) {
-            kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
-            if (read_kmer == target_kmer) {
-                res.kmer_id += w;
-                res.kmer_id_in_contig += w;
+    lookup_result lookup(uint64_t i, kmer_t kmer, minimizer_info mini_info, const uint64_t k,
+                         const uint64_t m) const  //
+    {
+        (void)m;
+        uint64_t pos_in_seq = offsets.access(i);
+        if (pos_in_seq >= mini_info.pos_in_kmer) {
+            uint64_t offset = pos_in_seq - mini_info.pos_in_kmer;
+            auto res = offset_to_id(offset, k);
+            if (offset + k - 1 < res.contig_end(k)) {
+                auto read_kmer =
+                    util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
+                if (read_kmer == kmer) {
+                    assert(is_valid(res));
+                    return res;
+                }
+            }
+        }
+        return lookup_result();
+    }
+
+    lookup_result lookup_canonical(uint64_t begin, uint64_t end, kmer_t kmer, kmer_t kmer_rc,
+                                   minimizer_info mini_info, const uint64_t k,
+                                   const uint64_t m) const  //
+    {
+        { /* check minimizer first */
+            uint64_t pos_in_seq = offsets.access(begin);
+            uint64_t read_mmer = uint64_t(
+                util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * pos_in_seq));
+            auto tmp = kmer_t(mini_info.minimizer);
+            tmp.reverse_complement_inplace(m);
+            uint64_t minimizer_rc = uint64_t(tmp);
+            if (read_mmer != mini_info.minimizer and read_mmer != minimizer_rc) {
+                auto res = lookup_result();
+                res.minimizer_found = false;
+                return res;
+            }
+        }
+
+        for (uint64_t i = begin; i != end; ++i) {
+            auto res = lookup_canonical(i, kmer, kmer_rc, mini_info, k, m);
+            if (res.kmer_id != constants::invalid_uint64) {
                 assert(is_valid(res));
                 return res;
             }
         }
+
         return lookup_result();
     }
 
-    lookup_result lookup_canonical(uint64_t bucket_id, kmer_t target_kmer, kmer_t target_kmer_rc,
-                                   uint64_t k, uint64_t m) const {
-        auto [begin, end] = locate_bucket(bucket_id);
-        return lookup_canonical(begin, end, target_kmer, target_kmer_rc, k, m);
+    lookup_result lookup_canonical(uint64_t i, kmer_t kmer, kmer_t kmer_rc,
+                                   minimizer_info mini_info, const uint64_t k,
+                                   const uint64_t m) const  //
+    {
+        const uint64_t pos_in_seq = offsets.access(i);
+        uint64_t pos_in_kmer = mini_info.pos_in_kmer;
+        auto res = check_position(pos_in_seq, pos_in_kmer, kmer, kmer_rc, k);
+        if (res.kmer_id != constants::invalid_uint64) {
+            assert(is_valid(res));
+            return res;
+        }
+        pos_in_kmer = k - m - mini_info.pos_in_kmer;
+        return check_position(pos_in_seq, pos_in_kmer, kmer, kmer_rc, k);
     }
 
-    lookup_result lookup_canonical(uint64_t begin, uint64_t end, kmer_t target_kmer,
-                                   kmer_t target_kmer_rc, uint64_t k, uint64_t m) const {
-        for (uint64_t super_kmer_id = begin; super_kmer_id != end; ++super_kmer_id) {
-            uint64_t offset = offsets.access(super_kmer_id);
-            auto [res, contig_end] = offset_to_id(offset, k);
-            bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
-            uint64_t window_size = std::min<uint64_t>(k - m + 1, contig_end - offset - k + 1);
-            for (uint64_t w = 0; w != window_size; ++w) {
-                kmer_t read_kmer = bv_it.read_and_advance_by_char(kmer_t::bits_per_char * k);
-                if (read_kmer == target_kmer) {
-                    res.kmer_id += w;
-                    res.kmer_id_in_contig += w;
-                    res.kmer_orientation = constants::forward_orientation;
+    lookup_result check_position(const uint64_t pos_in_seq, const uint64_t pos_in_kmer,  //
+                                 const kmer_t kmer, const kmer_t kmer_rc,                //
+                                 const uint64_t k) const                                 //
+    {
+        if (pos_in_seq >= pos_in_kmer) {
+            uint64_t offset = pos_in_seq - pos_in_kmer;
+            auto res = offset_to_id(offset, k);
+            if (offset + k - 1 < res.contig_end(k)) {
+                auto read_kmer =
+                    util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
+                if (read_kmer == kmer) {
                     assert(is_valid(res));
                     return res;
                 }
-                if (read_kmer == target_kmer_rc) {
-                    res.kmer_id += w;
-                    res.kmer_id_in_contig += w;
-                    res.kmer_orientation = constants::backward_orientation;
+                if (read_kmer == kmer_rc) {
                     assert(is_valid(res));
+                    res.kmer_orientation = constants::backward_orientation;
                     return res;
                 }
             }
@@ -143,7 +179,7 @@ struct buckets {
         return lookup_result();
     }
 
-    uint64_t id_to_offset(uint64_t id, uint64_t k) const {
+    uint64_t id_to_offset(const uint64_t id, const uint64_t k) const {
         constexpr uint64_t linear_scan_threshold = 8;
         uint64_t lo = 0;
         uint64_t hi = pieces.size() - 1;
@@ -169,10 +205,9 @@ struct buckets {
         return id + lo * (k - 1);
     }
 
-    void access(uint64_t kmer_id, char* string_kmer, uint64_t k) const {
+    void access(const uint64_t kmer_id, char* string_kmer, const uint64_t k) const {
         uint64_t offset = id_to_offset(kmer_id, k);
-        bit_vector_iterator<kmer_t> bv_it(strings, kmer_t::bits_per_char * offset);
-        kmer_t read_kmer = bv_it.read(kmer_t::bits_per_char * k);
+        auto read_kmer = util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
         util::uint_kmer_to_string(read_kmer, string_kmer, k);
     }
 
@@ -185,13 +220,13 @@ struct buckets {
             : m_buckets(ptr)
             , m_begin_kmer_id(begin_kmer_id)
             , m_end_kmer_id(end_kmer_id)
-            , m_k(k)  //
+            , m_k(k)
+            , m_it(ptr->strings, m_k)  //
         {
-            m_bv_it = bit_vector_iterator<kmer_t>(m_buckets->strings, -1);
             m_offset = m_buckets->id_to_offset(m_begin_kmer_id, k);
             auto [pos, piece_end] = m_buckets->pieces.next_geq(m_offset);
             if (piece_end == m_offset) pos += 1;
-            m_pieces_it = m_buckets->pieces.at(pos);
+            m_pieces_it = m_buckets->pieces.get_iterator_at(pos);
             next_piece();
             m_ret.second.resize(m_k, 0);
         }
@@ -203,25 +238,19 @@ struct buckets {
                 m_offset = m_next_offset;
                 next_piece();
             }
-
-            while (m_offset != m_next_offset - m_k + 1) {
-                m_ret.first = m_begin_kmer_id;
-                if (m_clear) {
-                    util::uint_kmer_to_string(m_read_kmer, m_ret.second.data(), m_k);
-                } else {
-                    memmove(m_ret.second.data(), m_ret.second.data() + 1, m_k - 1);
-                    m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_last_char);
-                }
-                m_clear = false;
-                m_read_kmer.drop_char();
-                m_last_char = m_bv_it.get_next_char();
-                m_read_kmer.kth_char_or(m_k - 1, m_last_char);
-                ++m_begin_kmer_id;
-                ++m_offset;
-                return m_ret;
+            m_ret.first = m_begin_kmer_id;
+            if (m_clear) {
+                util::uint_kmer_to_string(m_it.get(), m_ret.second.data(), m_k);
+                assert(kmer_t::bits_per_char * m_offset == m_it.position());
+                m_it.at(kmer_t::bits_per_char * (m_offset + m_k));
+            } else {
+                memmove(m_ret.second.data(), m_ret.second.data() + 1, m_k - 1);
+                m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_it.get_next_char());
             }
-
-            return next();
+            m_clear = false;
+            ++m_begin_kmer_id;
+            ++m_offset;
+            return m_ret;
         }
 
     private:
@@ -231,19 +260,16 @@ struct buckets {
         uint64_t m_k;
         uint64_t m_offset;
         uint64_t m_next_offset;
-        bit_vector_iterator<kmer_t> m_bv_it;
-        ef_sequence<true>::iterator m_pieces_it;
-
-        kmer_t m_read_kmer;
-        uint64_t m_last_char;
+        kmer_iterator<kmer_t> m_it;
+        bits::elias_fano<true, false>::iterator m_pieces_it;
         bool m_clear;
 
         void next_piece() {
-            m_bv_it.at(kmer_t::bits_per_char * m_offset);
-            m_next_offset = m_pieces_it.next();
+            m_it.at(kmer_t::bits_per_char * m_offset);
+            m_next_offset = m_pieces_it.value();
             assert(m_next_offset > m_offset);
-            m_read_kmer = m_bv_it.take(kmer_t::bits_per_char * m_k);
             m_clear = true;
+            m_pieces_it.next();
         }
     };
 
@@ -252,8 +278,8 @@ struct buckets {
     }
 
     uint64_t num_bits() const {
-        return pieces.num_bits() + num_super_kmers_before_bucket.num_bits() +
-               8 * (offsets.bytes() + strings.bytes());
+        return 8 * (pieces.num_bytes() + bucket_sizes.num_bytes() + offsets.num_bytes() +
+                    strings.num_bytes());
     }
 
     template <typename Visitor>
@@ -266,23 +292,24 @@ struct buckets {
         visit_impl(visitor, *this);
     }
 
-    ef_sequence<true> pieces;
-    ef_sequence<false> num_super_kmers_before_bucket;
-    pthash::compact_vector offsets;
-    pthash::bit_vector strings;
+    bits::elias_fano<true, false> pieces;
+    bits::elias_fano<false, false> bucket_sizes;
+    bits::compact_vector offsets;
+    bits::bit_vector strings;
 
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.pieces);
-        visitor.visit(t.num_super_kmers_before_bucket);
+        visitor.visit(t.bucket_sizes);
         visitor.visit(t.offsets);
         visitor.visit(t.strings);
     }
+
     bool is_valid(lookup_result res) const {
-        return (res.contig_size != constants::invalid_uint64 and
-                res.kmer_id_in_contig < res.contig_size) and
-               (res.contig_id != constants::invalid_uint64 or res.contig_id < pieces.size());
+        return res.contig_size != constants::invalid_uint64 and  //
+               res.kmer_id_in_contig < res.contig_size and       //
+               res.contig_id < pieces.size();                    //
     }
 };
 

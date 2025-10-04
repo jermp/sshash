@@ -1,5 +1,6 @@
 #include "include/util.hpp"
-#include "src/common.hpp"  // for random_kmer
+#include "tools/common.hpp"  // for random_kmer
+
 #include <cctype>
 
 using namespace sshash;
@@ -53,23 +54,23 @@ int main(int argc, char** argv) {
     /****/
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
-    expect(kmer_t::char_to_uint('A'), 0);
-    expect(kmer_t::char_to_uint('a'), 0);
-    expect(kmer_t::char_to_uint('C'), 1);
-    expect(kmer_t::char_to_uint('c'), 1);
-    expect(kmer_t::char_to_uint('G'), 2);
-    expect(kmer_t::char_to_uint('g'), 2);
-    expect(kmer_t::char_to_uint('T'), 3);
-    expect(kmer_t::char_to_uint('t'), 3);
+    expect(kmer_t::char_to_uint('A'), uint64_t(0));
+    expect(kmer_t::char_to_uint('a'), uint64_t(0));
+    expect(kmer_t::char_to_uint('C'), uint64_t(1));
+    expect(kmer_t::char_to_uint('c'), uint64_t(1));
+    expect(kmer_t::char_to_uint('G'), uint64_t(2));
+    expect(kmer_t::char_to_uint('g'), uint64_t(2));
+    expect(kmer_t::char_to_uint('T'), uint64_t(3));
+    expect(kmer_t::char_to_uint('t'), uint64_t(3));
 #else
-    expect(kmer_t::char_to_uint('A'), 0);
-    expect(kmer_t::char_to_uint('a'), 0);
-    expect(kmer_t::char_to_uint('C'), 1);
-    expect(kmer_t::char_to_uint('c'), 1);
-    expect(kmer_t::char_to_uint('T'), 2);
-    expect(kmer_t::char_to_uint('t'), 2);
-    expect(kmer_t::char_to_uint('G'), 3);
-    expect(kmer_t::char_to_uint('g'), 3);
+    expect(kmer_t::char_to_uint('A'), uint64_t(0));
+    expect(kmer_t::char_to_uint('a'), uint64_t(0));
+    expect(kmer_t::char_to_uint('C'), uint64_t(1));
+    expect(kmer_t::char_to_uint('c'), uint64_t(1));
+    expect(kmer_t::char_to_uint('T'), uint64_t(2));
+    expect(kmer_t::char_to_uint('t'), uint64_t(2));
+    expect(kmer_t::char_to_uint('G'), uint64_t(3));
+    expect(kmer_t::char_to_uint('g'), uint64_t(3));
 #endif
 
     for (uint64_t kmer_len = 1; kmer_len <= k; ++kmer_len) {

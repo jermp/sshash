@@ -1,10 +1,9 @@
 #pragma once
 
 #include "external/pthash/include/pthash.hpp"
-#include "external/pthash/external/cmd_line_parser/include/parser.hpp"
-#include "external/pthash/external/essentials/include/essentials.hpp"
-#include "include/gz/zip_stream.hpp"
-#include "include/gz/zip_stream.cpp"
+#include "external/pthash/external/bits/external/essentials/include/essentials.hpp"
+#include "external/gz/zip_stream.hpp"
+#include "external/gz/zip_stream.cpp"
 #include "include/builder/util.hpp"
 
 #include "node.hpp"
@@ -159,7 +158,8 @@ private:
 
     std::string read_line() {
         uint8_t const* begin = m_begin;
-        while (m_begin != m_end and *m_begin++ != '\n');
+        while (m_begin != m_end and *m_begin++ != '\n')
+            ;
         if (begin == m_begin) return std::string("");
         return std::string(reinterpret_cast<const char*>(begin), m_begin - begin - 1);
     }
@@ -199,8 +199,8 @@ void reverse_header(std::string const& input, std::string& output, uint64_t k) {
 
 template <typename kmer_t>
 void permute_and_write(std::istream& is, std::string const& output_filename,
-                       std::string const& tmp_dirname, pthash::compact_vector const& permutation,
-                       pthash::bit_vector const& signs, uint64_t k) {
+                       std::string const& tmp_dirname, bits::compact_vector const& permutation,
+                       bits::bit_vector const& signs, uint64_t k) {
     constexpr uint64_t limit = 1 * essentials::GB;
     std::vector<std::pair<std::string, std::string>> buffer;  // (header, dna)
 
@@ -250,7 +250,7 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
         std::getline(is, header_sequence);
         std::getline(is, dna_sequence);
 
-        if (!signs[i]) {
+        if (!signs.get(i)) {
             /* compute reverse complement of dna_sequence
                and reverse the weights in header_sequence */
             dna_sequence_rc.resize(dna_sequence.size());
@@ -354,8 +354,8 @@ void permute_and_write(std::istream& is, std::string const& output_filename,
 
 template <typename kmer_t>
 void permute_and_write(std::string const& input_filename, std::string const& output_filename,
-                       std::string const& tmp_dirname, pthash::compact_vector const& permutation,
-                       pthash::bit_vector const& signs, uint64_t k) {
+                       std::string const& tmp_dirname, bits::compact_vector const& permutation,
+                       bits::bit_vector const& signs, uint64_t k) {
     std::ifstream is(input_filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + input_filename + "'");
     std::cout << "reading file '" << input_filename << "'..." << std::endl;

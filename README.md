@@ -1,11 +1,17 @@
+[![Build](https://github.com/jermp/sshash/actions/workflows/build.yml/badge.svg)](https://github.com/jermp/sshash/actions/workflows/build.yml)
 [![CodeQL](https://github.com/jermp/sshash/actions/workflows/codeql.yml/badge.svg)](https://github.com/jermp/sshash/actions/workflows/codeql.yml)
+[![Anaconda-Server Badge](https://anaconda.org/bioconda/sshash/badges/platforms.svg)](https://anaconda.org/bioconda/sshash)
+[![install with bioconda](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=flat)](http://bioconda.github.io/recipes/sshash/README.html)
+
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7772316.svg)](https://doi.org/10.5281/zenodo.7772316)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7239205.svg)](https://doi.org/10.5281/zenodo.7239205)
 
-SSHash
-======
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="img/sshash_on_dark.png">
+  <img src="img/sshash.png" width="350" alt="Logo">
+</picture>
 
-This is a compressed dictionary data structure for k-mers
+**SSHash** is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
 The data structure is described in the following papers:
@@ -44,8 +50,8 @@ If you are interested in a **membership-only** version of SSHash, have a look at
 * [Tools and Usage](#tools-and-usage)
 * [Examples](#Examples)
 * [Input Files](#input-files)
+* [Create a New Release](#create-a-new-release)
 * [Benchmarks](#benchmarks)
-* [Author](#author)
 * [References](#references)
 
 Compiling the Code
@@ -145,7 +151,6 @@ Run `./sshash` as follows to see a list of available tools.
       query                  query a dictionary
       check                  check correctness of a dictionary
       bench                  run performance tests for a dictionary
-      dump                   write super-k-mers of a dictionary to a fasta file
       permute                permute a weighted input file
       compute-statistics     compute index statistics
 
@@ -206,9 +211,9 @@ if your queries are to be read from a (multi-line) FASTA file.
 
 ### Example 3
 
-    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 13 -l 4 -s 347692 --canonical-parsing -o salmonella_100.canon.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 13 -l 4 -s 347692 --canonical -o salmonella_100.canon.index
 
-This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, l = 4, using a seed 347692 for construction (`-s 347692`), and with the canonical parsing modality (option `--canonical-parsing`). The dictionary is serialized on disk to the file `salmonella_100.canon.index`.
+This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, l = 4, using a seed 347692 for construction (`-s 347692`), and with the canonical parsing modality (option `--canonical`). The dictionary is serialized on disk to the file `salmonella_100.canon.index`.
 
 The "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
 
@@ -221,14 +226,14 @@ and the one just built (Example 3, canonical).
 
 Both queries should originate the following report (reported here for reference):
 
-	==== query report:
-	num_kmers = 460000
-	num_positive_kmers = 46 (0.01%)
-	num_searches = 42/46 (91.3043%)
-	num_extensions = 4/46 (8.69565%)
+    ==== query report:
+    num_kmers = 460000
+    num_positive_kmers = 46 (0.01%)
+    num_searches = 42/46 (91.3043%)
+    num_extensions = 4/46 (8.69565%)
 
 The canonical dictionary can be twice as fast as the regular dictionary
-for low-hit workloads, even on this tiny example, for only +0.4 bits/k-mer.
+for low-hit workloads, even on this tiny example, for only +0.3 bits/k-mer.
 
 ### Example 4
 
@@ -285,93 +290,32 @@ For the experiments in [2] and [3], we used the datasets available on [Zenodo](h
 #### Weights
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
 
+Create a New Release
+--------------------
+
+It is recommended to create a new release with the script `script/create_release.sh` which
+**also includes the source code for the dependencies** in `external`
+(this is not done by GitHub).
+
+To create a new release, run the following command *from the parent directory*:
+
+    bash script/create_release.sh --format zip [RELEASE-NAME]
+
+for example
+
+    bash script/create_release.sh --format zip v4.0.0.tar.gz
+
+**Note 1**: The sha256 hash code printed at the end is needed for distribution via Bioconda.
+
+**Note 2**: Avoid dashes in the name of the release because Bioconda does not like them.
+
 Benchmarks
 ----------
 
-For some example benchmarks, see the folder `/benchmarks`.
-
-Some more large-scale benchmarks below.
-
-*Pinus Taeda* ("pine", [GCA_000404065.3](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/000/404/065/GCA_000404065.3_Ptaeda2.0/GCA_000404065.3_Ptaeda2.0_genomic.fna.gz)) and *Ambystoma Mexicanum* ("axolotl", [GCA_002915635.2](https://ftp.ncbi.nlm.nih.gov/genomes/all/GCA/002/915/635/GCA_002915635.3_AmbMex60DD/GCA_002915635.3_AmbMex60DD_genomic.fna.gz))
-are some of the largest genome assemblies, respectively counting
-10,508,232,575 and 17,987,935,180 distinct k-mers for k = 31.
-
-After running BCALM2 and UST, we build the indexes as follows.
-
-    ./sshash build -i ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz -k 31 -m 20 -l 6 -c 7 -o pinus.m20.index
-    ./sshash build -i ~/DNA_datasets.larger/GCA_000404065.3_Ptaeda2.0_genomic.ust_k31.fa.gz -k 31 -m 19 -l 6 -c 7 --canonical-parsing -o pinus.m19.canon.index
-    ./sshash build -i ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz -k 31 -m 21 -l 6 -c 7 -o axolotl.m21.index
-    ./sshash build -i ~/DNA_datasets.larger/GCA_002915635.3_AmbMex60DD_genomic.ust_k31.fa.gz -k 31 -m 20 -l 6 -c 7 --canonical-parsing -o axolotl.m20.canon.index
-
-The following table summarizes the space of the dictionaries.
-
-| Dictionary        |Pine       || Axolotl  ||
-|:------------------|:---:|:----:|:---:|:---:|
-|                   | GB     | bits/k-mer  | GB    | bits/k-mer |
-| SSHash, regular   | 13.21  | 10.06       | 22.28 | 9.91       |
-| SSHash, canonical | 14.94  | 11.37       | 25.03 | 11.13      |
-
-
-
-To query the dictionaries, we use [SRR17023415](https://www.ebi.ac.uk/ena/browser/view/SRR17023415) fastq reads
-(23,891,117 reads, each of 150 bases) for the pine,
-and [GSM5747680](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM5747680) multi-line fasta (15,548,160 lines) for the axolotl.
-
-Timings have been collected on an Intel Xeon Platinum 8276L CPU @ 2.20GHz,
-using a single thread.
-
-| Dictionary        |Pine       || Axolotl  ||
-|:------------------|:---:|:----:|:---:|:---:|
-|                   |(>75% hits)||(>86% hits)|
-|                   | tot (min) | avg (ns/k-mer) | tot (min) | avg (ns/k-mer) |
-| SSHash, regular   | 19.2      | 400            | 4.2       | 269            |
-| SSHash, canonical | 14.8      | 310            | 3.2       | 208            |
-
-Below the complete query reports.
-
-    ./sshash query -i pinus.m20.index -q ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
-    ==== query report:
-    num_kmers = 2866934040
-    num_valid_kmers = 2866783488 (99.9947% of kmers)
-    num_positive_kmers = 2151937575 (75.0645% of valid kmers)
-    num_searches = 418897117/2151937575 (19.466%)
-    num_extensions = 1733040458/2151937575 (80.534%)
-    elapsed = 1146.58 sec / 19.1097 min / 399.933 ns/kmer
-
-    ./sshash query -i pinus.m19.canon.index -q ~/DNA_datasets.larger/queries/SRR17023415_1.fastq.gz
-    ==== query report:
-    num_kmers = 2866934040
-    num_valid_kmers = 2866783488 (99.9947% of kmers)
-    num_positive_kmers = 2151937575 (75.0645% of valid kmers)
-    num_searches = 359426304/2151937575 (16.7025%)
-    num_extensions = 1792511271/2151937575 (83.2975%)
-    elapsed = 889.779 sec / 14.8297 min / 310.359 ns/kmer
-
-    ./sshash query -i axolotl.m21.index -q ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
-    ==== query report:
-    num_kmers = 931366757
-    num_valid_kmers = 748445346 (80.3599% of kmers)
-    num_positive_kmers = 650467884 (86.9092% of valid kmers)
-    num_searches = 124008258/650467884 (19.0645%)
-    num_extensions = 526459626/650467884 (80.9355%)
-    elapsed = 250.173 sec / 4.16955 min / 268.608 ns/kmer
-
-    ./sshash query -i axolotl.m20.canon.index -q ~/DNA_datasets.larger/queries/Axolotl.Trinity.CellReports2017.fasta.gz --multiline
-    ==== query report:
-    num_kmers = 931366757
-    num_valid_kmers = 748445346 (80.3599% of kmers)
-    num_positive_kmers = 650467884 (86.9092% of valid kmers)
-    num_searches = 106220473/650467884 (16.3299%)
-    num_extensions = 544247411/650467884 (83.6701%)
-    elapsed = 193.871 sec / 3.23119 min / 208.158 ns/kmer
-
-Author
-------
-
-[Giulio Ermanno Pibiri](https://jermp.github.io) - <giulioermanno.pibiri@unive.it>
+The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
 
 References
------
+----------
 * [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
 * [2] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
 * [3] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
