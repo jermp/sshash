@@ -1,54 +1,39 @@
 #pragma once
 
 #include "external/pthash/external/bits/include/endpoints_sequence.hpp"
+#include "endpoints.hpp"
 
 #include "util.hpp"
 #include "kmer_iterator.hpp"
-#include "endpoints.hpp"
 
 namespace sshash {
 
 template <class kmer_t>
 struct buckets  //
 {
-    lookup_result offset_to_id(uint64_t encoded_offset, uint64_t pos_in_kmer,
-                               const uint64_t k) const {
+    lookup_result offset_to_id(endpoints::decoded_offset p, uint64_t pos_in_kmer,
+                               const uint64_t k) const  //
+    {
         // auto p = strings_endpoints.locate(offset);
-
         // uint64_t contig_id = p.first.pos;
         // uint64_t contig_begin = p.first.val;
         // uint64_t contig_end = p.second.val;
 
-        // uint64_t contig_id = p.string_id;
-        // uint64_t contig_begin = p.string_begin;
-        // uint64_t contig_end = p.string_end;
+        /****/
+        // auto [offset, p] = strings_endpoints.decode(encoded_offset);
 
-        // struct string_group_info {
-        //     uint32_t strings_length;  // all strings in the group have the same length
-        //     uint32_t first_id;        // absolute id of the first string in the group
-        //     uint64_t group_offset;    // absolute offset where this group of strings begins
-        // };
-        // locate_result locate(const uint64_t kmer_offset) const {
-        //     auto p = strings_endpoints.locate(kmer_offset);
-        //     uint64_t i = p.first.pos;
-        //     uint64_t string_group_begin = p.first.val;
-        //     assert(i < strings_groups_info.size());
-        //     auto q = strings_groups_info[i];
-        //     uint64_t string_id_relative_to_group = (kmer_offset - string_group_begin) /
-        //     q.string_length; uint64_t string_id = q.string_id + string_id_relative_to_group;
-        //     uint64_t string_begin = string_group_begin + string_id_relative_to_group *
-        //     q.string_length; uint64_t string_end = string_begin + q.string_length; return
-        //     {string_id, string_begin, string_end};
-        // }
-        auto [offset, p] = strings_endpoints.decode(encoded_offset);
-
-        if (offset < pos_in_kmer or (offset - pos_in_kmer) < p.group_offset) return lookup_result();
-
+        uint64_t offset = p.offset;
+        if (offset < pos_in_kmer or (offset - pos_in_kmer) < p.group_info.group_offset) {
+            return lookup_result();
+        }
         offset -= pos_in_kmer;
-        uint64_t string_id_relative_to_group = (offset - p.group_offset) / p.strings_length;
-        uint64_t contig_id = p.first_id + string_id_relative_to_group;
-        uint64_t contig_begin = p.group_offset + string_id_relative_to_group * p.strings_length;
-        uint64_t contig_end = contig_begin + p.strings_length;
+        uint64_t string_id_relative_to_group =
+            (offset - p.group_info.group_offset) / p.group_info.strings_length;
+        uint64_t contig_id = p.group_info.first_id + string_id_relative_to_group;
+        uint64_t contig_begin =
+            p.group_info.group_offset + string_id_relative_to_group * p.group_info.strings_length;
+        uint64_t contig_end = contig_begin + p.group_info.strings_length;
+        /****/
 
         /* The following facts hold. */
         assert(offset >= contig_id * (k - 1));
@@ -97,31 +82,34 @@ struct buckets  //
     lookup_result lookup(uint64_t begin, uint64_t end, kmer_t kmer, minimizer_info mini_info,
                          const uint64_t k, const uint64_t m) const  //
     {
-        { /* check minimizer first */
-            uint64_t offset = offsets2.access(begin);
-            auto p = strings_endpoints.decode(offset);
-            uint64_t bit_offset = kmer_t::bits_per_char * p.first;
-            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(strings, m, bit_offset));
-            if (read_mmer != mini_info.minimizer) return lookup_result(false);
+        /* check minimizer first */
+        uint64_t offset = offsets2.access(begin);
+        endpoints::decoded_offset p = strings_endpoints.decode(offset);
+        uint64_t read_mmer =
+            uint64_t(util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * p.offset));
+        if (read_mmer != mini_info.minimizer) return lookup_result(false);
+
+        auto res = lookup_at_offset_no_check_minimizer(p, kmer, mini_info, k);
+        if (res.kmer_id != constants::invalid_uint64) return res;
+
+        for (uint64_t i = begin + 1; i < end; ++i) {
+            offset = offsets2.access(i);
+            p = strings_endpoints.decode(offset);
+            res = lookup_at_offset_no_check_minimizer(p, kmer, mini_info, k);
+            if (res.kmer_id != constants::invalid_uint64) return res;
         }
-        for (uint64_t i = begin; i != end; ++i) {
-            uint64_t offset = offsets2.access(i);
-            auto res = lookup_at_offset_no_check_minimizer(offset, kmer, mini_info, k);
-            if (res.kmer_id != constants::invalid_uint64) {
-                // assert(is_valid(res));
-                return res;
-            }
-        }
+
         return lookup_result();
     }
 
-    lookup_result lookup_at_offset_no_check_minimizer(uint64_t offset, kmer_t kmer,
+    lookup_result lookup_at_offset_no_check_minimizer(endpoints::decoded_offset p, kmer_t kmer,
                                                       minimizer_info mini_info,
                                                       const uint64_t k) const  //
     {
-        auto res = offset_to_id(offset, mini_info.pos_in_kmer, k);
+        // auto res = offset_to_id(offset, mini_info.pos_in_kmer, k);
+        auto res = offset_to_id(p, mini_info.pos_in_kmer, k);
         if (res.kmer_id != constants::invalid_uint64) {
-            offset = res.kmer_offset(k);
+            uint64_t offset = res.kmer_offset(k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =
                     util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
@@ -131,48 +119,56 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_at_offset(uint64_t offset, kmer_t kmer, minimizer_info mini_info,
-                                   const uint64_t k, const uint64_t m) const  //
+    lookup_result lookup_at_offset(const uint64_t encoded_offset,   //
+                                   const kmer_t kmer,               //
+                                   const minimizer_info mini_info,  //
+                                   const uint64_t k,                //
+                                   const uint64_t m) const          //
     {
-        { /* check minimizer first */
-            auto p = strings_endpoints.decode(offset);
-            uint64_t bit_offset = kmer_t::bits_per_char * p.first;
-            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(strings, m, bit_offset));
-            if (read_mmer != mini_info.minimizer) return lookup_result(false);
-        }
-        return lookup_at_offset_no_check_minimizer(offset, kmer, mini_info, k);
+        /* check minimizer first */
+        endpoints::decoded_offset p = strings_endpoints.decode(encoded_offset);
+        uint64_t read_mmer =
+            uint64_t(util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * p.offset));
+        if (read_mmer != mini_info.minimizer) return lookup_result(false);
+        return lookup_at_offset_no_check_minimizer(p, kmer, mini_info, k);
     }
 
     lookup_result lookup_canonical(uint64_t begin, uint64_t end, kmer_t kmer, kmer_t kmer_rc,
                                    minimizer_info mini_info, const uint64_t k,
                                    const uint64_t m) const  //
     {
-        { /* check minimizer first */
-            uint64_t offset = offsets2.access(begin);
-            auto p = strings_endpoints.decode(offset);
-            uint64_t bit_offset = kmer_t::bits_per_char * p.first;
-            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(strings, m, bit_offset));
+        /* check minimizer first */
+        uint64_t offset = offsets2.access(begin);
+        endpoints::decoded_offset p = strings_endpoints.decode(offset);
+        uint64_t read_mmer =
+            uint64_t(util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * p.offset));
+        uint64_t minimizer_rc = 0;
+        {
             auto tmp = kmer_t(mini_info.minimizer);
             tmp.reverse_complement_inplace(m);
-            uint64_t minimizer_rc = uint64_t(tmp);
-            if (read_mmer != mini_info.minimizer and read_mmer != minimizer_rc) {
-                return lookup_result(false);
-            }
+            minimizer_rc = uint64_t(tmp);
         }
-        for (uint64_t i = begin; i != end; ++i) {
-            uint64_t offset = offsets2.access(i);
-            auto res = lookup_canonical_at_offset_no_check_minimizer(  //
-                offset, kmer, kmer_rc, mini_info, k, m                 //
+        if (read_mmer != mini_info.minimizer and read_mmer != minimizer_rc) {
+            return lookup_result(false);
+        }
+
+        auto res = lookup_canonical_at_offset_no_check_minimizer(  //
+            p, kmer, kmer_rc, mini_info, k, m                      //
+        );
+        if (res.kmer_id != constants::invalid_uint64) return res;
+
+        for (uint64_t i = begin + 1; i < end; ++i) {
+            offset = offsets2.access(i);
+            p = strings_endpoints.decode(offset);
+            res = lookup_canonical_at_offset_no_check_minimizer(  //
+                p, kmer, kmer_rc, mini_info, k, m                 //
             );
-            if (res.kmer_id != constants::invalid_uint64) {
-                // assert(is_valid(res));
-                return res;
-            }
+            if (res.kmer_id != constants::invalid_uint64) return res;
         }
         return lookup_result();
     }
 
-    lookup_result lookup_canonical_at_offset_no_check_minimizer(const uint64_t offset,  //
+    lookup_result lookup_canonical_at_offset_no_check_minimizer(endpoints::decoded_offset p,  //
                                                                 const kmer_t kmer,
                                                                 const kmer_t kmer_rc,            //
                                                                 const minimizer_info mini_info,  //
@@ -180,54 +176,47 @@ struct buckets  //
                                                                 const uint64_t m) const  //
     {
         uint64_t pos_in_kmer = mini_info.pos_in_kmer;
-        auto res = check_offset(offset, pos_in_kmer, kmer, kmer_rc, k);
-        if (res.kmer_id != constants::invalid_uint64) {
-            // assert(is_valid(res));
-            return res;
-        }
+        auto res = check_offset(p, pos_in_kmer, kmer, kmer_rc, k);
+        if (res.kmer_id != constants::invalid_uint64) return res;
         pos_in_kmer = k - m - mini_info.pos_in_kmer;
-        return check_offset(offset, pos_in_kmer, kmer, kmer_rc, k);
+        return check_offset(p, pos_in_kmer, kmer, kmer_rc, k);
     }
 
-    lookup_result lookup_canonical_at_offset(const uint64_t offset,  //
-                                             const kmer_t kmer,
+    lookup_result lookup_canonical_at_offset(const uint64_t encoded_offset,   //
+                                             const kmer_t kmer,               //
                                              const kmer_t kmer_rc,            //
                                              const minimizer_info mini_info,  //
-                                             const uint64_t k,
-                                             const uint64_t m) const  //
+                                             const uint64_t k,                //
+                                             const uint64_t m) const          //
     {
-        { /* check minimizer first */
-            auto p = strings_endpoints.decode(offset);
-            uint64_t bit_offset = kmer_t::bits_per_char * p.first;
-            uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(strings, m, bit_offset));
+        /* check minimizer first */
+        endpoints::decoded_offset p = strings_endpoints.decode(encoded_offset);
+        uint64_t read_mmer =
+            uint64_t(util::read_kmer_at<kmer_t>(strings, m, kmer_t::bits_per_char * p.offset));
+        uint64_t minimizer_rc = 0;
+        {
             auto tmp = kmer_t(mini_info.minimizer);
             tmp.reverse_complement_inplace(m);
-            uint64_t minimizer_rc = uint64_t(tmp);
-            if (read_mmer != mini_info.minimizer and read_mmer != minimizer_rc) {
-                return lookup_result(false);
-            }
+            minimizer_rc = uint64_t(tmp);
         }
-        return lookup_canonical_at_offset_no_check_minimizer(  //
-            offset, kmer, kmer_rc, mini_info, k, m             //
-        );
+        if (read_mmer != mini_info.minimizer and read_mmer != minimizer_rc) {
+            return lookup_result(false);
+        }
+        return lookup_canonical_at_offset_no_check_minimizer(p, kmer, kmer_rc, mini_info, k, m);
     }
 
-    lookup_result check_offset(uint64_t offset, const uint64_t pos_in_kmer,  //
-                               const kmer_t kmer, const kmer_t kmer_rc,      //
-                               const uint64_t k) const                       //
+    lookup_result check_offset(endpoints::decoded_offset p, const uint64_t pos_in_kmer,  //
+                               const kmer_t kmer, const kmer_t kmer_rc,                  //
+                               const uint64_t k) const                                   //
     {
-        auto res = offset_to_id(offset, pos_in_kmer, k);
+        auto res = offset_to_id(p, pos_in_kmer, k);
         if (res.kmer_id != constants::invalid_uint64) {
-            offset = res.kmer_offset(k);
+            uint64_t offset = res.kmer_offset(k);
             if (offset + k - 1 < res.contig_end(k)) {
                 auto read_kmer =
                     util::read_kmer_at<kmer_t>(strings, k, kmer_t::bits_per_char * offset);
-                if (read_kmer == kmer) {
-                    // assert(is_valid(res));
-                    return res;
-                }
+                if (read_kmer == kmer) return res;
                 if (read_kmer == kmer_rc) {
-                    // assert(is_valid(res));
                     res.kmer_orientation = constants::backward_orientation;
                     return res;
                 }
@@ -353,7 +342,6 @@ struct buckets  //
     }
 
     // bits::endpoints_sequence<> strings_endpoints;
-    // endpoints2 strings_endpoints;
     endpoints strings_endpoints;
 
     std::vector<uint32_t> start_lists_of_size;

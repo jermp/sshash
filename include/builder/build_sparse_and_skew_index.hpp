@@ -11,34 +11,15 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                                                build_configuration const& build_config)  //
 {
     const uint64_t num_kmers = data.num_kmers;
-    // const uint64_t num_sequences = data.num_sequences;
     const uint64_t num_minimizer_positions = data.minimizers.num_minimizer_positions();
     const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
     const uint64_t num_minimizers = data.minimizers.num_minimizers();
     const uint64_t num_threads = build_config.num_threads;
 
-    endpoints::builder endpoints_builder;
-    uint64_t num_bits_per_offset = endpoints_builder.build_from(data.strings_endpoints);
-    endpoints_builder.build(m_buckets.strings_endpoints);
+    uint64_t num_bits_per_offset = data.endpoints_builder.num_bits_per_offset();
+    data.endpoints_builder.build(m_buckets.strings_endpoints);
 
     std::cout << "num_bits_per_offset = " << num_bits_per_offset << std::endl;
-
-    {
-        // print
-        auto const& data = m_buckets.strings_endpoints.data();
-        for (uint64_t i = 0; i != data.size(); ++i) {
-            std::cout << "super_group " << i << ":\n\t";
-            for (uint64_t j = 0; j != data[i].size(); ++j) {
-                auto sg_info = data[i][j];
-                std::cout << "(" << sg_info.strings_length << "," << sg_info.first_id << ","
-                          << sg_info.group_offset << ")" << ' ';
-            }
-            std::cout << std::endl;
-            std::cout << "num_bits_per_group = "
-                      << m_buckets.strings_endpoints.num_bits_per_group(data[i].size())
-                      << std::endl;
-        }
-    }
 
     if (!build_config.sorted) {
         num_bits_per_offset = std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char));
@@ -298,11 +279,6 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
     std::cout << "computing minimizers offsets: " << timer.elapsed() / 1000000 << " [sec]"
               << std::endl;
 
-    // for (uint64_t i = 0; i != m_buckets.start_lists_of_size.size(); ++i) {
-    //     std::cout << "start of lists of size " << i << ": " << m_buckets.start_lists_of_size[i]
-    //               << std::endl;
-    // }
-
     timer.reset();
 
     if (num_buckets_in_skew_index == 0) return buckets_stats;
@@ -458,7 +434,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
 
                 if (build_config.sorted) {  // decode offset
                     auto p = m_buckets.strings_endpoints.decode(mt.pos_in_seq);
-                    mt.pos_in_seq = p.first;  // absolute offset
+                    mt.pos_in_seq = p.offset;  // absolute offset
                 }
 
                 const uint64_t starting_pos_of_super_kmer = mt.pos_in_seq - mt.pos_in_kmer;
