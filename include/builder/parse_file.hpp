@@ -65,7 +65,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
         data.strings_endpoints.reserve(num_sequences);
 
         if (build_config.sorted) {
-            super_group_id.reserve(1ULL << 5);
+            super_group_id.reserve(1ULL << 7);
             string_groups_info.reserve(1ULL << 16);
         }
     }
