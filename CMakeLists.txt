@@ -8,9 +8,9 @@ endif ()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-if (UNIX AND (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+if (UNIX AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2 -mavx2")
-  if (SSHASH_USE_ARCH_NATIVE)
+  if (SSHASH_USE_ARCH_NATIVE AND NOT CMAKE_CROSSCOMPILING)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
   endif()
 endif()
@@ -51,7 +51,7 @@ endif()
 MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 MESSAGE(STATUS "Conda build: ${CONDA_BUILD}")
 MESSAGE(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
-MESSAGE(STATUS "Compiling for processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "Compiling for processor: ${CMAKE_SYSTEM_PROCESSOR}")
 MESSAGE(STATUS "Compiling with flags:${CMAKE_CXX_FLAGS}")
 
 include_directories(.) # all include paths relative to parent directory
