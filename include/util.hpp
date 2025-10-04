@@ -171,7 +171,10 @@ struct build_configuration {
 namespace util {
 
 static inline void check_version_number(essentials::version_number const& vnum) {
-    if (vnum.major_version == 0 and vnum.minor_version == 0 and vnum.patch_version == 0) {
+    if (vnum.x != constants::current_version_number::x) {
+        throw std::runtime_error("MAJOR index version mismatch: SSHash index needs rebuilding");
+    }
+}
 
 static inline uint64_t get_seed_for_hash_function(build_configuration const& build_config) {
     static const uint64_t my_favourite_seed = 1234567890;
