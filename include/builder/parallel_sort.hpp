@@ -55,17 +55,18 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                   //
     working memory, which must be of same size as data.
 */
 template <typename T, typename Compare>
-void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare comp)  //
+void parallel_sort(std::vector<T>& data, uint64_t num_threads, Compare comp)  //
 {
     std::vector<T> temp_data;
     temp_data.resize(data.size());
 
+    const uint64_t data_size = data.size();
+    num_threads = std::min(num_threads, data_size);
     if (num_threads <= 1) {
         std::sort(data.begin(), data.end(), comp);
         return;
     }
 
-    const uint64_t data_size = data.size();
     const uint64_t chunk_size = (data_size + num_threads - 1) / num_threads;
     const uint64_t sequential_merge_threshold = data_size / uint64_t(std::log2(num_threads));
     assert(sequential_merge_threshold > 0);
@@ -93,30 +94,29 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
     while (ranges.size() != 1)  //
     {
         next_ranges.clear();
-        for (uint64_t i = 0; i != ranges.size(); i += 2) {
-            if (i + 1 < ranges.size()) {
-                auto [begin1, end1] = ranges[i];
-                auto [begin2, end2] = ranges[i + 1];
-                uint64_t output_size = (end1 - begin1) + (end2 - begin2);
+        for (uint64_t i = 0; i < ranges.size(); i += 2) {
+            auto [begin1, end1] = ranges[i];
 
-                auto input = data.begin();
-                auto output = temp_data.begin();
-                if (swap) std::swap(input, output);
-                uint64_t offset = std::distance(input, begin1);
-                auto output_iterator = output + offset;
-                assert(offset <= data_size);
+            auto input = data.begin();
+            auto output = temp_data.begin();
+            if (swap) std::swap(input, output);
+            uint64_t offset = std::distance(input, begin1);
+            auto output_iterator = output + offset;
+            assert(offset <= data_size);
+            uint64_t output_size = end1 - begin1;
+            if (i + 1 < ranges.size()) {
+                auto [begin2, end2] = ranges[i + 1];
+                output_size += end2 - begin2;
 
                 parallel_merge(begin1, end1, begin2, end2, output_iterator, comp,
                                sequential_merge_threshold);
                 assert(std::is_sorted(output_iterator, output_iterator + output_size, comp));
-
-                auto merged_begin = output_iterator;
-                auto merged_end = merged_begin + output_size;
-                next_ranges.push_back({merged_begin, merged_end});
             } else {
-                // Odd range out: carry it forward to the next iteration
-                next_ranges.push_back(ranges[i]);
+                std::move(begin1, end1, output_iterator);
             }
+            auto merged_begin = output_iterator;
+            auto merged_end = merged_begin + output_size;
+            next_ranges.push_back({merged_begin, merged_end});
         }
         ranges.swap(next_ranges);
         swap = !swap;
