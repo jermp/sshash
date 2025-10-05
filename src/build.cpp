@@ -28,9 +28,6 @@ void dictionary<kmer_t>::build(std::string const& filename,
     if (build_config.l >= constants::max_l) {
         throw std::runtime_error("l must be < " + std::to_string(constants::max_l));
     }
-    if ((build_config.num_threads & (build_config.num_threads - 1)) != 0) {
-        throw std::runtime_error("number of threads must be a power of 2");
-    }
 
     m_k = build_config.k;
     m_m = build_config.m;

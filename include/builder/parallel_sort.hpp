@@ -65,7 +65,6 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
         return;
     }
 
-    assert((num_threads & (num_threads - 1)) == 0);
     const uint64_t data_size = data.size();
     const uint64_t chunk_size = (data_size + num_threads - 1) / num_threads;
     const uint64_t sequential_merge_threshold = data_size / uint64_t(std::log2(num_threads));
@@ -114,6 +113,9 @@ void parallel_sort(std::vector<T>& data, const uint64_t num_threads, Compare com
                 auto merged_begin = output_iterator;
                 auto merged_end = merged_begin + output_size;
                 next_ranges.push_back({merged_begin, merged_end});
+            } else {
+                // Odd range out: carry it forward to the next iteration
+                next_ranges.push_back(ranges[i]);
             }
         }
         ranges.swap(next_ranges);
