@@ -75,12 +75,13 @@ void parallel_sort(std::vector<T>& data, uint64_t num_threads, Compare comp)  //
     threads.reserve(num_threads);
 
     using iterator_t = typename std::vector<T>::iterator;
-    std::vector<std::pair<iterator_t, iterator_t>> ranges(num_threads);
+    std::vector<std::pair<iterator_t, iterator_t>> ranges;
+    ranges.reserve(num_threads);
 
-    for (uint64_t i = 0; i != num_threads; ++i) {
+    for (uint64_t i = 0; i * chunk_size < data_size; ++i) {
         uint64_t begin = i * chunk_size;
-        uint64_t end = (i == num_threads - 1) ? data_size : begin + chunk_size;
-        ranges[i] = {data.begin() + begin, data.begin() + end};
+        uint64_t end = std::min(data_size, begin + chunk_size);
+        ranges.emplace_back(data.begin() + begin, data.begin() + end);
         threads.emplace_back(
             [&, begin, end]() { std::sort(data.begin() + begin, data.begin() + end, comp); });
     }

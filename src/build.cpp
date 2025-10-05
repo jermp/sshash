@@ -123,11 +123,11 @@ void dictionary<kmer_t>::build(std::string const& filename,
             input.read(reinterpret_cast<char*>(buffer.data()),
                        buffer.size() * sizeof(minimizer_tuple));
             const uint64_t chunk_size = (n + num_threads - 1) / num_threads;
-            for (uint64_t t = 0; t != num_threads; ++t) {
+            for (uint64_t t = 0; t * chunk_size < n; ++t) {
                 uint64_t begin = t * chunk_size;
-                uint64_t end = (t == num_threads - 1) ? n : begin + chunk_size;
+                uint64_t end = std::min(n, begin + chunk_size);
                 threads.emplace_back([begin, end, &buffer, &f]() {
-                    for (uint64_t i = begin; i != end; ++i) {
+                    for (uint64_t i = begin; i < end; ++i) {
                         buffer[i].minimizer = f.lookup(buffer[i].minimizer);
                     }
                 });
