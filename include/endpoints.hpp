@@ -37,41 +37,16 @@ struct endpoints  //
             };
 
             new_super_group();
-            uint64_t prev_group_offset = 0;
-            m_num_bits_per_offset = 0;
 
             for (uint64_t i = 1; i != se.size(); ++i) {
                 uint64_t curr_len = se[i] - se[i - 1];
                 uint64_t log2_curr_len = bits::util::ceil_log2_uint64(curr_len);
                 assert(curr_len >= prev_len);
-
                 if (curr_len > prev_len)  //
                 {
-                    // std::cout << "len = " << prev_len << ", first_id = " << first_id
-                    //           << ", offset = " << group_offset << std::endl;
-
                     m_string_groups_info.push_back({static_cast<uint32_t>(prev_len),  //
                                                     static_cast<uint32_t>(first_id),  //
                                                     group_offset});                   //
-
-                    if (group_offset > 0) {
-                        // std::cout << "cumulative_len = " << (group_offset - prev_group_offset)
-                        //           << std::endl;
-                        assert(m_string_groups_info.size() >=
-                               m_string_super_groups_info.back().super_group_offset);
-                        uint64_t super_group_current_size =
-                            m_string_groups_info.size() -
-                            m_string_super_groups_info.back().super_group_offset;
-                        uint64_t num_bits_per_offset =
-                            bits::util::ceil_log2_uint64(group_offset - prev_group_offset) +
-                            (super_group_current_size == 1
-                                 ? 1
-                                 : bits::util::ceil_log2_uint64(super_group_current_size));
-                        if (num_bits_per_offset > m_num_bits_per_offset) {
-                            m_num_bits_per_offset = num_bits_per_offset;
-                        }
-                        prev_group_offset = group_offset;
-                    }
 
                     if (log2_curr_len > log2_prev_len) {
                         new_super_group();
@@ -83,9 +58,6 @@ struct endpoints  //
                     group_offset = se[i - 1];
                 }
             }
-
-            // std::cout << "len = " << prev_len << ", first_id = " << first_id
-            //           << ", offset = " << group_offset << std::endl;
 
             m_string_groups_info.push_back({static_cast<uint32_t>(prev_len),  //
                                             static_cast<uint32_t>(first_id),  //
@@ -107,53 +79,48 @@ struct endpoints  //
             */
             new_super_group();
 
-            if (group_offset > 0) {
-                assert(m_string_groups_info.size() >=
-                       m_string_super_groups_info.back().super_group_offset);
-                uint64_t super_group_current_size =
-                    m_string_groups_info.size() -
-                    m_string_super_groups_info.back().super_group_offset;
+            /* set num. bits per group for all super groups */
+            for (uint64_t i = 0, prev_offset = 0; i != m_string_super_groups_info.size() - 1; ++i) {
+                std::cout << "super_group " << i << ": ";
+                uint64_t begin = m_string_super_groups_info[i].super_group_offset;
+                uint64_t end = m_string_super_groups_info[i + 1].super_group_offset;
+                uint64_t super_group_size = end - begin;
+                m_string_super_groups_info[i].num_bits_per_group =
+                    super_group_size == 1 ? 1 : bits::util::ceil_log2_uint64(super_group_size);
+                std::cout << "super_group_size = " << super_group_size << " "
+                          << "num_bits_per_group = "
+                          << int(m_string_super_groups_info[i].num_bits_per_group) << " ";
+
+                uint64_t longest_cumulative_length = 0;
+                for (uint64_t j = begin; j != end; ++j)  //
+                {
+                    uint64_t next_offset = j + 1 < m_string_groups_info.size()
+                                               ? m_string_groups_info[j + 1].group_offset
+                                               : se.back();
+                    assert(next_offset > prev_offset);
+                    uint64_t cumulative_length = next_offset - prev_offset;
+                    if (cumulative_length > longest_cumulative_length) {
+                        longest_cumulative_length = cumulative_length;
+                    }
+                    prev_offset = next_offset;
+                }
+
+                assert(longest_cumulative_length > 1);
+                uint64_t num_bits_per_relative_offset =
+                    bits::util::ceil_log2_uint64(longest_cumulative_length);
                 uint64_t num_bits_per_offset =
-                    bits::util::ceil_log2_uint64(se.back() - prev_group_offset) +
-                    (super_group_current_size == 1
-                         ? 1
-                         : bits::util::ceil_log2_uint64(super_group_current_size));
+                    m_string_super_groups_info[i].num_bits_per_group + num_bits_per_relative_offset;
+                std::cout << "num_bits_per_relative_offset = " << num_bits_per_relative_offset
+                          << " num_bits_per_offset = " << num_bits_per_offset << std::endl;
+
                 if (num_bits_per_offset > m_num_bits_per_offset) {
                     m_num_bits_per_offset = num_bits_per_offset;
                 }
             }
 
             m_num_bits_per_offset += m_num_bits_per_super_group;
-
-            /* set num. bits per group for all super groups */
-            for (uint64_t i = 0; i != m_string_super_groups_info.size() - 1; ++i) {
-                uint64_t super_group_size = m_string_super_groups_info[i + 1].super_group_offset -
-                                            m_string_super_groups_info[i].super_group_offset;
-                m_string_super_groups_info[i].num_bits_per_group =
-                    super_group_size == 1 ? 1 : bits::util::ceil_log2_uint64(super_group_size);
-                // std::cout << "super_group_size = " << super_group_size << " "
-                //           << "num_bits_per_group = "
-                //           << int(m_string_super_groups_info[i].num_bits_per_group) << std::endl;
-            }
-
-            // {
-            //     // print
-            //     for (uint64_t i = 0; i != m_string_super_groups_info.size() - 1; ++i) {
-            //         std::cout << "super_group " << i << ":\n\t";
-            //         auto const& g = m_string_super_groups_info[i];
-            //         std::cout << "num_bits_per_group = " << int(g.num_bits_per_group)
-            //                   << ", super_group_offset = " << g.super_group_offset << std::endl;
-            //         uint64_t super_group_offset_end =
-            //             m_string_super_groups_info[i + 1].super_group_offset;
-            //         for (uint64_t j = g.super_group_offset; j != super_group_offset_end; ++j) {
-            //             auto sg_info = m_string_groups_info[j];
-            //             std::cout << "(" << sg_info.strings_length << "," << sg_info.first_id <<
-            //             ","
-            //                       << sg_info.group_offset << ")" << ' ';
-            //         }
-            //         std::cout << std::endl;
-            //     }
-            // }
+            std::cout << "num_bits_per_offset = " << m_num_bits_per_offset << std::endl;
+            assert(m_num_bits_per_offset > 0);
         }
 
         uint64_t num_bits_per_offset() const { return m_num_bits_per_offset; }

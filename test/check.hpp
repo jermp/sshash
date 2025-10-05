@@ -1,33 +1,71 @@
 #pragma once
 
+#include <mutex>
+
 namespace sshash {
 
 template <class kmer_t>
 bool check_dictionary(dictionary<kmer_t> const& dict) {
     const uint64_t k = dict.k();
     const uint64_t n = dict.num_kmers();
-    std::cout << "checking correctness of access and positive lookup..." << std::endl;
-    uint64_t id = 0;
-    std::string kmer(k, 0);
-    for (; id != n; ++id) {
-        if (id != 0 and id % 5000000 == 0) std::cout << "checked " << id << " kmers" << std::endl;
-        dict.access(id, kmer.data());
-        uint64_t got_id = dict.lookup(kmer.c_str()).kmer_id;
-        if (got_id == constants::invalid_uint64) {
-            std::cout << "kmer '" << kmer << "' not found!" << std::endl;
-            return false;
+
+    const uint64_t num_threads = std::thread::hardware_concurrency();
+    std::cout << "checking correctness of access and positive lookup using " << num_threads
+              << " threads..." << std::endl;
+
+    std::mutex print_mutex;
+
+    auto worker = [&](uint64_t start, uint64_t end, size_t thread_id) {
+        std::string kmer(k, 0);
+        for (uint64_t id = start; id != end; ++id)  //
+        {
+            uint64_t count = id - start;
+            if (count != 0 and count % 15'000'000 == 0) {
+                std::lock_guard<std::mutex> lock(print_mutex);
+                std::cout << "[Thread " << thread_id << "] Checked " << count
+                          << " kmers (local progress)" << std::endl;
+            }
+
+            dict.access(id, kmer.data());
+            uint64_t got_id = dict.lookup(kmer.c_str()).kmer_id;
+
+            if (got_id == constants::invalid_uint64) {
+                std::lock_guard<std::mutex> lock(print_mutex);
+                std::cerr << "[Thread " << thread_id << "] kmer '" << kmer << "' not found!\n";
+                return;
+            }
+            if (got_id >= n) {
+                std::lock_guard<std::mutex> lock(print_mutex);
+                std::cerr << "[Thread " << thread_id << "] ERROR: id out of range " << got_id << "/"
+                          << n << "\n";
+                return;
+            }
+            if (got_id != id) {
+                std::lock_guard<std::mutex> lock(print_mutex);
+                std::cerr << "[Thread " << thread_id << "] expected id " << id << " but got id "
+                          << got_id << "\n";
+                return;
+            }
         }
-        if (got_id >= n) {
-            std::cout << "ERROR: id out of range " << got_id << "/" << n << std::endl;
-            return false;
+        {
+            std::lock_guard<std::mutex> lock(print_mutex);
+            std::cout << "[Thread " << thread_id << "] Finished range [" << start << ", " << end
+                      << ")\n";
         }
-        if (got_id != id) {
-            std::cout << "expected id " << id << " but got id " << got_id << std::endl;
-            return false;
-        }
+    };
+
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
+    for (size_t t = 0, chunk_size = (n + num_threads - 1) / num_threads; t != num_threads; ++t) {
+        uint64_t start = t * chunk_size;
+        uint64_t end = std::min(n, start + chunk_size);
+        threads.emplace_back(worker, start, end, t);
     }
-    std::cout << "checked " << id << " kmers" << std::endl;
+
+    for (auto& th : threads) th.join();
+
     std::cout << "EVERYTHING OK!" << std::endl;
+
     return check_correctness_negative_lookup(dict);
 }
 
