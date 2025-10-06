@@ -2,10 +2,11 @@
 
 namespace sshash {
 
-static double bits_per_kmer_formula(uint64_t k, /* kmer length */
-                                    uint64_t m, /* minimizer length */
-                                    uint64_t n, /* num. kmers */
-                                    uint64_t M) /* num. strings in SPSS */
+[[maybe_unused]]
+static inline double bits_per_kmer_formula(uint64_t k, /* kmer length */
+                                           uint64_t m, /* minimizer length */
+                                           uint64_t n, /* num. kmers */
+                                           uint64_t M) /* num. strings in SPSS */
 {
     /*
       Caveats:
@@ -35,7 +36,7 @@ static double bits_per_kmer_formula(uint64_t k, /* kmer length */
     return num_bits / n;
 }
 
-double perc(uint64_t amount, uint64_t total) { return (amount * 100.0) / total; }
+inline double perc(uint64_t amount, uint64_t total) { return (amount * 100.0) / total; }
 
 template <class kmer_t>
 void dictionary<kmer_t>::print_space_breakdown() const {

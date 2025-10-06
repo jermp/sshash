@@ -54,14 +54,6 @@ MESSAGE(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
 MESSAGE(STATUS "Compiling for processor: ${CMAKE_SYSTEM_PROCESSOR}")
 MESSAGE(STATUS "Compiling with flags:${CMAKE_CXX_FLAGS}")
 
-include_directories(.) # all include paths relative to parent directory
-include_directories(external/pthash/include)
-include_directories(external/pthash/external/bits/include)
-include_directories(external/pthash/external/fastmod)
-include_directories(external/pthash/external/bits/external/essentials/include)
-include_directories(external/pthash/external/xxHash)
-include_directories(external/pthash/external/mm_file/include)
-
 set(Z_LIB_SOURCES
   external/gz/zip_stream.cpp
 )
@@ -74,13 +66,27 @@ set(SSHASH_SOURCES
   src/statistics.cpp
 )
 
+set(SSHASH_INCLUDE_DIRS
+  external/pthash/include
+  external/pthash/external/bits/include
+  external/pthash/external/fastmod
+  external/pthash/external/bits/external/essentials/include
+  external/pthash/external/xxHash
+  external/pthash/external/mm_file/include
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 # Create a static lib
 add_library(sshash_static STATIC
   ${Z_LIB_SOURCES}
   ${SSHASH_SOURCES}
 )
 
+target_include_directories(sshash_static PUBLIC ${SSHASH_INCLUDE_DIRS})
+
 add_executable(sshash tools/sshash.cpp)
+target_include_directories(sshash PUBLIC ${SSHASH_INCLUDE_DIRS})
 target_link_libraries(sshash
   z
 )

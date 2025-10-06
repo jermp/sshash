@@ -21,7 +21,7 @@ int build(int argc, char** argv) {
     parser.add("seed",
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
-    parser.add("t", "Number of threads (default is 1). Must be a power of 2.", "-t", false);
+    parser.add("t", "Number of threads (default is 1).", "-t", false);
     parser.add("l",
                "A (integer) constant that controls the space/time trade-off of the dictionary. "
                "A reasonable values lies in [2.." +
