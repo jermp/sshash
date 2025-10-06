@@ -16,7 +16,7 @@ namespace sshash {
 
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
-    Kmer kmer;
+    Kmer kmer = 0;
 
     uint_kmer_t() {}
     uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
@@ -282,6 +282,25 @@ struct aa_uint_kmer_t : alpha_kmer_t<Kmer, 5, amino_acids> {
 
     static bool is_valid(char c) { return ~char_to_aa[static_cast<size_t>(c)]; }
     static uint64_t char_to_uint(char c) { return char_to_aa[static_cast<size_t>(c)]; }
+
+    // For proteins, there's no reverse complement, so map each character to itself
+    // This allows streaming_query to work with protein alphabets
+    static constexpr char canonicalize_basepair_reverse_map[256] = {
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   'A', 'B', 'C', 'D', 'E', 'F', 'G',
+        'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+        'Z', 0,   0,   0,   0,   0,   0,   'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+        'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0};
 };
 
 // also supports bitpack<__uint128_t, 1>, std::bitset<256>, etc

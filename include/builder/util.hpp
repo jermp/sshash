@@ -3,7 +3,7 @@
 #include <vector>
 #include <atomic>
 
-#if defined(__x86_64__)
+#if defined(__AVX2__)
 #include <immintrin.h>
 #include <x86intrin.h>
 #endif
@@ -30,7 +30,7 @@ struct parse_runtime_error : public std::runtime_error {
     }
 }
 
-#if defined(__x86_64__)
+#if defined(__AVX2__)
 /*
     This function takes 32 bytes and packs the two bits
     in positions 1 and 2 (from right) of each byte into

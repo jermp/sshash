@@ -2,11 +2,12 @@
 
 namespace sshash {
 
-double perc(uint64_t amount, uint64_t total) { return (amount * 100.0) / total; }
-
 template <class kmer_t>
 void dictionary<kmer_t>::print_space_breakdown() const {
     const uint64_t num_bytes = (num_bits() + 7) / 8;
+
+    auto perc = [](uint64_t amount, uint64_t total) -> double { return (amount * 100.0) / total; };
+
     std::cout << "total index size: " << num_bytes << " [B] -- "
               << essentials::convert(num_bytes, essentials::MB) << " [MB]" << '\n';
     std::cout << "SPACE BREAKDOWN:\n";

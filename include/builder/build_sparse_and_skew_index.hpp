@@ -58,9 +58,9 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
         }
     }
     offsets.push_back(num_super_kmers);
-    assert(offsets.size() == num_threads + 1);
 
-    std::vector<buckets_statistics> threads_buckets_stats(num_threads);
+    std::vector<buckets_statistics> threads_buckets_stats;
+    threads_buckets_stats.reserve(num_threads);
 
     auto exe = [&](const uint64_t thread_id) {
         assert(thread_id + 1 < offsets.size());
@@ -93,12 +93,14 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
         }
     };
 
-    std::vector<std::thread> threads(num_threads);
-    for (uint64_t thread_id = 0; thread_id != num_threads; ++thread_id) {
-        threads_buckets_stats[thread_id] =
-            buckets_statistics(num_minimizers, num_kmers, num_minimizer_positions);
-        threads[thread_id] = std::thread(exe, thread_id);
+    std::vector<std::thread> threads;
+    threads.reserve(num_threads);
+    assert(offsets.size() <= num_threads + 1);
+    for (uint64_t thread_id = 0; thread_id + 1 < offsets.size(); ++thread_id) {
+        threads_buckets_stats.emplace_back(num_minimizers, num_kmers, num_minimizer_positions);
+        threads.emplace_back(exe, thread_id);
     }
+
     for (auto& t : threads) {
         if (t.joinable()) t.join();
     }
