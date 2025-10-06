@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
@@ -86,6 +87,11 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     std::vector<buckets_statistics> threads_buckets_stats;
     threads_buckets_stats.reserve(num_threads);
 
+    // Mutex to protect concurrent writes to offsets_builder
+    // Multiple threads can write to the same bucket positions, and compact_vector
+    // packs values into 64-bit words, so nearby writes can race on the same word
+    std::mutex offsets_mutex;
+
     auto exe = [&](const uint64_t thread_id) {
         assert(thread_id + 1 < offsets.size());
         const uint64_t offset_begin = offsets[thread_id];
@@ -106,6 +112,9 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
             uint64_t prev_pos_in_seq = constants::invalid_uint64;
             for (auto mt : bucket) {
                 if (mt.pos_in_seq != prev_pos_in_seq) {
+                    // Protect compact_vector writes - multiple threads can write to
+                    // positions that share the same 64-bit word
+                    std::lock_guard<std::mutex> lock(offsets_mutex);
                     offsets_builder.set(begin + pos++, mt.pos_in_seq);
                     prev_pos_in_seq = mt.pos_in_seq;
                 }
