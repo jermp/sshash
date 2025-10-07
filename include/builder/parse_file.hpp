@@ -173,10 +173,10 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
     /* Push a final sentinel (dummy) value to avoid bounds' checking in
        kmer_iterator::fill_buff(). */
-    for (int i = 0; i < kmer_t::uint_kmer_bits / 64; i++) {
+    static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+    for (int dummy_bits = kmer_t::uint_kmer_bits; dummy_bits; dummy_bits -= 64) {
         bvb_strings.append_bits(0, 64);
     }
-    bvb_strings.append_bits(0, kmer_t::uint_kmer_bits % 64);
 
     bvb_strings.build(data.strings);
 

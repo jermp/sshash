@@ -1,6 +1,4 @@
 #pragma once
-
-#include <mutex>
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
