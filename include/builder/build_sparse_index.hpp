@@ -29,17 +29,12 @@ private:
 
 template <class kmer_t>
 buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>& m_buckets,
-                                      build_configuration const& build_config)  //
+                                      build_configuration const& /*build_config*/)  //
 {
     const uint64_t num_kmers = data.num_kmers;
     const uint64_t num_minimizer_positions = data.minimizers.num_minimizer_positions();
-    const uint64_t num_super_kmers = data.minimizers.num_super_kmers();
     const uint64_t num_buckets = data.minimizers.num_minimizers();
-    const uint64_t num_threads = build_config.num_threads;
 
-    bits::compact_vector::builder offsets_builder;
-    offsets_builder.resize(num_minimizer_positions,
-                           std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char)));
 
     std::cout << "bits_per_offset = ceil(log2(" << data.strings.num_bits() / kmer_t::bits_per_char
               << ")) = " << std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char))
@@ -67,74 +62,25 @@ buckets_statistics build_sparse_index(parse_data<kmer_t>& data, buckets<kmer_t>&
     buckets_statistics buckets_stats(num_buckets, num_kmers, num_minimizer_positions);
 
     timer.start();
-    const uint64_t block_size = (num_super_kmers + num_threads - 1) / num_threads;
-    std::vector<uint64_t> offsets;
-    offsets.reserve(num_threads + 1);
-    for (uint64_t offset = -1; offset != num_super_kmers;) {
-        offsets.push_back(offset + 1);
-        offset = std::min<uint64_t>((offset + 1) + block_size, num_super_kmers);
-        minimizer_tuple const* b = begin + offset;
-        uint64_t curr_minimizer = (*b).minimizer;
-        while (b + 1 < end) {  // adjust offset
-            uint64_t next_minimizer = (*(b + 1)).minimizer;
-            if (curr_minimizer != next_minimizer) break;
-            b += 1;
-            offset += 1;
+
+    bits::compact_vector::builder offsets_builder;
+    offsets_builder.resize(num_minimizer_positions,
+                           std::ceil(std::log2(data.strings.num_bits() / kmer_t::bits_per_char)));
+    uint64_t prev_minimizer = constants::invalid_uint64, prev_pos_in_seq = constants::invalid_uint64, bucket_size = 0;
+    for (auto mt : input) {
+        if (mt.minimizer != prev_minimizer) {
+            auto [bucket_begin, bucket_end] = m_buckets.locate_bucket(mt.minimizer);
+            bucket_size = bucket_end - bucket_begin;
+            buckets_stats.add_bucket_size(bucket_size);
+            prev_minimizer = mt.minimizer;
+            prev_pos_in_seq = constants::invalid_uint64;
+        }
+        buckets_stats.add_num_kmers_in_super_kmer(bucket_size, mt.num_kmers_in_super_kmer);
+        if (mt.pos_in_seq != prev_pos_in_seq) {
+            offsets_builder.push_back(mt.pos_in_seq);
+            prev_pos_in_seq = mt.pos_in_seq;
         }
     }
-    offsets.push_back(num_super_kmers);
-
-    std::vector<buckets_statistics> threads_buckets_stats;
-    threads_buckets_stats.reserve(num_threads);
-
-    // Mutex to protect concurrent writes to offsets_builder
-    // Multiple threads can write to the same bucket positions, and compact_vector
-    // packs values into 64-bit words, so nearby writes can race on the same word
-    std::mutex offsets_mutex;
-
-    auto exe = [&](const uint64_t thread_id) {
-        assert(thread_id + 1 < offsets.size());
-        const uint64_t offset_begin = offsets[thread_id];
-        const uint64_t offset_end = offsets[thread_id + 1];
-        auto& tbs = threads_buckets_stats[thread_id];
-        for (minimizers_tuples_iterator it(begin + offset_begin, begin + offset_end);  //
-             it.has_next();                                                            //
-             it.next())                                                                //
-        {
-            const uint64_t bucket_id = it.minimizer();
-            const auto [begin, end] = m_buckets.locate_bucket(bucket_id);
-            assert(end > begin);
-            const uint64_t bucket_size = end - begin;
-            assert(bucket_size == it.bucket().size());
-            tbs.add_bucket_size(bucket_size);
-            uint64_t pos = 0;
-            auto bucket = it.bucket();
-            uint64_t prev_pos_in_seq = constants::invalid_uint64;
-            for (auto mt : bucket) {
-                if (mt.pos_in_seq != prev_pos_in_seq) {
-                    // Protect compact_vector writes - multiple threads can write to
-                    // positions that share the same 64-bit word
-                    std::lock_guard<std::mutex> lock(offsets_mutex);
-                    offsets_builder.set(begin + pos++, mt.pos_in_seq);
-                    prev_pos_in_seq = mt.pos_in_seq;
-                }
-                tbs.add_num_kmers_in_super_kmer(bucket_size, mt.num_kmers_in_super_kmer);
-            }
-            assert(pos == bucket_size);
-        }
-    };
-
-    std::vector<std::thread> threads;
-    threads.reserve(num_threads);
-    assert(offsets.size() <= num_threads + 1);
-    for (uint64_t thread_id = 0; thread_id + 1 < size(offsets); ++thread_id) {
-        threads_buckets_stats.emplace_back(num_buckets, num_kmers, num_minimizer_positions);
-        threads.emplace_back(exe, thread_id);
-    }
-    for (auto& t : threads) {
-        if (t.joinable()) t.join();
-    }
-    for (auto const& tbs : threads_buckets_stats) buckets_stats += tbs;
 
     input.close();
     timer.stop();
