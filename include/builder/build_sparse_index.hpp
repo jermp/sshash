@@ -1,4 +1,5 @@
 #pragma once
+
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
