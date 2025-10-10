@@ -152,7 +152,7 @@ struct build_configuration {
         , canonical(false)
         , weighted(false)
         , verbose(true)
-        , sorted(false)
+        , fast(false)
 
         , tmp_dirname(constants::default_tmp_dirname)
 
@@ -169,18 +169,22 @@ struct build_configuration {
     bool canonical;
     bool weighted;
     bool verbose;
-    bool sorted;
+    bool fast;
 
     std::string tmp_dirname;
 
     void print() const {
-        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
-                  << ", num_threads = " << num_threads
-                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", lambda = " << lambda
-                  << ", canonical = " << (canonical ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false")
-                  << ", verbose = " << (verbose ? "true" : "false") << ", tmp_dirname = '"
-                  << tmp_dirname << "'" << std::endl;
+        std::cout << "k = " << k                                              //
+                  << ", m = " << m                                            //
+                  << ", seed = " << seed                                      //
+                  << ", num_threads = " << num_threads                        //
+                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB              //
+                  << ", lambda = " << lambda                                  //
+                  << ", canonical = " << (canonical ? "true" : "false")       //
+                  << ", weighted = " << (weighted ? "true" : "false")         //
+                  << ", verbose = " << (verbose ? "true" : "false")           //
+                  << ", fast = " << (fast ? "true" : "false")                 //
+                  << ", tmp_dirname = '" << tmp_dirname << "'" << std::endl;  //
     }
 };
 

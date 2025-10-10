@@ -1,19 +1,18 @@
 #pragma once
 
-#include "external/pthash/external/bits/include/bit_vector.hpp"
 #include "util.hpp"
 
 namespace sshash {
 
-template <class kmer_t>
+template <class kmer_t, typename BitVector>
 struct kmer_iterator  //
 {
     kmer_iterator() {}
 
-    kmer_iterator(bits::bit_vector const& bv, const uint64_t k)
+    kmer_iterator(BitVector const& bv, const uint64_t k)
         : m_bv(&bv), m_uint_kmer_bits(kmer_t::bits_per_char * k), m_pos(0), m_avail(0), m_buff(0) {}
 
-    kmer_iterator(bits::bit_vector const& bv, const uint64_t k, const uint64_t pos)
+    kmer_iterator(BitVector const& bv, const uint64_t k, const uint64_t pos)
         : kmer_iterator(bv, k)  //
     {
         at(pos);
@@ -81,7 +80,7 @@ private:
         m_buff.pad(kmer_t::uint_kmer_bits - m_avail);
     }
 
-    bits::bit_vector const* m_bv;
+    BitVector const* m_bv;
     uint64_t m_uint_kmer_bits;
     uint64_t m_pos, m_avail;
     kmer_t m_buff;

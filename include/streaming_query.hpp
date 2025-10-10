@@ -129,7 +129,7 @@ private:
     minimizer_info m_curr_mini_info_rc, m_prev_mini_info_rc;
 
     /* string state */
-    kmer_iterator<kmer_t> m_it;
+    kmer_iterator<kmer_t, bits::bit_vector> m_it;
     uint64_t m_remaining_contig_bases;
 
     /* performance counts */

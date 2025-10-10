@@ -36,27 +36,27 @@ struct dictionary {
     lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
     lookup_result lookup_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
-    // /* Return the number of kmers in contig. Since contigs do not have duplicates,
-    //    the length of the contig is always size + k - 1. */
-    // uint64_t contig_size(uint64_t contig_id) const;
+    /* Return the number of kmers in contig. Since contigs do not have duplicates,
+       the length of the contig is always size + k - 1. */
+    uint64_t contig_size(uint64_t contig_id) const;
 
-    // /* Navigational queries. */
-    // neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer,
-    //                                               bool check_reverse_complement = true) const;
-    // neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer,
-    //                                               bool check_reverse_complement = true) const;
-    // neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer,
-    //                                                bool check_reverse_complement = true) const;
-    // neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer,
-    //                                                bool check_reverse_complement = true) const;
+    /* Navigational queries. */
+    neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer,
+                                                  bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer,
+                                                  bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer,
+                                                   bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer,
+                                                   bool check_reverse_complement = true) const;
 
-    // /* forward and backward */
-    // neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer,
-    //                                       bool check_reverse_complement = true) const;
-    // neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer,
-    //                                       bool check_reverse_complement = true) const;
-    // neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id,
-    //                                         bool check_reverse_complement = true) const;
+    /* forward and backward */
+    neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer,
+                                          bool check_reverse_complement = true) const;
+    neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id,
+                                            bool check_reverse_complement = true) const;
 
     /* Return the weight of the kmer given its id. */
     uint64_t weight(uint64_t kmer_id) const;
@@ -75,43 +75,42 @@ struct dictionary {
     streaming_query_report  //
     streaming_query_from_file(std::string const& filename, bool multiline) const;
 
-    // struct iterator {
-    //     iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id)
-    //     {
-    //         m_it = ptr->m_buckets.at(begin_kmer_id, end_kmer_id, ptr->m_k);
-    //     }
+    struct iterator {
+        iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id) {
+            m_it = ptr->m_buckets.at(begin_kmer_id, end_kmer_id, ptr->m_k);
+        }
 
-    //     bool has_next() const { return m_it.has_next(); }
+        bool has_next() const { return m_it.has_next(); }
 
-    //     /* (kmer-id, kmer) */
-    //     std::pair<uint64_t, std::string> next() { return m_it.next(); }
+        /* (kmer-id, kmer) */
+        std::pair<uint64_t, std::string> next() { return m_it.next(); }
 
-    // private:
-    //     typename buckets<kmer_t>::iterator m_it;
-    // };
+    private:
+        typename buckets<kmer_t>::iterator m_it;
+    };
 
-    // iterator begin() const { return iterator(this, 0, num_kmers()); }
+    iterator begin() const { return iterator(this, 0, num_kmers()); }
 
-    // iterator at_kmer_id(const uint64_t kmer_id) const {
-    //     assert(kmer_id < num_kmers());
-    //     return iterator(this, kmer_id, num_kmers());
-    // }
+    iterator at_kmer_id(const uint64_t kmer_id) const {
+        assert(kmer_id < num_kmers());
+        return iterator(this, kmer_id, num_kmers());
+    }
 
-    // std::pair<uint64_t, uint64_t>  // [begin, end)
-    // contig_offsets(const uint64_t contig_id) const {
-    //     return m_buckets.contig_offsets(contig_id);
-    // }
+    std::pair<uint64_t, uint64_t>  // [begin, end)
+    contig_offsets(const uint64_t contig_id) const {
+        return m_buckets.contig_offsets(contig_id);
+    }
 
-    // iterator at_contig_id(const uint64_t contig_id) const {
-    //     assert(contig_id < num_strings());
-    //     auto [begin, end] = contig_offsets(contig_id);
-    //     uint64_t contig_length = end - begin;  // in bases
-    //     assert(contig_length >= m_k);
-    //     uint64_t contig_size = contig_length - m_k + 1;  // in kmers
-    //     uint64_t begin_kmer_id = begin - contig_id * (m_k - 1);
-    //     uint64_t end_kmer_id = begin_kmer_id + contig_size;
-    //     return iterator(this, begin_kmer_id, end_kmer_id);
-    // }
+    iterator at_contig_id(const uint64_t contig_id) const {
+        assert(contig_id < num_strings());
+        auto [begin, end] = contig_offsets(contig_id);
+        uint64_t contig_length = end - begin;  // in bases
+        assert(contig_length >= m_k);
+        uint64_t contig_size = contig_length - m_k + 1;  // in kmers
+        uint64_t begin_kmer_id = begin - contig_id * (m_k - 1);
+        uint64_t end_kmer_id = begin_kmer_id + contig_size;
+        return iterator(this, begin_kmer_id, end_kmer_id);
+    }
 
     bits::bit_vector const& get_strings() const { return m_buckets.strings; }
     buckets<kmer_t> const& get_buckets() const { return m_buckets; }

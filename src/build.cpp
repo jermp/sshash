@@ -39,7 +39,8 @@ void dictionary<kmer_t>::build(std::string const& filename,
     parse_data<kmer_t> data(build_config);
     parse_file<kmer_t>(filename, data, build_config);
     m_num_kmers = data.num_kmers;
-    m_num_strings = data.num_sequences;
+    assert(data.strings_endpoints.size() >= 2);
+    m_num_strings = data.strings_endpoints.size() - 1;
     if (build_config.weighted) {
         essentials::timer_type timer;
         timer.start();
@@ -160,6 +161,7 @@ void dictionary<kmer_t>::build(std::string const& filename,
     /* step 3: build sparse and skew index ***/
     timer.start();
     auto buckets_stats = build_sparse_and_skew_index(data, m_buckets, m_skew_index, build_config);
+    assert(data.strings_endpoints.size() == 0);
     timer.stop();
     timings.push_back(timer.elapsed());
     print_time(timings.back(), data.num_kmers, "step 3: 'build sparse and skew index'");

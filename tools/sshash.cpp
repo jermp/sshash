@@ -10,12 +10,10 @@
 #include "src/dictionary.cpp"
 #include "src/query.cpp"
 #include "src/info.cpp"
-// #include "src/statistics.cpp"
 
 #include "build.cpp"
 #include "query.cpp"
 #include "permute.cpp"
-#include "sort.cpp"
 
 using namespace sshash;
 
@@ -74,17 +72,14 @@ int help(char* arg0) {
     std::cout << "== SSHash: (S)parse and (S)kew (Hash)ing of k-mers ========================="
               << std::endl
               << std::endl;
-    std::cout
-        << "Usage: " << arg0 << " <tool> ...\n\n"
-        << "Available tools:\n"
-        << "  build              \t build a dictionary \n"
-        << "  query              \t query a dictionary \n"
-        << "  check              \t check correctness of a dictionary \n"
-        << "  bench              \t run performance tests for a dictionary \n"
-        << "  permute            \t permute a weighted input file \n"
-        // << "  compute-statistics \t compute index statistics " << std::endl;
-        << "  sort            \t sort the strings in an input file by (non-decreasing) length "
-        << std::endl;
+    std::cout << "Usage: " << arg0 << " <tool> ...\n\n"
+              << "Available tools:\n"
+              << "  build              \t build a dictionary \n"
+              << "  query              \t query a dictionary \n"
+              << "  check              \t check correctness of a dictionary \n"
+              << "  bench              \t run performance tests for a dictionary \n"
+              << "  permute            \t permute a weighted input file \n"
+              << std::endl;
 
     return 0;
 }
@@ -102,11 +97,6 @@ int main(int argc, char** argv) {
         return bench<default_kmer_t>(argc - 1, argv + 1);
     } else if (tool == "permute") {
         return permute<default_kmer_t>(argc - 1, argv + 1);
-        // } else if (tool == "compute-statistics") {
-        //     return compute_statistics<default_kmer_t>(argc - 1, argv + 1);
-        // }
-    } else if (tool == "sort") {
-        return sort<default_kmer_t>(argc - 1, argv + 1);
     }
     std::cout << "Unsupported tool '" << tool << "'.\n" << std::endl;
     return help(argv[0]);

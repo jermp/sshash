@@ -24,7 +24,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
     if (status == 0) {  // minimizer occurs once
         uint64_t offset = code >> 1;
         auto res = m_buckets.lookup_at_offset(offset, uint_kmer, mini_info, m_k, m_m);
-        res.list_size = 1;
+        // res.list_size = 1;
         return res;
     }
 
@@ -38,7 +38,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_regular(kmer_t uint_kmer,         
         uint64_t begin = m_buckets.start_lists_of_size[list_size] + list_id * list_size;
         uint64_t end = begin + list_size;
         auto res = m_buckets.lookup(begin, end, uint_kmer, mini_info, m_k, m_m);
-        res.list_size = list_size;
+        // res.list_size = list_size;
         return res;
     }
 
@@ -100,7 +100,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
         auto res = m_buckets.lookup_canonical_at_offset(          //
             offset, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
         );
-        res.list_size = 1;
+        // res.list_size = 1;
         return res;
     }
 
@@ -116,7 +116,7 @@ lookup_result dictionary<kmer_t>::lookup_uint_canonical(kmer_t uint_kmer, kmer_t
         auto res = m_buckets.lookup_canonical(                        //
             begin, end, uint_kmer, uint_kmer_rc, mini_info, m_k, m_m  //
         );
-        res.list_size = list_size;
+        // res.list_size = list_size;
         return res;
     }
 
@@ -186,107 +186,106 @@ uint64_t dictionary<kmer_t>::weight(uint64_t kmer_id) const {
     return m_weights.weight(kmer_id);
 }
 
-// template <class kmer_t>
-// uint64_t dictionary<kmer_t>::contig_size(uint64_t contig_id) const {
-//     assert(contig_id < num_strings());
-//     auto [begin, end] = m_buckets.contig_offsets(contig_id);
-//     uint64_t contig_length = end - begin;
-//     assert(contig_length >= m_k);
-//     return contig_length - m_k + 1;
-// }
+template <class kmer_t>
+uint64_t dictionary<kmer_t>::contig_size(uint64_t contig_id) const {
+    assert(contig_id < num_strings());
+    auto [begin, end] = m_buckets.contig_offsets(contig_id);
+    uint64_t contig_length = end - begin;
+    assert(contig_length >= m_k);
+    return contig_length - m_k + 1;
+}
 
-// template <class kmer_t>
-// void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
-//                                             bool check_reverse_complement) const {
-//     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
-//         kmer_t new_kmer = suffix;
-//         new_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
-//         res.forward[i] = lookup_uint(new_kmer, check_reverse_complement);
-//     }
-// }
-// template <class kmer_t>
-// void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
-//                                              bool check_reverse_complement) const {
-//     for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
-//         kmer_t new_kmer = prefix;
-//         new_kmer.set(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
-//         res.backward[i] = lookup_uint(new_kmer, check_reverse_complement);
-//     }
-// }
+template <class kmer_t>
+void dictionary<kmer_t>::forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
+                                            bool check_reverse_complement) const {
+    for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
+        kmer_t new_kmer = suffix;
+        new_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer_t::alphabet[i]));
+        res.forward[i] = lookup_uint(new_kmer, check_reverse_complement);
+    }
+}
+template <class kmer_t>
+void dictionary<kmer_t>::backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
+                                             bool check_reverse_complement) const {
+    for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
+        kmer_t new_kmer = prefix;
+        new_kmer.set(0, kmer_t::char_to_uint(kmer_t::alphabet[i]));
+        res.backward[i] = lookup_uint(new_kmer, check_reverse_complement);
+    }
+}
 
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(
-//     char const* string_kmer, bool check_reverse_complement) const {
-//     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
-//     return kmer_forward_neighbours(uint_kmer, check_reverse_complement);
-// }
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(
+    char const* string_kmer, bool check_reverse_complement) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
+    return kmer_forward_neighbours(uint_kmer, check_reverse_complement);
+}
 
-// template <class kmer_t>
-// kmer_t dictionary<kmer_t>::get_suffix(kmer_t kmer) const {
-//     kmer_t suffix = kmer;
-//     suffix.drop_char();
-//     return suffix;
-// }
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(
-//     kmer_t uint_kmer, bool check_reverse_complement) const {
-//     neighbourhood<kmer_t> res;
-//     forward_neighbours(get_suffix(uint_kmer), res, check_reverse_complement);
-//     return res;
-// }
+template <class kmer_t>
+kmer_t dictionary<kmer_t>::get_suffix(kmer_t kmer) const {
+    kmer_t suffix = kmer;
+    suffix.drop_char();
+    return suffix;
+}
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_forward_neighbours(
+    kmer_t uint_kmer, bool check_reverse_complement) const {
+    neighbourhood<kmer_t> res;
+    forward_neighbours(get_suffix(uint_kmer), res, check_reverse_complement);
+    return res;
+}
 
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
-//     char const* string_kmer, bool check_reverse_complement) const {
-//     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
-//     return kmer_backward_neighbours(uint_kmer, check_reverse_complement);
-// }
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
+    char const* string_kmer, bool check_reverse_complement) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
+    return kmer_backward_neighbours(uint_kmer, check_reverse_complement);
+}
 
-// template <class kmer_t>
-// kmer_t dictionary<kmer_t>::get_prefix(kmer_t kmer) const {
-//     kmer_t prefix = kmer;
-//     prefix.pad_char();
-//     prefix.take_chars(m_k);
-//     return prefix;
-// }
+template <class kmer_t>
+kmer_t dictionary<kmer_t>::get_prefix(kmer_t kmer) const {
+    kmer_t prefix = kmer;
+    prefix.pad_char();
+    prefix.take_chars(m_k);
+    return prefix;
+}
 
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
-//     kmer_t uint_kmer, bool check_reverse_complement) const {
-//     neighbourhood<kmer_t> res;
-//     backward_neighbours(get_prefix(uint_kmer), res, check_reverse_complement);
-//     return res;
-// }
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_backward_neighbours(
+    kmer_t uint_kmer, bool check_reverse_complement) const {
+    neighbourhood<kmer_t> res;
+    backward_neighbours(get_prefix(uint_kmer), res, check_reverse_complement);
+    return res;
+}
 
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(char const* string_kmer,
-//                                                           bool check_reverse_complement) const {
-//     kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
-//     return kmer_neighbours(uint_kmer, check_reverse_complement);
-// }
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(char const* string_kmer,
+                                                          bool check_reverse_complement) const {
+    kmer_t uint_kmer = util::string_to_uint_kmer<kmer_t>(string_kmer, m_k);
+    return kmer_neighbours(uint_kmer, check_reverse_complement);
+}
 
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer,
-//                                                           bool check_reverse_complement) const {
-//     neighbourhood<kmer_t> res;
-//     forward_neighbours(get_suffix(uint_kmer), res, check_reverse_complement);
-//     backward_neighbours(get_prefix(uint_kmer), res, check_reverse_complement);
-//     return res;
-// }
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::kmer_neighbours(kmer_t uint_kmer,
+                                                          bool check_reverse_complement) const {
+    neighbourhood<kmer_t> res;
+    forward_neighbours(get_suffix(uint_kmer), res, check_reverse_complement);
+    backward_neighbours(get_prefix(uint_kmer), res, check_reverse_complement);
+    return res;
+}
 
-// template <class kmer_t>
-// neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id,
-//                                                             bool check_reverse_complement) const
-//                                                             {
-//     assert(contig_id < num_strings());
-//     neighbourhood<kmer_t> res;
-//     kmer_t suffix = m_buckets.contig_suffix(contig_id, m_k);
-//     forward_neighbours(suffix, res, check_reverse_complement);
-//     kmer_t prefix = m_buckets.contig_prefix(contig_id, m_k);
-//     prefix.pad_char();
-//     backward_neighbours(prefix, res, check_reverse_complement);
-//     return res;
-// }
+template <class kmer_t>
+neighbourhood<kmer_t> dictionary<kmer_t>::contig_neighbours(uint64_t contig_id,
+                                                            bool check_reverse_complement) const {
+    assert(contig_id < num_strings());
+    neighbourhood<kmer_t> res;
+    kmer_t suffix = m_buckets.contig_suffix(contig_id, m_k);
+    forward_neighbours(suffix, res, check_reverse_complement);
+    kmer_t prefix = m_buckets.contig_prefix(contig_id, m_k);
+    prefix.pad_char();
+    backward_neighbours(prefix, res, check_reverse_complement);
+    return res;
+}
 
 template <class kmer_t>
 uint64_t dictionary<kmer_t>::num_bits() const {

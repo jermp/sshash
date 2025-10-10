@@ -47,8 +47,7 @@ int build(int argc, char** argv) {
     parser.add("check", "Check correctness after construction.", "--check", false, true);
     parser.add("bench", "Run performance benchmark after construction.", "--bench", false, true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
-    parser.add("sorted", "Assume that the input contains strings sorted by non-decreasing lengths.",
-               "--sorted", false, true);
+    parser.add("fast", "Increase space for faster lookup queries.", "--fast", false, true);
 
     if (!parser.parse()) return 0;
 
@@ -67,7 +66,7 @@ int build(int argc, char** argv) {
     build_config.canonical = parser.get<bool>("canonical");
     build_config.weighted = parser.get<bool>("weighted");
     build_config.verbose = parser.get<bool>("verbose");
-    build_config.sorted = parser.get<bool>("sorted");
+    build_config.fast = parser.get<bool>("fast");
     if (parser.parsed("tmp_dirname")) {
         build_config.tmp_dirname = parser.get<std::string>("tmp_dirname");
         essentials::create_directory(build_config.tmp_dirname);
@@ -85,17 +84,17 @@ int build(int argc, char** argv) {
     bool check = parser.get<bool>("check");
     if (check) {
         check_correctness_lookup_access(dict, input_filename);
-        // check_correctness_navigational_kmer_query(dict, input_filename);
-        // check_correctness_navigational_contig_query(dict);
-        // if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        // check_correctness_kmer_iterator(dict);
-        // check_correctness_contig_iterator(dict);
+        check_correctness_navigational_kmer_query(dict, input_filename);
+        check_correctness_navigational_contig_query(dict);
+        if (build_config.weighted) check_correctness_weights(dict, input_filename);
+        check_correctness_kmer_iterator(dict);
+        check_correctness_contig_iterator(dict);
     }
     bool bench = parser.get<bool>("bench");
     if (bench) {
         perf_test_lookup_access(dict);
         if (dict.weighted()) perf_test_lookup_weight(dict);
-        // perf_test_iterator(dict);
+        perf_test_iterator(dict);
     }
     if (parser.parsed("output_filename")) {
         auto output_filename = parser.get<std::string>("output_filename");

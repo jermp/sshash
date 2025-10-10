@@ -1,7 +1,5 @@
 #pragma once
 
-#include <unordered_map>
-
 #include "util.hpp"
 #include "external/gz/zip_stream.hpp"
 #include "include/minimizer_iterator.hpp"
@@ -10,14 +8,12 @@ namespace sshash {
 
 template <class kmer_t>
 struct parse_data {
-    parse_data(build_configuration const& build_config)
-        : num_kmers(0), num_sequences(0), minimizers(build_config) {}
+    parse_data(build_configuration const& build_config) : num_kmers(0), minimizers(build_config) {}
 
-    uint64_t num_kmers, num_sequences;
+    uint64_t num_kmers;
     minimizers_tuples minimizers;
     std::vector<uint64_t> strings_endpoints;
-    bits::bit_vector strings;
-    endpoints::builder endpoints_builder;
+    bits::bit_vector::builder strings_builder;
     weights::builder weights_builder;
 };
 
@@ -43,38 +39,15 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     /* fit into the wanted number of bits */
     assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
 
-    bits::bit_vector::builder bvb_strings;
-
-    struct _string_group_info {
-        uint32_t super_group_id;
-        uint32_t group_id;
-        uint64_t group_offset;  // absolute offset where this group of strings begins
-    };
-
-    /* log2(string length) --> (super group id, current group id) */
-    std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> super_group_id(0);
-
-    /* string-length --> _string_group_info */
-    std::unordered_map<uint32_t, _string_group_info> string_groups_info(0);
-
     {
-        const uint64_t num_bits = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
-        bvb_strings.reserve(num_bits);
-
-        const uint64_t num_sequences = 100000000;
+        const uint64_t num_bits_for_strings = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
+        const uint64_t num_sequences = 100'000'000;
+        data.strings_builder.reserve(num_bits_for_strings);
         data.strings_endpoints.reserve(num_sequences);
-
-        if (build_config.sorted) {
-            super_group_id.reserve(1ULL << 7);
-            string_groups_info.reserve(1ULL << 16);
-        }
     }
 
     std::string sequence;
     uint64_t num_bases = 0;
-
-    uint64_t prev_len = 0;
-    uint32_t ceil_log2_prev_len = 0;
 
     hasher_type hasher(build_config.seed);
     minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
@@ -154,41 +127,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
         const uint64_t n = sequence.length();
         assert(n >= k);
-
-        if (build_config.sorted)  //
-        {
-            uint64_t ceil_log2_len = bits::util::ceil_log2_uint64(n);
-            if (ceil_log2_len > ceil_log2_prev_len) {
-                super_group_id[ceil_log2_len] = {super_group_id.size(), 0};
-            } else {
-                assert(ceil_log2_len == ceil_log2_prev_len);
-                if (n > prev_len) super_group_id[ceil_log2_len].second += 1;
-            }
-
-            if (!string_groups_info.empty()) {
-                if (n > prev_len) {
-                    uint64_t offset = bvb_strings.num_bits() / kmer_t::bits_per_char;
-                    auto p = super_group_id[ceil_log2_len];
-                    string_groups_info[n] = {p.first, p.second, offset};
-                }
-            } else {
-                auto p = super_group_id[ceil_log2_len];
-                string_groups_info[n] = {p.first, p.second, 0};
-            }
-
-            prev_len = n;
-            ceil_log2_prev_len = ceil_log2_len;
-        }
-
-        ++data.num_sequences;
-        if (data.num_sequences % 100000 == 0) {
-            std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
-                      << data.num_kmers << " kmers" << std::endl;
-        }
-
-        assert(bvb_strings.num_bits() % kmer_t::bits_per_char == 0);
-        data.strings_endpoints.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
-
+        assert(data.strings_builder.num_bits() % kmer_t::bits_per_char == 0);
+        data.strings_endpoints.push_back(data.strings_builder.num_bits() / kmer_t::bits_per_char);
+        data.num_kmers += n - k + 1;
         num_bases += n;
 
         if (build_config.weighted and seq_len != n) {
@@ -197,7 +138,10 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             throw std::runtime_error("file is malformed");
         }
 
-        data.num_kmers += n - k + 1;
+        if (data.strings_endpoints.size() % 100'000 == 0) {
+            std::cout << "read " << data.strings_endpoints.size() << " sequences, " << num_bases
+                      << " bases, " << data.num_kmers << " kmers" << std::endl;
+        }
 
         uint64_t i = 0;
         if constexpr (kmer_t::bits_per_char == 2) {
@@ -207,71 +151,38 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             for (; i + 32 <= n; i += 32) {
                 __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
                 uint64_t word = pack2bits_shift1(v);
-                bvb_strings.append_bits(word, 64);
+                data.strings_builder.append_bits(word, 64);
             }
 #endif
         }
         for (; i < n; ++i) {
-            bvb_strings.append_bits(kmer_t::char_to_uint(sequence[i]), kmer_t::bits_per_char);
+            data.strings_builder.append_bits(kmer_t::char_to_uint(sequence[i]),
+                                             kmer_t::bits_per_char);
         }
     }
 
-    if (build_config.sorted) {
-        /* prev_len is now the length of the longest string  */
-        if (prev_len >= (1ULL << 32)) {
-            std::cerr << "A string is longer than 2^32-1 chars...a u32 is not enough to hold a "
-                         "string length"
-                      << std::endl;
-        }
-        if (data.num_sequences >= (1ULL << 32)) {
-            std::cerr << "More than 2^32-1 strings...a u32 is not enough to hold a string id"
-                      << std::endl;
-        }
-    }
-
-    /*
-        So strings_endpoints will be of size p+1, where p is the number of DNA sequences
-        in the input file.
-    */
-    data.strings_endpoints.push_back(bvb_strings.num_bits() / kmer_t::bits_per_char);
+    data.strings_endpoints.push_back(data.strings_builder.num_bits() / kmer_t::bits_per_char);
     assert(data.strings_endpoints.front() == 0);
+    assert(data.strings_endpoints.size() >= 2);
+    const uint64_t num_sequences = data.strings_endpoints.size() - 1;
 
     /* Push a final sentinel (dummy) value to avoid bounds' checking in
        kmer_iterator::fill_buff(). */
     static_assert(kmer_t::uint_kmer_bits % 64 == 0);
     for (int dummy_bits = kmer_t::uint_kmer_bits; dummy_bits; dummy_bits -= 64) {
-        bvb_strings.append_bits(0, 64);
+        data.strings_builder.append_bits(0, 64);
     }
-
-    bvb_strings.build(data.strings);
-
-    assert(data.strings_endpoints.front() == 0);
-    assert(data.strings_endpoints.size() == data.num_sequences + 1);
 
     timer.stop();
     print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding input'");
 
-    std::cout << "read " << data.num_sequences << " sequences, " << num_bases << " bases, "
+    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
               << data.num_kmers << " kmers" << std::endl;
     std::cout << "num_kmers " << data.num_kmers << std::endl;
     std::cout << "cost: 2.0 + "
-              << static_cast<double>(kmer_t::bits_per_char * data.num_sequences * (k - 1)) /
+              << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) /
                      data.num_kmers
               << " [bits/kmer]" << std::endl;
-
-    // for (auto const& p : super_group_id) {
-    //     std::cout << "log2(string-length) = " << p.first << ": super_group_id = " <<
-    //     p.second.first
-    //               << ", num. groups in super group = " << p.second.second + 1 << std::endl;
-    // }
-    // for (auto const& p : string_groups_info) {
-    //     std::cout << "string-length = " << p.first
-    //               << ": super_group_id = " << p.second.super_group_id
-    //               << ", group id = " << p.second.group_id
-    //               << ", group_offset = " << p.second.group_offset << std::endl;
-    // }
-
-    data.endpoints_builder.build_from(data.strings_endpoints);
 
     /*
         The parameter m (minimizer length) should be at least
@@ -292,11 +203,11 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     timer.start();
 
     const uint64_t num_threads = build_config.num_threads;
-    const uint64_t num_sequences_per_thread = (data.num_sequences + num_threads - 1) / num_threads;
+    const uint64_t num_sequences_per_thread = (num_sequences + num_threads - 1) / num_threads;
     std::vector<std::thread> threads;
     threads.reserve(num_threads);
 
-    for (uint64_t t = 0; t * num_sequences_per_thread < data.num_sequences; ++t)  //
+    for (uint64_t t = 0; t * num_sequences_per_thread < num_sequences; ++t)  //
     {
         threads.emplace_back([&, t] {
             std::vector<minimizer_tuple> buffer;
@@ -325,9 +236,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
             const uint64_t index_begin = t * num_sequences_per_thread;
             const uint64_t index_end =
-                std::min<uint64_t>(index_begin + num_sequences_per_thread, data.num_sequences);
+                std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
 
-            kmer_iterator<kmer_t> it(data.strings, k);
+            kmer_iterator<kmer_t, bits::bit_vector::builder> it(data.strings_builder, k);
             minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
             minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
 
@@ -364,10 +275,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                         }
                     }
 
-                    if (build_config.sorted) {  // encode offset
-                        auto p = string_groups_info[sequence_len];
-                        mini_info.pos_in_seq = data.endpoints_builder.encode(
-                            mini_info.pos_in_seq, p.super_group_id, p.group_id, p.group_offset);
+                    if (build_config.fast) {  // encode offset
+                        // TODO
                     }
 
                     if (prev_mini_info.minimizer == constants::invalid_uint64) {
