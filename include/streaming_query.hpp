@@ -6,9 +6,12 @@
 
 namespace sshash {
 
-template <class kmer_t, bool canonical>
-struct streaming_query {
-    streaming_query(dictionary<kmer_t> const* dict)
+template <typename Dict, bool canonical>
+struct streaming_query  //
+{
+    using kmer_t = typename Dict::kmer_type;
+
+    streaming_query(Dict const* dict)
 
         : m_dict(dict)
 
@@ -112,7 +115,7 @@ struct streaming_query {
     uint64_t num_invalid_lookups() const { return m_num_invalid; }
 
 private:
-    dictionary<kmer_t> const* m_dict;
+    Dict const* m_dict;
 
     /* result */
     lookup_result m_res;

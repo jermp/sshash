@@ -37,12 +37,12 @@ struct lookup_result {
         , contig_id(constants::invalid_uint64)
         , contig_size(constants::invalid_uint64)
 
-        /*
-            The kmer's minimizer occurs for `list_size` times.
-            If `list_size` == -1, then the minimizer is part of
-            the skew index.
-        */
-        , list_size(constants::invalid_uint64)
+        // /*
+        //     The kmer's minimizer occurs for `list_size` times.
+        //     If `list_size` == -1, then the minimizer is part of
+        //     the skew index.
+        // */
+        // , list_size(constants::invalid_uint64)
 
         , minimizer_found(mf) {}
 
@@ -51,7 +51,7 @@ struct lookup_result {
     int64_t kmer_orientation;
     uint64_t contig_id;
     uint64_t contig_size;
-    uint64_t list_size;
+    // uint64_t list_size;
 
     bool minimizer_found;
 

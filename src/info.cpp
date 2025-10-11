@@ -2,8 +2,8 @@
 
 namespace sshash {
 
-template <class kmer_t>
-void dictionary<kmer_t>::print_space_breakdown() const {
+template <class kmer_t, class Endpoints>
+void dictionary<kmer_t, Endpoints>::print_space_breakdown() const {
     const uint64_t num_bytes = (num_bits() + 7) / 8;
 
     auto perc = [](uint64_t amount, uint64_t total) -> double { return (amount * 100.0) / total; };
@@ -45,8 +45,8 @@ void dictionary<kmer_t>::print_space_breakdown() const {
               << std::endl;
 }
 
-template <class kmer_t>
-void dictionary<kmer_t>::print_info() const {
+template <class kmer_t, class Endpoints>
+void dictionary<kmer_t, Endpoints>::print_info() const {
     std::cout << "=== dictionary info:\n";
     std::cout << "version number = " << m_vnum.to_string() << '\n';
     std::cout << "num_kmers = " << num_kmers() << '\n';

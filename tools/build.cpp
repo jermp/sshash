@@ -55,7 +55,7 @@ int build(int argc, char** argv) {
     auto k = parser.get<uint64_t>("k");
     auto m = parser.get<uint64_t>("m");
 
-    dictionary<kmer_t> dict;
+    dictionary<kmer_t, endpoints> dict;
 
     build_configuration build_config;
     build_config.k = k;

@@ -8,8 +8,14 @@
 
 namespace sshash {
 
-template <class kmer_t>
-struct dictionary {
+template <class kmer_t, class Endpoints>
+struct dictionary  //
+{
+    using kmer_type = kmer_t;
+
+    template <class, class>
+    friend struct dictionary_builder;
+
     dictionary()
         : m_vnum(constants::current_version_number::x,  //
                  constants::current_version_number::y,  //
@@ -68,7 +74,6 @@ struct dictionary {
     bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
     bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
 
-    /* Streaming query. */
     template <class, bool>
     friend struct streaming_query;
 
@@ -86,7 +91,7 @@ struct dictionary {
         std::pair<uint64_t, std::string> next() { return m_it.next(); }
 
     private:
-        typename buckets<kmer_t>::iterator m_it;
+        typename buckets<kmer_t, Endpoints>::iterator m_it;
     };
 
     iterator begin() const { return iterator(this, 0, num_kmers()); }
@@ -113,7 +118,7 @@ struct dictionary {
     }
 
     bits::bit_vector const& get_strings() const { return m_buckets.strings; }
-    buckets<kmer_t> const& get_buckets() const { return m_buckets; }
+    buckets<kmer_t, Endpoints> const& get_buckets() const { return m_buckets; }
     minimizers const& get_minimizers() const { return m_minimizers; }
 
     uint64_t num_bits() const;
@@ -156,7 +161,7 @@ private:
     bool m_canonical;
     hasher_type m_hasher;
     minimizers m_minimizers;
-    buckets<kmer_t> m_buckets;
+    buckets<kmer_t, Endpoints> m_buckets;
     skew_index<kmer_t> m_skew_index;
     weights m_weights;
 

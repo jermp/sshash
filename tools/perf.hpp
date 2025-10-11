@@ -6,8 +6,8 @@ namespace perf {
 using timer_type = essentials::timer<std::chrono::high_resolution_clock, std::chrono::nanoseconds>;
 }
 
-template <class kmer_t>
-void perf_test_iterator(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+void perf_test_iterator(Dict const& dict) {
     perf::timer_type t;
     t.start();
     auto it = dict.begin();
@@ -21,8 +21,8 @@ void perf_test_iterator(dictionary<kmer_t> const& dict) {
     std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
 }
 
-// template <class kmer_t>
-// void perf_test_lookup_by_list_size(dictionary<kmer_t> const& dict) {
+// template <typename Dict>
+// void perf_test_lookup_by_list_size(Dict const& dict) {
 //     constexpr uint64_t num_queries = 1000000;
 //     constexpr uint64_t runs = 5;
 //     const uint64_t k = dict.k();
@@ -91,8 +91,10 @@ void perf_test_iterator(dictionary<kmer_t> const& dict) {
 //     }
 // }
 
-template <class kmer_t>
-void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+void perf_test_lookup_access(Dict const& dict)  //
+{
+    using kmer_t = typename Dict::kmer_type;
     constexpr uint64_t num_queries = 1'000'000;
     constexpr uint64_t runs = 5;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
@@ -266,8 +268,11 @@ void perf_test_lookup_access(dictionary<kmer_t> const& dict) {
 
 }  // namespace sshash
 
-template <class kmer_t>
-void perf_test_lookup_weight(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+void perf_test_lookup_weight(Dict const& dict)  //
+{
+    using kmer_t = typename Dict::kmer_type;
+
     if (!dict.weighted()) {
         std::cerr << "ERROR: the dictionary does not store weights" << std::endl;
         return;

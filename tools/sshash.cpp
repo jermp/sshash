@@ -25,7 +25,7 @@ int check(int argc, char** argv) {
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t> dict;
+    dictionary<kmer_t, endpoints> dict;
     load_dictionary(dict, index_filename, verbose);
     check_dictionary(dict);
     // check_correctness_navigational_contig_query(dict);
@@ -42,7 +42,7 @@ int bench(int argc, char** argv) {
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t> dict;
+    dictionary<kmer_t, endpoints> dict;
     load_dictionary(dict, index_filename, verbose);
 
     // perf_test_lookup_by_list_size(dict);
@@ -62,7 +62,7 @@ int compute_statistics(int argc, char** argv) {
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t> dict;
+    dictionary<kmer_t, endpoints> dict;
     load_dictionary(dict, index_filename, verbose);
     dict.compute_statistics();
     return 0;

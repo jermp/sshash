@@ -1,33 +1,24 @@
-#pragma once
-
+#include "dictionary_builder.hpp"
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
 
-template <class kmer_t>
-buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,                 //
-                                               buckets<kmer_t>& m_buckets,               //
-                                               skew_index<kmer_t>& m_skew_index,         //
-                                               build_configuration const& build_config)  //
+template <class kmer_t, class Endpoints>
+buckets_statistics  //
+dictionary_builder<kmer_t, Endpoints>::build_sparse_and_skew_index(
+    buckets<kmer_t, Endpoints>& m_buckets, skew_index<kmer_t>& m_skew_index)  //
 {
-    const uint64_t num_kmers = data.num_kmers;
-    const uint64_t num_minimizer_positions = data.minimizers.num_minimizer_positions();
-    const uint64_t num_minimizers = data.minimizers.num_minimizers();
+    const uint64_t num_minimizer_positions = minimizers.num_minimizer_positions();
+    const uint64_t num_minimizers = minimizers.num_minimizers();
     const uint64_t min_size = 1ULL << constants::min_l;
+    const uint64_t num_bits_per_offset = strings_endpoints_builder.num_bits_per_offset();
 
-    uint64_t num_bits_per_offset = 0;
-    if (build_config.fast) {
-        // TODO
-    } else {
-        num_bits_per_offset =
-            std::ceil(std::log2(data.strings_builder.num_bits() / kmer_t::bits_per_char));
-    }
     std::cout << "num_bits_per_offset = " << num_bits_per_offset << std::endl;
 
     bits::compact_vector::builder offsets_builder;
     offsets_builder.resize(num_minimizers, num_bits_per_offset + 1);
 
-    mm::file_source<minimizer_tuple> input(data.minimizers.get_minimizers_filename(),
+    mm::file_source<minimizer_tuple> input(minimizers.get_minimizers_filename(),
                                            mm::advice::sequential);
 
     essentials::timer_type timer;
@@ -88,15 +79,8 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
               << (num_buckets_in_skew_index * 100.0) / buckets_stats.num_buckets() << "%)"
               << std::endl;
 
-    m_buckets.strings_endpoints.encode(data.strings_endpoints.begin(),  //
-                                       data.strings_endpoints.size(),   //
-                                       data.strings_endpoints.back());  //
-    // m_buckets.strings_endpoints.build(data.strings_endpoints.begin(),  //
-    //                                   data.strings_endpoints.size(),   //
-    //                                   num_bits_per_offset);            //
-    std::vector<uint64_t>().swap(data.strings_endpoints);
-
-    data.strings_builder.build(m_buckets.strings);
+    strings_endpoints_builder.build(m_buckets.strings_endpoints);
+    strings_builder.build(m_buckets.strings);
 
     /* compute offsets2 and offsets3 */
     assert(buckets_stats.num_buckets() == num_minimizers);
@@ -383,9 +367,7 @@ buckets_statistics build_sparse_and_skew_index(parse_data<kmer_t>& data,        
                 }
                 assert(mt.pos_in_seq >= mt.pos_in_kmer);
 
-                if (build_config.fast) {  // decode offset to obtain an absolute offset
-                    // TODO
-                }
+                mt.pos_in_seq = m_buckets.strings_endpoints.decode(mt.pos_in_seq).absolute_offset;
 
                 const uint64_t starting_pos_of_super_kmer = mt.pos_in_seq - mt.pos_in_kmer;
                 kmer_iterator<kmer_t, bits::bit_vector> it(

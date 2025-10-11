@@ -23,7 +23,7 @@ int query(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     bool multiline = parser.get<bool>("multiline");
 
-    dictionary<kmer_t> dict;
+    dictionary<kmer_t, endpoints> dict;
     load_dictionary(dict, index_filename, verbose);
 
     essentials::logger("performing queries from file '" + query_filename + "'...");

@@ -4,8 +4,8 @@
 
 namespace sshash {
 
-template <class kmer_t>
-bool check_dictionary(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+bool check_dictionary(Dict const& dict) {
     const uint64_t k = dict.k();
     const uint64_t n = dict.num_kmers();
 
@@ -69,8 +69,8 @@ bool check_dictionary(dictionary<kmer_t> const& dict) {
     return check_correctness_negative_lookup(dict);
 }
 
-template <class kmer_t>
-bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+bool check_correctness_negative_lookup(Dict const& dict) {
     std::cout << "checking correctness of negative lookup with random kmers..." << std::endl;
     const uint64_t num_lookups = std::min<uint64_t>(1000000, dict.num_kmers());
     std::string kmer(dict.k(), 0);
@@ -89,9 +89,11 @@ bool check_correctness_negative_lookup(dictionary<kmer_t> const& dict) {
     return true;
 }
 
-template <class kmer_t>
-bool check_correctness_navigational_contig_query(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+bool check_correctness_navigational_contig_query(Dict const& dict)  //
+{
     std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
+    using kmer_t = typename Dict::kmer_type;
     const uint64_t num_strings = dict.num_strings();
     const uint64_t k = dict.k();
     uint64_t kmer_id = 0;
@@ -125,15 +127,15 @@ bool check_correctness_navigational_contig_query(dictionary<kmer_t> const& dict)
     return true;
 }
 
-template <class kmer_t>
-bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+bool check_correctness_kmer_iterator(Dict const& dict) {
     std::cout << "checking correctness of kmer iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
-    constexpr uint64_t runs = 3;
+    constexpr uint64_t runs = 4;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
                                                 essentials::get_random_seed());
     for (uint64_t run = 0; run != runs; ++run) {
-        uint64_t from_kmer_id = distr.gen();
+        uint64_t from_kmer_id = run == 0 ? 0 : distr.gen();
         auto it = dict.at_kmer_id(from_kmer_id);
         while (it.has_next()) {
             auto [kmer_id, kmer] = it.next();
@@ -153,8 +155,8 @@ bool check_correctness_kmer_iterator(dictionary<kmer_t> const& dict) {
     return true;
 }
 
-template <class kmer_t>
-bool check_correctness_contig_iterator(dictionary<kmer_t> const& dict) {
+template <typename Dict>
+bool check_correctness_contig_iterator(Dict const& dict) {
     std::cout << "checking correctness of contig iterator..." << std::endl;
     std::string expected_kmer(dict.k(), 0);
     for (uint64_t contig_id = 0; contig_id != dict.num_strings(); ++contig_id) {

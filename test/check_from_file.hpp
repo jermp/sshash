@@ -6,8 +6,10 @@
 
 namespace sshash {
 
-template <class kmer_t, input_file_type fmt>
-bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const& dict) {
+template <typename Dict, input_file_type fmt>
+bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
+{
+    using kmer_t = typename Dict::kmer_type;
     const uint64_t k = dict.k();
     std::string sequence;
     uint64_t num_kmers = 0;
@@ -159,8 +161,10 @@ bool check_correctness_lookup_access(std::istream& is, dictionary<kmer_t> const&
     return check_correctness_negative_lookup(dict);
 }
 
-template <class kmer_t, input_file_type fmt>
-bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer_t> const& dict) {
+template <typename Dict, input_file_type fmt>
+bool check_correctness_navigational_kmer_query(std::istream& is, Dict const& dict)  //
+{
+    using kmer_t = typename Dict::kmer_type;
     const uint64_t k = dict.k();
     std::string sequence;
     uint64_t num_kmers = 0;
@@ -212,8 +216,8 @@ bool check_correctness_navigational_kmer_query(std::istream& is, dictionary<kmer
     return true;
 }
 
-template <class kmer_t>
-bool check_correctness_weights(std::istream& is, dictionary<kmer_t> const& dict) {
+template <typename Dict>
+bool check_correctness_weights(std::istream& is, Dict const& dict) {
     uint64_t k = dict.k();
     std::string line;
     uint64_t kmer_id = 0;
@@ -268,23 +272,24 @@ bool check_correctness_weights(std::istream& is, dictionary<kmer_t> const& dict)
    The input file must be the one the index was built from.
    Throughout the code, we assume the input does not contain any duplicate.
 */
-template <class kmer_t>
-bool check_correctness_lookup_access(dictionary<kmer_t> const& dict, std::string const& filename) {
+template <typename Dict>
+bool check_correctness_lookup_access(Dict const& dict, std::string const& filename)  //
+{
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
-            good = check_correctness_lookup_access<kmer_t, input_file_type::cf_seg>(zis, dict);
+            good = check_correctness_lookup_access<Dict, input_file_type::cf_seg>(zis, dict);
         } else {
-            good = check_correctness_lookup_access<kmer_t, input_file_type::fasta>(zis, dict);
+            good = check_correctness_lookup_access<Dict, input_file_type::fasta>(zis, dict);
         }
     } else {
         if (util::ends_with(filename, ".cf_seg")) {
-            good = check_correctness_lookup_access<kmer_t, input_file_type::cf_seg>(is, dict);
+            good = check_correctness_lookup_access<Dict, input_file_type::cf_seg>(is, dict);
         } else {
-            good = check_correctness_lookup_access<kmer_t, input_file_type::fasta>(is, dict);
+            good = check_correctness_lookup_access<Dict, input_file_type::fasta>(is, dict);
         }
     }
     is.close();
@@ -295,28 +300,27 @@ bool check_correctness_lookup_access(dictionary<kmer_t> const& dict, std::string
    The input file must be the one the index was built from.
    Throughout the code, we assume the input does not contain any duplicate.
 */
-template <class kmer_t>
-bool check_correctness_navigational_kmer_query(dictionary<kmer_t> const& dict,
-                                               std::string const& filename) {
+template <typename Dict>
+bool check_correctness_navigational_kmer_query(Dict const& dict, std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
-            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::cf_seg>(zis,
-                                                                                              dict);
+            good =
+                check_correctness_navigational_kmer_query<Dict, input_file_type::cf_seg>(zis, dict);
         } else {
-            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::fasta>(zis,
-                                                                                             dict);
+            good =
+                check_correctness_navigational_kmer_query<Dict, input_file_type::fasta>(zis, dict);
         }
     } else {
         if (util::ends_with(filename, ".cf_seg")) {
-            good = check_correctness_navigational_kmer_query<kmer_t, input_file_type::cf_seg>(is,
-                                                                                              dict);
+            good =
+                check_correctness_navigational_kmer_query<Dict, input_file_type::cf_seg>(is, dict);
         } else {
             good =
-                check_correctness_navigational_kmer_query<kmer_t, input_file_type::fasta>(is, dict);
+                check_correctness_navigational_kmer_query<Dict, input_file_type::fasta>(is, dict);
         }
     }
     is.close();
@@ -327,8 +331,8 @@ bool check_correctness_navigational_kmer_query(dictionary<kmer_t> const& dict,
    The input file must be the one the index was built from.
    Only for FASTA files since CUTTLEFISH does not store kmer weights.
 */
-template <class kmer_t>
-bool check_correctness_weights(dictionary<kmer_t> const& dict, std::string const& filename) {
+template <typename Dict>
+bool check_correctness_weights(Dict const& dict, std::string const& filename) {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     bool good = true;

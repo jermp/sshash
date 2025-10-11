@@ -1,25 +1,13 @@
-#pragma once
-
+#include "dictionary_builder.hpp"
 #include "util.hpp"
 #include "external/gz/zip_stream.hpp"
 #include "include/minimizer_iterator.hpp"
 
 namespace sshash {
 
-template <class kmer_t>
-struct parse_data {
-    parse_data(build_configuration const& build_config) : num_kmers(0), minimizers(build_config) {}
-
-    uint64_t num_kmers;
-    minimizers_tuples minimizers;
-    std::vector<uint64_t> strings_endpoints;
-    bits::bit_vector::builder strings_builder;
-    weights::builder weights_builder;
-};
-
-template <class kmer_t, input_file_type fmt>
-void parse_file(std::istream& is, parse_data<kmer_t>& data,
-                build_configuration const& build_config)  //
+template <class kmer_t, class Endpoints>
+void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
+                                                       const input_file_type fmt)  //
 {
     essentials::timer_type timer;
     timer.start();
@@ -36,24 +24,22 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             " bits");
     }
 
-    /* fit into the wanted number of bits */
-    assert(max_num_kmers_in_super_kmer < (1ULL << (sizeof(num_kmers_in_super_kmer_uint_type) * 8)));
-
     {
         const uint64_t num_bits_for_strings = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
         const uint64_t num_sequences = 100'000'000;
-        data.strings_builder.reserve(num_bits_for_strings);
-        data.strings_endpoints.reserve(num_sequences);
+        strings_builder.reserve(num_bits_for_strings);
+        strings_endpoints_builder.reserve(num_sequences);
     }
 
     std::string sequence;
     uint64_t num_bases = 0;
+    uint64_t max_len = 0;
 
     hasher_type hasher(build_config.seed);
     minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
     minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
     uint64_t seq_len = 0;
-    data.weights_builder.init();
+    weights_builder.init();
 
     /* intervals of weights */
     uint64_t weight_value = constants::invalid_uint64;
@@ -61,10 +47,10 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
     while (true)  //
     {
-        if constexpr (fmt == input_file_type::cf_seg) {
-            std::getline(is, sequence, '\t');  // skip until and consume '\t'
+        if (fmt == input_file_type::cf_seg) {
+            std::getline(is, sequence, '\t');  // skip until '\t' and consume it
         } else {
-            static_assert(fmt == input_file_type::fasta);
+            assert(fmt == input_file_type::fasta);
             if (build_config.weighted) {     // parse header
                 std::getline(is, sequence);  // header sequence
                 if (sequence.empty()) break;
@@ -104,12 +90,12 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                 for (uint64_t j = 0; j != seq_len - k + 1; ++j) {
                     uint64_t weight = std::strtoull(sequence.data() + i, nullptr, 10);
                     i = sequence.find_first_of(' ', i) + 1;
-                    data.weights_builder.eat(weight);
+                    weights_builder.eat(weight);
                     if (weight == weight_value) {
                         weight_length += 1;
                     } else {
                         if (weight_value != constants::invalid_uint64) {
-                            data.weights_builder.push_weight_interval(weight_value, weight_length);
+                            weights_builder.push_weight_interval(weight_value, weight_length);
                         }
                         weight_value = weight;
                         weight_length = 1;
@@ -127,9 +113,10 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
 
         const uint64_t n = sequence.length();
         assert(n >= k);
-        assert(data.strings_builder.num_bits() % kmer_t::bits_per_char == 0);
-        data.strings_endpoints.push_back(data.strings_builder.num_bits() / kmer_t::bits_per_char);
-        data.num_kmers += n - k + 1;
+        max_len = n > max_len ? n : max_len;
+        assert(strings_builder.num_bits() % kmer_t::bits_per_char == 0);
+        strings_endpoints_builder.push_back(strings_builder.num_bits() / kmer_t::bits_per_char);
+        num_kmers += n - k + 1;
         num_bases += n;
 
         if (build_config.weighted and seq_len != n) {
@@ -138,9 +125,9 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             throw std::runtime_error("file is malformed");
         }
 
-        if (data.strings_endpoints.size() % 100'000 == 0) {
-            std::cout << "read " << data.strings_endpoints.size() << " sequences, " << num_bases
-                      << " bases, " << data.num_kmers << " kmers" << std::endl;
+        if (strings_endpoints_builder.size() % 100'000 == 0) {
+            std::cout << "read " << strings_endpoints_builder.size() << " sequences, " << num_bases
+                      << " bases, " << num_kmers << " kmers" << std::endl;
         }
 
         uint64_t i = 0;
@@ -151,37 +138,35 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             for (; i + 32 <= n; i += 32) {
                 __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
                 uint64_t word = pack2bits_shift1(v);
-                data.strings_builder.append_bits(word, 64);
+                strings_builder.append_bits(word, 64);
             }
 #endif
         }
         for (; i < n; ++i) {
-            data.strings_builder.append_bits(kmer_t::char_to_uint(sequence[i]),
-                                             kmer_t::bits_per_char);
+            strings_builder.append_bits(kmer_t::char_to_uint(sequence[i]), kmer_t::bits_per_char);
         }
     }
 
-    data.strings_endpoints.push_back(data.strings_builder.num_bits() / kmer_t::bits_per_char);
-    assert(data.strings_endpoints.front() == 0);
-    assert(data.strings_endpoints.size() >= 2);
-    const uint64_t num_sequences = data.strings_endpoints.size() - 1;
+    strings_endpoints_builder.push_back(strings_builder.num_bits() / kmer_t::bits_per_char);
+    assert(strings_endpoints_builder.front() == 0);
+    assert(strings_endpoints_builder.size() >= 2);
+    const uint64_t num_sequences = strings_endpoints_builder.size() - 1;
 
     /* Push a final sentinel (dummy) value to avoid bounds' checking in
        kmer_iterator::fill_buff(). */
     static_assert(kmer_t::uint_kmer_bits % 64 == 0);
     for (int dummy_bits = kmer_t::uint_kmer_bits; dummy_bits; dummy_bits -= 64) {
-        data.strings_builder.append_bits(0, 64);
+        strings_builder.append_bits(0, 64);
     }
 
     timer.stop();
-    print_time(timer.elapsed(), data.num_kmers, "step 1.1: 'encoding input'");
+    print_time(timer.elapsed(), num_kmers, "step 1.1: 'encoding input'");
 
-    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
-              << data.num_kmers << " kmers" << std::endl;
-    std::cout << "num_kmers " << data.num_kmers << std::endl;
+    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, " << num_kmers
+              << " kmers" << std::endl;
+    std::cout << "num_kmers " << num_kmers << std::endl;
     std::cout << "cost: 2.0 + "
-              << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) /
-                     data.num_kmers
+              << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) / num_kmers
               << " [bits/kmer]" << std::endl;
 
     /*
@@ -207,6 +192,22 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     std::vector<std::thread> threads;
     threads.reserve(num_threads);
 
+    num_bits nb;
+    nb.per_absolute_offset = std::ceil(std::log2(strings_endpoints_builder.back()));
+    nb.per_relative_offset = max_len == k ? 1 : std::ceil(std::log2(max_len - k + 1));
+    nb.per_string_id = std::ceil(std::log2(num_sequences));
+
+    std::cout << "max_len " << max_len << std::endl;
+    std::cout << "num. bits per_absolute_offset " << nb.per_absolute_offset << std::endl;
+    std::cout << "num. bits per_relative_offset " << nb.per_relative_offset << std::endl;
+    std::cout << "num. bits per_string_id " << nb.per_string_id << std::endl;
+
+    if (build_config.fast and nb.per_string_id + nb.per_relative_offset > 64) {
+        throw std::runtime_error("minimier offset does not fit within 64 bits");
+    }
+
+    strings_endpoints_builder.set_num_bits(nb);
+
     for (uint64_t t = 0; t * num_sequences_per_thread < num_sequences; ++t)  //
     {
         threads.emplace_back([&, t] {
@@ -228,7 +229,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                     return;
                 }
                 if (buffer.size() == buffer_size) {
-                    data.minimizers.sort_and_flush(buffer);
+                    minimizers.sort_and_flush(buffer);
                     buffer.clear();
                 }
                 buffer.emplace_back(mini_info, num_kmers_in_super_kmer);
@@ -238,14 +239,14 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             const uint64_t index_end =
                 std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
 
-            kmer_iterator<kmer_t, bits::bit_vector::builder> it(data.strings_builder, k);
+            kmer_iterator<kmer_t, bits::bit_vector::builder> it(strings_builder, k);
             minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
             minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
 
             for (uint64_t i = index_begin; i < index_end; ++i)  //
             {
-                const uint64_t begin = data.strings_endpoints[i];
-                const uint64_t end = data.strings_endpoints[i + 1];
+                const uint64_t begin = strings_endpoints_builder[i];
+                const uint64_t end = strings_endpoints_builder[i + 1];
                 const uint64_t sequence_len = end - begin;
                 assert(sequence_len >= k);
 
@@ -275,9 +276,8 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
                         }
                     }
 
-                    if (build_config.fast) {  // encode offset
-                        // TODO
-                    }
+                    mini_info.pos_in_seq =
+                        strings_endpoints_builder.encode(mini_info.pos_in_seq, begin, i);
 
                     if (prev_mini_info.minimizer == constants::invalid_uint64) {
                         prev_mini_info = mini_info;
@@ -299,7 +299,7 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
             }
 
             /* flush leftover */
-            if (!buffer.empty()) data.minimizers.sort_and_flush(buffer);
+            if (!buffer.empty()) minimizers.sort_and_flush(buffer);
         });
     }
 
@@ -308,17 +308,16 @@ void parse_file(std::istream& is, parse_data<kmer_t>& data,
     }
 
     timer.stop();
-    print_time(timer.elapsed(), data.num_kmers, "step 1.2: 'computing minimizers tuples'");
+    print_time(timer.elapsed(), num_kmers, "step 1.2: 'computing minimizers tuples'");
 
     if (build_config.weighted) {
-        data.weights_builder.push_weight_interval(weight_value, weight_length);
-        data.weights_builder.finalize(data.num_kmers);
+        weights_builder.push_weight_interval(weight_value, weight_length);
+        weights_builder.finalize(num_kmers);
     }
 }
 
-template <class kmer_t>
-void parse_file(std::string const& filename, parse_data<kmer_t>& data,
-                build_configuration const& build_config)  //
+template <class kmer_t, class Endpoints>
+void dictionary_builder<kmer_t, Endpoints>::parse_file(std::string const& filename)  //
 {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
@@ -326,15 +325,15 @@ void parse_file(std::string const& filename, parse_data<kmer_t>& data,
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
-            parse_file<kmer_t, input_file_type::cf_seg>(zis, data, build_config);
+            parse_file(zis, input_file_type::cf_seg);
         } else {
-            parse_file<kmer_t, input_file_type::fasta>(zis, data, build_config);
+            parse_file(zis, input_file_type::fasta);
         }
     } else {
         if (util::ends_with(filename, ".cf_seg")) {
-            parse_file<kmer_t, input_file_type::cf_seg>(is, data, build_config);
+            parse_file(is, input_file_type::cf_seg);
         } else {
-            parse_file<kmer_t, input_file_type::fasta>(is, data, build_config);
+            parse_file(is, input_file_type::fasta);
         }
     }
     is.close();
