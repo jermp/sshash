@@ -14,6 +14,7 @@ void perf_test_iterator(Dict const& dict) {
     while (it.has_next()) {
         auto [kmer_id, kmer] = it.next();
         essentials::do_not_optimize_away(kmer_id);
+        essentials::do_not_optimize_away(kmer.at(0));
     }
     t.stop();
     double avg_nanosec = t.elapsed() / dict.num_kmers();
