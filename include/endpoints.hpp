@@ -12,7 +12,7 @@ struct num_bits {
     uint64_t per_string_id;
 };
 
-struct endpoints  //
+struct decoded_offsets  //
 {
     struct builder {
         builder() {}
@@ -32,7 +32,8 @@ struct endpoints  //
 
         uint64_t encode(uint64_t offset, uint64_t, uint64_t) { return offset; }
 
-        void build(endpoints& e) {
+        void build(decoded_offsets& e) {
+            assert(std::is_sorted(m_v.begin(), m_v.end()));
             e.m_seq.encode(m_v.begin(), m_v.size(), m_v.back());
             std::vector<uint64_t>().swap(m_v);
         }
@@ -119,7 +120,7 @@ struct endpoints  //
 
     struct iterator {
         iterator() {}
-        iterator(endpoints const* e, uint64_t pos) { m_it = e->m_seq.get_iterator_at(pos); }
+        iterator(decoded_offsets const* e, uint64_t pos) { m_it = e->m_seq.get_iterator_at(pos); }
 
         uint64_t value() const { return m_it.value(); }
         void next() { m_it.next(); }
@@ -152,7 +153,7 @@ private:
     }
 };
 
-struct _endpoints  //
+struct encoded_offsets  //
 {
     struct builder {
         builder() {}
@@ -174,12 +175,15 @@ struct _endpoints  //
 
         uint64_t encode(uint64_t offset, uint64_t begin, uint64_t string_id) {
             /* encode offset as | string-id | relative offset | */
+            assert(string_id < m_v.size());
             assert(offset >= begin);
+            assert((offset - begin) < (1ULL << m_nb.per_relative_offset));
             uint64_t relative_offset = offset - begin;
             return (string_id << m_nb.per_relative_offset) + relative_offset;
         }
 
-        void build(_endpoints& e) {
+        void build(encoded_offsets& e) {
+            assert(std::is_sorted(m_v.begin(), m_v.end()));
             e.m_seq.build(m_v.begin(), m_v.size(), m_nb.per_absolute_offset);
             e.m_num_bits_per_relative_offset = m_nb.per_relative_offset;
             std::vector<uint64_t>().swap(m_v);
@@ -202,14 +206,18 @@ struct _endpoints  //
         uint64_t relative_offset = encoded_offset & ((1ULL << m_num_bits_per_relative_offset) - 1);
         uint64_t string_id = encoded_offset >> m_num_bits_per_relative_offset;
         assert(string_id + 1 < m_seq.size());
-        uint64_t begin = m_seq[string_id];
-        uint64_t end = m_seq[string_id + 1];
+        uint64_t begin = m_seq.access(string_id);
+        uint64_t end = m_seq.access(string_id + 1);
         return {begin + relative_offset, relative_offset, string_id, begin, end};
     }
 
     lookup_result offset_to_id(decoded_offset p, uint64_t pos_in_kmer, const uint64_t k) const  //
     {
-        if (p.absolute_offset < pos_in_kmer) return lookup_result();
+        if (p.absolute_offset < pos_in_kmer or                 //
+            p.absolute_offset - pos_in_kmer < p.string_begin)  //
+        {
+            return lookup_result();
+        }
 
         uint64_t kmer_offset = p.absolute_offset - pos_in_kmer;
         uint64_t contig_id = p.string_id;
@@ -277,7 +285,7 @@ struct _endpoints  //
 
     struct iterator {
         iterator() {}
-        iterator(_endpoints const* e, uint64_t pos) { m_it = e->m_seq.get_iterator_at(pos); }
+        iterator(encoded_offsets const* e, uint64_t pos) { m_it = e->m_seq.get_iterator_at(pos); }
 
         uint64_t value() const { return *m_it; }
         void next() { ++m_it; }

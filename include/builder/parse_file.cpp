@@ -194,7 +194,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
 
     num_bits nb;
     nb.per_absolute_offset = std::ceil(std::log2(strings_endpoints_builder.back()));
-    nb.per_relative_offset = max_len == k ? 1 : std::ceil(std::log2(max_len - k + 1));
+    nb.per_relative_offset = std::ceil(std::log2(max_len - m + 1));
     nb.per_string_id = std::ceil(std::log2(num_sequences));
 
     std::cout << "max_len " << max_len << std::endl;

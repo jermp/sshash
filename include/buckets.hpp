@@ -279,8 +279,6 @@ struct buckets  //
     }
 
     Endpoints strings_endpoints;
-    // bits::endpoints_sequence<> strings_endpoints;
-    // bits::compact_vector strings_endpoints;
 
     std::vector<uint32_t> start_lists_of_size;
     bits::compact_vector offsets;
