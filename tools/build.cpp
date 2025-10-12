@@ -1,6 +1,5 @@
 using namespace sshash;
 
-template <class kmer_t>
 int build(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
 
@@ -14,7 +13,8 @@ int build(int argc, char** argv) {
         "\t- one DNA sequence per line.\n"
         "\tFor example, it could be the de Bruijn graph topology output by BCALM or CUTTLEFISH.",
         "-i", true);
-    parser.add("k", "K-mer length (must be <= " + std::to_string(kmer_t::max_k) + ").", "-k", true);
+    parser.add("k", "K-mer length (must be <= " + std::to_string(default_kmer_t::max_k) + ").",
+               "-k", true);
     parser.add("m", "Minimizer length (must be < k).", "-m", true);
 
     /* Optional arguments. */
@@ -55,7 +55,7 @@ int build(int argc, char** argv) {
     auto k = parser.get<uint64_t>("k");
     auto m = parser.get<uint64_t>("m");
 
-    dictionary<kmer_t, endpoints> dict;
+    dictionary_type dict;
 
     build_configuration build_config;
     build_config.k = k;

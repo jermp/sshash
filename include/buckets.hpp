@@ -59,10 +59,10 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_at_offset_no_check_minimizer(endpoints::decoded_offset p,     //
-                                                      const kmer_t kmer,               //
-                                                      const minimizer_info mini_info,  //
-                                                      const uint64_t k) const          //
+    lookup_result lookup_at_offset_no_check_minimizer(typename Endpoints::decoded_offset p,  //
+                                                      const kmer_t kmer,                     //
+                                                      const minimizer_info mini_info,        //
+                                                      const uint64_t k) const                //
     {
         auto res = strings_endpoints.offset_to_id(p, mini_info.pos_in_kmer, k);
         if (res.kmer_id != constants::invalid_uint64) {
@@ -129,12 +129,13 @@ struct buckets  //
         return lookup_result();
     }
 
-    lookup_result lookup_canonical_at_offset_no_check_minimizer(endpoints::decoded_offset p,  //
-                                                                const kmer_t kmer,
-                                                                const kmer_t kmer_rc,            //
-                                                                const minimizer_info mini_info,  //
-                                                                const uint64_t k,                //
-                                                                const uint64_t m) const          //
+    lookup_result lookup_canonical_at_offset_no_check_minimizer(
+        typename Endpoints::decoded_offset p,  //
+        const kmer_t kmer,
+        const kmer_t kmer_rc,            //
+        const minimizer_info mini_info,  //
+        const uint64_t k,                //
+        const uint64_t m) const          //
     {
         uint64_t pos_in_kmer = mini_info.pos_in_kmer;
         auto res = check_offset(p, pos_in_kmer, kmer, kmer_rc, k);
@@ -169,7 +170,7 @@ struct buckets  //
         return lookup_canonical_at_offset_no_check_minimizer(p, kmer, kmer_rc, mini_info, k, m);
     }
 
-    lookup_result check_offset(endpoints::decoded_offset p,              //
+    lookup_result check_offset(typename Endpoints::decoded_offset p,     //
                                const uint64_t pos_in_kmer,               //
                                const kmer_t kmer, const kmer_t kmer_rc,  //
                                const uint64_t k) const                   //
@@ -213,24 +214,24 @@ struct buckets  //
             m_strings_endpoints_it = m_buckets->strings_endpoints.get_iterator_at(pos);
             assert(m_strings_endpoints_it.value() > m_offset);
             next_piece();
-            m_ret.second.resize(m_k, 0);
         }
 
         bool has_next() const { return m_begin_kmer_id != m_end_kmer_id; }
 
-        std::pair<uint64_t, std::string> next() {
+        std::pair<uint64_t, kmer_t>  // (kmer-id, encoded kmer)
+        next() {
             if (m_offset == m_next_offset - m_k + 1) {
                 m_offset = m_next_offset;
                 next_piece();
             }
             m_ret.first = m_begin_kmer_id;
             if (m_clear) {
-                util::uint_kmer_to_string(m_it.get(), m_ret.second.data(), m_k);
+                m_ret.second = m_it.get();
                 assert(kmer_t::bits_per_char * m_offset == m_it.position());
                 m_it.at(kmer_t::bits_per_char * (m_offset + m_k));
             } else {
-                memmove(m_ret.second.data(), m_ret.second.data() + 1, m_k - 1);
-                m_ret.second[m_k - 1] = kmer_t::uint64_to_char(m_it.get_next_char());
+                m_ret.second.drop_char();
+                m_ret.second.set(m_k - 1, m_it.get_next_char());
             }
             m_clear = false;
             ++m_begin_kmer_id;
@@ -239,12 +240,11 @@ struct buckets  //
         }
 
     private:
-        std::pair<uint64_t, std::string> m_ret;
+        std::pair<uint64_t, kmer_t> m_ret;
         buckets const* m_buckets;
         uint64_t m_begin_kmer_id, m_end_kmer_id;
         uint64_t m_k;
-        uint64_t m_offset;
-        uint64_t m_next_offset;
+        uint64_t m_offset, m_next_offset;
         kmer_iterator<kmer_t, bits::bit_vector> m_it;
         typename Endpoints::iterator m_strings_endpoints_it;
         bool m_clear;

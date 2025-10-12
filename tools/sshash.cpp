@@ -17,7 +17,6 @@
 
 using namespace sshash;
 
-template <class kmer_t>
 int check(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
@@ -25,16 +24,15 @@ int check(int argc, char** argv) {
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t, endpoints> dict;
+    dictionary_type dict;
     load_dictionary(dict, index_filename, verbose);
     check_dictionary(dict);
-    // check_correctness_navigational_contig_query(dict);
-    // check_correctness_kmer_iterator(dict);
-    // check_correctness_contig_iterator(dict);
+    check_correctness_navigational_contig_query(dict);
+    check_correctness_kmer_iterator(dict);
+    check_correctness_contig_iterator(dict);
     return 0;
 }
 
-template <class kmer_t>
 int bench(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
@@ -42,29 +40,15 @@ int bench(int argc, char** argv) {
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
     bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t, endpoints> dict;
+    dictionary_type dict;
     load_dictionary(dict, index_filename, verbose);
 
     // perf_test_lookup_by_list_size(dict);
 
     perf_test_lookup_access(dict);
     // if (dict.weighted()) perf_test_lookup_weight(dict);
-    // perf_test_iterator(dict);
+    perf_test_iterator(dict);
 
-    return 0;
-}
-
-template <class kmer_t>
-int compute_statistics(int argc, char** argv) {
-    cmd_line_parser::parser parser(argc, argv);
-    parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
-    parser.add("verbose", "Verbose output.", "--verbose", false, true);
-    if (!parser.parse()) return 0;
-    auto index_filename = parser.get<std::string>("index_filename");
-    bool verbose = parser.get<bool>("verbose");
-    dictionary<kmer_t, endpoints> dict;
-    load_dictionary(dict, index_filename, verbose);
-    dict.compute_statistics();
     return 0;
 }
 
@@ -88,15 +72,15 @@ int main(int argc, char** argv) {
     if (argc < 2) return help(argv[0]);
     auto tool = std::string(argv[1]);
     if (tool == "build") {
-        return build<default_kmer_t>(argc - 1, argv + 1);
+        return build(argc - 1, argv + 1);
     } else if (tool == "query") {
-        return query<default_kmer_t>(argc - 1, argv + 1);
+        return query(argc - 1, argv + 1);
     } else if (tool == "check") {
-        return check<default_kmer_t>(argc - 1, argv + 1);
+        return check(argc - 1, argv + 1);
     } else if (tool == "bench") {
-        return bench<default_kmer_t>(argc - 1, argv + 1);
+        return bench(argc - 1, argv + 1);
     } else if (tool == "permute") {
-        return permute<default_kmer_t>(argc - 1, argv + 1);
+        return permute(argc - 1, argv + 1);
     }
     std::cout << "Unsupported tool '" << tool << "'.\n" << std::endl;
     return help(argv[0]);

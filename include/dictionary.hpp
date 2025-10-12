@@ -87,8 +87,8 @@ struct dictionary  //
 
         bool has_next() const { return m_it.has_next(); }
 
-        /* (kmer-id, kmer) */
-        std::pair<uint64_t, std::string> next() { return m_it.next(); }
+        /* (kmer-id, encoded kmer) */
+        std::pair<uint64_t, kmer_t> next() { return m_it.next(); }
 
     private:
         typename buckets<kmer_t, Endpoints>::iterator m_it;
@@ -124,7 +124,6 @@ struct dictionary  //
     uint64_t num_bits() const;
     void print_info() const;
     void print_space_breakdown() const;
-    void compute_statistics() const;
 
     template <typename Visitor>
     void visit(Visitor& visitor) const {

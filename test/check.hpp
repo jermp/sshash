@@ -130,7 +130,9 @@ bool check_correctness_navigational_contig_query(Dict const& dict)  //
 template <typename Dict>
 bool check_correctness_kmer_iterator(Dict const& dict) {
     std::cout << "checking correctness of kmer iterator..." << std::endl;
-    std::string expected_kmer(dict.k(), 0);
+    const uint64_t k = dict.k();
+    std::string read_kmer(k, 0);
+    std::string expected_kmer(k, 0);
     constexpr uint64_t runs = 4;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
                                                 essentials::get_random_seed());
@@ -139,9 +141,10 @@ bool check_correctness_kmer_iterator(Dict const& dict) {
         auto it = dict.at_kmer_id(from_kmer_id);
         while (it.has_next()) {
             auto [kmer_id, kmer] = it.next();
+            util::uint_kmer_to_string<typename Dict::kmer_type>(kmer, read_kmer.data(), k);
             dict.access(kmer_id, expected_kmer.data());
-            if (kmer != expected_kmer or kmer_id != from_kmer_id) {
-                std::cout << "got (" << kmer_id << ",'" << kmer << "')";
+            if (read_kmer != expected_kmer or kmer_id != from_kmer_id) {
+                std::cout << "got (" << kmer_id << ",'" << read_kmer << "')";
                 std::cout << " but ";
                 std::cout << "expected (" << from_kmer_id << ",'" << expected_kmer << "')"
                           << std::endl;
@@ -158,16 +161,19 @@ bool check_correctness_kmer_iterator(Dict const& dict) {
 template <typename Dict>
 bool check_correctness_contig_iterator(Dict const& dict) {
     std::cout << "checking correctness of contig iterator..." << std::endl;
-    std::string expected_kmer(dict.k(), 0);
+    const uint64_t k = dict.k();
+    std::string read_kmer(k, 0);
+    std::string expected_kmer(k, 0);
     for (uint64_t contig_id = 0; contig_id != dict.num_strings(); ++contig_id) {
         auto [begin, _] = dict.contig_offsets(contig_id);
         uint64_t from_kmer_id = begin - contig_id * (dict.k() - 1);
         auto it = dict.at_contig_id(contig_id);
         while (it.has_next()) {
             auto [kmer_id, kmer] = it.next();
+            util::uint_kmer_to_string<typename Dict::kmer_type>(kmer, read_kmer.data(), k);
             dict.access(kmer_id, expected_kmer.data());
-            if (kmer != expected_kmer or kmer_id != from_kmer_id) {
-                std::cout << "got (" << kmer_id << ",'" << kmer << "')";
+            if (read_kmer != expected_kmer or kmer_id != from_kmer_id) {
+                std::cout << "got (" << kmer_id << ",'" << read_kmer << "')";
                 std::cout << " but ";
                 std::cout << "expected (" << from_kmer_id << ",'" << expected_kmer << "')"
                           << std::endl;
