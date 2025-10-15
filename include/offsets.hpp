@@ -55,29 +55,34 @@ struct decoded_offsets  //
 
         uint64_t kmer_offset = p.absolute_offset - pos_in_kmer;
         auto q = m_seq.locate(kmer_offset);
-        uint64_t contig_id = q.first.pos;
-        uint64_t contig_begin = q.first.val;
-        uint64_t contig_end = q.second.val;
+        uint64_t string_id = q.first.pos;
+        uint64_t string_begin = q.first.val;
+        uint64_t string_end = q.second.val;
 
         /* The following facts hold. */
-        assert(kmer_offset >= contig_id * (k - 1));
-        assert(contig_begin <= kmer_offset);
-        assert(kmer_offset < contig_end);
+        assert(kmer_offset >= string_id * (k - 1));
+        assert(string_begin <= kmer_offset);
+        assert(kmer_offset < string_end);
         /****************************/
 
-        uint64_t absolute_kmer_id = kmer_offset - contig_id * (k - 1);
-        uint64_t relative_kmer_id = kmer_offset - contig_begin;
-        uint64_t contig_length = contig_end - contig_begin;
-        assert(contig_length >= k);
-        uint64_t contig_size = contig_length - k + 1;
+        if (kmer_offset >= string_end - k + 1) return lookup_result();
+
+        uint64_t absolute_kmer_id = kmer_offset - string_id * (k - 1);
+        uint64_t relative_kmer_id = kmer_offset - string_begin;
+        uint64_t string_length = string_end - string_begin;
+        assert(string_length >= k);
+        uint64_t string_size = string_length - k + 1;
 
         lookup_result res;
         res.kmer_id = absolute_kmer_id;
-        res.kmer_id_in_contig = relative_kmer_id;
-        res.contig_id = contig_id;
-        res.contig_size = contig_size;
-        assert(contig_begin == res.contig_begin(k));
-        assert(contig_end == res.contig_end(k));
+        res.kmer_id_in_string = relative_kmer_id;
+        res.string_id = string_id;
+        res.string_size = string_size;
+
+        assert(res.kmer_id_in_string < res.string_size);
+        assert(res.string_id < m_seq.size());
+        assert(string_begin == res.string_begin(k));
+        assert(string_end == res.string_end(k));
         assert(kmer_offset == res.kmer_offset(k));
 
         return res;
@@ -213,36 +218,40 @@ struct encoded_offsets  //
 
     lookup_result offset_to_id(decoded_offset p, uint64_t pos_in_kmer, const uint64_t k) const  //
     {
-        if (p.absolute_offset < pos_in_kmer or                 //
-            p.absolute_offset - pos_in_kmer < p.string_begin)  //
+        if (p.absolute_offset < pos_in_kmer or                        //
+            p.absolute_offset - pos_in_kmer < p.string_begin or       //
+            p.absolute_offset - pos_in_kmer >= p.string_end - k + 1)  //
         {
             return lookup_result();
         }
 
         uint64_t kmer_offset = p.absolute_offset - pos_in_kmer;
-        uint64_t contig_id = p.string_id;
-        uint64_t contig_begin = p.string_begin;
-        uint64_t contig_end = p.string_end;
+        uint64_t string_id = p.string_id;
+        uint64_t string_begin = p.string_begin;
+        uint64_t string_end = p.string_end;
 
         /* The following facts hold. */
-        assert(kmer_offset >= contig_id * (k - 1));
-        assert(contig_begin <= kmer_offset);
-        assert(kmer_offset < contig_end);
+        assert(kmer_offset >= string_id * (k - 1));
+        assert(string_begin <= kmer_offset);
+        assert(kmer_offset < string_end);
         /****************************/
 
-        uint64_t absolute_kmer_id = kmer_offset - contig_id * (k - 1);
-        uint64_t relative_kmer_id = kmer_offset - contig_begin;
-        uint64_t contig_length = contig_end - contig_begin;
-        assert(contig_length >= k);
-        uint64_t contig_size = contig_length - k + 1;
+        uint64_t absolute_kmer_id = kmer_offset - string_id * (k - 1);
+        uint64_t relative_kmer_id = kmer_offset - string_begin;
+        uint64_t string_length = string_end - string_begin;
+        assert(string_length >= k);
+        uint64_t string_size = string_length - k + 1;
 
         lookup_result res;
         res.kmer_id = absolute_kmer_id;
-        res.kmer_id_in_contig = relative_kmer_id;
-        res.contig_id = contig_id;
-        res.contig_size = contig_size;
-        assert(contig_begin == res.contig_begin(k));
-        assert(contig_end == res.contig_end(k));
+        res.kmer_id_in_string = relative_kmer_id;
+        res.string_id = string_id;
+        res.string_size = string_size;
+
+        assert(res.kmer_id_in_string < res.string_size);
+        assert(res.string_id < m_seq.size());
+        assert(string_begin == res.string_begin(k));
+        assert(string_end == res.string_end(k));
         assert(kmer_offset == res.kmer_offset(k));
 
         return res;
@@ -281,7 +290,9 @@ struct encoded_offsets  //
 
     uint64_t size() const { return m_seq.size(); }
 
-    uint64_t num_bytes() const { return m_seq.num_bytes(); }
+    uint64_t num_bytes() const {
+        return sizeof(m_num_bits_per_relative_offset) + m_seq.num_bytes();
+    }
 
     struct iterator {
         iterator() {}

@@ -90,22 +90,22 @@ bool check_correctness_negative_lookup(Dict const& dict) {
 }
 
 template <typename Dict>
-bool check_correctness_navigational_contig_query(Dict const& dict)  //
+bool check_correctness_navigational_string_query(Dict const& dict)  //
 {
-    std::cout << "checking correctness of navigational queries for contigs..." << std::endl;
+    std::cout << "checking correctness of navigational queries for strings..." << std::endl;
     using kmer_t = typename Dict::kmer_type;
     const uint64_t num_strings = dict.num_strings();
     const uint64_t k = dict.k();
     uint64_t kmer_id = 0;
     std::string kmer(k, 0);
-    uint64_t contig_id = 0;
-    for (; contig_id != num_strings; ++contig_id) {
-        if (contig_id != 0 and contig_id % 1000000 == 0) {
-            std::cout << "checked " << contig_id << "/" << num_strings << " contigs" << std::endl;
+    uint64_t string_id = 0;
+    for (; string_id != num_strings; ++string_id) {
+        if (string_id != 0 and string_id % 1'000'000 == 0) {
+            std::cout << "checked " << string_id << "/" << num_strings << " strings" << std::endl;
         }
 
-        auto res = dict.contig_neighbours(contig_id);
-        uint64_t contig_size = dict.contig_size(contig_id);
+        auto res = dict.string_neighbours(string_id);
+        uint64_t string_size = dict.string_size(string_id);
 
         uint64_t begin_kmer_id = kmer_id;
         dict.access(begin_kmer_id, kmer.data());
@@ -114,15 +114,15 @@ bool check_correctness_navigational_contig_query(Dict const& dict)  //
             equal_lookup_result(backward.backward[i], res.backward[i]);
         }
 
-        uint64_t end_kmer_id = kmer_id + contig_size - 1;
+        uint64_t end_kmer_id = kmer_id + string_size - 1;
         dict.access(end_kmer_id, kmer.data());
         auto forward = dict.kmer_forward_neighbours(kmer.data());
         for (size_t i = 0; i < kmer_t::alphabet_size; i++) {
             equal_lookup_result(forward.forward[i], res.forward[i]);
         }
-        kmer_id += contig_size;
+        kmer_id += string_size;
     }
-    std::cout << "checked " << contig_id << " contigs" << std::endl;
+    std::cout << "checked " << string_id << " strings" << std::endl;
     std::cout << "EVERYTHING OK!" << std::endl;
     return true;
 }
@@ -159,15 +159,15 @@ bool check_correctness_kmer_iterator(Dict const& dict) {
 }
 
 template <typename Dict>
-bool check_correctness_contig_iterator(Dict const& dict) {
-    std::cout << "checking correctness of contig iterator..." << std::endl;
+bool check_correctness_string_iterator(Dict const& dict) {
+    std::cout << "checking correctness of string iterator..." << std::endl;
     const uint64_t k = dict.k();
     std::string read_kmer(k, 0);
     std::string expected_kmer(k, 0);
-    for (uint64_t contig_id = 0; contig_id != dict.num_strings(); ++contig_id) {
-        auto [begin, _] = dict.contig_offsets(contig_id);
-        uint64_t from_kmer_id = begin - contig_id * (dict.k() - 1);
-        auto it = dict.at_contig_id(contig_id);
+    for (uint64_t string_id = 0; string_id != dict.num_strings(); ++string_id) {
+        auto [begin, _] = dict.string_offsets(string_id);
+        uint64_t from_kmer_id = begin - string_id * (dict.k() - 1);
+        auto it = dict.at_string_id(string_id);
         while (it.has_next()) {
             auto [kmer_id, kmer] = it.next();
             util::uint_kmer_to_string<typename Dict::kmer_type>(kmer, read_kmer.data(), k);

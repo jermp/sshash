@@ -4,8 +4,9 @@
 
 namespace sshash {
 
-template <class kmer_t>
-struct skew_index {
+template <typename Kmer>
+struct skew_index  //
+{
     skew_index() {
         mphfs.resize(0);
         positions.resize(0);
@@ -32,11 +33,16 @@ struct skew_index {
         return num_kmers_in_skew_index;
     }
 
-    uint64_t lookup(kmer_t uint_kmer, uint64_t partition_id) const {
+    uint64_t lookup(const Kmer uint_kmer, uint64_t code) const {
+        code >>= 2;
+        uint64_t partition_id = code & 7;
+        uint64_t begin = code >> 3;
         assert(partition_id < mphfs.size());
         auto const& f = mphfs[partition_id];
         auto const& p = positions[partition_id];
-        return p.access(f(uint_kmer));
+        uint64_t pos_in_bucket = p.access(f(uint_kmer));
+        uint64_t offset = heavy_load_buckets.access(begin + pos_in_bucket);
+        return offset;
     }
 
     uint64_t num_bits() const {
@@ -46,7 +52,7 @@ struct skew_index {
             auto const& p = positions[partition_id];
             n += f.num_bits() + p.num_bytes() * 8;
         }
-        return n;
+        return n + 8 * heavy_load_buckets.num_bytes();
     }
 
     template <typename Visitor>
@@ -59,14 +65,16 @@ struct skew_index {
         visit_impl(visitor, *this);
     }
 
-    std::vector<kmers_pthash_type<kmer_t>> mphfs;
+    std::vector<kmers_pthash_type<Kmer>> mphfs;
     std::vector<bits::compact_vector> positions;
+    bits::compact_vector heavy_load_buckets;
 
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.mphfs);
         visitor.visit(t.positions);
+        visitor.visit(t.heavy_load_buckets);
     }
 };
 

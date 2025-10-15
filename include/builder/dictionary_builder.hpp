@@ -1,7 +1,8 @@
 #pragma once
 
-#include "include/dictionary.hpp"
 #include "essentials.hpp"
+#include "include/dictionary.hpp"
+#include "include/offsets.hpp"
 #include "include/builder/util.hpp"
 #include "include/buckets_statistics.hpp"
 
@@ -9,16 +10,18 @@
 
 namespace sshash {
 
-template <class kmer_t, class Endpoints>
+template <typename Kmer, typename Offsets>
 struct dictionary_builder  //
 {
     dictionary_builder(build_configuration const& build_config)
         : build_config(build_config), num_kmers(0), minimizers(build_config) {}
 
-    void build(dictionary<kmer_t, Endpoints>& d, std::string const& filename)  //
+    void build(dictionary<Kmer, Offsets>& d, std::string const& filename)  //
     {
         d.m_k = build_config.k;
         d.m_m = build_config.m;
+        d.m_spss.k = build_config.k;
+        d.m_spss.m = build_config.m;
         d.m_canonical = build_config.canonical;
         d.m_hasher.seed(build_config.seed);
 
@@ -32,8 +35,8 @@ struct dictionary_builder  //
         timer.start();
         parse_file(filename);
         d.m_num_kmers = num_kmers;
-        assert(strings_endpoints_builder.size() >= 2);
-        d.m_num_strings = strings_endpoints_builder.size() - 1;
+        assert(strings_offsets_builder.size() >= 2);
+        d.m_num_strings = strings_offsets_builder.size() - 1;
         if (build_config.weighted) {
             essentials::timer_type timer;
             timer.start();
@@ -75,9 +78,9 @@ struct dictionary_builder  //
             mm::file_source<minimizer_tuple> input(minimizers.get_minimizers_filename(),
                                                    mm::advice::sequential);
             minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
-            d.m_minimizers.build(iterator, num_minimizers, build_config);
+            d.m_ssi.codewords.build(iterator, num_minimizers, build_config);
             input.close();
-            assert(d.m_minimizers.size() == num_minimizers);
+            assert(d.m_ssi.codewords.size() == num_minimizers);
             timer.stop();
             timings.push_back(timer.elapsed());
             print_time(timings.back(), num_kmers, "step 2.2: 'build minimizers mphf'");
@@ -93,7 +96,7 @@ struct dictionary_builder  //
             std::string filename = minimizers.get_minimizers_filename();
             std::ifstream input(filename, std::ifstream::binary);
 
-            auto const& f = d.m_minimizers;
+            auto const& f = d.m_ssi.codewords.mphf;
             const uint64_t num_threads = build_config.num_threads;
             const uint64_t num_files_to_merge = minimizers.num_files_to_merge();
 
@@ -124,7 +127,7 @@ struct dictionary_builder  //
                     uint64_t end = std::min(n, begin + chunk_size);
                     threads.emplace_back([begin, end, &buffer, &f]() {
                         for (uint64_t i = begin; i < end; ++i) {
-                            buffer[i].minimizer = f.lookup(buffer[i].minimizer);
+                            buffer[i].minimizer = f(buffer[i].minimizer);
                         }
                     });
                 }
@@ -154,8 +157,8 @@ struct dictionary_builder  //
 
         /* step 3: build sparse and skew index ***/
         timer.start();
-        auto buckets_stats = build_sparse_and_skew_index(d.m_buckets, d.m_skew_index);
-        assert(strings_endpoints_builder.size() == 0);
+        auto buckets_stats = build_sparse_and_skew_index(d);
+        assert(strings_offsets_builder.size() == 0);
         timer.stop();
         timings.push_back(timer.elapsed());
         print_time(timings.back(), num_kmers, "step 3: 'build sparse and skew index'");
@@ -176,17 +179,15 @@ struct dictionary_builder  //
     build_configuration build_config;
     uint64_t num_kmers;
     minimizers_tuples minimizers;
-    typename Endpoints::builder strings_endpoints_builder;
+    typename Offsets::builder strings_offsets_builder;
     bits::bit_vector::builder strings_builder;
     weights::builder weights_builder;
 
 private:
     void parse_file(std::string const& filename);
+    void parse_file(std::istream& is, const input_file_t fmt);
 
-    void parse_file(std::istream& is, const input_file_type fmt);
-
-    buckets_statistics build_sparse_and_skew_index(buckets<kmer_t, Endpoints>& buckets,
-                                                   skew_index<kmer_t>& skew_index);
+    buckets_statistics build_sparse_and_skew_index(dictionary<Kmer, Offsets>& d);
 };
 
 }  // namespace sshash

@@ -5,23 +5,24 @@
 
 namespace sshash {
 
-template <class kmer_t, class Endpoints>
-void dictionary<kmer_t, Endpoints>::build(std::string const& filename,
-                                          build_configuration const& build_config) {
+template <typename Kmer, typename Offsets>
+void dictionary<Kmer, Offsets>::build(std::string const& filename,
+                                      build_configuration const& build_config)  //
+{
     /* Validate the build configuration. */
     if (build_config.k == 0) throw std::runtime_error("k must be > 0");
-    if (build_config.k > kmer_t::max_k) {
-        throw std::runtime_error("k must be less <= " + std::to_string(kmer_t::max_k) +
+    if (build_config.k > Kmer::max_k) {
+        throw std::runtime_error("k must be less <= " + std::to_string(Kmer::max_k) +
                                  " but got k = " + std::to_string(build_config.k));
     }
     if (build_config.m == 0) throw std::runtime_error("m must be > 0");
-    if (build_config.m > kmer_t::max_m) {
-        throw std::runtime_error("m must be less <= " + std::to_string(kmer_t::max_m) +
+    if (build_config.m > Kmer::max_m) {
+        throw std::runtime_error("m must be less <= " + std::to_string(Kmer::max_m) +
                                  " but got m = " + std::to_string(build_config.m));
     }
     if (build_config.m > build_config.k) throw std::runtime_error("m must be <= k");
 
-    dictionary_builder<kmer_t, Endpoints> builder(build_config);
+    dictionary_builder<Kmer, Offsets> builder(build_config);
     builder.build(*this, filename);
 }
 

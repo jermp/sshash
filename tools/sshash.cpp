@@ -27,9 +27,9 @@ int check(int argc, char** argv) {
     dictionary_type dict;
     load_dictionary(dict, index_filename, verbose);
     check_dictionary(dict);
-    check_correctness_navigational_contig_query(dict);
+    check_correctness_navigational_string_query(dict);
     check_correctness_kmer_iterator(dict);
-    check_correctness_contig_iterator(dict);
+    check_correctness_string_iterator(dict);
     return 0;
 }
 

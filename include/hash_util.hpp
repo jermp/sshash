@@ -14,26 +14,26 @@ using minimizers_pthash_type =        //
         true                          // minimal output
         >;                            //
 
-template <class kmer_t>
+template <typename Kmer>
 struct kmers_pthash_hasher_128 {
     typedef pthash::hash128 hash_type;
 
-    /* specialization for kmer_t */
-    static inline pthash::hash128 hash(kmer_t x, uint64_t seed) {
+    /* specialization for Kmer */
+    static inline pthash::hash128 hash(Kmer x, uint64_t seed) {
         return pthash::xxhash_128::hash(x.begin(), x.end(), seed);
     }
 };
 
-template <class kmer_t>
-using kmers_base_hasher_type = kmers_pthash_hasher_128<kmer_t>;
-template <class kmer_t>
-using kmers_pthash_type =                //
-    pthash::partitioned_phf<             //
-        kmers_base_hasher_type<kmer_t>,  // base hasher
-        pthash::opt_bucketer,            // bucketer type
-        pthash::compact,                 // encoder type
-        true                             // minimal output
-        >;                               //
+template <typename Kmer>
+using kmers_base_hasher_type = kmers_pthash_hasher_128<Kmer>;
+template <typename Kmer>
+using kmers_pthash_type =              //
+    pthash::partitioned_phf<           //
+        kmers_base_hasher_type<Kmer>,  // base hasher
+        pthash::opt_bucketer,          // bucketer type
+        pthash::compact,               // encoder type
+        true                           // minimal output
+        >;                             //
 
 struct mixer_64 {
     mixer_64() { seed(0); }

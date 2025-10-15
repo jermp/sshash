@@ -10,7 +10,13 @@
 
 namespace sshash {
 
-enum input_file_type { fasta, cf_seg };
+enum bucket_t : int {
+    SINGLETON = 0,  // minimizer appears only once
+    MIDLOAD = 1,    // minimizer appears > 1 but < 2^l times
+    HEAVYLOAD = 3   // minimizer appears >= 2^l times
+};
+
+enum input_file_t { fasta, cf_seg };
 
 struct streaming_query_report {
     streaming_query_report()
@@ -32,48 +38,38 @@ struct streaming_query_report {
 struct lookup_result {
     lookup_result(bool mf = true)
         : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint64)
+        , kmer_id_in_string(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint64)
-        , contig_size(constants::invalid_uint64)
-
-        // /*
-        //     The kmer's minimizer occurs for `list_size` times.
-        //     If `list_size` == -1, then the minimizer is part of
-        //     the skew index.
-        // */
-        // , list_size(constants::invalid_uint64)
-
+        , string_id(constants::invalid_uint64)
+        , string_size(constants::invalid_uint64)
         , minimizer_found(mf) {}
 
     uint64_t kmer_id;            // "absolute" kmer-id
-    uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
+    uint64_t kmer_id_in_string;  // "relative" kmer-id: 0 <= kmer_id_in_string < string_size
     int64_t kmer_orientation;
-    uint64_t contig_id;
-    uint64_t contig_size;
-    // uint64_t list_size;
-
+    uint64_t string_id;
+    uint64_t string_size;
     bool minimizer_found;
 
     uint64_t kmer_offset(const uint64_t k) const {  //
-        return kmer_id + contig_id * (k - 1);
+        return kmer_id + string_id * (k - 1);
     }
 
-    uint64_t contig_begin(const uint64_t k) const {  //
-        return kmer_offset(k) - kmer_id_in_contig;
+    uint64_t string_begin(const uint64_t k) const {  //
+        return kmer_offset(k) - kmer_id_in_string;
     }
 
-    uint64_t contig_end(const uint64_t k) const {  //
-        return contig_begin(k) + contig_size + k - 1;
+    uint64_t string_end(const uint64_t k) const {  //
+        return string_begin(k) + string_size + k - 1;
     }
 };
 
 inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
     os << "  == kmer_id = " << res.kmer_id << '\n';
-    os << "  == kmer_id_in_contig = " << res.kmer_id_in_contig << '\n';
+    os << "  == kmer_id_in_string = " << res.kmer_id_in_string << '\n';
     os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
-    os << "  == contig_id = " << res.contig_id << '\n';
-    os << "  == contig_size = " << res.contig_size << '\n';
+    os << "  == string_id = " << res.string_id << '\n';
+    os << "  == string_size = " << res.string_size << '\n';
     os << "  == minimizer_found = " << (res.minimizer_found ? "true" : "false") << '\n';
     return os;
 }
@@ -115,9 +111,9 @@ struct minimizer_info {
                   << std::endl;
         good = false;
     }
-    if (expected.kmer_id_in_contig != got.kmer_id_in_contig) {
-        std::cout << "expected kmer_id_in_contig " << expected.kmer_id_in_contig << " but got "
-                  << got.kmer_id_in_contig << std::endl;
+    if (expected.kmer_id_in_string != got.kmer_id_in_string) {
+        std::cout << "expected kmer_id_in_string " << expected.kmer_id_in_string << " but got "
+                  << got.kmer_id_in_string << std::endl;
         good = false;
     }
     if (got.kmer_id != constants::invalid_uint64 and
@@ -126,14 +122,14 @@ struct minimizer_info {
                   << got.kmer_orientation << std::endl;
         good = false;
     }
-    if (expected.contig_id != got.contig_id) {
-        std::cout << "expected contig_id " << expected.contig_id << " but got " << got.contig_id
+    if (expected.string_id != got.string_id) {
+        std::cout << "expected string_id " << expected.string_id << " but got " << got.string_id
                   << std::endl;
         good = false;
     }
-    if (expected.contig_size != got.contig_size) {
-        std::cout << "expected contig_size " << expected.contig_size << " but got "
-                  << got.contig_size << std::endl;
+    if (expected.string_size != got.string_size) {
+        std::cout << "expected string_size " << expected.string_size << " but got "
+                  << got.string_size << std::endl;
         good = false;
     }
     return good;

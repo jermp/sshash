@@ -5,9 +5,9 @@
 
 namespace sshash {
 
-template <class kmer_t, class Endpoints>
-void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
-                                                       const input_file_type fmt)  //
+template <typename Kmer, typename Offsets>
+void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
+                                                   const input_file_t fmt)  //
 {
     essentials::timer_type timer;
     timer.start();
@@ -28,7 +28,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
         const uint64_t num_bits_for_strings = 8 * 8 * essentials::GB;  // reserve 8 GB of memory
         const uint64_t num_sequences = 100'000'000;
         strings_builder.reserve(num_bits_for_strings);
-        strings_endpoints_builder.reserve(num_sequences);
+        strings_offsets_builder.reserve(num_sequences);
     }
 
     std::string sequence;
@@ -36,8 +36,8 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
     uint64_t max_len = 0;
 
     hasher_type hasher(build_config.seed);
-    minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
-    minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
+    minimizer_iterator<Kmer> minimizer_it(k, m, hasher);
+    minimizer_iterator_rc<Kmer> minimizer_it_rc(k, m, hasher);
     uint64_t seq_len = 0;
     weights_builder.init();
 
@@ -47,10 +47,10 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
 
     while (true)  //
     {
-        if (fmt == input_file_type::cf_seg) {
+        if (fmt == input_file_t::cf_seg) {
             std::getline(is, sequence, '\t');  // skip until '\t' and consume it
         } else {
-            assert(fmt == input_file_type::fasta);
+            assert(fmt == input_file_t::fasta);
             if (build_config.weighted) {     // parse header
                 std::getline(is, sequence);  // header sequence
                 if (sequence.empty()) break;
@@ -114,8 +114,8 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
         const uint64_t n = sequence.length();
         assert(n >= k);
         max_len = n > max_len ? n : max_len;
-        assert(strings_builder.num_bits() % kmer_t::bits_per_char == 0);
-        strings_endpoints_builder.push_back(strings_builder.num_bits() / kmer_t::bits_per_char);
+        assert(strings_builder.num_bits() % Kmer::bits_per_char == 0);
+        strings_offsets_builder.push_back(strings_builder.num_bits() / Kmer::bits_per_char);
         num_kmers += n - k + 1;
         num_bases += n;
 
@@ -125,13 +125,13 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
             throw std::runtime_error("file is malformed");
         }
 
-        if (strings_endpoints_builder.size() % 100'000 == 0) {
-            std::cout << "read " << strings_endpoints_builder.size() << " sequences, " << num_bases
+        if (strings_offsets_builder.size() % 100'000 == 0) {
+            std::cout << "read " << strings_offsets_builder.size() << " sequences, " << num_bases
                       << " bases, " << num_kmers << " kmers" << std::endl;
         }
 
         uint64_t i = 0;
-        if constexpr (kmer_t::bits_per_char == 2) {
+        if constexpr (Kmer::bits_per_char == 2) {
 #if !defined(SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING) and defined(__AVX2__)
 
             /* process 32 bytes at a time */
@@ -143,19 +143,19 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
 #endif
         }
         for (; i < n; ++i) {
-            strings_builder.append_bits(kmer_t::char_to_uint(sequence[i]), kmer_t::bits_per_char);
+            strings_builder.append_bits(Kmer::char_to_uint(sequence[i]), Kmer::bits_per_char);
         }
     }
 
-    strings_endpoints_builder.push_back(strings_builder.num_bits() / kmer_t::bits_per_char);
-    assert(strings_endpoints_builder.front() == 0);
-    assert(strings_endpoints_builder.size() >= 2);
-    const uint64_t num_sequences = strings_endpoints_builder.size() - 1;
+    strings_offsets_builder.push_back(strings_builder.num_bits() / Kmer::bits_per_char);
+    assert(strings_offsets_builder.front() == 0);
+    assert(strings_offsets_builder.size() >= 2);
+    const uint64_t num_sequences = strings_offsets_builder.size() - 1;
 
     /* Push a final sentinel (dummy) value to avoid bounds' checking in
        kmer_iterator::fill_buff(). */
-    static_assert(kmer_t::uint_kmer_bits % 64 == 0);
-    for (int dummy_bits = kmer_t::uint_kmer_bits; dummy_bits; dummy_bits -= 64) {
+    static_assert(Kmer::uint_kmer_bits % 64 == 0);
+    for (int dummy_bits = Kmer::uint_kmer_bits; dummy_bits; dummy_bits -= 64) {
         strings_builder.append_bits(0, 64);
     }
 
@@ -166,7 +166,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
               << " kmers" << std::endl;
     std::cout << "num_kmers " << num_kmers << std::endl;
     std::cout << "cost: 2.0 + "
-              << static_cast<double>(kmer_t::bits_per_char * num_sequences * (k - 1)) / num_kmers
+              << static_cast<double>(Kmer::bits_per_char * num_sequences * (k - 1)) / num_kmers
               << " [bits/kmer]" << std::endl;
 
     /*
@@ -175,7 +175,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
         where N is the number of nucleotides in the input and s is the alphabet size.
         We warn the user if the used m is less than this lower bound.
     */
-    const uint64_t s = uint64_t(1) << kmer_t::bits_per_char;
+    const uint64_t s = uint64_t(1) << Kmer::bits_per_char;
     const uint64_t lower_bound_on_m = std::ceil(std::log(num_bases) / std::log(s)) + 1;
     if (m < lower_bound_on_m) {
         std::cout << "\n--> WARNING: using minimizer length " << m
@@ -193,7 +193,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
     threads.reserve(num_threads);
 
     num_bits nb;
-    nb.per_absolute_offset = std::ceil(std::log2(strings_endpoints_builder.back()));
+    nb.per_absolute_offset = std::ceil(std::log2(strings_offsets_builder.back()));
     nb.per_relative_offset = std::ceil(std::log2(max_len - m + 1));
     nb.per_string_id = std::ceil(std::log2(num_sequences));
 
@@ -206,7 +206,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
         throw std::runtime_error("minimier offset does not fit within 64 bits");
     }
 
-    strings_endpoints_builder.set_num_bits(nb);
+    strings_offsets_builder.set_num_bits(nb);
 
     for (uint64_t t = 0; t * num_sequences_per_thread < num_sequences; ++t)  //
     {
@@ -239,14 +239,14 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
             const uint64_t index_end =
                 std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
 
-            kmer_iterator<kmer_t, bits::bit_vector::builder> it(strings_builder, k);
-            minimizer_iterator<kmer_t> minimizer_it(k, m, hasher);
-            minimizer_iterator_rc<kmer_t> minimizer_it_rc(k, m, hasher);
+            kmer_iterator<Kmer, bits::bit_vector::builder> it(strings_builder, k);
+            minimizer_iterator<Kmer> minimizer_it(k, m, hasher);
+            minimizer_iterator_rc<Kmer> minimizer_it_rc(k, m, hasher);
 
             for (uint64_t i = index_begin; i < index_end; ++i)  //
             {
-                const uint64_t begin = strings_endpoints_builder[i];
-                const uint64_t end = strings_endpoints_builder[i + 1];
+                const uint64_t begin = strings_offsets_builder[i];
+                const uint64_t end = strings_offsets_builder[i + 1];
                 const uint64_t sequence_len = end - begin;
                 assert(sequence_len >= k);
 
@@ -254,7 +254,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
                 assert(prev_mini_info.minimizer == constants::invalid_uint64);
                 uint64_t num_kmers_in_super_kmer = 0;
 
-                it.at(kmer_t::bits_per_char * begin);
+                it.at(Kmer::bits_per_char * begin);
                 minimizer_it.set_position(begin);
                 minimizer_it_rc.set_position(begin);
 
@@ -277,7 +277,7 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
                     }
 
                     mini_info.pos_in_seq =
-                        strings_endpoints_builder.encode(mini_info.pos_in_seq, begin, i);
+                        strings_offsets_builder.encode(mini_info.pos_in_seq, begin, i);
 
                     if (prev_mini_info.minimizer == constants::invalid_uint64) {
                         prev_mini_info = mini_info;
@@ -316,8 +316,8 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::istream& is,
     }
 }
 
-template <class kmer_t, class Endpoints>
-void dictionary_builder<kmer_t, Endpoints>::parse_file(std::string const& filename)  //
+template <typename Kmer, typename Offsets>
+void dictionary_builder<Kmer, Offsets>::parse_file(std::string const& filename)  //
 {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
@@ -325,15 +325,15 @@ void dictionary_builder<kmer_t, Endpoints>::parse_file(std::string const& filena
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
-            parse_file(zis, input_file_type::cf_seg);
+            parse_file(zis, input_file_t::cf_seg);
         } else {
-            parse_file(zis, input_file_type::fasta);
+            parse_file(zis, input_file_t::fasta);
         }
     } else {
         if (util::ends_with(filename, ".cf_seg")) {
-            parse_file(is, input_file_type::cf_seg);
+            parse_file(is, input_file_t::cf_seg);
         } else {
-            parse_file(is, input_file_type::fasta);
+            parse_file(is, input_file_t::fasta);
         }
     }
     is.close();

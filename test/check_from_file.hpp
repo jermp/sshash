@@ -6,7 +6,7 @@
 
 namespace sshash {
 
-template <typename Dict, input_file_type fmt>
+template <typename Dict, input_file_t fmt>
 bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
 {
     using kmer_t = typename Dict::kmer_type;
@@ -15,7 +15,7 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
     uint64_t num_kmers = 0;
     uint64_t num_sequences = 0;
     lookup_result prev;
-    prev.contig_id = 0;
+    prev.string_id = 0;
 
     std::string got_kmer_str(k, 0);
     std::string expected_kmer_str(k, 0);
@@ -24,11 +24,11 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
 
     while (!is.eof())  //
     {
-        if constexpr (fmt == input_file_type::cf_seg) {
+        if constexpr (fmt == input_file_t::cf_seg) {
             std::getline(is, sequence, '\t');  // skip '\t'
             std::getline(is, sequence);        // DNA sequence
         } else {
-            static_assert(fmt == input_file_type::fasta);
+            static_assert(fmt == input_file_t::fasta);
             std::getline(is, sequence);  // header sequence
             std::getline(is, sequence);  // DNA sequence
         }
@@ -83,10 +83,10 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             assert(curr.kmer_orientation == orientation);
 
             if (num_kmers == 0) {
-                if (curr.contig_id != 0) {
-                    std::cout << "contig_id " << curr.contig_id << " but expected 0" << std::endl;
+                if (curr.string_id != 0) {
+                    std::cout << "string_id " << curr.string_id << " but expected 0" << std::endl;
                 }
-                assert(curr.contig_id == 0);  // at the beginning, contig_id must be 0
+                assert(curr.string_id == 0);  // at the beginning, string_id must be 0
             } else {
                 if (curr.kmer_id != prev.kmer_id + 1) {
                     std::cout << "ERROR: got curr.kmer_id " << curr.kmer_id << " but expected "
@@ -94,50 +94,50 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
                 }
                 assert(curr.kmer_id == prev.kmer_id + 1);  // kmer_id must be sequential
 
-                if (curr.kmer_id_in_contig >= curr.contig_size) {
-                    std::cout << "ERROR: got curr.kmer_id_in_contig " << curr.kmer_id_in_contig
-                              << " but expected something < " << curr.contig_size << std::endl;
+                if (curr.kmer_id_in_string >= curr.string_size) {
+                    std::cout << "ERROR: got curr.kmer_id_in_string " << curr.kmer_id_in_string
+                              << " but expected something < " << curr.string_size << std::endl;
                 }
-                assert(curr.kmer_id_in_contig <
-                       curr.contig_size);  // kmer_id_in_contig must always be < contig_size
+                assert(curr.kmer_id_in_string <
+                       curr.string_size);  // kmer_id_in_string must always be < string_size
 
-                if (curr.contig_id == prev.contig_id) {
-                    /* same contig */
-                    if (curr.contig_size != prev.contig_size) {
-                        std::cout << "ERROR: got curr.contig_size " << curr.contig_size
-                                  << " but expected " << prev.contig_size << std::endl;
+                if (curr.string_id == prev.string_id) {
+                    /* same string */
+                    if (curr.string_size != prev.string_size) {
+                        std::cout << "ERROR: got curr.string_size " << curr.string_size
+                                  << " but expected " << prev.string_size << std::endl;
                     }
-                    assert(curr.contig_size == prev.contig_size);  // contig_size must be same
-                    if (curr.kmer_id_in_contig != prev.kmer_id_in_contig + 1) {
-                        std::cout << "ERROR: got curr.kmer_id_in_contig " << curr.kmer_id_in_contig
-                                  << " but expected " << prev.kmer_id_in_contig + 1 << std::endl;
+                    assert(curr.string_size == prev.string_size);  // string_size must be same
+                    if (curr.kmer_id_in_string != prev.kmer_id_in_string + 1) {
+                        std::cout << "ERROR: got curr.kmer_id_in_string " << curr.kmer_id_in_string
+                                  << " but expected " << prev.kmer_id_in_string + 1 << std::endl;
                     }
-                    assert(curr.kmer_id_in_contig ==
-                           prev.kmer_id_in_contig + 1);  // kmer_id_in_contig must be sequential
+                    assert(curr.kmer_id_in_string ==
+                           prev.kmer_id_in_string + 1);  // kmer_id_in_string must be sequential
                 } else {
-                    /* we have changed contig */
-                    if (curr.contig_id != prev.contig_id + 1) {
-                        std::cout << "ERROR: got curr.contig_id " << curr.contig_id
-                                  << " but expected " << prev.contig_id + 1 << std::endl;
+                    /* we have changed string */
+                    if (curr.string_id != prev.string_id + 1) {
+                        std::cout << "ERROR: got curr.string_id " << curr.string_id
+                                  << " but expected " << prev.string_id + 1 << std::endl;
                     }
-                    assert(curr.contig_id ==
-                           prev.contig_id + 1);  // contig_id must be sequential since we stream
-                    if (curr.kmer_id_in_contig != 0) {
-                        std::cout << "ERROR: got curr.kmer_id_in_contig " << curr.kmer_id_in_contig
+                    assert(curr.string_id ==
+                           prev.string_id + 1);  // string_id must be sequential since we stream
+                    if (curr.kmer_id_in_string != 0) {
+                        std::cout << "ERROR: got curr.kmer_id_in_string " << curr.kmer_id_in_string
                                   << " but expected 0" << std::endl;
                     }
-                    assert(curr.kmer_id_in_contig ==
-                           0);  // kmer_id_in_contig must be 0 when we change contig
+                    assert(curr.kmer_id_in_string ==
+                           0);  // kmer_id_in_string must be 0 when we change string
                 }
             }
 
-            /* check also contig_size() */
-            uint64_t contig_size = dict.contig_size(curr.contig_id);
-            if (contig_size != curr.contig_size) {
-                std::cout << "ERROR: got contig_size " << contig_size << " but expected "
-                          << curr.contig_size << std::endl;
+            /* check also string_size() */
+            uint64_t string_size = dict.string_size(curr.string_id);
+            if (string_size != curr.string_size) {
+                std::cout << "ERROR: got string_size " << string_size << " but expected "
+                          << curr.string_size << std::endl;
             }
-            assert(contig_size == curr.contig_size);
+            assert(string_size == curr.string_size);
 
             prev = curr;
 
@@ -161,7 +161,7 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
     return check_correctness_negative_lookup(dict);
 }
 
-template <typename Dict, input_file_type fmt>
+template <typename Dict, input_file_t fmt>
 bool check_correctness_navigational_kmer_query(std::istream& is, Dict const& dict)  //
 {
     using kmer_t = typename Dict::kmer_type;
@@ -173,11 +173,11 @@ bool check_correctness_navigational_kmer_query(std::istream& is, Dict const& dic
 
     while (!is.eof())  //
     {
-        if constexpr (fmt == input_file_type::cf_seg) {
+        if constexpr (fmt == input_file_t::cf_seg) {
             std::getline(is, sequence, '\t');  // skip '\t'
             std::getline(is, sequence);        // DNA sequence
         } else {
-            static_assert(fmt == input_file_type::fasta);
+            static_assert(fmt == input_file_t::fasta);
             std::getline(is, sequence);  // header sequence
             std::getline(is, sequence);  // DNA sequence
         }
@@ -281,15 +281,15 @@ bool check_correctness_lookup_access(Dict const& dict, std::string const& filena
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
-            good = check_correctness_lookup_access<Dict, input_file_type::cf_seg>(zis, dict);
+            good = check_correctness_lookup_access<Dict, input_file_t::cf_seg>(zis, dict);
         } else {
-            good = check_correctness_lookup_access<Dict, input_file_type::fasta>(zis, dict);
+            good = check_correctness_lookup_access<Dict, input_file_t::fasta>(zis, dict);
         }
     } else {
         if (util::ends_with(filename, ".cf_seg")) {
-            good = check_correctness_lookup_access<Dict, input_file_type::cf_seg>(is, dict);
+            good = check_correctness_lookup_access<Dict, input_file_t::cf_seg>(is, dict);
         } else {
-            good = check_correctness_lookup_access<Dict, input_file_type::fasta>(is, dict);
+            good = check_correctness_lookup_access<Dict, input_file_t::fasta>(is, dict);
         }
     }
     is.close();
@@ -308,19 +308,15 @@ bool check_correctness_navigational_kmer_query(Dict const& dict, std::string con
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {
-            good =
-                check_correctness_navigational_kmer_query<Dict, input_file_type::cf_seg>(zis, dict);
+            good = check_correctness_navigational_kmer_query<Dict, input_file_t::cf_seg>(zis, dict);
         } else {
-            good =
-                check_correctness_navigational_kmer_query<Dict, input_file_type::fasta>(zis, dict);
+            good = check_correctness_navigational_kmer_query<Dict, input_file_t::fasta>(zis, dict);
         }
     } else {
         if (util::ends_with(filename, ".cf_seg")) {
-            good =
-                check_correctness_navigational_kmer_query<Dict, input_file_type::cf_seg>(is, dict);
+            good = check_correctness_navigational_kmer_query<Dict, input_file_t::cf_seg>(is, dict);
         } else {
-            good =
-                check_correctness_navigational_kmer_query<Dict, input_file_type::fasta>(is, dict);
+            good = check_correctness_navigational_kmer_query<Dict, input_file_t::fasta>(is, dict);
         }
     }
     is.close();

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "dictionary.hpp"
-#include "endpoints.hpp"
+#include "offsets.hpp"
 #include "kmer.hpp"
 
 namespace sshash {
