@@ -84,8 +84,8 @@ int build(int argc, char** argv) {
     bool check = parser.get<bool>("check");
     if (check) {
         check_correctness_lookup_access(dict, input_filename);
-        // check_correctness_navigational_kmer_query(dict, input_filename);
-        // check_correctness_navigational_string_query(dict);
+        check_correctness_navigational_kmer_query(dict, input_filename);
+        check_correctness_navigational_string_query(dict);
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
         check_correctness_kmer_iterator(dict);
         check_correctness_string_iterator(dict);
