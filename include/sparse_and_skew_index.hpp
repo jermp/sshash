@@ -61,14 +61,14 @@ struct sparse_and_skew_index  //
         }
 
         assert(status == bucket_t::HEAVYLOAD);  // minimizer is part of the skew index
-        uint64_t offset = skew_index.lookup(uint_kmer, code);
+        uint64_t offset = ski.lookup(uint_kmer, code);
         return {this, offset, 1, bucket_t::HEAVYLOAD};
     }
 
     uint64_t num_bits() const {
         return codewords.num_bits() +
                8 * (essentials::vec_bytes(begin_buckets_of_size) + mid_load_buckets.num_bytes()) +
-               skew_index.num_bits();
+               ski.num_bits();
     }
 
     template <typename Visitor>
@@ -84,7 +84,7 @@ struct sparse_and_skew_index  //
     minimizers_control_map codewords;
     std::vector<uint32_t> begin_buckets_of_size;
     bits::compact_vector mid_load_buckets;
-    skew_index<Kmer> skew_index;
+    skew_index<Kmer> ski;
 
 private:
     template <typename Visitor, typename T>
@@ -92,7 +92,7 @@ private:
         visitor.visit(t.codewords);
         visitor.visit(t.begin_buckets_of_size);
         visitor.visit(t.mid_load_buckets);
-        visitor.visit(t.skew_index);
+        visitor.visit(t.ski);
     }
 };
 

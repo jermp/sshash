@@ -34,8 +34,8 @@ void dictionary<Kmer, Offsets>::print_space_breakdown() const {
 
     std::cout << "  strings: " << (8.0 * m_spss.strings.num_bytes()) / num_kmers()
               << " [bits/kmer] -- " << perc(8 * m_spss.strings.num_bytes(), num_bits()) << "%\n";
-    std::cout << "  skew_index: " << static_cast<double>(m_ssi.skew_index.num_bits()) / num_kmers()
-              << " [bits/kmer] -- " << perc(m_ssi.skew_index.num_bits(), num_bits()) << "%\n";
+    std::cout << "  skew_index: " << static_cast<double>(m_ssi.ski.num_bits()) / num_kmers()
+              << " [bits/kmer] -- " << perc(m_ssi.ski.num_bits(), num_bits()) << "%\n";
     std::cout << "  weights: " << static_cast<double>(m_weights.num_bits()) / num_kmers()
               << " [bits/kmer] -- " << perc(m_weights.num_bits(), num_bits()) << "%\n";
 

@@ -209,7 +209,7 @@ dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(dictionary<Kmer, 
 
     control_codewords_builder.build(d.m_ssi.codewords.control_codewords);
     mid_load_buckets_builder.build(d.m_ssi.mid_load_buckets);
-    heavy_load_buckets_builder.build(d.m_ssi.skew_index.heavy_load_buckets);
+    heavy_load_buckets_builder.build(d.m_ssi.ski.heavy_load_buckets);
 
     timer.stop();
     std::cout << "computing minimizers offsets: " << timer.elapsed() / 1000000 << " [sec]"
@@ -222,8 +222,8 @@ dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(dictionary<Kmer, 
     /* build skew index */
     timer.start();
     std::vector<uint64_t> num_kmers_in_partition(num_partitions, 0);
-    d.m_ssi.skew_index.mphfs.resize(num_partitions);
-    d.m_ssi.skew_index.positions.resize(num_partitions);
+    d.m_ssi.ski.mphfs.resize(num_partitions);
+    d.m_ssi.ski.positions.resize(num_partitions);
 
     {
         std::cout << "computing sizes of partitions..." << std::endl;
@@ -315,7 +315,7 @@ dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(dictionary<Kmer, 
                                   << ")..." << std::endl;
                     }
 
-                    auto& mphf = d.m_ssi.skew_index.mphfs[partition_id];
+                    auto& mphf = d.m_ssi.ski.mphfs[partition_id];
                     mphf.build_in_internal_memory(kmers.begin(), kmers.size(), mphf_build_config);
 
                     std::cout << "    built mphs[" << partition_id << "] for " << kmers.size()
@@ -329,7 +329,7 @@ dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(dictionary<Kmer, 
                         uint32_t pos_in_bucket = positions_in_bucket[i];
                         cvb_positions.set(pos, pos_in_bucket);
                     }
-                    auto& positions = d.m_ssi.skew_index.positions[partition_id];
+                    auto& positions = d.m_ssi.ski.positions[partition_id];
                     cvb_positions.build(positions);
 
                     std::cout << "    built positions[" << partition_id << "] for "
