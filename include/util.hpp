@@ -59,18 +59,6 @@ struct lookup_result {
     uint64_t string_end;
 
     bool minimizer_found;
-
-    // uint64_t kmer_offset(const uint64_t k) const {  //
-    //     return kmer_id + string_id * (k - 1);
-    // }
-
-    // uint64_t string_begin(const uint64_t k) const {  //
-    //     return kmer_offset(k) - kmer_id_in_string;
-    // }
-
-    // uint64_t string_end(const uint64_t k) const {  //
-    //     return string_begin(k) + string_size + k - 1;
-    // }
 };
 
 inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {

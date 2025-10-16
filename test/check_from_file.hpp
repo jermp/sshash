@@ -38,10 +38,10 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
         /* transform 50% of the read nucleotides into lower-case letters
            (assuming the input is upper-case):
            lower-case kmers must be found anyway in the index */
-        // if ((num_sequences & 1) == 0) {
-        //     std::transform(sequence.begin(), sequence.end(), sequence.begin(),
-        //                    [](char c) { return std::tolower(c); });
-        // }
+        if ((num_sequences & 1) == 0) {
+            std::transform(sequence.begin(), sequence.end(), sequence.begin(),
+                           [](char c) { return std::tolower(c); });
+        }
         ++num_sequences;
 
         for (uint64_t i = 0; i + k <= sequence.length(); ++i) {
@@ -57,10 +57,10 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             }
 
             /* transform 50% of the kmers into their reverse complements */
-            // if ((num_kmers & 1) == 0) {
-            //     uint_kmer.reverse_complement_inplace(k);
-            //     orientation = constants::backward_orientation;
-            // }
+            if ((num_kmers & 1) == 0) {
+                uint_kmer.reverse_complement_inplace(k);
+                orientation = constants::backward_orientation;
+            }
 
             util::uint_kmer_to_string(uint_kmer, expected_kmer_str.data(), k);
             auto curr = dict.lookup(expected_kmer_str.c_str());
