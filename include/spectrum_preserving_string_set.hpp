@@ -60,15 +60,14 @@ struct spectrum_preserving_string_set  //
             }
         }
 
-        auto res = _lookup_regular(p, kmer, mini_info);
-        if (res.kmer_id != constants::invalid_uint64) return res;
+        lookup_result res;
+        if (_lookup_regular(res, p, kmer, mini_info)) return res;
 
         for (uint64_t i = 1; i != size; ++i) {
             ++it;
             minimizer_offset = *it;
             p = strings_offsets.decode(minimizer_offset);
-            res = _lookup_regular(p, kmer, mini_info);
-            if (res.kmer_id != constants::invalid_uint64) return res;
+            if (_lookup_regular(res, p, kmer, mini_info)) return res;
         }
 
         return lookup_result();
@@ -98,15 +97,14 @@ struct spectrum_preserving_string_set  //
             }
         }
 
-        auto res = _lookup_canonical(p, kmer, kmer_rc, mini_info);
-        if (res.kmer_id != constants::invalid_uint64) return res;
+        lookup_result res;
+        if (_lookup_canonical(res, p, kmer, kmer_rc, mini_info)) return res;
 
         for (uint64_t i = 1; i != size; ++i) {
             ++it;
             minimizer_offset = *it;
             p = strings_offsets.decode(minimizer_offset);
-            res = _lookup_canonical(p, kmer, kmer_rc, mini_info);
-            if (res.kmer_id != constants::invalid_uint64) return res;
+            if (_lookup_canonical(res, p, kmer, kmer_rc, mini_info)) return res;
         }
 
         return lookup_result();
@@ -211,24 +209,36 @@ private:
         visitor.visit(t.strings);
     }
 
-    lookup_result _lookup_regular(typename Offsets::decoded_offset p,    //
-                                  const Kmer kmer,                       //
-                                  const minimizer_info mini_info) const  //
+    bool _lookup_regular(lookup_result& res,                    //
+                         typename Offsets::decoded_offset p,    //
+                         const Kmer kmer,                       //
+                         const minimizer_info mini_info) const  //
     {
-        auto res = strings_offsets.offset_to_id(p, mini_info.pos_in_kmer, k);
-        if (res.kmer_id != constants::invalid_uint64) {
-            uint64_t kmer_offset = res.kmer_offset(k);
-            auto read_kmer =
-                util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * kmer_offset);
-            if (read_kmer == kmer) return res;
+        if (p.absolute_offset < mini_info.pos_in_kmer) return false;
+
+        res.kmer_offset = p.absolute_offset - mini_info.pos_in_kmer;
+
+        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end) {
+            res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
+            res.kmer_id_in_string = res.kmer_offset - res.string_begin;  // relative kmer id
+        } else {
+            strings_offsets.offset_to_id(res, p, k);
         }
-        return lookup_result();
+
+        if (res.kmer_offset < res.string_end - k + 1 and                                          //
+            kmer == util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset))  //
+        {
+            return true;
+        }
+
+        return false;
     }
 
-    lookup_result _lookup_canonical(typename Offsets::decoded_offset p,    //
-                                    const Kmer kmer,                       //
-                                    const Kmer kmer_rc,                    //
-                                    const minimizer_info mini_info) const  //
+    bool _lookup_canonical(lookup_result& res,                    //
+                           typename Offsets::decoded_offset p,    //
+                           const Kmer kmer,                       //
+                           const Kmer kmer_rc,                    //
+                           const minimizer_info mini_info) const  //
     {
         // TODO: maybe we can optimize this logic.
         // Because `pos_in_kmer` and `k - m - mini_info.pos_in_kmer` are close
@@ -236,29 +246,28 @@ private:
         // be good to avoid accessing the strings_offsets again.
 
         uint64_t pos_in_kmer = mini_info.pos_in_kmer;
-        auto res = __lookup_canonical(p, kmer, kmer_rc, pos_in_kmer);
-        if (res.kmer_id != constants::invalid_uint64) return res;
+        if (__lookup_canonical(res, p, kmer, kmer_rc, pos_in_kmer)) return true;
         pos_in_kmer = k - m - mini_info.pos_in_kmer;
-        return __lookup_canonical(p, kmer, kmer_rc, pos_in_kmer);
+        return __lookup_canonical(res, p, kmer, kmer_rc, pos_in_kmer);
     }
 
-    lookup_result __lookup_canonical(typename Offsets::decoded_offset p,  //
-                                     const Kmer kmer,                     //
-                                     const Kmer kmer_rc,                  //
-                                     const uint64_t pos_in_kmer) const    //
+    bool __lookup_canonical(lookup_result& res,                  //
+                            typename Offsets::decoded_offset p,  //
+                            const Kmer kmer,                     //
+                            const Kmer kmer_rc,                  //
+                            const uint64_t pos_in_kmer) const    //
     {
-        auto res = strings_offsets.offset_to_id(p, pos_in_kmer, k);
-        if (res.kmer_id != constants::invalid_uint64) {
-            uint64_t kmer_offset = res.kmer_offset(k);
-            auto read_kmer =
-                util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * kmer_offset);
-            if (read_kmer == kmer) return res;
-            if (read_kmer == kmer_rc) {
-                res.kmer_orientation = constants::backward_orientation;
-                return res;
-            }
-        }
-        return lookup_result();
+        // if (strings_offsets.offset_to_id(res, p, pos_in_kmer, k)) {
+        //     uint64_t kmer_offset = res.kmer_offset(k);
+        //     auto read_kmer =
+        //         util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * kmer_offset);
+        //     if (read_kmer == kmer) return true;
+        //     if (read_kmer == kmer_rc) {
+        //         res.kmer_orientation = constants::backward_orientation;
+        //         return true;
+        //     }
+        // }
+        return false;
     }
 };
 

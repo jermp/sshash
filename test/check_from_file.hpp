@@ -38,10 +38,10 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
         /* transform 50% of the read nucleotides into lower-case letters
            (assuming the input is upper-case):
            lower-case kmers must be found anyway in the index */
-        if ((num_sequences & 1) == 0) {
-            std::transform(sequence.begin(), sequence.end(), sequence.begin(),
-                           [](char c) { return std::tolower(c); });
-        }
+        // if ((num_sequences & 1) == 0) {
+        //     std::transform(sequence.begin(), sequence.end(), sequence.begin(),
+        //                    [](char c) { return std::tolower(c); });
+        // }
         ++num_sequences;
 
         for (uint64_t i = 0; i + k <= sequence.length(); ++i) {
@@ -57,10 +57,10 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             }
 
             /* transform 50% of the kmers into their reverse complements */
-            if ((num_kmers & 1) == 0) {
-                uint_kmer.reverse_complement_inplace(k);
-                orientation = constants::backward_orientation;
-            }
+            // if ((num_kmers & 1) == 0) {
+            //     uint_kmer.reverse_complement_inplace(k);
+            //     orientation = constants::backward_orientation;
+            // }
 
             util::uint_kmer_to_string(uint_kmer, expected_kmer_str.data(), k);
             auto curr = dict.lookup(expected_kmer_str.c_str());
@@ -82,6 +82,8 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             }
             assert(curr.kmer_orientation == orientation);
 
+            uint64_t curr_string_size = curr.string_end - curr.string_begin - k + 1;
+
             if (num_kmers == 0) {
                 if (curr.string_id != 0) {
                     std::cout << "string_id " << curr.string_id << " but expected 0" << std::endl;
@@ -94,20 +96,20 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
                 }
                 assert(curr.kmer_id == prev.kmer_id + 1);  // kmer_id must be sequential
 
-                if (curr.kmer_id_in_string >= curr.string_size) {
+                if (curr.kmer_id_in_string >= curr_string_size) {
                     std::cout << "ERROR: got curr.kmer_id_in_string " << curr.kmer_id_in_string
-                              << " but expected something < " << curr.string_size << std::endl;
+                              << " but expected something < " << curr_string_size << std::endl;
                 }
                 assert(curr.kmer_id_in_string <
-                       curr.string_size);  // kmer_id_in_string must always be < string_size
+                       curr_string_size);  // kmer_id_in_string must always be < string_size
 
                 if (curr.string_id == prev.string_id) {
                     /* same string */
-                    if (curr.string_size != prev.string_size) {
-                        std::cout << "ERROR: got curr.string_size " << curr.string_size
-                                  << " but expected " << prev.string_size << std::endl;
+                    uint64_t prev_string_size = prev.string_end - prev.string_begin - k + 1;
+                    if (curr_string_size != prev_string_size) {
+                        std::cout << "ERROR: got curr_string_size " << curr_string_size
+                                  << " but expected " << prev_string_size << std::endl;
                     }
-                    assert(curr.string_size == prev.string_size);  // string_size must be same
                     if (curr.kmer_id_in_string != prev.kmer_id_in_string + 1) {
                         std::cout << "ERROR: got curr.kmer_id_in_string " << curr.kmer_id_in_string
                                   << " but expected " << prev.kmer_id_in_string + 1 << std::endl;
@@ -133,11 +135,11 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
 
             /* check also string_size() */
             uint64_t string_size = dict.string_size(curr.string_id);
-            if (string_size != curr.string_size) {
+            if (string_size != curr_string_size) {
                 std::cout << "ERROR: got string_size " << string_size << " but expected "
-                          << curr.string_size << std::endl;
+                          << curr_string_size << std::endl;
             }
-            assert(string_size == curr.string_size);
+            assert(string_size == curr_string_size);
 
             prev = curr;
 

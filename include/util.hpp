@@ -39,37 +39,49 @@ struct lookup_result {
     lookup_result(bool mf = true)
         : kmer_id(constants::invalid_uint64)
         , kmer_id_in_string(constants::invalid_uint64)
+        , kmer_offset(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
+
         , string_id(constants::invalid_uint64)
-        , string_size(constants::invalid_uint64)
+        , string_begin(constants::invalid_uint64)
+        , string_end(constants::invalid_uint64)
+
         , minimizer_found(mf) {}
 
     uint64_t kmer_id;            // "absolute" kmer-id
-    uint64_t kmer_id_in_string;  // "relative" kmer-id: 0 <= kmer_id_in_string < string_size
+    uint64_t kmer_id_in_string;  // "relative" kmer-id: 0 <= kmer_id_in_string < string_size,
+                                 // where string_size = string_end - string_begin - k + 1
+    uint64_t kmer_offset;
     int64_t kmer_orientation;
+
     uint64_t string_id;
-    uint64_t string_size;
+    uint64_t string_begin;
+    uint64_t string_end;
+
     bool minimizer_found;
 
-    uint64_t kmer_offset(const uint64_t k) const {  //
-        return kmer_id + string_id * (k - 1);
-    }
+    // uint64_t kmer_offset(const uint64_t k) const {  //
+    //     return kmer_id + string_id * (k - 1);
+    // }
 
-    uint64_t string_begin(const uint64_t k) const {  //
-        return kmer_offset(k) - kmer_id_in_string;
-    }
+    // uint64_t string_begin(const uint64_t k) const {  //
+    //     return kmer_offset(k) - kmer_id_in_string;
+    // }
 
-    uint64_t string_end(const uint64_t k) const {  //
-        return string_begin(k) + string_size + k - 1;
-    }
+    // uint64_t string_end(const uint64_t k) const {  //
+    //     return string_begin(k) + string_size + k - 1;
+    // }
 };
 
 inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
     os << "  == kmer_id = " << res.kmer_id << '\n';
     os << "  == kmer_id_in_string = " << res.kmer_id_in_string << '\n';
+    os << "  == kmer_offset = " << res.kmer_offset << '\n';
     os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
     os << "  == string_id = " << res.string_id << '\n';
-    os << "  == string_size = " << res.string_size << '\n';
+    os << "  == string_begin = " << res.string_begin << '\n';
+    os << "  == string_end = " << res.string_end << '\n';
+    os << "  == string_length = " << (res.string_end - res.string_begin) << '\n';
     os << "  == minimizer_found = " << (res.minimizer_found ? "true" : "false") << '\n';
     return os;
 }
@@ -127,9 +139,14 @@ struct minimizer_info {
                   << std::endl;
         good = false;
     }
-    if (expected.string_size != got.string_size) {
-        std::cout << "expected string_size " << expected.string_size << " but got "
-                  << got.string_size << std::endl;
+    if (expected.string_begin != got.string_begin) {
+        std::cout << "expected string_begin " << expected.string_begin << " but got "
+                  << got.string_begin << std::endl;
+        good = false;
+    }
+    if (expected.string_end != got.string_end) {
+        std::cout << "expected string_end " << expected.string_end << " but got " << got.string_end
+                  << std::endl;
         good = false;
     }
     return good;

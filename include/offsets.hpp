@@ -49,43 +49,45 @@ struct decoded_offsets  //
 
     decoded_offset decode(const uint64_t encoded_offset) const { return {encoded_offset}; }
 
-    lookup_result offset_to_id(decoded_offset p, uint64_t pos_in_kmer, const uint64_t k) const  //
+    void offset_to_id(lookup_result& res, decoded_offset p, const uint64_t k) const  //
     {
-        if (p.absolute_offset < pos_in_kmer) return lookup_result();
+        assert(res.kmer_offset != constants::invalid_uint64);
 
-        uint64_t kmer_offset = p.absolute_offset - pos_in_kmer;
-        auto q = m_seq.locate(kmer_offset);
-        uint64_t string_id = q.first.pos;
-        uint64_t string_begin = q.first.val;
-        uint64_t string_end = q.second.val;
+        auto q = m_seq.locate(res.kmer_offset);
+        res.string_id = q.first.pos;
+        res.string_begin = q.first.val;
+        res.string_end = q.second.val;
+        assert(res.string_id < m_seq.size());
+        assert(res.string_begin < res.string_end);
+
+        // std::cout << res << std::endl;
 
         /* The following facts hold. */
-        assert(kmer_offset >= string_id * (k - 1));
-        assert(string_begin <= kmer_offset);
-        assert(kmer_offset < string_end);
+        assert(res.kmer_offset >= res.string_id * (k - 1));
+        assert(res.string_begin <= res.kmer_offset);
+        assert(res.kmer_offset < res.string_end);
         /****************************/
 
-        if (kmer_offset >= string_end - k + 1) return lookup_result();
+        // if (res.kmer_offset >= res.string_end - k + 1) return false;
 
-        uint64_t absolute_kmer_id = kmer_offset - string_id * (k - 1);
-        uint64_t relative_kmer_id = kmer_offset - string_begin;
-        uint64_t string_length = string_end - string_begin;
-        assert(string_length >= k);
-        uint64_t string_size = string_length - k + 1;
+        // uint64_t absolute_kmer_id = kmer_offset - string_id * (k - 1);
+        // uint64_t relative_kmer_id = kmer_offset - string_begin;
+        // uint64_t string_length = string_end - string_begin;
+        // assert(string_length >= k);
+        // uint64_t string_size = string_length - k + 1;
 
-        lookup_result res;
-        res.kmer_id = absolute_kmer_id;
-        res.kmer_id_in_string = relative_kmer_id;
-        res.string_id = string_id;
-        res.string_size = string_size;
+        // lookup_result res;
+        res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
+        res.kmer_id_in_string = res.kmer_offset - res.string_begin;  // relative kmer id
+        // res.string_id = string_id;
+        // res.string_size = string_size;
 
-        assert(res.kmer_id_in_string < res.string_size);
-        assert(res.string_id < m_seq.size());
-        assert(string_begin == res.string_begin(k));
-        assert(string_end == res.string_end(k));
-        assert(kmer_offset == res.kmer_offset(k));
+        // assert(res.kmer_id_in_string < res.string_end - res.string_begin - k + 1);
 
-        return res;
+        // assert(res.string_id < m_seq.size());
+        // assert(string_begin == res.string_begin(k));
+        // assert(string_end == res.string_end(k));
+        // assert(kmer_offset == res.kmer_offset(k));
     }
 
     std::pair<uint64_t, uint64_t> id_to_offset(const uint64_t kmer_id, const uint64_t k) const  //
@@ -216,45 +218,46 @@ struct encoded_offsets  //
         return {begin + relative_offset, relative_offset, string_id, begin, end};
     }
 
-    lookup_result offset_to_id(decoded_offset p, uint64_t pos_in_kmer, const uint64_t k) const  //
+    bool offset_to_id(lookup_result& res, decoded_offset p, uint64_t pos_in_kmer,
+                      const uint64_t k) const  //
     {
-        if (p.absolute_offset < pos_in_kmer or                        //
-            p.absolute_offset - pos_in_kmer < p.string_begin or       //
-            p.absolute_offset - pos_in_kmer >= p.string_end - k + 1)  //
-        {
-            return lookup_result();
-        }
+        // if (p.absolute_offset < pos_in_kmer or                        //
+        //     p.absolute_offset - pos_in_kmer < p.string_begin or       //
+        //     p.absolute_offset - pos_in_kmer >= p.string_end - k + 1)  //
+        // {
+        //     return lookup_result();
+        // }
 
-        uint64_t kmer_offset = p.absolute_offset - pos_in_kmer;
-        uint64_t string_id = p.string_id;
-        uint64_t string_begin = p.string_begin;
-        uint64_t string_end = p.string_end;
+        // uint64_t kmer_offset = p.absolute_offset - pos_in_kmer;
+        // uint64_t string_id = p.string_id;
+        // uint64_t string_begin = p.string_begin;
+        // uint64_t string_end = p.string_end;
 
-        /* The following facts hold. */
-        assert(kmer_offset >= string_id * (k - 1));
-        assert(string_begin <= kmer_offset);
-        assert(kmer_offset < string_end);
-        /****************************/
+        // /* The following facts hold. */
+        // assert(kmer_offset >= string_id * (k - 1));
+        // assert(string_begin <= kmer_offset);
+        // assert(kmer_offset < string_end);
+        // /****************************/
 
-        uint64_t absolute_kmer_id = kmer_offset - string_id * (k - 1);
-        uint64_t relative_kmer_id = kmer_offset - string_begin;
-        uint64_t string_length = string_end - string_begin;
-        assert(string_length >= k);
-        uint64_t string_size = string_length - k + 1;
+        // uint64_t absolute_kmer_id = kmer_offset - string_id * (k - 1);
+        // uint64_t relative_kmer_id = kmer_offset - string_begin;
+        // uint64_t string_length = string_end - string_begin;
+        // assert(string_length >= k);
+        // uint64_t string_size = string_length - k + 1;
 
-        lookup_result res;
-        res.kmer_id = absolute_kmer_id;
-        res.kmer_id_in_string = relative_kmer_id;
-        res.string_id = string_id;
-        res.string_size = string_size;
+        // lookup_result res;
+        // res.kmer_id = absolute_kmer_id;
+        // res.kmer_id_in_string = relative_kmer_id;
+        // res.string_id = string_id;
+        // res.string_size = string_size;
 
-        assert(res.kmer_id_in_string < res.string_size);
-        assert(res.string_id < m_seq.size());
-        assert(string_begin == res.string_begin(k));
-        assert(string_end == res.string_end(k));
-        assert(kmer_offset == res.kmer_offset(k));
+        // assert(res.kmer_id_in_string < res.string_size);
+        // assert(res.string_id < m_seq.size());
+        // assert(string_begin == res.string_begin(k));
+        // assert(string_end == res.string_end(k));
+        // assert(kmer_offset == res.kmer_offset(k));
 
-        return res;
+        return true;
     }
 
     std::pair<uint64_t, uint64_t> id_to_offset(const uint64_t kmer_id, const uint64_t k) const  //

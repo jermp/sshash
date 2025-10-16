@@ -27,11 +27,6 @@ void dictionary<Kmer, Offsets>::print_space_breakdown() const {
     std::cout << "  mid_load_buckets: " << (8.0 * m_ssi.mid_load_buckets.num_bytes()) / num_kmers()
               << " [bits/kmer] -- " << perc(8 * m_ssi.mid_load_buckets.num_bytes(), num_bits())
               << "%\n";
-    // std::cout << "  heavy_load_buckets: " << (8.0 *
-    // m_ssi.m_skew_index.heavy_load_buckets.num_bytes()) / num_kmers()
-    //           << " [bits/kmer] -- " << perc(8 *
-    //           m_ssi.m_skew_index.heavy_load_buckets.num_bytes(), num_bits())
-    //           << "%\n";
     std::cout << "  begin_buckets_of_size: "
               << (8.0 * essentials::vec_bytes(m_ssi.begin_buckets_of_size)) / num_kmers()
               << " [bits/kmer] -- "
