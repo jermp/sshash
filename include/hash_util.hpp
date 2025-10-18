@@ -5,7 +5,22 @@
 
 namespace sshash {
 
-using minimizers_base_hasher_type = pthash::xxhash_128;
+struct minimizers_pthash_hasher_128 {
+    typedef pthash::hash128 hash_type;
+
+    static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
+        /*
+            Cannot use XXH128 directly because on some processors (e.g., AMD)
+            it just does not work.
+        */
+        uint8_t const* begin = reinterpret_cast<uint8_t const*>(&minimizer);
+        uint8_t const* end = begin + sizeof(minimizer);
+        return {XXH64(begin, end - begin, seed), XXH64(begin, end - begin, ~seed)};
+    }
+};
+
+using minimizers_base_hasher_type = minimizers_pthash_hasher_128;
+
 using minimizers_pthash_type =        //
     pthash::partitioned_phf<          //
         minimizers_base_hasher_type,  // base hasher
@@ -18,14 +33,16 @@ template <typename Kmer>
 struct kmers_pthash_hasher_128 {
     typedef pthash::hash128 hash_type;
 
-    /* specialization for Kmer */
-    static inline pthash::hash128 hash(Kmer x, uint64_t seed) {
-        return pthash::xxhash_128::hash(x.begin(), x.end(), seed);
+    static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
+        uint8_t const* begin = reinterpret_cast<uint8_t const*>(&(x.bits));
+        uint8_t const* end = begin + sizeof(x.bits);
+        return {XXH64(begin, end - begin, seed), XXH64(begin, end - begin, ~seed)};
     }
 };
 
 template <typename Kmer>
 using kmers_base_hasher_type = kmers_pthash_hasher_128<Kmer>;
+
 template <typename Kmer>
 using kmers_pthash_type =              //
     pthash::partitioned_phf<           //

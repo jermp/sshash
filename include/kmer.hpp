@@ -16,35 +16,32 @@ namespace sshash {
 
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
-    Kmer kmer = 0;
+    Kmer bits = 0;
 
     uint_kmer_t() {}
-    uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
-
-    uint8_t const* begin() const { return reinterpret_cast<uint8_t const*>(&kmer); }
-    uint8_t const* end() const { return begin() + sizeof(kmer); }
+    uint_kmer_t(uint64_t bits) : bits(bits) {}
 
     virtual ~uint_kmer_t() = default;
 
     explicit operator uint64_t() const {
         if constexpr (std::is_constructible_v<uint64_t, Kmer>) {
-            return static_cast<uint64_t>(kmer);
+            return static_cast<uint64_t>(bits);
         } else {  // std::bitset?
-            return (kmer & Kmer(uint64_t(-1))).to_ulong();
+            return (bits & Kmer(uint64_t(-1))).to_ulong();
         }
     }
 
-    bool operator==(uint_kmer_t const& t) const { return kmer == t.kmer; }
-    bool operator!=(uint_kmer_t const& t) const { return kmer != t.kmer; }
-    bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }
+    bool operator==(uint_kmer_t const& t) const { return bits == t.bits; }
+    bool operator!=(uint_kmer_t const& t) const { return bits != t.bits; }
+    bool operator<(uint_kmer_t const& t) const { return bits < t.bits; }
 
-    void pad(uint16_t b) { kmer <<= b; }
+    void pad(uint16_t b) { bits <<= b; }
     void pad_char() { pad(bits_per_char); }
 
-    void drop(uint16_t b) { kmer >>= b; }
+    void drop(uint16_t b) { bits >>= b; }
     void drop64() {
         if constexpr (uint_kmer_bits == 64) {
-            kmer = 0;
+            bits = 0;
         } else {
             drop(64);
         }
@@ -52,8 +49,8 @@ struct uint_kmer_t {
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
-    void take(uint16_t b) { kmer &= ~(~Kmer(0) << b); }
-    void take64() { kmer &= Kmer(uint64_t(-1)); }
+    void take(uint16_t b) { bits &= ~(~Kmer(0) << b); }
+    void take64() { bits &= Kmer(uint64_t(-1)); }
     void take_char() { take(bits_per_char); }
     void take_chars(uint16_t k) { take(k * bits_per_char); }
 
@@ -71,20 +68,20 @@ struct uint_kmer_t {
 
     void append64(uint64_t n) {
         if constexpr (uint_kmer_bits == 64) {
-            kmer = n;
+            bits = n;
         } else {
             assert(64 < uint_kmer_bits);
-            kmer = (kmer << 64) | Kmer(n);
+            bits = (bits << 64) | Kmer(n);
         }
     }
 
     /* Set the char at position i to c,
        assuming that the position is empty. */
-    void set(uint16_t i, uint64_t c) { kmer |= Kmer(c) << (i * bits_per_char); }
+    void set(uint16_t i, uint64_t c) { bits |= Kmer(c) << (i * bits_per_char); }
 
     /* Returns the char at position i. */
     uint64_t at(uint16_t i) const {
-        return (kmer >> (i * bits_per_char)) & ((uint64_t(1) << bits_per_char) - 1);
+        return (bits >> (i * bits_per_char)) & ((uint64_t(1) << bits_per_char) - 1);
     }
 
     static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);

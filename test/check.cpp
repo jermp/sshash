@@ -37,7 +37,7 @@ std::unordered_set<uint64_t> parse_file(std::istream& is, const uint64_t k) {
             assert(util::is_valid<kmer_type>(kmer, k));
             kmer_type uint_kmer = util::string_to_uint_kmer<kmer_type>(kmer, k);
 
-            kmers.insert(uint_kmer.kmer);
+            kmers.insert(uint_kmer.bits);
 
             ++num_kmers;
         }
@@ -77,12 +77,12 @@ void query_from_fastq_file(std::string const& query_filename,
                 if (util::is_valid<kmer_type>(kmer, k))  //
                 {
                     kmer_type uint_kmer = util::string_to_uint_kmer<kmer_type>(kmer, k);
-                    if (auto it = kmers.find(uint_kmer.kmer); it != kmers.end()) {
+                    if (auto it = kmers.find(uint_kmer.bits); it != kmers.end()) {
                         num_positive_kmers += 1;
                     }
                     kmer_type uint_kmer_rc = uint_kmer;
                     uint_kmer_rc.reverse_complement_inplace(k);
-                    if (auto it = kmers.find(uint_kmer_rc.kmer); it != kmers.end()) {
+                    if (auto it = kmers.find(uint_kmer_rc.bits); it != kmers.end()) {
                         num_positive_kmers += 1;
                     }
                 }
