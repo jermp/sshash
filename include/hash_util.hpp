@@ -1,17 +1,31 @@
 #pragma once
 
 #include "external/pthash/include/pthash.hpp"
+#include "external/cityhash/cityhash.cpp"
 #include "constants.hpp"
 
 namespace sshash {
 
-struct minimizers_pthash_hasher_128 {
+struct minimizers_city_hasher_128 {
+    typedef pthash::hash128 hash_type;
+
+    static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
+        auto ret = CityMurmur(reinterpret_cast<char const*>(&minimizer),  //
+                              sizeof(minimizer), {seed, ~seed});
+        return {ret.first, ret.second};
+    }
+};
+
+struct minimizers_xx_hasher_128 {
     typedef pthash::hash128 hash_type;
 
     static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
         /*
             Cannot use XXH128 directly because on some processors (e.g., AMD)
-            it just does not work.
+            it just does not work in Release mode, e.g., when compiling *without*
+            sanitizers: -fsanitize=address -fno-omit-frame-pointer.
+            We therefore rely on XXH64 that produces 64-bit hashes but does not
+            seem to have any issue.
         */
         uint8_t const* begin = reinterpret_cast<uint8_t const*>(&minimizer);
         uint8_t const* end = begin + sizeof(minimizer);
@@ -19,7 +33,8 @@ struct minimizers_pthash_hasher_128 {
     }
 };
 
-using minimizers_base_hasher_type = minimizers_pthash_hasher_128;
+// using minimizers_base_hasher_type = minimizers_xx_hasher_128;
+using minimizers_base_hasher_type = minimizers_city_hasher_128;
 
 using minimizers_pthash_type =        //
     pthash::partitioned_phf<          //
@@ -30,7 +45,7 @@ using minimizers_pthash_type =        //
         >;                            //
 
 template <typename Kmer>
-struct kmers_pthash_hasher_128 {
+struct kmers_xx_hasher_128 {
     typedef pthash::hash128 hash_type;
 
     static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
@@ -41,7 +56,21 @@ struct kmers_pthash_hasher_128 {
 };
 
 template <typename Kmer>
-using kmers_base_hasher_type = kmers_pthash_hasher_128<Kmer>;
+struct kmers_city_hasher_128 {
+    typedef pthash::hash128 hash_type;
+
+    static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
+        auto ret = CityMurmur(reinterpret_cast<char const*>(&(x.bits)),  //
+                              sizeof(x.bits), {seed, ~seed});
+        return {ret.first, ret.second};
+    }
+};
+
+// template <typename Kmer>
+// using kmers_base_hasher_type = kmers_xx_hasher_128<Kmer>;
+
+template <typename Kmer>
+using kmers_base_hasher_type = kmers_city_hasher_128<Kmer>;
 
 template <typename Kmer>
 using kmers_pthash_type =              //
