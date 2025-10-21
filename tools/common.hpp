@@ -7,6 +7,11 @@
 
 namespace sshash {
 
+void print_cmd(int argc, char** argv) {
+    for (int i = 0; i != argc; ++i) std::cout << argv[i] << ' ';
+    std::cout << std::endl;
+}
+
 void random_kmer(char* kmer, uint64_t k) {
     for (uint64_t i = 0; i != k; ++i) kmer[i] = "ACGT"[rand() % 4];
 }

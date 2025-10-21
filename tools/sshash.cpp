@@ -70,6 +70,7 @@ int help(char* arg0) {
 
 int main(int argc, char** argv) {
     if (argc < 2) return help(argv[0]);
+    print_cmd(argc, argv);
     auto tool = std::string(argv[1]);
     if (tool == "build") {
         return build(argc - 1, argv + 1);
