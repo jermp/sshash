@@ -20,7 +20,7 @@ rm -rf tmp_dir/; ./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/kestrel.k31.eul
 rm -rf tmp_dir/; ./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/human.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --canonical --verbose -d tmp_dir -o human.k31.canon.sshash >> results-$1/k31/canon-build.log
 rm -rf tmp_dir/; ./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/hprc.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --canonical --verbose -d tmp_dir -o hprc.k31.canon.sshash >> results-$1/k31/canon-build.log
 rm -rf tmp_dir/; ./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/ec.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --canonical --verbose -d tmp_dir -o ec.k31.canon.sshash >> results-$1/k31/canon-build.log
-rm -rf tmp_dir/; ./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/se.k31.eulertigs.fa.gz -k 31 -m 12 -g 16 -t 64 --canonical --verbose -d tmp_dir -o se.k31.canon.sshash >> results-$1/k31/canon-build.log
+rm -rf tmp_dir/; ./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/se.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --canonical --verbose -d tmp_dir -o se.k31.canon.sshash >> results-$1/k31/canon-build.log
 
 cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=/usr/bin/g++ -DSSHASH_USE_ARCH_NATIVE=On -DSSHASH_USE_SANITIZERS=Off -DSSHASH_USE_MAX_KMER_LENGTH_63=On
 make -j
