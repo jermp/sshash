@@ -1,0 +1,60 @@
+./sshash bench -i cod.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 631.809
+avg_nanosec_per_negative_lookup 459.727
+avg_nanosec_per_access 306.545
+iterator: avg_nanosec_per_kmer 2.79586
+./sshash bench -i cod.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 634.897
+avg_nanosec_per_negative_lookup 478.023
+avg_nanosec_per_access 300.399
+iterator: avg_nanosec_per_kmer 2.78933
+./sshash bench -i cod.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 621.437
+avg_nanosec_per_negative_lookup 476.323
+avg_nanosec_per_access 295.998
+iterator: avg_nanosec_per_kmer 2.8806
+./sshash bench -i kestrel.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 547.037
+avg_nanosec_per_negative_lookup 499.846
+avg_nanosec_per_access 332.06
+iterator: avg_nanosec_per_kmer 2.80736
+./sshash bench -i kestrel.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 561.943
+avg_nanosec_per_negative_lookup 507.71
+avg_nanosec_per_access 333.119
+iterator: avg_nanosec_per_kmer 2.84461
+./sshash bench -i kestrel.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 579.655
+avg_nanosec_per_negative_lookup 490.51
+avg_nanosec_per_access 337.485
+iterator: avg_nanosec_per_kmer 2.8116
+./sshash bench -i human.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 735.346
+avg_nanosec_per_negative_lookup 530.724
+avg_nanosec_per_access 374.906
+iterator: avg_nanosec_per_kmer 2.84612
+./sshash bench -i human.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 735.027
+avg_nanosec_per_negative_lookup 537.467
+avg_nanosec_per_access 358.872
+iterator: avg_nanosec_per_kmer 2.82918
+./sshash bench -i human.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 734.37
+avg_nanosec_per_negative_lookup 538.679
+avg_nanosec_per_access 363.887
+iterator: avg_nanosec_per_kmer 2.81595
+./sshash bench -i hprc.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 1240.37
+avg_nanosec_per_negative_lookup 600.328
+avg_nanosec_per_access 681.789
+iterator: avg_nanosec_per_kmer 2.90587
+./sshash bench -i hprc.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 1242.4
+avg_nanosec_per_negative_lookup 592.073
+avg_nanosec_per_access 675.422
+iterator: avg_nanosec_per_kmer 2.89704
+./sshash bench -i hprc.k63.canon.sshash 
+avg_nanosec_per_positive_lookup 1249.58
+avg_nanosec_per_negative_lookup 617.213
+avg_nanosec_per_access 672.296
+iterator: avg_nanosec_per_kmer 2.89418
