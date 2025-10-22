@@ -239,7 +239,7 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
             const uint64_t index_end =
                 std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
 
-            kmer_iterator<Kmer, bits::bit_vector::builder> it(strings_builder, k);
+            kmer_iterator<Kmer, bits::bit_vector::builder> kmer_it(strings_builder, k);
             minimizer_iterator<Kmer> minimizer_it(k, m, hasher);
             minimizer_iterator_rc<Kmer> minimizer_it_rc(k, m, hasher);
 
@@ -254,12 +254,12 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
                 assert(prev_mini_info.minimizer == constants::invalid_uint64);
                 uint64_t num_kmers_in_super_kmer = 0;
 
-                it.at(Kmer::bits_per_char * begin);
+                kmer_it.at(Kmer::bits_per_char * begin);
                 minimizer_it.set_position(begin);
                 minimizer_it_rc.set_position(begin);
 
                 for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
-                    auto uint_kmer = it.get();
+                    auto uint_kmer = kmer_it.get();
                     auto mini_info = minimizer_it.next(uint_kmer);
                     assert(mini_info.pos_in_seq < end - m + 1);
                     assert(mini_info.pos_in_kmer < k - m + 1);
@@ -292,7 +292,7 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
                     }
 
                     num_kmers_in_super_kmer += 1;
-                    it.next();
+                    kmer_it.next();
                 }
 
                 save(prev_mini_info, num_kmers_in_super_kmer);

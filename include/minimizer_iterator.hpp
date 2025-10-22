@@ -89,7 +89,7 @@ private:
 /*
     "Re-scan" method.
 */
-template <class Kmer>
+template <typename Kmer>
 struct minimizer_iterator_rc {
     minimizer_iterator_rc() {}
 
