@@ -11,13 +11,14 @@ void perf_test_iterator(Dict const& dict) {
     perf::timer_type t;
     t.start();
     auto it = dict.begin();
-    while (it.has_next()) {
+    uint64_t n = std::min<uint64_t>(dict.num_kmers(), 100'000'000);
+    for (uint64_t i = 0; i != n; ++i) {
         auto [kmer_id, kmer] = it.next();
         essentials::do_not_optimize_away(kmer_id);
         essentials::do_not_optimize_away(kmer.at(0));
     }
     t.stop();
-    double avg_nanosec = t.elapsed() / dict.num_kmers();
+    double avg_nanosec = t.elapsed() / n;
     std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
 }
 
