@@ -1,0 +1,2131 @@
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/cod.k63.eulertigs.fa.gz -k 63 -m 24 -g 16 -t 64 --canonical --verbose -d tmp_dir -o cod.k63.canon.sshash 
+k = 63, m = 24, seed = 1, num_threads = 64, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, fast = false, tmp_dirname = 'tmp_dir'
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/cod.k63.eulertigs.fa.gz'...
+read 100000 sequences, 61951464 bases, 55751464 kmers
+read 200000 sequences, 122972958 bases, 110572958 kmers
+read 300000 sequences, 183599874 bases, 164999874 kmers
+read 400000 sequences, 245141781 bases, 220341781 kmers
+read 500000 sequences, 306871742 bases, 275871742 kmers
+read 600000 sequences, 368255372 bases, 331055372 kmers
+read 700000 sequences, 430272672 bases, 386872672 kmers
+read 800000 sequences, 496894673 bases, 447294673 kmers
+read 900000 sequences, 580551939 bases, 524751939 kmers
+=== step 1.1: 'encoding input' 1.482 [sec] (2.66267 [ns/kmer])
+read 954555 sequences, 615768068 bases, 556585658 kmers
+num_kmers 556585658
+cost: 2.0 + 0.212662 [bits/kmer]
+max_len 46783
+num. bits per_absolute_offset 30
+num. bits per_relative_offset 16
+num. bits per_string_id 20
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.13.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.14.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.15.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.16.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.17.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.18.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.19.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.20.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.21.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.22.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.23.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.24.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.25.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.26.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.27.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.28.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.29.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.30.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.31.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.32.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.33.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.34.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.35.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.36.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.37.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.38.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.39.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.40.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.41.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.42.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.43.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.44.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.45.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.46.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.47.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.48.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.49.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.50.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.51.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.52.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.53.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.54.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.55.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.56.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.57.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.58.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.59.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.60.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.61.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.62.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.63.bin'...
+=== step 1.2: 'computing minimizers tuples' 0.432565 [sec] (0.777176 [ns/kmer])
+=== step 1: 'parse file' 1.91466 [sec] (3.44002 [ns/kmer])
+ == files to merge = 64
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.bin'
+=== step 2.1: 'merging minimizers tuples' 2.6217 [sec] (4.71032 [ns/kmer])
+num_minimizers = 29275778
+num_minimizer_positions = 34590805
+num_super_kmers = 36307176
+building minimizers MPHF with 64 threads and 10 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 1.63405 [sec] (2.93585 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1761155074517745878.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 1.37919 [sec] (2.47795 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 0.731842 [sec] (1.31488 [ns/kmer])
+num_bits_per_offset = 36
+num_buckets_larger_than_1_not_in_skew_index 1189512/29275778 (4.06313%)
+num_buckets_in_skew_index 5032/29275778 (0.0171883%)
+max_bucket_size 815743
+log2_max_bucket_size 20
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 4643594/34590805 (13.4244%)
+num_minimizer_positions_of_buckets_in_skew_index 1865977/34590805 (5.39443%)
+computing minimizers offsets: 0.479114 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 4850737
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 3133092
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 1886121
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 1113398
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 945186
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 1019479
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 681501
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 815743: 5508330
+num_kmers_in_skew_index 19137844 (3.43844%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 4850737
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 4850737 kmers; bits/key = 2.71418
+    built positions[0] for 4850737 kmers; bits/key = 7.00007
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 3133092
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[1] for 3133092 kmers; bits/key = 3.15324
+    built positions[1] for 3133092 kmers; bits/key = 8.00011
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 1886121
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 1886121)...
+    built mphs[2] for 1886121 kmers; bits/key = 2.5602
+    built positions[2] for 1886121 kmers; bits/key = 9.00018
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 1113398
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 1113398)...
+    built mphs[3] for 1113398 kmers; bits/key = 2.56094
+    built positions[3] for 1113398 kmers; bits/key = 10.0003
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 945186
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 945186)...
+    built mphs[4] for 945186 kmers; bits/key = 2.56129
+    built positions[4] for 945186 kmers; bits/key = 11.0003
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 1019479
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 1019479)...
+    built mphs[5] for 1019479 kmers; bits/key = 2.56115
+    built positions[5] for 1019479 kmers; bits/key = 12.0004
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 681501
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 681501)...
+    built mphs[6] for 681501 kmers; bits/key = 2.41941
+    built positions[6] for 681501 kmers; bits/key = 13.0005
+  lower = 8192; upper = 815743; num_bits_per_pos = 20; num_kmers_in_partition = 5508330
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[7] for 5508330 kmers; bits/key = 2.59546
+    built positions[7] for 5508330 kmers; bits/key = 20.0001
+computing skew index took: 5.89842 [sec]
+=== step 3: 'build sparse and skew index' 6.42909 [sec] (11.5509 [ns/kmer])
+=== total_time 14.7105 [sec] (26.43 [ns/kmer])
+total index size: 367802718 [B] -- 367.803 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.151285 [bits/kmer] (2.87621 [bits/key]) -- 2.8617%
+  strings_offsets: 0.0514514 [bits/kmer] -- 0.97325%
+  control_codewords: 1.94616 [bits/kmer] -- 36.8134%
+  mid_load_buckets: 0.300349 [bits/kmer] -- 5.68137%
+  begin_buckets_of_size: 3.85206e-06 [bits/kmer] -- 7.28651e-05%
+  strings: 2.21266 [bits/kmer] -- 41.8545%
+  skew_index: 0.624643 [bits/kmer] -- 11.8157%
+  weights: 2.6447e-06 [bits/kmer] -- 5.00268e-05%
+  --------------
+  total: 5.28656 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 95.9197%
+buckets with 2 minimizer positions = 2.25505%
+buckets with 3 minimizer positions = 0.743143%
+buckets with 4 minimizer positions = 0.33953%
+buckets with 5 minimizer positions = 0.188914%
+buckets with 6 minimizer positions = 0.116602%
+buckets with 7 minimizer positions = 0.0799535%
+buckets with 8 minimizer positions = 0.0565963%
+buckets with 9 minimizer positions = 0.0427691%
+buckets with 10 minimizer positions = 0.0324774%
+buckets with 11 minimizer positions = 0.0259498%
+buckets with 12 minimizer positions = 0.0206382%
+buckets with 13 minimizer positions = 0.017038%
+buckets with 14 minimizer positions = 0.0148143%
+buckets with 15 minimizer positions = 0.0124232%
+buckets with 16 minimizer positions = 0.0107973%
+max_bucket_size 815743
+2025-10-22 19:44:49: saving data structure to disk...
+2025-10-22 19:44:49: DONE
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/kestrel.k63.eulertigs.fa.gz -k 63 -m 24 -g 16 -t 64 --canonical --verbose -d tmp_dir -o kestrel.k63.canon.sshash 
+k = 63, m = 24, seed = 1, num_threads = 64, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, fast = false, tmp_dirname = 'tmp_dir'
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/kestrel.k63.eulertigs.fa.gz'...
+read 100000 sequences, 726199646 bases, 719999646 kmers
+=== step 1.1: 'encoding input' 2.68923 [sec] (2.32783 [ns/kmer])
+read 155784 sequences, 1164909275 bases, 1155250667 kmers
+num_kmers 1155250667
+cost: 2.0 + 0.0167212 [bits/kmer]
+max_len 261876
+num. bits per_absolute_offset 31
+num. bits per_relative_offset 18
+num. bits per_string_id 18
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.13.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.14.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.15.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.16.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.17.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.18.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.19.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.20.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.21.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.22.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.23.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.24.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.25.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.26.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.27.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.28.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.29.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.30.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.31.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.32.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.33.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.34.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.35.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.36.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.37.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.38.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.39.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.40.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.41.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.42.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.43.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.44.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.45.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.46.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.47.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.48.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.49.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.50.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.51.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.52.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.53.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.54.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.55.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.56.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.57.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.58.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.59.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.60.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.61.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.62.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.63.bin'...
+=== step 1.2: 'computing minimizers tuples' 0.698686 [sec] (0.604792 [ns/kmer])
+=== step 1: 'parse file' 3.38802 [sec] (2.93271 [ns/kmer])
+ == files to merge = 64
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.bin'
+num_super_kmers = 50000000
+=== step 2.1: 'merging minimizers tuples' 5.18951 [sec] (4.49211 [ns/kmer])
+num_minimizers = 68497878
+num_minimizer_positions = 69282395
+num_super_kmers = 73080845
+building minimizers MPHF with 64 threads and 23 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 3.0244 [sec] (2.61796 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1761155089599950950.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 2.7233 [sec] (2.35732 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 1.4648 [sec] (1.26795 [ns/kmer])
+num_bits_per_offset = 36
+num_buckets_larger_than_1_not_in_skew_index 296941/68497878 (0.433504%)
+num_buckets_in_skew_index 787/68497878 (0.00114894%)
+max_bucket_size 1509
+log2_max_bucket_size 11
+skew index num_partitions 5
+num_minimizer_positions_of_buckets_larger_than_1 973386/69282395 (1.40495%)
+num_minimizer_positions_of_buckets_in_skew_index 108859/69282395 (0.157124%)
+computing minimizers offsets: 0.596444 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 854803
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 508726
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 353088
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 143157
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 1509: 45334
+num_kmers_in_skew_index 1905108 (0.164909%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 854803
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 854803)...
+    built mphs[0] for 854803 kmers; bits/key = 2.5616
+    built positions[0] for 854803 kmers; bits/key = 7.00044
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 508726
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 508726)...
+    built mphs[1] for 508726 kmers; bits/key = 2.42032
+    built positions[1] for 508726 kmers; bits/key = 8.00066
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 353088
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 353088)...
+    built mphs[2] for 353088 kmers; bits/key = 2.56521
+    built positions[2] for 353088 kmers; bits/key = 9.00091
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 143157
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 143157)...
+    built mphs[3] for 143157 kmers; bits/key = 2.4309
+    built positions[3] for 143157 kmers; bits/key = 10.0026
+  lower = 1024; upper = 1509; num_bits_per_pos = 11; num_kmers_in_partition = 45334
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 45334)...
+    built mphs[4] for 45334 kmers; bits/key = 2.46173
+    built positions[4] for 45334 kmers; bits/key = 11.0074
+computing skew index took: 1.09443 [sec]
+=== step 3: 'build sparse and skew index' 1.78937 [sec] (1.54891 [ns/kmer])
+=== total_time 17.5794 [sec] (15.217 [ns/kmer])
+total index size: 640267074 [B] -- 640.267 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.16806 [bits/kmer] (2.83441 [bits/key]) -- 3.79043%
+  strings_offsets: 0.0041807 [bits/kmer] -- 0.0942919%
+  control_codewords: 2.19383 [bits/kmer] -- 49.4798%
+  mid_load_buckets: 0.030333 [bits/kmer] -- 0.684133%
+  begin_buckets_of_size: 1.85587e-06 [bits/kmer] -- 4.18575e-05%
+  strings: 2.01672 [bits/kmer] -- 45.4853%
+  skew_index: 0.0206612 [bits/kmer] -- 0.465995%
+  weights: 1.27418e-06 [bits/kmer] -- 2.8738e-05%
+  --------------
+  total: 4.43379 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 99.5653%
+buckets with 2 minimizer positions = 0.296122%
+buckets with 3 minimizer positions = 0.0602092%
+buckets with 4 minimizer positions = 0.0251672%
+buckets with 5 minimizer positions = 0.0136895%
+buckets with 6 minimizer positions = 0.00842362%
+buckets with 7 minimizer positions = 0.00572864%
+buckets with 8 minimizer positions = 0.00416071%
+buckets with 9 minimizer positions = 0.00301323%
+buckets with 10 minimizer positions = 0.00248183%
+buckets with 11 minimizer positions = 0.00184093%
+buckets with 12 minimizer positions = 0.00158691%
+buckets with 13 minimizer positions = 0.00117084%
+buckets with 14 minimizer positions = 0.00105697%
+buckets with 15 minimizer positions = 0.000887619%
+buckets with 16 minimizer positions = 0.000756228%
+max_bucket_size 1509
+2025-10-22 19:45:07: saving data structure to disk...
+2025-10-22 19:45:07: DONE
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/human.k63.eulertigs.fa.gz -k 63 -m 25 -g 16 -t 64 --canonical --verbose -d tmp_dir -o human.k63.canon.sshash 
+k = 63, m = 25, seed = 1, num_threads = 64, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, fast = false, tmp_dirname = 'tmp_dir'
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/human.k63.eulertigs.fa.gz'...
+read 100000 sequences, 156072740 bases, 149872740 kmers
+read 200000 sequences, 358422405 bases, 346022405 kmers
+read 300000 sequences, 483978582 bases, 465378582 kmers
+read 400000 sequences, 579661931 bases, 554861931 kmers
+read 500000 sequences, 676698600 bases, 645698600 kmers
+read 600000 sequences, 771042638 bases, 733842638 kmers
+read 700000 sequences, 867362074 bases, 823962074 kmers
+read 800000 sequences, 963948852 bases, 914348852 kmers
+read 900000 sequences, 1061594001 bases, 1005794001 kmers
+read 1000000 sequences, 1159508892 bases, 1097508892 kmers
+read 1100000 sequences, 1258471425 bases, 1190271425 kmers
+read 1200000 sequences, 1356700171 bases, 1282300171 kmers
+read 1300000 sequences, 1455269127 bases, 1374669127 kmers
+read 1400000 sequences, 1554765943 bases, 1467965943 kmers
+read 1500000 sequences, 1655325717 bases, 1562325717 kmers
+read 1600000 sequences, 1756677781 bases, 1657477781 kmers
+read 1700000 sequences, 1857972693 bases, 1752572693 kmers
+read 1800000 sequences, 1959726014 bases, 1848126014 kmers
+read 1900000 sequences, 2064608823 bases, 1946808823 kmers
+read 2000000 sequences, 2171598594 bases, 2047598594 kmers
+read 2100000 sequences, 2280350234 bases, 2150150234 kmers
+read 2200000 sequences, 2390845461 bases, 2254445461 kmers
+read 2300000 sequences, 2504102196 bases, 2361502196 kmers
+read 2400000 sequences, 2621983328 bases, 2473183328 kmers
+read 2500000 sequences, 2745888150 bases, 2590888150 kmers
+read 2600000 sequences, 2875580515 bases, 2714380515 kmers
+=== step 1.1: 'encoding input' 7.10615 [sec] (2.56418 [ns/kmer])
+read 2642917 sequences, 2935176947 bases, 2771316093 kmers
+num_kmers 2771316093
+cost: 2.0 + 0.118255 [bits/kmer]
+max_len 124282
+num. bits per_absolute_offset 32
+num. bits per_relative_offset 17
+num. bits per_string_id 22
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.13.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.14.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.15.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.16.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.17.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.18.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.19.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.20.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.21.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.22.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.23.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.24.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.25.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.26.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.27.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.28.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.29.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.30.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.31.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.32.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.33.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.34.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.35.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.36.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.37.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.38.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.39.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.40.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.41.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.42.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.43.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.44.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.45.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.46.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.47.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.48.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.49.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.50.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.51.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.52.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.53.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.54.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.55.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.56.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.57.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.58.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.59.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.60.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.61.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.62.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.63.bin'...
+=== step 1.2: 'computing minimizers tuples' 1.56413 [sec] (0.564399 [ns/kmer])
+=== step 1: 'parse file' 8.67042 [sec] (3.12863 [ns/kmer])
+ == files to merge = 64
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+=== step 2.1: 'merging minimizers tuples' 12.7316 [sec] (4.59406 [ns/kmer])
+num_minimizers = 149769567
+num_minimizer_positions = 173272792
+num_super_kmers = 182565576
+building minimizers MPHF with 64 threads and 50 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 6.11577 [sec] (2.20681 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1761155107884059635.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 6.41367 [sec] (2.31431 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 3.7812 [sec] (1.36441 [ns/kmer])
+num_bits_per_offset = 39
+num_buckets_larger_than_1_not_in_skew_index 4082749/149769567 (2.72602%)
+num_buckets_in_skew_index 35781/149769567 (0.0238907%)
+max_bucket_size 284250
+log2_max_bucket_size 19
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 16495406/173272792 (9.51991%)
+num_minimizer_positions_of_buckets_in_skew_index 11126349/173272792 (6.42129%)
+computing minimizers offsets: 2.10428 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 26742724
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 24475836
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 21113117
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 19260150
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 17989259
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 15443443
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 12315344
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 284250: 28690575
+num_kmers_in_skew_index 166030448 (5.99103%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 26742724
+    building MPHF with 64 threads and 9 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 26742724 kmers; bits/key = 2.56429
+    built positions[0] for 26742724 kmers; bits/key = 7.00001
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 24475836
+    building MPHF with 64 threads and 9 partitions (avg. partition size = 3000000)...
+    built mphs[1] for 24475836 kmers; bits/key = 2.62316
+    built positions[1] for 24475836 kmers; bits/key = 8.00001
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 21113117
+    building MPHF with 64 threads and 8 partitions (avg. partition size = 3000000)...
+    built mphs[2] for 21113117 kmers; bits/key = 2.6904
+    built positions[2] for 21113117 kmers; bits/key = 9.00002
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 19260150
+    building MPHF with 64 threads and 7 partitions (avg. partition size = 3000000)...
+    built mphs[3] for 19260150 kmers; bits/key = 2.59757
+    built positions[3] for 19260150 kmers; bits/key = 10
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 17989259
+    building MPHF with 64 threads and 6 partitions (avg. partition size = 3000000)...
+    built mphs[4] for 17989259 kmers; bits/key = 2.53715
+    built positions[4] for 17989259 kmers; bits/key = 11
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 15443443
+    building MPHF with 64 threads and 6 partitions (avg. partition size = 3000000)...
+    built mphs[5] for 15443443 kmers; bits/key = 2.69254
+    built positions[5] for 15443443 kmers; bits/key = 12
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 12315344
+    building MPHF with 64 threads and 5 partitions (avg. partition size = 3000000)...
+    built mphs[6] for 12315344 kmers; bits/key = 2.67895
+    built positions[6] for 12315344 kmers; bits/key = 13
+  lower = 8192; upper = 284250; num_bits_per_pos = 19; num_kmers_in_partition = 28690575
+    building MPHF with 64 threads and 10 partitions (avg. partition size = 3000000)...
+    built mphs[7] for 28690575 kmers; bits/key = 2.55295
+    built positions[7] for 28690575 kmers; bits/key = 19
+computing skew index took: 22.4196 [sec]
+=== step 3: 'build sparse and skew index' 24.8074 [sec] (8.95149 [ns/kmer])
+=== total_time 62.5201 [sec] (22.5597 [ns/kmer])
+total index size: 1966639402 [B] -- 1966.64 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.152644 [bits/kmer] (2.82451 [bits/key]) -- 2.68876%
+  strings_offsets: 0.0305175 [bits/kmer] -- 0.537553%
+  control_codewords: 2.16171 [bits/kmer] -- 38.0775%
+  mid_load_buckets: 0.232136 [bits/kmer] -- 4.08896%
+  begin_buckets_of_size: 7.7364e-07 [bits/kmer] -- 1.36273e-05%
+  strings: 2.11826 [bits/kmer] -- 37.3121%
+  skew_index: 0.981863 [bits/kmer] -- 17.2951%
+  weights: 5.31156e-07 [bits/kmer] -- 9.35606e-06%
+  --------------
+  total: 5.67713 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 97.2501%
+buckets with 2 minimizer positions = 1.59767%
+buckets with 3 minimizer positions = 0.444706%
+buckets with 4 minimizer positions = 0.198987%
+buckets with 5 minimizer positions = 0.113029%
+buckets with 6 minimizer positions = 0.07244%
+buckets with 7 minimizer positions = 0.0504562%
+buckets with 8 minimizer positions = 0.0370322%
+buckets with 9 minimizer positions = 0.0281472%
+buckets with 10 minimizer positions = 0.0224598%
+buckets with 11 minimizer positions = 0.0182414%
+buckets with 12 minimizer positions = 0.0149463%
+buckets with 13 minimizer positions = 0.0124745%
+buckets with 14 minimizer positions = 0.0107405%
+buckets with 15 minimizer positions = 0.00923686%
+buckets with 16 minimizer positions = 0.00803234%
+max_bucket_size 284250
+2025-10-22 19:46:10: saving data structure to disk...
+2025-10-22 19:46:11: DONE
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/hprc.k63.eulertigs.fa.gz -k 63 -m 31 -g 16 -t 64 --canonical --verbose -d tmp_dir -o hprc.k63.canon.sshash 
+k = 63, m = 31, seed = 1, num_threads = 64, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, fast = false, tmp_dirname = 'tmp_dir'
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/hprc.k63.eulertigs.fa.gz'...
+read 100000 sequences, 12340553 bases, 6140553 kmers
+read 200000 sequences, 24646589 bases, 12246589 kmers
+read 300000 sequences, 37018141 bases, 18418141 kmers
+read 400000 sequences, 49395114 bases, 24595114 kmers
+read 500000 sequences, 61758878 bases, 30758878 kmers
+read 600000 sequences, 74141190 bases, 36941190 kmers
+read 700000 sequences, 86514611 bases, 43114611 kmers
+read 800000 sequences, 98874544 bases, 49274544 kmers
+read 900000 sequences, 111243181 bases, 55443181 kmers
+read 1000000 sequences, 123618042 bases, 61618042 kmers
+read 1100000 sequences, 136042606 bases, 67842606 kmers
+read 1200000 sequences, 148420872 bases, 74020872 kmers
+read 1300000 sequences, 160881064 bases, 80281064 kmers
+read 1400000 sequences, 173297356 bases, 86497356 kmers
+read 1500000 sequences, 185720140 bases, 92720140 kmers
+read 1600000 sequences, 198143865 bases, 98943865 kmers
+read 1700000 sequences, 210604176 bases, 105204176 kmers
+read 1800000 sequences, 223059063 bases, 111459063 kmers
+read 1900000 sequences, 235529518 bases, 117729518 kmers
+read 2000000 sequences, 248006699 bases, 124006699 kmers
+read 2100000 sequences, 260467973 bases, 130267973 kmers
+read 2200000 sequences, 272924559 bases, 136524559 kmers
+read 2300000 sequences, 285441345 bases, 142841345 kmers
+read 2400000 sequences, 297932660 bases, 149132660 kmers
+read 2500000 sequences, 310464064 bases, 155464064 kmers
+read 2600000 sequences, 323014693 bases, 161814693 kmers
+read 2700000 sequences, 335527821 bases, 168127821 kmers
+read 2800000 sequences, 348042847 bases, 174442847 kmers
+read 2900000 sequences, 360581974 bases, 180781974 kmers
+read 3000000 sequences, 373165849 bases, 187165849 kmers
+read 3100000 sequences, 385714233 bases, 193514233 kmers
+read 3200000 sequences, 398281117 bases, 199881117 kmers
+read 3300000 sequences, 410870987 bases, 206270987 kmers
+read 3400000 sequences, 423450505 bases, 212650505 kmers
+read 3500000 sequences, 436046870 bases, 219046870 kmers
+read 3600000 sequences, 448679908 bases, 225479908 kmers
+read 3700000 sequences, 461321441 bases, 231921441 kmers
+read 3800000 sequences, 473931444 bases, 238331444 kmers
+read 3900000 sequences, 486569454 bases, 244769454 kmers
+read 4000000 sequences, 499216806 bases, 251216806 kmers
+read 4100000 sequences, 511895907 bases, 257695907 kmers
+read 4200000 sequences, 524602572 bases, 264202572 kmers
+read 4300000 sequences, 537274994 bases, 270674994 kmers
+read 4400000 sequences, 549984374 bases, 277184374 kmers
+read 4500000 sequences, 562700061 bases, 283700061 kmers
+read 4600000 sequences, 575434925 bases, 290234925 kmers
+read 4700000 sequences, 588209946 bases, 296809946 kmers
+read 4800000 sequences, 600967911 bases, 303367911 kmers
+read 4900000 sequences, 613729236 bases, 309929236 kmers
+read 5000000 sequences, 626504126 bases, 316504126 kmers
+read 5100000 sequences, 639246819 bases, 323046819 kmers
+read 5200000 sequences, 652025682 bases, 329625682 kmers
+read 5300000 sequences, 664852310 bases, 336252310 kmers
+read 5400000 sequences, 677687649 bases, 342887649 kmers
+read 5500000 sequences, 690503316 bases, 349503316 kmers
+read 5600000 sequences, 703329176 bases, 356129176 kmers
+read 5700000 sequences, 716216681 bases, 362816681 kmers
+read 5800000 sequences, 729051812 bases, 369451812 kmers
+read 5900000 sequences, 741932077 bases, 376132077 kmers
+read 6000000 sequences, 754844978 bases, 382844978 kmers
+read 6100000 sequences, 767765140 bases, 389565140 kmers
+read 6200000 sequences, 780677776 bases, 396277776 kmers
+read 6300000 sequences, 793620694 bases, 403020694 kmers
+read 6400000 sequences, 806637996 bases, 409837996 kmers
+read 6500000 sequences, 819598935 bases, 416598935 kmers
+read 6600000 sequences, 832595328 bases, 423395328 kmers
+read 6700000 sequences, 845581546 bases, 430181546 kmers
+read 6800000 sequences, 858575854 bases, 436975854 kmers
+read 6900000 sequences, 871622929 bases, 443822929 kmers
+read 7000000 sequences, 884611558 bases, 450611558 kmers
+read 7100000 sequences, 897672996 bases, 457472996 kmers
+read 7200000 sequences, 910733015 bases, 464333015 kmers
+read 7300000 sequences, 923812942 bases, 471212942 kmers
+read 7400000 sequences, 936909625 bases, 478109625 kmers
+read 7500000 sequences, 949997159 bases, 484997159 kmers
+read 7600000 sequences, 963108020 bases, 491908020 kmers
+read 7700000 sequences, 976263436 bases, 498863436 kmers
+read 7800000 sequences, 989391405 bases, 505791405 kmers
+read 7900000 sequences, 1002542485 bases, 512742485 kmers
+read 8000000 sequences, 1015719906 bases, 519719906 kmers
+read 8100000 sequences, 1028930197 bases, 526730197 kmers
+read 8200000 sequences, 1042133468 bases, 533733468 kmers
+read 8300000 sequences, 1055343127 bases, 540743127 kmers
+read 8400000 sequences, 1068571427 bases, 547771427 kmers
+read 8500000 sequences, 1081782196 bases, 554782196 kmers
+read 8600000 sequences, 1095081437 bases, 561881437 kmers
+read 8700000 sequences, 1108381806 bases, 568981806 kmers
+read 8800000 sequences, 1121704584 bases, 576104584 kmers
+read 8900000 sequences, 1135025841 bases, 583225841 kmers
+read 9000000 sequences, 1148384128 bases, 590384128 kmers
+read 9100000 sequences, 1161802584 bases, 597602584 kmers
+read 9200000 sequences, 1175228394 bases, 604828394 kmers
+read 9300000 sequences, 1188646412 bases, 612046412 kmers
+read 9400000 sequences, 1202107297 bases, 619307297 kmers
+read 9500000 sequences, 1215616980 bases, 626616980 kmers
+read 9600000 sequences, 1229082437 bases, 633882437 kmers
+read 9700000 sequences, 1242623591 bases, 641223591 kmers
+read 9800000 sequences, 1256182433 bases, 648582433 kmers
+read 9900000 sequences, 1269727668 bases, 655927668 kmers
+read 10000000 sequences, 1283305186 bases, 663305186 kmers
+read 10100000 sequences, 1296926205 bases, 670726205 kmers
+read 10200000 sequences, 1310557071 bases, 678157071 kmers
+read 10300000 sequences, 1324233675 bases, 685633675 kmers
+read 10400000 sequences, 1337906923 bases, 693106923 kmers
+read 10500000 sequences, 1351643244 bases, 700643244 kmers
+read 10600000 sequences, 1365331150 bases, 708131150 kmers
+read 10700000 sequences, 1379108550 bases, 715708550 kmers
+read 10800000 sequences, 1392877827 bases, 723277827 kmers
+read 10900000 sequences, 1406644102 bases, 730844102 kmers
+read 11000000 sequences, 1420392618 bases, 738392618 kmers
+read 11100000 sequences, 1434208379 bases, 746008379 kmers
+read 11200000 sequences, 1448044972 bases, 753644972 kmers
+read 11300000 sequences, 1461973854 bases, 761373854 kmers
+read 11400000 sequences, 1475908509 bases, 769108509 kmers
+read 11500000 sequences, 1489828724 bases, 776828724 kmers
+read 11600000 sequences, 1503804264 bases, 784604264 kmers
+read 11700000 sequences, 1517825235 bases, 792425235 kmers
+read 11800000 sequences, 1531854974 bases, 800254974 kmers
+read 11900000 sequences, 1545912508 bases, 808112508 kmers
+read 12000000 sequences, 1559905103 bases, 815905103 kmers
+read 12100000 sequences, 1574126683 bases, 823926683 kmers
+read 12200000 sequences, 1588254047 bases, 831854047 kmers
+read 12300000 sequences, 1602371782 bases, 839771782 kmers
+read 12400000 sequences, 1616537282 bases, 847737282 kmers
+read 12500000 sequences, 1630788706 bases, 855788706 kmers
+read 12600000 sequences, 1644978439 bases, 863778439 kmers
+read 12700000 sequences, 1659241271 bases, 871841271 kmers
+read 12800000 sequences, 1673584186 bases, 879984186 kmers
+read 12900000 sequences, 1687940640 bases, 888140640 kmers
+read 13000000 sequences, 1702344045 bases, 896344045 kmers
+read 13100000 sequences, 1716759629 bases, 904559629 kmers
+read 13200000 sequences, 1731228745 bases, 912828745 kmers
+read 13300000 sequences, 1745703705 bases, 921103705 kmers
+read 13400000 sequences, 1760203272 bases, 929403272 kmers
+read 13500000 sequences, 1774792711 bases, 937792711 kmers
+read 13600000 sequences, 1789438714 bases, 946238714 kmers
+read 13700000 sequences, 1804059654 bases, 954659654 kmers
+read 13800000 sequences, 1818743992 bases, 963143992 kmers
+read 13900000 sequences, 1833395678 bases, 971595678 kmers
+read 14000000 sequences, 1848153905 bases, 980153905 kmers
+read 14100000 sequences, 1862998607 bases, 988798607 kmers
+read 14200000 sequences, 1877912070 bases, 997512070 kmers
+read 14300000 sequences, 1892816876 bases, 1006216876 kmers
+read 14400000 sequences, 1907719938 bases, 1014919938 kmers
+read 14500000 sequences, 1922766653 bases, 1023766653 kmers
+read 14600000 sequences, 1937831375 bases, 1032631375 kmers
+read 14700000 sequences, 1952937615 bases, 1041537615 kmers
+read 14800000 sequences, 1968048356 bases, 1050448356 kmers
+read 14900000 sequences, 1983251476 bases, 1059451476 kmers
+read 15000000 sequences, 1998487611 bases, 1068487611 kmers
+read 15100000 sequences, 2013788359 bases, 1077588359 kmers
+read 15200000 sequences, 2029113772 bases, 1086713772 kmers
+read 15300000 sequences, 2044464755 bases, 1095864755 kmers
+read 15400000 sequences, 2059908505 bases, 1105108505 kmers
+read 15500000 sequences, 2075403120 bases, 1114403120 kmers
+read 15600000 sequences, 2090966312 bases, 1123766312 kmers
+read 15700000 sequences, 2106543902 bases, 1133143902 kmers
+read 15800000 sequences, 2122217109 bases, 1142617109 kmers
+read 15900000 sequences, 2137840183 bases, 1152040183 kmers
+read 16000000 sequences, 2153589528 bases, 1161589528 kmers
+read 16100000 sequences, 2169260701 bases, 1171060701 kmers
+read 16200000 sequences, 2185177055 bases, 1180777055 kmers
+read 16300000 sequences, 2201140740 bases, 1190540740 kmers
+read 16400000 sequences, 2217102579 bases, 1200302579 kmers
+read 16500000 sequences, 2233154655 bases, 1210154655 kmers
+read 16600000 sequences, 2249289287 bases, 1220089287 kmers
+read 16700000 sequences, 2265555086 bases, 1230155086 kmers
+read 16800000 sequences, 2281740139 bases, 1240140139 kmers
+read 16900000 sequences, 2298108132 bases, 1250308132 kmers
+read 17000000 sequences, 2314472162 bases, 1260472162 kmers
+read 17100000 sequences, 2331031402 bases, 1270831402 kmers
+read 17200000 sequences, 2347660397 bases, 1281260397 kmers
+read 17300000 sequences, 2364281513 bases, 1291681513 kmers
+read 17400000 sequences, 2381151087 bases, 1302351087 kmers
+read 17500000 sequences, 2398014935 bases, 1313014935 kmers
+read 17600000 sequences, 2414848597 bases, 1323648597 kmers
+read 17700000 sequences, 2431827823 bases, 1334427823 kmers
+read 17800000 sequences, 2448880533 bases, 1345280533 kmers
+read 17900000 sequences, 2466079483 bases, 1356279483 kmers
+read 18000000 sequences, 2483331066 bases, 1367331066 kmers
+read 18100000 sequences, 2500735835 bases, 1378535835 kmers
+read 18200000 sequences, 2518182436 bases, 1389782436 kmers
+read 18300000 sequences, 2535777011 bases, 1401177011 kmers
+read 18400000 sequences, 2553420319 bases, 1412620319 kmers
+read 18500000 sequences, 2571217551 bases, 1424217551 kmers
+read 18600000 sequences, 2589036591 bases, 1435836591 kmers
+read 18700000 sequences, 2607070590 bases, 1447670590 kmers
+read 18800000 sequences, 2625277186 bases, 1459677186 kmers
+read 18900000 sequences, 2643374333 bases, 1471574333 kmers
+read 19000000 sequences, 2661730312 bases, 1483730312 kmers
+read 19100000 sequences, 2680149797 bases, 1495949797 kmers
+read 19200000 sequences, 2698694657 bases, 1508294657 kmers
+read 19300000 sequences, 2717352983 bases, 1520752983 kmers
+read 19400000 sequences, 2736256974 bases, 1533456974 kmers
+read 19500000 sequences, 2755257180 bases, 1546257180 kmers
+read 19600000 sequences, 2774351367 bases, 1559151367 kmers
+read 19700000 sequences, 2793728312 bases, 1572328312 kmers
+read 19800000 sequences, 2813220961 bases, 1585620961 kmers
+read 19900000 sequences, 2832722443 bases, 1598922443 kmers
+read 20000000 sequences, 2852409810 bases, 1612409810 kmers
+read 20100000 sequences, 2872347566 bases, 1626147566 kmers
+read 20200000 sequences, 2892389807 bases, 1639989807 kmers
+read 20300000 sequences, 2912735414 bases, 1654135414 kmers
+read 20400000 sequences, 2933385426 bases, 1668585426 kmers
+read 20500000 sequences, 2954091535 bases, 1683091535 kmers
+read 20600000 sequences, 2974925338 bases, 1697725338 kmers
+read 20700000 sequences, 2995915917 bases, 1712515917 kmers
+read 20800000 sequences, 3017122691 bases, 1727522691 kmers
+read 20900000 sequences, 3038531782 bases, 1742731782 kmers
+read 21000000 sequences, 3060194564 bases, 1758194564 kmers
+read 21100000 sequences, 3081907101 bases, 1773707101 kmers
+read 21200000 sequences, 3104086740 bases, 1789686740 kmers
+read 21300000 sequences, 3126473358 bases, 1805873358 kmers
+read 21400000 sequences, 3149108015 bases, 1822308015 kmers
+read 21500000 sequences, 3171928734 bases, 1838928734 kmers
+read 21600000 sequences, 3194958136 bases, 1855758136 kmers
+read 21700000 sequences, 3218341306 bases, 1872941306 kmers
+read 21800000 sequences, 3241998625 bases, 1890398625 kmers
+read 21900000 sequences, 3265867648 bases, 1908067648 kmers
+read 22000000 sequences, 3290140238 bases, 1926140238 kmers
+read 22100000 sequences, 3314774267 bases, 1944574267 kmers
+read 22200000 sequences, 3339683962 bases, 1963283962 kmers
+read 22300000 sequences, 3365026242 bases, 1982426242 kmers
+read 22400000 sequences, 3390524916 bases, 2001724916 kmers
+read 22500000 sequences, 3416602911 bases, 2021602911 kmers
+read 22600000 sequences, 3443068815 bases, 2041868815 kmers
+read 22700000 sequences, 3469843783 bases, 2062443783 kmers
+read 22800000 sequences, 3496984552 bases, 2083384552 kmers
+read 22900000 sequences, 3524534540 bases, 2104734540 kmers
+read 23000000 sequences, 3552570970 bases, 2126570970 kmers
+read 23100000 sequences, 3581192379 bases, 2148992379 kmers
+read 23200000 sequences, 3610381847 bases, 2171981847 kmers
+read 23300000 sequences, 3639851051 bases, 2195251051 kmers
+read 23400000 sequences, 3669893600 bases, 2219093600 kmers
+read 23500000 sequences, 3700753305 bases, 2243753305 kmers
+read 23600000 sequences, 3732004106 bases, 2268804106 kmers
+read 23700000 sequences, 3763988610 bases, 2294588610 kmers
+read 23800000 sequences, 3796342561 bases, 2320742561 kmers
+read 23900000 sequences, 3829617231 bases, 2347817231 kmers
+read 24000000 sequences, 3863888905 bases, 2375888905 kmers
+read 24100000 sequences, 3898564027 bases, 2404364027 kmers
+read 24200000 sequences, 3934105190 bases, 2433705190 kmers
+read 24300000 sequences, 3970664280 bases, 2464064280 kmers
+read 24400000 sequences, 4008289233 bases, 2495489233 kmers
+read 24500000 sequences, 4046653113 bases, 2527653113 kmers
+read 24600000 sequences, 4085474513 bases, 2560274513 kmers
+read 24700000 sequences, 4125325954 bases, 2593925954 kmers
+read 24800000 sequences, 4166644470 bases, 2629044470 kmers
+read 24900000 sequences, 4209157187 bases, 2665357187 kmers
+read 25000000 sequences, 4253358029 bases, 2703358029 kmers
+read 25100000 sequences, 4298306053 bases, 2742106053 kmers
+read 25200000 sequences, 4345043044 bases, 2782643044 kmers
+read 25300000 sequences, 4392932896 bases, 2824332896 kmers
+read 25400000 sequences, 4442655136 bases, 2867855136 kmers
+read 25500000 sequences, 4494211117 bases, 2913211117 kmers
+read 25600000 sequences, 4547341661 bases, 2960141661 kmers
+read 25700000 sequences, 4602288756 bases, 3008888756 kmers
+read 25800000 sequences, 4659271424 bases, 3059671424 kmers
+read 25900000 sequences, 4718698784 bases, 3112898784 kmers
+read 26000000 sequences, 4780487647 bases, 3168487647 kmers
+read 26100000 sequences, 4845831097 bases, 3227631097 kmers
+read 26200000 sequences, 4913892154 bases, 3289492154 kmers
+read 26300000 sequences, 4985279757 bases, 3354679757 kmers
+read 26400000 sequences, 5059260801 bases, 3422460801 kmers
+read 26500000 sequences, 5137444413 bases, 3494444413 kmers
+read 26600000 sequences, 5220218222 bases, 3571018222 kmers
+read 26700000 sequences, 5307644834 bases, 3652244834 kmers
+read 26800000 sequences, 5400268964 bases, 3738668964 kmers
+read 26900000 sequences, 5498821243 bases, 3831021243 kmers
+read 27000000 sequences, 5604484526 bases, 3930484526 kmers
+read 27100000 sequences, 5717045846 bases, 4036845846 kmers
+read 27200000 sequences, 5833611115 bases, 4147211115 kmers
+read 27300000 sequences, 5846284956 bases, 4153684956 kmers
+read 27400000 sequences, 5857666261 bases, 4158866261 kmers
+read 27500000 sequences, 5869033274 bases, 4164033274 kmers
+read 27600000 sequences, 5880412056 bases, 4169212056 kmers
+read 27700000 sequences, 5891780133 bases, 4174380133 kmers
+read 27800000 sequences, 5903175638 bases, 4179575638 kmers
+read 27900000 sequences, 5914554494 bases, 4184754494 kmers
+read 28000000 sequences, 5925952935 bases, 4189952935 kmers
+read 28100000 sequences, 5937330032 bases, 4195130032 kmers
+read 28200000 sequences, 5948710754 bases, 4200310754 kmers
+read 28300000 sequences, 5960084167 bases, 4205484167 kmers
+read 28400000 sequences, 5971480727 bases, 4210680727 kmers
+read 28500000 sequences, 5982848912 bases, 4215848912 kmers
+read 28600000 sequences, 5994224416 bases, 4221024416 kmers
+read 28700000 sequences, 6005620576 bases, 4226220576 kmers
+read 28800000 sequences, 6016990505 bases, 4231390505 kmers
+read 28900000 sequences, 6028385718 bases, 4236585718 kmers
+read 29000000 sequences, 6039783917 bases, 4241783917 kmers
+read 29100000 sequences, 6051178807 bases, 4246978807 kmers
+read 29200000 sequences, 6062557962 bases, 4252157962 kmers
+read 29300000 sequences, 6073940879 bases, 4257340879 kmers
+read 29400000 sequences, 6085331369 bases, 4262531369 kmers
+read 29500000 sequences, 6096728471 bases, 4267728471 kmers
+read 29600000 sequences, 6108103103 bases, 4272903103 kmers
+read 29700000 sequences, 6119481434 bases, 4278081434 kmers
+read 29800000 sequences, 6130856274 bases, 4283256274 kmers
+read 29900000 sequences, 6142238370 bases, 4288438370 kmers
+read 30000000 sequences, 6153634902 bases, 4293634902 kmers
+read 30100000 sequences, 6165020174 bases, 4298820174 kmers
+read 30200000 sequences, 6176433592 bases, 4304033592 kmers
+read 30300000 sequences, 6187857678 bases, 4309257678 kmers
+read 30400000 sequences, 6199252279 bases, 4314452279 kmers
+read 30500000 sequences, 6210672636 bases, 4319672636 kmers
+read 30600000 sequences, 6222092039 bases, 4324892039 kmers
+read 30700000 sequences, 6233490560 bases, 4330090560 kmers
+read 30800000 sequences, 6244878932 bases, 4335278932 kmers
+read 30900000 sequences, 6256282501 bases, 4340482501 kmers
+read 31000000 sequences, 6267684053 bases, 4345684053 kmers
+read 31100000 sequences, 6279097938 bases, 4350897938 kmers
+read 31200000 sequences, 6290508477 bases, 4356108477 kmers
+read 31300000 sequences, 6301930335 bases, 4361330335 kmers
+read 31400000 sequences, 6313323332 bases, 4366523332 kmers
+read 31500000 sequences, 6324738742 bases, 4371738742 kmers
+read 31600000 sequences, 6336131699 bases, 4376931699 kmers
+read 31700000 sequences, 6347524619 bases, 4382124619 kmers
+read 31800000 sequences, 6358957080 bases, 4387357080 kmers
+read 31900000 sequences, 6370375111 bases, 4392575111 kmers
+read 32000000 sequences, 6381788267 bases, 4397788267 kmers
+read 32100000 sequences, 6393225045 bases, 4403025045 kmers
+read 32200000 sequences, 6404646009 bases, 4408246009 kmers
+read 32300000 sequences, 6416049898 bases, 4413449898 kmers
+read 32400000 sequences, 6427468559 bases, 4418668559 kmers
+read 32500000 sequences, 6438906261 bases, 4423906261 kmers
+read 32600000 sequences, 6450334779 bases, 4429134779 kmers
+read 32700000 sequences, 6461755133 bases, 4434355133 kmers
+read 32800000 sequences, 6473195712 bases, 4439595712 kmers
+read 32900000 sequences, 6484644292 bases, 4444844292 kmers
+read 33000000 sequences, 6496092541 bases, 4450092541 kmers
+read 33100000 sequences, 6507511566 bases, 4455311566 kmers
+read 33200000 sequences, 6518945251 bases, 4460545251 kmers
+read 33300000 sequences, 6530384550 bases, 4465784550 kmers
+read 33400000 sequences, 6541805344 bases, 4471005344 kmers
+read 33500000 sequences, 6553237577 bases, 4476237577 kmers
+read 33600000 sequences, 6564689207 bases, 4481489207 kmers
+read 33700000 sequences, 6576122207 bases, 4486722207 kmers
+read 33800000 sequences, 6587572349 bases, 4491972349 kmers
+read 33900000 sequences, 6599018868 bases, 4497218868 kmers
+read 34000000 sequences, 6610456809 bases, 4502456809 kmers
+read 34100000 sequences, 6621897412 bases, 4507697412 kmers
+read 34200000 sequences, 6633348684 bases, 4512948684 kmers
+read 34300000 sequences, 6644797017 bases, 4518197017 kmers
+read 34400000 sequences, 6656241948 bases, 4523441948 kmers
+read 34500000 sequences, 6667691134 bases, 4528691134 kmers
+read 34600000 sequences, 6679157324 bases, 4533957324 kmers
+read 34700000 sequences, 6690642313 bases, 4539242313 kmers
+read 34800000 sequences, 6702109598 bases, 4544509598 kmers
+read 34900000 sequences, 6713569428 bases, 4549769428 kmers
+read 35000000 sequences, 6725025608 bases, 4555025608 kmers
+read 35100000 sequences, 6736483973 bases, 4560283973 kmers
+read 35200000 sequences, 6747950658 bases, 4565550658 kmers
+read 35300000 sequences, 6759387045 bases, 4570787045 kmers
+read 35400000 sequences, 6770873555 bases, 4576073555 kmers
+read 35500000 sequences, 6782328921 bases, 4581328921 kmers
+read 35600000 sequences, 6793801691 bases, 4586601691 kmers
+read 35700000 sequences, 6805289064 bases, 4591889064 kmers
+read 35800000 sequences, 6816766724 bases, 4597166724 kmers
+read 35900000 sequences, 6828221729 bases, 4602421729 kmers
+read 36000000 sequences, 6839697388 bases, 4607697388 kmers
+read 36100000 sequences, 6851168093 bases, 4612968093 kmers
+read 36200000 sequences, 6862661164 bases, 4618261164 kmers
+read 36300000 sequences, 6874122285 bases, 4623522285 kmers
+read 36400000 sequences, 6885602001 bases, 4628802001 kmers
+read 36500000 sequences, 6897091095 bases, 4634091095 kmers
+read 36600000 sequences, 6908577172 bases, 4639377172 kmers
+read 36700000 sequences, 6920070520 bases, 4644670520 kmers
+read 36800000 sequences, 6931583091 bases, 4649983091 kmers
+read 36900000 sequences, 6943075024 bases, 4655275024 kmers
+read 37000000 sequences, 6954566139 bases, 4660566139 kmers
+read 37100000 sequences, 6966070577 bases, 4665870577 kmers
+read 37200000 sequences, 6977560540 bases, 4671160540 kmers
+read 37300000 sequences, 6989067050 bases, 4676467050 kmers
+read 37400000 sequences, 7000566525 bases, 4681766525 kmers
+read 37500000 sequences, 7012064234 bases, 4687064234 kmers
+read 37600000 sequences, 7023579053 bases, 4692379053 kmers
+read 37700000 sequences, 7035113872 bases, 4697713872 kmers
+read 37800000 sequences, 7046611242 bases, 4703011242 kmers
+read 37900000 sequences, 7058113038 bases, 4708313038 kmers
+read 38000000 sequences, 7069620814 bases, 4713620814 kmers
+read 38100000 sequences, 7081124727 bases, 4718924727 kmers
+read 38200000 sequences, 7092641699 bases, 4724241699 kmers
+read 38300000 sequences, 7104173446 bases, 4729573446 kmers
+read 38400000 sequences, 7115693874 bases, 4734893874 kmers
+read 38500000 sequences, 7127223462 bases, 4740223462 kmers
+read 38600000 sequences, 7138742897 bases, 4745542897 kmers
+read 38700000 sequences, 7150288045 bases, 4750888045 kmers
+read 38800000 sequences, 7161816796 bases, 4756216796 kmers
+read 38900000 sequences, 7173324459 bases, 4761524459 kmers
+read 39000000 sequences, 7184856392 bases, 4766856392 kmers
+read 39100000 sequences, 7196427393 bases, 4772227393 kmers
+read 39200000 sequences, 7207963192 bases, 4777563192 kmers
+read 39300000 sequences, 7219512149 bases, 4782912149 kmers
+read 39400000 sequences, 7231059051 bases, 4788259051 kmers
+read 39500000 sequences, 7242615872 bases, 4793615872 kmers
+read 39600000 sequences, 7254152078 bases, 4798952078 kmers
+read 39700000 sequences, 7265709373 bases, 4804309373 kmers
+read 39800000 sequences, 7277261623 bases, 4809661623 kmers
+read 39900000 sequences, 7288796039 bases, 4814996039 kmers
+read 40000000 sequences, 7300352498 bases, 4820352498 kmers
+read 40100000 sequences, 7311909288 bases, 4825709288 kmers
+read 40200000 sequences, 7323455205 bases, 4831055205 kmers
+read 40300000 sequences, 7335021154 bases, 4836421154 kmers
+read 40400000 sequences, 7346572879 bases, 4841772879 kmers
+read 40500000 sequences, 7358141934 bases, 4847141934 kmers
+read 40600000 sequences, 7369701078 bases, 4852501078 kmers
+read 40700000 sequences, 7381268609 bases, 4857868609 kmers
+read 40800000 sequences, 7392842975 bases, 4863242975 kmers
+read 40900000 sequences, 7404426134 bases, 4868626134 kmers
+read 41000000 sequences, 7415987203 bases, 4873987203 kmers
+read 41100000 sequences, 7427575222 bases, 4879375222 kmers
+read 41200000 sequences, 7439175574 bases, 4884775574 kmers
+read 41300000 sequences, 7450739591 bases, 4890139591 kmers
+read 41400000 sequences, 7462314068 bases, 4895514068 kmers
+read 41500000 sequences, 7473895691 bases, 4900895691 kmers
+read 41600000 sequences, 7485498997 bases, 4906298997 kmers
+read 41700000 sequences, 7497097716 bases, 4911697716 kmers
+read 41800000 sequences, 7508699398 bases, 4917099398 kmers
+read 41900000 sequences, 7520283511 bases, 4922483511 kmers
+read 42000000 sequences, 7531875755 bases, 4927875755 kmers
+read 42100000 sequences, 7543485297 bases, 4933285297 kmers
+read 42200000 sequences, 7555088471 bases, 4938688471 kmers
+read 42300000 sequences, 7566689783 bases, 4944089783 kmers
+read 42400000 sequences, 7578300843 bases, 4949500843 kmers
+read 42500000 sequences, 7589917091 bases, 4954917091 kmers
+read 42600000 sequences, 7601521329 bases, 4960321329 kmers
+read 42700000 sequences, 7613130662 bases, 4965730662 kmers
+read 42800000 sequences, 7624734831 bases, 4971134831 kmers
+read 42900000 sequences, 7636365711 bases, 4976565711 kmers
+read 43000000 sequences, 7647987237 bases, 4981987237 kmers
+read 43100000 sequences, 7659607458 bases, 4987407458 kmers
+read 43200000 sequences, 7671221602 bases, 4992821602 kmers
+read 43300000 sequences, 7682851139 bases, 4998251139 kmers
+read 43400000 sequences, 7694478123 bases, 5003678123 kmers
+read 43500000 sequences, 7706091778 bases, 5009091778 kmers
+read 43600000 sequences, 7717739307 bases, 5014539307 kmers
+read 43700000 sequences, 7729380054 bases, 5019980054 kmers
+read 43800000 sequences, 7741005863 bases, 5025405863 kmers
+read 43900000 sequences, 7752654882 bases, 5030854882 kmers
+read 44000000 sequences, 7764325565 bases, 5036325565 kmers
+read 44100000 sequences, 7775977379 bases, 5041777379 kmers
+read 44200000 sequences, 7787629796 bases, 5047229796 kmers
+read 44300000 sequences, 7799282513 bases, 5052682513 kmers
+read 44400000 sequences, 7810951322 bases, 5058151322 kmers
+read 44500000 sequences, 7822598496 bases, 5063598496 kmers
+read 44600000 sequences, 7834244811 bases, 5069044811 kmers
+read 44700000 sequences, 7845891393 bases, 5074491393 kmers
+read 44800000 sequences, 7857565644 bases, 5079965644 kmers
+read 44900000 sequences, 7869252433 bases, 5085452433 kmers
+read 45000000 sequences, 7880919196 bases, 5090919196 kmers
+read 45100000 sequences, 7892577075 bases, 5096377075 kmers
+read 45200000 sequences, 7904242054 bases, 5101842054 kmers
+read 45300000 sequences, 7915920783 bases, 5107320783 kmers
+read 45400000 sequences, 7927605586 bases, 5112805586 kmers
+read 45500000 sequences, 7939292913 bases, 5118292913 kmers
+read 45600000 sequences, 7950976081 bases, 5123776081 kmers
+read 45700000 sequences, 7962667096 bases, 5129267096 kmers
+read 45800000 sequences, 7974342012 bases, 5134742012 kmers
+read 45900000 sequences, 7986038737 bases, 5140238737 kmers
+read 46000000 sequences, 7997748943 bases, 5145748943 kmers
+read 46100000 sequences, 8009477824 bases, 5151277824 kmers
+read 46200000 sequences, 8021166352 bases, 5156766352 kmers
+read 46300000 sequences, 8032854246 bases, 5162254246 kmers
+read 46400000 sequences, 8044556080 bases, 5167756080 kmers
+read 46500000 sequences, 8056240574 bases, 5173240574 kmers
+read 46600000 sequences, 8067931755 bases, 5178731755 kmers
+read 46700000 sequences, 8079649033 bases, 5184249033 kmers
+read 46800000 sequences, 8091384786 bases, 5189784786 kmers
+read 46900000 sequences, 8103124165 bases, 5195324165 kmers
+read 47000000 sequences, 8114852221 bases, 5200852221 kmers
+read 47100000 sequences, 8126577498 bases, 5206377498 kmers
+read 47200000 sequences, 8138321232 bases, 5211921232 kmers
+read 47300000 sequences, 8150083009 bases, 5217483009 kmers
+read 47400000 sequences, 8161823465 bases, 5223023465 kmers
+read 47500000 sequences, 8173558457 bases, 5228558457 kmers
+read 47600000 sequences, 8185297265 bases, 5234097265 kmers
+read 47700000 sequences, 8197020963 bases, 5239620963 kmers
+read 47800000 sequences, 8208783912 bases, 5245183912 kmers
+read 47900000 sequences, 8220547911 bases, 5250747911 kmers
+read 48000000 sequences, 8232292777 bases, 5256292777 kmers
+read 48100000 sequences, 8244054559 bases, 5261854559 kmers
+read 48200000 sequences, 8255808811 bases, 5267408811 kmers
+read 48300000 sequences, 8267574548 bases, 5272974548 kmers
+read 48400000 sequences, 8279340938 bases, 5278540938 kmers
+read 48500000 sequences, 8291110439 bases, 5284110439 kmers
+read 48600000 sequences, 8302889397 bases, 5289689397 kmers
+read 48700000 sequences, 8314649020 bases, 5295249020 kmers
+read 48800000 sequences, 8326414270 bases, 5300814270 kmers
+read 48900000 sequences, 8338207427 bases, 5306407427 kmers
+read 49000000 sequences, 8349993383 bases, 5311993383 kmers
+read 49100000 sequences, 8361791437 bases, 5317591437 kmers
+read 49200000 sequences, 8373582890 bases, 5323182890 kmers
+read 49300000 sequences, 8385394696 bases, 5328794696 kmers
+read 49400000 sequences, 8397203106 bases, 5334403106 kmers
+read 49500000 sequences, 8409020385 bases, 5340020385 kmers
+read 49600000 sequences, 8420828940 bases, 5345628940 kmers
+read 49700000 sequences, 8432643406 bases, 5351243406 kmers
+read 49800000 sequences, 8444451802 bases, 5356851802 kmers
+read 49900000 sequences, 8456260306 bases, 5362460306 kmers
+read 50000000 sequences, 8468086161 bases, 5368086161 kmers
+read 50100000 sequences, 8479897357 bases, 5373697357 kmers
+read 50200000 sequences, 8491729387 bases, 5379329387 kmers
+read 50300000 sequences, 8503563532 bases, 5384963532 kmers
+read 50400000 sequences, 8515408230 bases, 5390608230 kmers
+read 50500000 sequences, 8527227002 bases, 5396227002 kmers
+read 50600000 sequences, 8539067794 bases, 5401867794 kmers
+read 50700000 sequences, 8550900112 bases, 5407500112 kmers
+read 50800000 sequences, 8562770632 bases, 5413170632 kmers
+read 50900000 sequences, 8574595670 bases, 5418795670 kmers
+read 51000000 sequences, 8586456588 bases, 5424456588 kmers
+read 51100000 sequences, 8598316350 bases, 5430116350 kmers
+read 51200000 sequences, 8610172384 bases, 5435772384 kmers
+read 51300000 sequences, 8622055840 bases, 5441455840 kmers
+read 51400000 sequences, 8633927375 bases, 5447127375 kmers
+read 51500000 sequences, 8645823649 bases, 5452823649 kmers
+read 51600000 sequences, 8657691480 bases, 5458491480 kmers
+read 51700000 sequences, 8669585688 bases, 5464185688 kmers
+read 51800000 sequences, 8681474383 bases, 5469874383 kmers
+read 51900000 sequences, 8693381973 bases, 5475581973 kmers
+read 52000000 sequences, 8705279881 bases, 5481279881 kmers
+read 52100000 sequences, 8717209576 bases, 5487009576 kmers
+read 52200000 sequences, 8729118994 bases, 5492718994 kmers
+read 52300000 sequences, 8741023578 bases, 5498423578 kmers
+read 52400000 sequences, 8752969801 bases, 5504169801 kmers
+read 52500000 sequences, 8764903801 bases, 5509903801 kmers
+read 52600000 sequences, 8776822939 bases, 5515622939 kmers
+read 52700000 sequences, 8788751140 bases, 5521351140 kmers
+read 52800000 sequences, 8800669845 bases, 5527069845 kmers
+read 52900000 sequences, 8812598474 bases, 5532798474 kmers
+read 53000000 sequences, 8824571697 bases, 5538571697 kmers
+read 53100000 sequences, 8836519008 bases, 5544319008 kmers
+read 53200000 sequences, 8848466460 bases, 5550066460 kmers
+read 53300000 sequences, 8860413233 bases, 5555813233 kmers
+read 53400000 sequences, 8872384304 bases, 5561584304 kmers
+read 53500000 sequences, 8884332260 bases, 5567332260 kmers
+read 53600000 sequences, 8896284636 bases, 5573084636 kmers
+read 53700000 sequences, 8908270656 bases, 5578870656 kmers
+read 53800000 sequences, 8920268107 bases, 5584668107 kmers
+read 53900000 sequences, 8932246098 bases, 5590446098 kmers
+read 54000000 sequences, 8944259928 bases, 5596259928 kmers
+read 54100000 sequences, 8956269394 bases, 5602069394 kmers
+read 54200000 sequences, 8968276927 bases, 5607876927 kmers
+read 54300000 sequences, 8980258970 bases, 5613658970 kmers
+read 54400000 sequences, 8992247866 bases, 5619447866 kmers
+read 54500000 sequences, 9004254206 bases, 5625254206 kmers
+read 54600000 sequences, 9016278401 bases, 5631078401 kmers
+read 54700000 sequences, 9028312154 bases, 5636912154 kmers
+read 54800000 sequences, 9040331981 bases, 5642731981 kmers
+read 54900000 sequences, 9052350829 bases, 5648550829 kmers
+read 55000000 sequences, 9064361649 bases, 5654361649 kmers
+read 55100000 sequences, 9076390853 bases, 5660190853 kmers
+read 55200000 sequences, 9088446181 bases, 5666046181 kmers
+read 55300000 sequences, 9100525911 bases, 5671925911 kmers
+read 55400000 sequences, 9112587250 bases, 5677787250 kmers
+read 55500000 sequences, 9124623806 bases, 5683623806 kmers
+read 55600000 sequences, 9136715507 bases, 5689515507 kmers
+read 55700000 sequences, 9148800858 bases, 5695400858 kmers
+read 55800000 sequences, 9160843772 bases, 5701243772 kmers
+read 55900000 sequences, 9172925342 bases, 5707125342 kmers
+read 56000000 sequences, 9185024212 bases, 5713024212 kmers
+read 56100000 sequences, 9197117149 bases, 5718917149 kmers
+read 56200000 sequences, 9209230596 bases, 5724830596 kmers
+read 56300000 sequences, 9221344558 bases, 5730744558 kmers
+read 56400000 sequences, 9233465406 bases, 5736665406 kmers
+read 56500000 sequences, 9245571958 bases, 5742571958 kmers
+read 56600000 sequences, 9257641670 bases, 5748441670 kmers
+read 56700000 sequences, 9269746246 bases, 5754346246 kmers
+read 56800000 sequences, 9281862497 bases, 5760262497 kmers
+read 56900000 sequences, 9294025360 bases, 5766225360 kmers
+read 57000000 sequences, 9306137968 bases, 5772137968 kmers
+read 57100000 sequences, 9318287606 bases, 5778087606 kmers
+read 57200000 sequences, 9330445614 bases, 5784045614 kmers
+read 57300000 sequences, 9342615044 bases, 5790015044 kmers
+read 57400000 sequences, 9354790676 bases, 5795990676 kmers
+read 57500000 sequences, 9366968309 bases, 5801968309 kmers
+read 57600000 sequences, 9379136177 bases, 5807936177 kmers
+read 57700000 sequences, 9391324421 bases, 5813924421 kmers
+read 57800000 sequences, 9403503043 bases, 5819903043 kmers
+read 57900000 sequences, 9415684703 bases, 5825884703 kmers
+read 58000000 sequences, 9427875971 bases, 5831875971 kmers
+read 58100000 sequences, 9440085397 bases, 5837885397 kmers
+read 58200000 sequences, 9452280546 bases, 5843880546 kmers
+read 58300000 sequences, 9464471942 bases, 5849871942 kmers
+read 58400000 sequences, 9476715998 bases, 5855915998 kmers
+read 58500000 sequences, 9488920051 bases, 5861920051 kmers
+read 58600000 sequences, 9501146210 bases, 5867946210 kmers
+read 58700000 sequences, 9513406566 bases, 5874006566 kmers
+read 58800000 sequences, 9525653288 bases, 5880053288 kmers
+read 58900000 sequences, 9537898122 bases, 5886098122 kmers
+read 59000000 sequences, 9550182119 bases, 5892182119 kmers
+read 59100000 sequences, 9562418780 bases, 5898218780 kmers
+read 59200000 sequences, 9574665051 bases, 5904265051 kmers
+read 59300000 sequences, 9586958666 bases, 5910358666 kmers
+read 59400000 sequences, 9599304794 bases, 5916504794 kmers
+read 59500000 sequences, 9611573081 bases, 5922573081 kmers
+=== step 1.1: 'encoding input' 27.5065 [sec] (4.64104 [ns/kmer])
+read 59568965 sequences, 9620061299 bases, 5926785469 kmers
+num_kmers 5926785469
+cost: 2.0 + 1.2463 [bits/kmer]
+max_len 27681
+num. bits per_absolute_offset 34
+num. bits per_relative_offset 15
+num. bits per_string_id 26
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.13.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.14.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.15.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.16.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.17.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.18.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.19.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.20.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.21.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.22.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.23.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.24.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.25.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.26.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.27.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.28.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.29.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.30.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.31.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.32.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.33.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.34.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.35.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.36.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.37.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.38.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.39.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.40.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.41.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.42.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.43.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.44.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.45.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.46.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.47.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.48.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.49.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.50.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.51.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.52.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.53.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.54.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.55.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.56.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.57.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.58.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.59.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.60.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.61.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.62.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.63.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.64.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.65.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.66.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.67.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.68.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.69.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.70.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.71.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.72.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.73.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.74.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.75.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.76.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.77.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.78.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.79.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.80.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.81.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.82.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.83.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.84.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.85.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.86.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.87.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.88.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.89.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.90.bin'...
+=== step 1.2: 'computing minimizers tuples' 11.2511 [sec] (1.89835 [ns/kmer])
+=== step 1: 'parse file' 38.7577 [sec] (6.53941 [ns/kmer])
+ == files to merge = 91
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+num_super_kmers = 200000000
+num_super_kmers = 250000000
+num_super_kmers = 300000000
+num_super_kmers = 350000000
+num_super_kmers = 400000000
+num_super_kmers = 450000000
+num_super_kmers = 500000000
+=== step 2.1: 'merging minimizers tuples' 39.3406 [sec] (6.63776 [ns/kmer])
+num_minimizers = 295344565
+num_minimizer_positions = 485764487
+num_super_kmers = 507036670
+building minimizers MPHF with 64 threads and 99 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 12.6573 [sec] (2.13561 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.1.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 17.697 [sec] (2.98593 [ns/kmer])
+ == files to merge = 2
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155172265996674.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+num_super_kmers = 200000000
+num_super_kmers = 250000000
+num_super_kmers = 300000000
+num_super_kmers = 350000000
+num_super_kmers = 400000000
+num_super_kmers = 450000000
+num_super_kmers = 500000000
+=== step 2.4: 'merging minimizers tuples ' 22.5965 [sec] (3.8126 [ns/kmer])
+num_bits_per_offset = 41
+num_buckets_larger_than_1_not_in_skew_index 76095635/295344565 (25.765%)
+num_buckets_in_skew_index 164193/295344565 (0.0555937%)
+max_bucket_size 265182
+log2_max_bucket_size 19
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 218504008/485764487 (44.9815%)
+num_minimizer_positions_of_buckets_in_skew_index 48175742/485764487 (9.91751%)
+computing minimizers offsets: 13.4054 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 91237805
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 81089595
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 71244043
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 64999827
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 55340829
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 44026748
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 33883659
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 265182: 85368523
+num_kmers_in_skew_index 527191029 (8.89506%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 91237805
+    building MPHF with 64 threads and 31 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 91237805 kmers; bits/key = 2.54472
+    built positions[0] for 91237805 kmers; bits/key = 7
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 81089595
+    building MPHF with 64 threads and 28 partitions (avg. partition size = 3000000)...
+    built mphs[1] for 81089595 kmers; bits/key = 2.56263
+    built positions[1] for 81089595 kmers; bits/key = 8
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 71244043
+    building MPHF with 64 threads and 24 partitions (avg. partition size = 3000000)...
+    built mphs[2] for 71244043 kmers; bits/key = 2.56439
+    built positions[2] for 71244043 kmers; bits/key = 9
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 64999827
+    building MPHF with 64 threads and 22 partitions (avg. partition size = 3000000)...
+    built mphs[3] for 64999827 kmers; bits/key = 2.54652
+    built positions[3] for 64999827 kmers; bits/key = 10
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 55340829
+    building MPHF with 64 threads and 19 partitions (avg. partition size = 3000000)...
+    built mphs[4] for 55340829 kmers; bits/key = 2.53877
+    built positions[4] for 55340829 kmers; bits/key = 11
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 44026748
+    building MPHF with 64 threads and 15 partitions (avg. partition size = 3000000)...
+    built mphs[5] for 44026748 kmers; bits/key = 2.53894
+    built positions[5] for 44026748 kmers; bits/key = 12
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 33883659
+    building MPHF with 64 threads and 12 partitions (avg. partition size = 3000000)...
+    built mphs[6] for 33883659 kmers; bits/key = 2.5671
+    built positions[6] for 33883659 kmers; bits/key = 13
+  lower = 8192; upper = 265182; num_bits_per_pos = 19; num_kmers_in_partition = 85368523
+    building MPHF with 64 threads and 29 partitions (avg. partition size = 3000000)...
+    built mphs[7] for 85368523 kmers; bits/key = 2.56049
+    built positions[7] for 85368523 kmers; bits/key = 19
+computing skew index took: 78.3486 [sec]
+=== step 3: 'build sparse and skew index' 92.7098 [sec] (15.6425 [ns/kmer])
+=== total_time 223.759 [sec] (37.7538 [ns/kmer])
+total index size: 6570787528 [B] -- 6570.79 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.141443 [bits/kmer] (2.83839 [bits/key]) -- 1.59475%
+  strings_offsets: 0.341727 [bits/kmer] -- 3.85293%
+  control_codewords: 2.09295 [bits/kmer] -- 23.5978%
+  mid_load_buckets: 1.51156 [bits/kmer] -- 17.0426%
+  begin_buckets_of_size: 3.61748e-07 [bits/kmer] -- 4.07866e-06%
+  strings: 3.2463 [bits/kmer] -- 36.6016%
+  skew_index: 1.5353 [bits/kmer] -- 17.3103%
+  weights: 2.48364e-07 [bits/kmer] -- 2.80027e-06%
+  --------------
+  total: 8.86928 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 74.1794%
+buckets with 2 minimizer positions = 17.5493%
+buckets with 3 minimizer positions = 4.9171%
+buckets with 4 minimizer positions = 1.47166%
+buckets with 5 minimizer positions = 0.573611%
+buckets with 6 minimizer positions = 0.301038%
+buckets with 7 minimizer positions = 0.190827%
+buckets with 8 minimizer positions = 0.133018%
+buckets with 9 minimizer positions = 0.0984907%
+buckets with 10 minimizer positions = 0.0753777%
+buckets with 11 minimizer positions = 0.0590937%
+buckets with 12 minimizer positions = 0.0475793%
+buckets with 13 minimizer positions = 0.0389636%
+buckets with 14 minimizer positions = 0.0324661%
+buckets with 15 minimizer positions = 0.0273305%
+buckets with 16 minimizer positions = 0.0232809%
+max_bucket_size 265182
+2025-10-22 19:49:57: saving data structure to disk...
+2025-10-22 19:50:01: DONE
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/ec.k63.eulertigs.fa.gz -k 63 -m 31 -g 16 -t 64 --canonical --verbose -d tmp_dir -o ec.k63.canon.sshash 
+k = 63, m = 31, seed = 1, num_threads = 64, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, fast = false, tmp_dirname = 'tmp_dir'
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/ec.k63.eulertigs.fa.gz'...
+read 100000 sequences, 14595280 bases, 8395280 kmers
+read 200000 sequences, 29023453 bases, 16623453 kmers
+read 300000 sequences, 43790922 bases, 25190922 kmers
+read 400000 sequences, 58362099 bases, 33562099 kmers
+read 500000 sequences, 72908170 bases, 41908170 kmers
+read 600000 sequences, 87446702 bases, 50246702 kmers
+read 700000 sequences, 102099804 bases, 58699804 kmers
+read 800000 sequences, 117134400 bases, 67534400 kmers
+read 900000 sequences, 131713463 bases, 75913463 kmers
+read 1000000 sequences, 146366718 bases, 84366718 kmers
+read 1100000 sequences, 161101660 bases, 92901660 kmers
+read 1200000 sequences, 175910768 bases, 101510768 kmers
+read 1300000 sequences, 190897904 bases, 110297904 kmers
+read 1400000 sequences, 205802973 bases, 119002973 kmers
+read 1500000 sequences, 221158148 bases, 128158148 kmers
+read 1600000 sequences, 236346274 bases, 137146274 kmers
+read 1700000 sequences, 251304432 bases, 145904432 kmers
+read 1800000 sequences, 266473950 bases, 154873950 kmers
+read 1900000 sequences, 281471604 bases, 163671604 kmers
+read 2000000 sequences, 296791327 bases, 172791327 kmers
+read 2100000 sequences, 312420706 bases, 182220706 kmers
+read 2200000 sequences, 327946210 bases, 191546210 kmers
+read 2300000 sequences, 343525540 bases, 200925540 kmers
+read 2400000 sequences, 358949847 bases, 210149847 kmers
+read 2500000 sequences, 374380009 bases, 219380009 kmers
+read 2600000 sequences, 390142304 bases, 228942304 kmers
+read 2700000 sequences, 405642535 bases, 238242535 kmers
+read 2800000 sequences, 421259989 bases, 247659989 kmers
+read 2900000 sequences, 436893769 bases, 257093769 kmers
+read 3000000 sequences, 452465563 bases, 266465563 kmers
+read 3100000 sequences, 468090902 bases, 275890902 kmers
+read 3200000 sequences, 483923930 bases, 285523930 kmers
+read 3300000 sequences, 499749509 bases, 295149509 kmers
+read 3400000 sequences, 515726709 bases, 304926709 kmers
+read 3500000 sequences, 532169207 bases, 315169207 kmers
+read 3600000 sequences, 548394020 bases, 325194020 kmers
+read 3700000 sequences, 564809686 bases, 335409686 kmers
+read 3800000 sequences, 581403559 bases, 345803559 kmers
+read 3900000 sequences, 597837340 bases, 356037340 kmers
+read 4000000 sequences, 614198433 bases, 366198433 kmers
+read 4100000 sequences, 630803806 bases, 376603806 kmers
+read 4200000 sequences, 647222216 bases, 386822216 kmers
+read 4300000 sequences, 663750824 bases, 397150824 kmers
+read 4400000 sequences, 680423234 bases, 407623234 kmers
+read 4500000 sequences, 696967173 bases, 417967173 kmers
+read 4600000 sequences, 714107161 bases, 428907161 kmers
+read 4700000 sequences, 731190344 bases, 439790344 kmers
+read 4800000 sequences, 748610325 bases, 451010325 kmers
+read 4900000 sequences, 765806425 bases, 462006425 kmers
+read 5000000 sequences, 783034539 bases, 473034539 kmers
+read 5100000 sequences, 800681271 bases, 484481271 kmers
+read 5200000 sequences, 818515777 bases, 496115777 kmers
+read 5300000 sequences, 836324012 bases, 507724012 kmers
+read 5400000 sequences, 854771265 bases, 519971265 kmers
+read 5500000 sequences, 873098069 bases, 532098069 kmers
+read 5600000 sequences, 891182426 bases, 543982426 kmers
+read 5700000 sequences, 910053448 bases, 556653448 kmers
+read 5800000 sequences, 928444429 bases, 568844429 kmers
+read 5900000 sequences, 947244294 bases, 581444294 kmers
+read 6000000 sequences, 966455345 bases, 594455345 kmers
+read 6100000 sequences, 985974168 bases, 607774168 kmers
+read 6200000 sequences, 1005630833 bases, 621230833 kmers
+read 6300000 sequences, 1026020245 bases, 635420245 kmers
+read 6400000 sequences, 1046696751 bases, 649896751 kmers
+read 6500000 sequences, 1067596462 bases, 664596462 kmers
+read 6600000 sequences, 1088718265 bases, 679518265 kmers
+read 6700000 sequences, 1110387368 bases, 694987368 kmers
+read 6800000 sequences, 1132578732 bases, 710978732 kmers
+read 6900000 sequences, 1155047095 bases, 727247095 kmers
+read 7000000 sequences, 1177950483 bases, 743950483 kmers
+read 7100000 sequences, 1201726249 bases, 761526249 kmers
+read 7200000 sequences, 1226646751 bases, 780246751 kmers
+read 7300000 sequences, 1252079351 bases, 799479351 kmers
+read 7400000 sequences, 1279261003 bases, 820461003 kmers
+read 7500000 sequences, 1307802702 bases, 842802702 kmers
+read 7600000 sequences, 1338212409 bases, 867012409 kmers
+read 7700000 sequences, 1370354710 bases, 892954710 kmers
+read 7800000 sequences, 1383049738 bases, 899449738 kmers
+read 7900000 sequences, 1395810952 bases, 906010952 kmers
+read 8000000 sequences, 1408450282 bases, 912450282 kmers
+read 8100000 sequences, 1421220952 bases, 919020952 kmers
+read 8200000 sequences, 1433887434 bases, 925487434 kmers
+read 8300000 sequences, 1446445917 bases, 931845917 kmers
+read 8400000 sequences, 1459153909 bases, 938353909 kmers
+read 8500000 sequences, 1471877671 bases, 944877671 kmers
+read 8600000 sequences, 1484865624 bases, 951665624 kmers
+read 8700000 sequences, 1497567228 bases, 958167228 kmers
+read 8800000 sequences, 1510543060 bases, 964943060 kmers
+read 8900000 sequences, 1523371874 bases, 971571874 kmers
+read 9000000 sequences, 1536152549 bases, 978152549 kmers
+read 9100000 sequences, 1548860619 bases, 984660619 kmers
+read 9200000 sequences, 1561712707 bases, 991312707 kmers
+read 9300000 sequences, 1574401520 bases, 997801520 kmers
+read 9400000 sequences, 1586885001 bases, 1004085001 kmers
+read 9500000 sequences, 1599621412 bases, 1010621412 kmers
+read 9600000 sequences, 1612397675 bases, 1017197675 kmers
+read 9700000 sequences, 1625388385 bases, 1023988385 kmers
+read 9800000 sequences, 1638536946 bases, 1030936946 kmers
+read 9900000 sequences, 1651980650 bases, 1038180650 kmers
+read 10000000 sequences, 1664904910 bases, 1044904910 kmers
+read 10100000 sequences, 1677570910 bases, 1051370910 kmers
+read 10200000 sequences, 1690246890 bases, 1057846890 kmers
+read 10300000 sequences, 1703230366 bases, 1064630366 kmers
+read 10400000 sequences, 1716086552 bases, 1071286552 kmers
+read 10500000 sequences, 1729082411 bases, 1078082411 kmers
+read 10600000 sequences, 1741944091 bases, 1084744091 kmers
+read 10700000 sequences, 1754780793 bases, 1091380793 kmers
+read 10800000 sequences, 1767537304 bases, 1097937304 kmers
+read 10900000 sequences, 1780512088 bases, 1104712088 kmers
+read 11000000 sequences, 1794061925 bases, 1112061925 kmers
+read 11100000 sequences, 1807103354 bases, 1118903354 kmers
+read 11200000 sequences, 1819865542 bases, 1125465542 kmers
+read 11300000 sequences, 1832952701 bases, 1132352701 kmers
+read 11400000 sequences, 1846108191 bases, 1139308191 kmers
+read 11500000 sequences, 1859202023 bases, 1146202023 kmers
+read 11600000 sequences, 1872125111 bases, 1152925111 kmers
+read 11700000 sequences, 1884949294 bases, 1159549294 kmers
+read 11800000 sequences, 1897879213 bases, 1166279213 kmers
+read 11900000 sequences, 1910688502 bases, 1172888502 kmers
+read 12000000 sequences, 1923575230 bases, 1179575230 kmers
+read 12100000 sequences, 1936528765 bases, 1186328765 kmers
+read 12200000 sequences, 1949822939 bases, 1193422939 kmers
+read 12300000 sequences, 1962607705 bases, 1200007705 kmers
+read 12400000 sequences, 1975528951 bases, 1206728951 kmers
+read 12500000 sequences, 1988356507 bases, 1213356507 kmers
+read 12600000 sequences, 2001310116 bases, 1220110116 kmers
+read 12700000 sequences, 2014316977 bases, 1226916977 kmers
+read 12800000 sequences, 2027300676 bases, 1233700676 kmers
+read 12900000 sequences, 2040283112 bases, 1240483112 kmers
+read 13000000 sequences, 2053070210 bases, 1247070210 kmers
+read 13100000 sequences, 2066357392 bases, 1254157392 kmers
+read 13200000 sequences, 2079514117 bases, 1261114117 kmers
+read 13300000 sequences, 2092587055 bases, 1267987055 kmers
+read 13400000 sequences, 2105687861 bases, 1274887861 kmers
+read 13500000 sequences, 2118896002 bases, 1281896002 kmers
+read 13600000 sequences, 2131841724 bases, 1288641724 kmers
+read 13700000 sequences, 2144909308 bases, 1295509308 kmers
+read 13800000 sequences, 2157799174 bases, 1302199174 kmers
+read 13900000 sequences, 2170824760 bases, 1309024760 kmers
+read 14000000 sequences, 2183943636 bases, 1315943636 kmers
+read 14100000 sequences, 2196888939 bases, 1322688939 kmers
+read 14200000 sequences, 2209993052 bases, 1329593052 kmers
+read 14300000 sequences, 2223177518 bases, 1336577518 kmers
+read 14400000 sequences, 2236324767 bases, 1343524767 kmers
+read 14500000 sequences, 2249926194 bases, 1350926194 kmers
+read 14600000 sequences, 2263244067 bases, 1358044067 kmers
+read 14700000 sequences, 2276666210 bases, 1365266210 kmers
+read 14800000 sequences, 2289846389 bases, 1372246389 kmers
+read 14900000 sequences, 2303142205 bases, 1379342205 kmers
+read 15000000 sequences, 2316373175 bases, 1386373175 kmers
+read 15100000 sequences, 2329658257 bases, 1393458257 kmers
+read 15200000 sequences, 2342799874 bases, 1400399874 kmers
+read 15300000 sequences, 2355936598 bases, 1407336598 kmers
+read 15400000 sequences, 2369202825 bases, 1414402825 kmers
+read 15500000 sequences, 2382453933 bases, 1421453933 kmers
+read 15600000 sequences, 2395606868 bases, 1428406868 kmers
+read 15700000 sequences, 2408903524 bases, 1435503524 kmers
+read 15800000 sequences, 2422488600 bases, 1442888600 kmers
+read 15900000 sequences, 2435763741 bases, 1449963741 kmers
+read 16000000 sequences, 2449041041 bases, 1457041041 kmers
+read 16100000 sequences, 2462152775 bases, 1463952775 kmers
+read 16200000 sequences, 2475426803 bases, 1471026803 kmers
+read 16300000 sequences, 2488985859 bases, 1478385859 kmers
+read 16400000 sequences, 2502322646 bases, 1485522646 kmers
+read 16500000 sequences, 2515682566 bases, 1492682566 kmers
+read 16600000 sequences, 2529274259 bases, 1500074259 kmers
+read 16700000 sequences, 2542622794 bases, 1507222794 kmers
+read 16800000 sequences, 2556056912 bases, 1514456912 kmers
+read 16900000 sequences, 2569267145 bases, 1521467145 kmers
+read 17000000 sequences, 2582562981 bases, 1528562981 kmers
+read 17100000 sequences, 2596061102 bases, 1535861102 kmers
+read 17200000 sequences, 2609459388 bases, 1543059388 kmers
+read 17300000 sequences, 2622881245 bases, 1550281245 kmers
+read 17400000 sequences, 2636336794 bases, 1557536794 kmers
+read 17500000 sequences, 2649678629 bases, 1564678629 kmers
+read 17600000 sequences, 2663341782 bases, 1572141782 kmers
+read 17700000 sequences, 2676693590 bases, 1579293590 kmers
+read 17800000 sequences, 2690200716 bases, 1586600716 kmers
+read 17900000 sequences, 2703543489 bases, 1593743489 kmers
+read 18000000 sequences, 2717390529 bases, 1601390529 kmers
+read 18100000 sequences, 2730783796 bases, 1608583796 kmers
+read 18200000 sequences, 2744196467 bases, 1615796467 kmers
+read 18300000 sequences, 2757894852 bases, 1623294852 kmers
+read 18400000 sequences, 2771403521 bases, 1630603521 kmers
+read 18500000 sequences, 2784930678 bases, 1637930678 kmers
+read 18600000 sequences, 2798778608 bases, 1645578608 kmers
+read 18700000 sequences, 2812434788 bases, 1653034788 kmers
+read 18800000 sequences, 2826041925 bases, 1660441925 kmers
+read 18900000 sequences, 2839594143 bases, 1667794143 kmers
+read 19000000 sequences, 2853100531 bases, 1675100531 kmers
+read 19100000 sequences, 2866645368 bases, 1682445368 kmers
+read 19200000 sequences, 2880162017 bases, 1689762017 kmers
+read 19300000 sequences, 2893733500 bases, 1697133500 kmers
+read 19400000 sequences, 2907861888 bases, 1705061888 kmers
+read 19500000 sequences, 2921431859 bases, 1712431859 kmers
+read 19600000 sequences, 2934950257 bases, 1719750257 kmers
+read 19700000 sequences, 2948908590 bases, 1727508590 kmers
+read 19800000 sequences, 2962655324 bases, 1735055324 kmers
+read 19900000 sequences, 2976658842 bases, 1742858842 kmers
+read 20000000 sequences, 2990606476 bases, 1750606476 kmers
+read 20100000 sequences, 3004463124 bases, 1758263124 kmers
+read 20200000 sequences, 3018263669 bases, 1765863669 kmers
+read 20300000 sequences, 3032235817 bases, 1773635817 kmers
+read 20400000 sequences, 3045926851 bases, 1781126851 kmers
+read 20500000 sequences, 3059718085 bases, 1788718085 kmers
+read 20600000 sequences, 3073465760 bases, 1796265760 kmers
+read 20700000 sequences, 3087374365 bases, 1803974365 kmers
+read 20800000 sequences, 3101202279 bases, 1811602279 kmers
+read 20900000 sequences, 3115301042 bases, 1819501042 kmers
+read 21000000 sequences, 3129300415 bases, 1827300415 kmers
+read 21100000 sequences, 3143428950 bases, 1835228950 kmers
+read 21200000 sequences, 3157337269 bases, 1842937269 kmers
+read 21300000 sequences, 3171218453 bases, 1850618453 kmers
+read 21400000 sequences, 3185386330 bases, 1858586330 kmers
+read 21500000 sequences, 3199499619 bases, 1866499619 kmers
+read 21600000 sequences, 3213699144 bases, 1874499144 kmers
+read 21700000 sequences, 3227725083 bases, 1882325083 kmers
+read 21800000 sequences, 3241636024 bases, 1890036024 kmers
+read 21900000 sequences, 3255686690 bases, 1897886690 kmers
+read 22000000 sequences, 3269949888 bases, 1905949888 kmers
+read 22100000 sequences, 3284189309 bases, 1913989309 kmers
+read 22200000 sequences, 3298558467 bases, 1922158467 kmers
+read 22300000 sequences, 3312627222 bases, 1930027222 kmers
+read 22400000 sequences, 3326674715 bases, 1937874715 kmers
+read 22500000 sequences, 3340769161 bases, 1945769161 kmers
+read 22600000 sequences, 3355403951 bases, 1954203951 kmers
+read 22700000 sequences, 3369592323 bases, 1962192323 kmers
+read 22800000 sequences, 3383749832 bases, 1970149832 kmers
+read 22900000 sequences, 3398280808 bases, 1978480808 kmers
+read 23000000 sequences, 3412658016 bases, 1986658016 kmers
+read 23100000 sequences, 3427105278 bases, 1994905278 kmers
+read 23200000 sequences, 3441898165 bases, 2003498165 kmers
+read 23300000 sequences, 3456307790 bases, 2011707790 kmers
+read 23400000 sequences, 3470437552 bases, 2019637552 kmers
+=== step 1.1: 'encoding input' 10.4056 [sec] (5.13183 [ns/kmer])
+read 23474327 sequences, 3483064285 bases, 2027656011 kmers
+num_kmers 2027656011
+cost: 2.0 + 1.43556 [bits/kmer]
+max_len 643923
+num. bits per_absolute_offset 32
+num. bits per_relative_offset 20
+num. bits per_string_id 25
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.13.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.14.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.15.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.16.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.17.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.18.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.19.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.20.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.21.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.22.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.23.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.24.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.25.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.26.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.27.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.28.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.29.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.30.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.31.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.32.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.33.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.34.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.35.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.36.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.37.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.38.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.39.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.40.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.41.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.42.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.43.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.44.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.45.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.46.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.47.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.48.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.49.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.50.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.51.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.52.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.53.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.54.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.55.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.56.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.57.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.58.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.59.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.60.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.61.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.62.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.63.bin'...
+=== step 1.2: 'computing minimizers tuples' 1.49671 [sec] (0.738147 [ns/kmer])
+=== step 1: 'parse file' 11.9024 [sec] (5.87005 [ns/kmer])
+ == files to merge = 64
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+num_super_kmers = 150000000
+=== step 2.1: 'merging minimizers tuples' 13.1335 [sec] (6.47717 [ns/kmer])
+num_minimizers = 86631941
+num_minimizer_positions = 169264838
+num_super_kmers = 176725324
+building minimizers MPHF with 64 threads and 29 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 4.09208 [sec] (2.01813 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1761155401603590690.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 5.84624 [sec] (2.88325 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 3.45465 [sec] (1.70376 [ns/kmer])
+num_bits_per_offset = 45
+num_buckets_larger_than_1_not_in_skew_index 14311872/86631941 (16.5203%)
+num_buckets_in_skew_index 167883/86631941 (0.193789%)
+max_bucket_size 475227
+log2_max_bucket_size 19
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 74713236/169264838 (44.1398%)
+num_minimizer_positions_of_buckets_in_skew_index 22399416/169264838 (13.2334%)
+computing minimizers offsets: 4.30549 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 164308993
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 48058096
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 13657562
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 6137831
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 4414714
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 4433156
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 4082117
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 475227: 35954358
+num_kmers_in_skew_index 281046827 (13.8607%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 164308993
+    building MPHF with 64 threads and 55 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 164308993 kmers; bits/key = 2.56349
+    built positions[0] for 164308993 kmers; bits/key = 7
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 48058096
+    building MPHF with 64 threads and 17 partitions (avg. partition size = 3000000)...
+    built mphs[1] for 48058096 kmers; bits/key = 2.53932
+    built positions[1] for 48058096 kmers; bits/key = 8.00001
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 13657562
+    building MPHF with 64 threads and 5 partitions (avg. partition size = 3000000)...
+    built mphs[2] for 13657562 kmers; bits/key = 2.61351
+    built positions[2] for 13657562 kmers; bits/key = 9.00003
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 6137831
+    building MPHF with 64 threads and 3 partitions (avg. partition size = 3000000)...
+    built mphs[3] for 6137831 kmers; bits/key = 2.93085
+    built positions[3] for 6137831 kmers; bits/key = 10.0001
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 4414714
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[4] for 4414714 kmers; bits/key = 2.84407
+    built positions[4] for 4414714 kmers; bits/key = 11.0001
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 4433156
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[5] for 4433156 kmers; bits/key = 2.73731
+    built positions[5] for 4433156 kmers; bits/key = 12.0001
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 4082117
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[6] for 4082117 kmers; bits/key = 2.9369
+    built positions[6] for 4082117 kmers; bits/key = 13.0001
+  lower = 8192; upper = 475227; num_bits_per_pos = 19; num_kmers_in_partition = 35954358
+    building MPHF with 64 threads and 12 partitions (avg. partition size = 3000000)...
+    built mphs[7] for 35954358 kmers; bits/key = 2.55049
+    built positions[7] for 35954358 kmers; bits/key = 19
+computing skew index took: 43.7682 [sec]
+=== step 3: 'build sparse and skew index' 48.4027 [sec] (23.8713 [ns/kmer])
+=== total_time 86.8316 [sec] (42.8236 [ns/kmer])
+total index size: 2449943884 [B] -- 2449.94 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.120785 [bits/kmer] (2.82702 [bits/key]) -- 1.24957%
+  strings_offsets: 0.370467 [bits/kmer] -- 3.83263%
+  control_codewords: 1.96536 [bits/kmer] -- 20.3325%
+  mid_load_buckets: 1.65812 [bits/kmer] -- 17.1539%
+  begin_buckets_of_size: 1.05738e-06 [bits/kmer] -- 1.0939e-05%
+  strings: 3.43556 [bits/kmer] -- 35.5423%
+  skew_index: 2.11582 [bits/kmer] -- 21.8891%
+  weights: 7.25961e-07 [bits/kmer] -- 7.51038e-06%
+  --------------
+  total: 9.66611 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 83.2859%
+buckets with 2 minimizer positions = 8.38918%
+buckets with 3 minimizer positions = 2.77772%
+buckets with 4 minimizer positions = 1.31798%
+buckets with 5 minimizer positions = 0.776307%
+buckets with 6 minimizer positions = 0.518707%
+buckets with 7 minimizer positions = 0.374551%
+buckets with 8 minimizer positions = 0.285226%
+buckets with 9 minimizer positions = 0.226981%
+buckets with 10 minimizer positions = 0.183834%
+buckets with 11 minimizer positions = 0.15397%
+buckets with 12 minimizer positions = 0.131367%
+buckets with 13 minimizer positions = 0.113066%
+buckets with 14 minimizer positions = 0.0987326%
+buckets with 15 minimizer positions = 0.0868144%
+buckets with 16 minimizer positions = 0.0771828%
+max_bucket_size 475227
+2025-10-22 19:51:29: saving data structure to disk...
+2025-10-22 19:51:30: DONE
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/se.k63.eulertigs.fa.gz -k 63 -m 31 -g 16 -t 64 --canonical --verbose -d tmp_dir -o se.k63.canon.sshash 
+k = 63, m = 31, seed = 1, num_threads = 64, ram_limit_in_GiB = 16, lambda = 5, canonical = true, weighted = false, verbose = true, fast = false, tmp_dirname = 'tmp_dir'
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/se.k63.eulertigs.fa.gz'...
+read 100000 sequences, 29016680 bases, 22816680 kmers
+read 200000 sequences, 59512851 bases, 47112851 kmers
+read 300000 sequences, 93672898 bases, 75072898 kmers
+read 400000 sequences, 116504758 bases, 91704758 kmers
+read 500000 sequences, 129640784 bases, 98640784 kmers
+read 600000 sequences, 142888339 bases, 105688339 kmers
+read 700000 sequences, 156121559 bases, 112721559 kmers
+read 800000 sequences, 169296181 bases, 119696181 kmers
+read 900000 sequences, 182473664 bases, 126673664 kmers
+read 1000000 sequences, 195596653 bases, 133596653 kmers
+read 1100000 sequences, 208767883 bases, 140567883 kmers
+read 1200000 sequences, 222206242 bases, 147806242 kmers
+read 1300000 sequences, 235299002 bases, 154699002 kmers
+read 1400000 sequences, 248482676 bases, 161682676 kmers
+read 1500000 sequences, 261589002 bases, 168589002 kmers
+read 1600000 sequences, 275055224 bases, 175855224 kmers
+read 1700000 sequences, 288035899 bases, 182635899 kmers
+read 1800000 sequences, 301349839 bases, 189749839 kmers
+read 1900000 sequences, 314875402 bases, 197075402 kmers
+read 2000000 sequences, 328155468 bases, 204155468 kmers
+read 2100000 sequences, 341368638 bases, 211168638 kmers
+read 2200000 sequences, 354712561 bases, 218312561 kmers
+read 2300000 sequences, 368072063 bases, 225472063 kmers
+read 2400000 sequences, 381369139 bases, 232569139 kmers
+read 2500000 sequences, 395076735 bases, 240076735 kmers
+read 2600000 sequences, 408571236 bases, 247371236 kmers
+read 2700000 sequences, 421770941 bases, 254370941 kmers
+read 2800000 sequences, 434931097 bases, 261331097 kmers
+read 2900000 sequences, 448299063 bases, 268499063 kmers
+read 3000000 sequences, 461539333 bases, 275539333 kmers
+read 3100000 sequences, 474884907 bases, 282684907 kmers
+read 3200000 sequences, 488437875 bases, 290037875 kmers
+read 3300000 sequences, 501681623 bases, 297081623 kmers
+read 3400000 sequences, 514981749 bases, 304181749 kmers
+read 3500000 sequences, 528308911 bases, 311308911 kmers
+read 3600000 sequences, 541636977 bases, 318436977 kmers
+read 3700000 sequences, 555162428 bases, 325762428 kmers
+read 3800000 sequences, 568696864 bases, 333096864 kmers
+read 3900000 sequences, 581917367 bases, 340117367 kmers
+read 4000000 sequences, 595230806 bases, 347230806 kmers
+read 4100000 sequences, 608987326 bases, 354787326 kmers
+read 4200000 sequences, 622285230 bases, 361885230 kmers
+read 4300000 sequences, 635647937 bases, 369047937 kmers
+read 4400000 sequences, 648992641 bases, 376192641 kmers
+read 4500000 sequences, 662513085 bases, 383513085 kmers
+read 4600000 sequences, 675930708 bases, 390730708 kmers
+read 4700000 sequences, 689630997 bases, 398230997 kmers
+read 4800000 sequences, 702998525 bases, 405398525 kmers
+read 4900000 sequences, 716509106 bases, 412709106 kmers
+read 5000000 sequences, 730213776 bases, 420213776 kmers
+read 5100000 sequences, 743782200 bases, 427582200 kmers
+read 5200000 sequences, 757644345 bases, 435244345 kmers
+read 5300000 sequences, 771125199 bases, 442525199 kmers
+read 5400000 sequences, 784691064 bases, 449891064 kmers
+read 5500000 sequences, 798294855 bases, 457294855 kmers
+read 5600000 sequences, 811868593 bases, 464668593 kmers
+read 5700000 sequences, 825311254 bases, 471911254 kmers
+read 5800000 sequences, 838965535 bases, 479365535 kmers
+read 5900000 sequences, 852651369 bases, 486851369 kmers
+read 6000000 sequences, 866286185 bases, 494286185 kmers
+read 6100000 sequences, 879791139 bases, 501591139 kmers
+read 6200000 sequences, 893568574 bases, 509168574 kmers
+read 6300000 sequences, 907221132 bases, 516621132 kmers
+read 6400000 sequences, 920850746 bases, 524050746 kmers
+read 6500000 sequences, 934451496 bases, 531451496 kmers
+read 6600000 sequences, 948058192 bases, 538858192 kmers
+read 6700000 sequences, 961672076 bases, 546272076 kmers
+read 6800000 sequences, 975396607 bases, 553796607 kmers
+read 6900000 sequences, 989058970 bases, 561258970 kmers
+read 7000000 sequences, 1002901529 bases, 568901529 kmers
+read 7100000 sequences, 1016671875 bases, 576471875 kmers
+read 7200000 sequences, 1030411659 bases, 584011659 kmers
+read 7300000 sequences, 1044405182 bases, 591805182 kmers
+read 7400000 sequences, 1058406016 bases, 599606016 kmers
+read 7500000 sequences, 1072419258 bases, 607419258 kmers
+read 7600000 sequences, 1086161571 bases, 614961571 kmers
+read 7700000 sequences, 1100358439 bases, 622958439 kmers
+read 7800000 sequences, 1114261097 bases, 630661097 kmers
+read 7900000 sequences, 1128307808 bases, 638507808 kmers
+read 8000000 sequences, 1142394085 bases, 646394085 kmers
+read 8100000 sequences, 1156357087 bases, 654157087 kmers
+read 8200000 sequences, 1170571919 bases, 662171919 kmers
+read 8300000 sequences, 1184451177 bases, 669851177 kmers
+read 8400000 sequences, 1198299415 bases, 677499415 kmers
+read 8500000 sequences, 1212442446 bases, 685442446 kmers
+read 8600000 sequences, 1226405386 bases, 693205386 kmers
+read 8700000 sequences, 1240703127 bases, 701303127 kmers
+read 8800000 sequences, 1254656983 bases, 709056983 kmers
+read 8900000 sequences, 1268621397 bases, 716821397 kmers
+read 9000000 sequences, 1282878983 bases, 724878983 kmers
+read 9100000 sequences, 1297350868 bases, 733150868 kmers
+read 9200000 sequences, 1311516008 bases, 741116008 kmers
+read 9300000 sequences, 1325689722 bases, 749089722 kmers
+read 9400000 sequences, 1339681966 bases, 756881966 kmers
+read 9500000 sequences, 1353794378 bases, 764794378 kmers
+read 9600000 sequences, 1368052593 bases, 772852593 kmers
+read 9700000 sequences, 1382481060 bases, 781081060 kmers
+read 9800000 sequences, 1397029165 bases, 789429165 kmers
+read 9900000 sequences, 1411261935 bases, 797461935 kmers
+read 10000000 sequences, 1425636398 bases, 805636398 kmers
+read 10100000 sequences, 1439978158 bases, 813778158 kmers
+read 10200000 sequences, 1454566042 bases, 822166042 kmers
+read 10300000 sequences, 1469140008 bases, 830540008 kmers
+read 10400000 sequences, 1483590209 bases, 838790209 kmers
+read 10500000 sequences, 1497966729 bases, 846966729 kmers
+read 10600000 sequences, 1512656712 bases, 855456712 kmers
+read 10700000 sequences, 1527179954 bases, 863779954 kmers
+read 10800000 sequences, 1541782827 bases, 872182827 kmers
+read 10900000 sequences, 1556446263 bases, 880646263 kmers
+read 11000000 sequences, 1571133044 bases, 889133044 kmers
+read 11100000 sequences, 1585817113 bases, 897617113 kmers
+read 11200000 sequences, 1600557391 bases, 906157391 kmers
+read 11300000 sequences, 1615262703 bases, 914662703 kmers
+read 11400000 sequences, 1629999627 bases, 923199627 kmers
+read 11500000 sequences, 1644860568 bases, 931860568 kmers
+read 11600000 sequences, 1659779614 bases, 940579614 kmers
+read 11700000 sequences, 1674792374 bases, 949392374 kmers
+read 11800000 sequences, 1689736749 bases, 958136749 kmers
+read 11900000 sequences, 1704892610 bases, 967092610 kmers
+read 12000000 sequences, 1720028668 bases, 976028668 kmers
+read 12100000 sequences, 1735135576 bases, 984935576 kmers
+read 12200000 sequences, 1750297083 bases, 993897083 kmers
+read 12300000 sequences, 1765691330 bases, 1003091330 kmers
+read 12400000 sequences, 1781168609 bases, 1012368609 kmers
+read 12500000 sequences, 1796591819 bases, 1021591819 kmers
+read 12600000 sequences, 1811901104 bases, 1030701104 kmers
+read 12700000 sequences, 1827876510 bases, 1040476510 kmers
+read 12800000 sequences, 1843393773 bases, 1049793773 kmers
+read 12900000 sequences, 1858842782 bases, 1059042782 kmers
+read 13000000 sequences, 1874571339 bases, 1068571339 kmers
+read 13100000 sequences, 1890244268 bases, 1078044268 kmers
+read 13200000 sequences, 1905959273 bases, 1087559273 kmers
+read 13300000 sequences, 1922228338 bases, 1097628338 kmers
+read 13400000 sequences, 1938520111 bases, 1107720111 kmers
+read 13500000 sequences, 1954665049 bases, 1117665049 kmers
+read 13600000 sequences, 1970696591 bases, 1127496591 kmers
+read 13700000 sequences, 1987164795 bases, 1137764795 kmers
+read 13800000 sequences, 2003371475 bases, 1147771475 kmers
+read 13900000 sequences, 2019649864 bases, 1157849864 kmers
+read 14000000 sequences, 2036208720 bases, 1168208720 kmers
+read 14100000 sequences, 2052986091 bases, 1178786091 kmers
+read 14200000 sequences, 2069712172 bases, 1189312172 kmers
+read 14300000 sequences, 2086760589 bases, 1200160589 kmers
+read 14400000 sequences, 2103719627 bases, 1210919627 kmers
+read 14500000 sequences, 2120768565 bases, 1221768565 kmers
+read 14600000 sequences, 2137973642 bases, 1232773642 kmers
+read 14700000 sequences, 2155333528 bases, 1243933528 kmers
+read 14800000 sequences, 2173029002 bases, 1255429002 kmers
+read 14900000 sequences, 2190761957 bases, 1266961957 kmers
+read 15000000 sequences, 2208992707 bases, 1278992707 kmers
+read 15100000 sequences, 2226994114 bases, 1290794114 kmers
+read 15200000 sequences, 2245240873 bases, 1302840873 kmers
+read 15300000 sequences, 2264078057 bases, 1315478057 kmers
+read 15400000 sequences, 2282789468 bases, 1327989468 kmers
+read 15500000 sequences, 2301835717 bases, 1340835717 kmers
+read 15600000 sequences, 2321337137 bases, 1354137137 kmers
+read 15700000 sequences, 2341431175 bases, 1368031175 kmers
+read 15800000 sequences, 2361547906 bases, 1381947906 kmers
+read 15900000 sequences, 2382126087 bases, 1396326087 kmers
+read 16000000 sequences, 2403498478 bases, 1411498478 kmers
+read 16100000 sequences, 2424934550 bases, 1426734550 kmers
+read 16200000 sequences, 2447209476 bases, 1442809476 kmers
+read 16300000 sequences, 2470231832 bases, 1459631832 kmers
+read 16400000 sequences, 2494281037 bases, 1477481037 kmers
+read 16500000 sequences, 2519161670 bases, 1496161670 kmers
+read 16600000 sequences, 2545406869 bases, 1516206869 kmers
+=== step 1.1: 'encoding input' 7.40246 [sec] (4.85437 [ns/kmer])
+read 16636523 sequences, 2556368582 bases, 1524904156 kmers
+num_kmers 1524904156
+cost: 2.0 + 1.35283 [bits/kmer]
+max_len 499189
+num. bits per_absolute_offset 32
+num. bits per_relative_offset 19
+num. bits per_string_id 24
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.0.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.1.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.2.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.3.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.4.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.5.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.6.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.7.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.8.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.9.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.10.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.11.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.12.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.13.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.14.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.15.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.16.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.17.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.18.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.19.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.20.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.21.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.22.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.23.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.24.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.25.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.26.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.27.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.28.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.29.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.30.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.31.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.32.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.33.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.34.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.35.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.36.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.37.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.38.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.39.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.40.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.41.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.42.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.43.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.44.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.45.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.46.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.47.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.48.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.49.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.50.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.51.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.52.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.53.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.54.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.55.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.56.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.57.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.58.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.59.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.60.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.61.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.62.bin'...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.63.bin'...
+=== step 1.2: 'computing minimizers tuples' 1.13368 [sec] (0.743445 [ns/kmer])
+=== step 1: 'parse file' 8.53626 [sec] (5.5979 [ns/kmer])
+ == files to merge = 64
+saving tuples to 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.bin'
+num_super_kmers = 50000000
+num_super_kmers = 100000000
+=== step 2.1: 'merging minimizers tuples' 9.94436 [sec] (6.5213 [ns/kmer])
+num_minimizers = 69577229
+num_minimizer_positions = 126350163
+num_super_kmers = 131966527
+building minimizers MPHF with 64 threads and 24 partitions (avg. partition size = 3000000)...
+=== step 2.2: 'build minimizers mphf' 3.2208 [sec] (2.11214 [ns/kmer])
+re-sorting minimizer tuples...
+saving to file 'tmp_dir/sshash.tmp.run_1761155490682486772.minimizers.0.bin'...
+=== step 2.3: 'replacing minimizer values with MPHF hashes' 4.37959 [sec] (2.87204 [ns/kmer])
+=== step 2.4: 'merging minimizers tuples ' 2.54732 [sec] (1.67048 [ns/kmer])
+num_bits_per_offset = 43
+num_buckets_larger_than_1_not_in_skew_index 12190335/69577229 (17.5206%)
+num_buckets_in_skew_index 86973/69577229 (0.125002%)
+max_bucket_size 245177
+log2_max_bucket_size 18
+skew index num_partitions 8
+num_minimizer_positions_of_buckets_larger_than_1 57511599/126350163 (45.5176%)
+num_minimizer_positions_of_buckets_in_skew_index 11538643/126350163 (9.13227%)
+computing minimizers offsets: 3.31397 [sec]
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 77399356
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 26776297
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 13974034
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 6504754
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 3263868
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 2527517
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 8192: 2420664
+  partition_id = 7: num_kmers belonging to buckets of size > 8192 and <= 245177: 10756294
+num_kmers_in_skew_index 143622784 (9.41848%)
+building partitions...
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 77399356
+    building MPHF with 64 threads and 26 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 77399356 kmers; bits/key = 2.54863
+    built positions[0] for 77399356 kmers; bits/key = 7
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 26776297
+    building MPHF with 64 threads and 9 partitions (avg. partition size = 3000000)...
+    built mphs[1] for 26776297 kmers; bits/key = 2.54559
+    built positions[1] for 26776297 kmers; bits/key = 8.00001
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 13974034
+    building MPHF with 64 threads and 5 partitions (avg. partition size = 3000000)...
+    built mphs[2] for 13974034 kmers; bits/key = 2.56375
+    built positions[2] for 13974034 kmers; bits/key = 9.00003
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 6504754
+    building MPHF with 64 threads and 3 partitions (avg. partition size = 3000000)...
+    built mphs[3] for 6504754 kmers; bits/key = 2.78902
+    built positions[3] for 6504754 kmers; bits/key = 10.0001
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 3263868
+    building MPHF with 64 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[4] for 3263868 kmers; bits/key = 3.30619
+    built positions[4] for 3263868 kmers; bits/key = 11.0001
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 2527517
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 2527517)...
+    built mphs[5] for 2527517 kmers; bits/key = 2.55992
+    built positions[5] for 2527517 kmers; bits/key = 12.0001
+  lower = 4096; upper = 8192; num_bits_per_pos = 13; num_kmers_in_partition = 2420664
+    building MPHF with 64 threads and 1 partitions (avg. partition size = 2420664)...
+    built mphs[6] for 2420664 kmers; bits/key = 2.55997
+    built positions[6] for 2420664 kmers; bits/key = 13.0001
+  lower = 8192; upper = 245177; num_bits_per_pos = 18; num_kmers_in_partition = 10756294
+    building MPHF with 64 threads and 4 partitions (avg. partition size = 3000000)...
+    built mphs[7] for 10756294 kmers; bits/key = 2.64819
+    built positions[7] for 10756294 kmers; bits/key = 18
+computing skew index took: 23.4021 [sec]
+=== step 3: 'build sparse and skew index' 26.9603 [sec] (17.68 [ns/kmer])
+=== total_time 55.5886 [sec] (36.4538 [ns/kmer])
+total index size: 1685868004 [B] -- 1685.87 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.132337 [bits/kmer] (2.9004 [bits/key]) -- 1.49628%
+  strings_offsets: 0.349116 [bits/kmer] -- 3.94729%
+  control_codewords: 2.0076 [bits/kmer] -- 22.699%
+  mid_load_buckets: 1.62174 [bits/kmer] -- 18.3362%
+  begin_buckets_of_size: 1.40599e-06 [bits/kmer] -- 1.58969e-05%
+  strings: 3.35283 [bits/kmer] -- 37.9088%
+  skew_index: 1.38083 [bits/kmer] -- 15.6124%
+  weights: 9.65307e-07 [bits/kmer] -- 1.09143e-05%
+  --------------
+  total: 8.84445 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 minimizer positions = 82.3544%
+buckets with 2 minimizer positions = 9.17598%
+buckets with 3 minimizer positions = 3.08546%
+buckets with 4 minimizer positions = 1.44294%
+buckets with 5 minimizer positions = 0.830594%
+buckets with 6 minimizer positions = 0.537643%
+buckets with 7 minimizer positions = 0.377841%
+buckets with 8 minimizer positions = 0.278926%
+buckets with 9 minimizer positions = 0.215933%
+buckets with 10 minimizer positions = 0.171191%
+buckets with 11 minimizer positions = 0.139152%
+buckets with 12 minimizer positions = 0.116435%
+buckets with 13 minimizer positions = 0.0976368%
+buckets with 14 minimizer positions = 0.0839542%
+buckets with 15 minimizer positions = 0.0727882%
+buckets with 16 minimizer positions = 0.064557%
+max_bucket_size 245177
+2025-10-22 19:52:26: saving data structure to disk...
+2025-10-22 19:52:27: DONE

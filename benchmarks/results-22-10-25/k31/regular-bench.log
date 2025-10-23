@@ -1,0 +1,90 @@
+./sshash bench -i cod.k31.sshash 
+avg_nanosec_per_positive_lookup 648.305
+avg_nanosec_per_negative_lookup 695.741
+avg_nanosec_per_access 279.6
+iterator: avg_nanosec_per_kmer 2.53235
+./sshash bench -i cod.k31.sshash 
+avg_nanosec_per_positive_lookup 653.268
+avg_nanosec_per_negative_lookup 695.842
+avg_nanosec_per_access 279.349
+iterator: avg_nanosec_per_kmer 2.61822
+./sshash bench -i cod.k31.sshash 
+avg_nanosec_per_positive_lookup 634.66
+avg_nanosec_per_negative_lookup 700.528
+avg_nanosec_per_access 290.753
+iterator: avg_nanosec_per_kmer 2.744
+./sshash bench -i kestrel.k31.sshash 
+avg_nanosec_per_positive_lookup 625.999
+avg_nanosec_per_negative_lookup 757.035
+avg_nanosec_per_access 287.668
+iterator: avg_nanosec_per_kmer 2.62408
+./sshash bench -i kestrel.k31.sshash 
+avg_nanosec_per_positive_lookup 628.17
+avg_nanosec_per_negative_lookup 751.121
+avg_nanosec_per_access 279.75
+iterator: avg_nanosec_per_kmer 2.65167
+./sshash bench -i kestrel.k31.sshash 
+avg_nanosec_per_positive_lookup 637.028
+avg_nanosec_per_negative_lookup 756.516
+avg_nanosec_per_access 279.722
+iterator: avg_nanosec_per_kmer 2.78434
+./sshash bench -i human.k31.sshash 
+avg_nanosec_per_positive_lookup 883.449
+avg_nanosec_per_negative_lookup 830.867
+avg_nanosec_per_access 358.553
+iterator: avg_nanosec_per_kmer 2.71647
+./sshash bench -i human.k31.sshash 
+avg_nanosec_per_positive_lookup 880.462
+avg_nanosec_per_negative_lookup 826.909
+avg_nanosec_per_access 356.664
+iterator: avg_nanosec_per_kmer 2.70977
+./sshash bench -i human.k31.sshash 
+avg_nanosec_per_positive_lookup 878.291
+avg_nanosec_per_negative_lookup 828.208
+avg_nanosec_per_access 361.108
+iterator: avg_nanosec_per_kmer 2.73747
+./sshash bench -i hprc.k31.sshash 
+avg_nanosec_per_positive_lookup 1142.35
+avg_nanosec_per_negative_lookup 903.169
+avg_nanosec_per_access 556.08
+iterator: avg_nanosec_per_kmer 2.5543
+./sshash bench -i hprc.k31.sshash 
+avg_nanosec_per_positive_lookup 1133.38
+avg_nanosec_per_negative_lookup 887.641
+avg_nanosec_per_access 560.262
+iterator: avg_nanosec_per_kmer 2.52931
+./sshash bench -i hprc.k31.sshash 
+avg_nanosec_per_positive_lookup 1128.25
+avg_nanosec_per_negative_lookup 897.297
+avg_nanosec_per_access 570.004
+iterator: avg_nanosec_per_kmer 2.58062
+./sshash bench -i ec.k31.sshash 
+avg_nanosec_per_positive_lookup 1075.35
+avg_nanosec_per_negative_lookup 788.298
+avg_nanosec_per_access 400.502
+iterator: avg_nanosec_per_kmer 2.62252
+./sshash bench -i ec.k31.sshash 
+avg_nanosec_per_positive_lookup 1057.65
+avg_nanosec_per_negative_lookup 785.094
+avg_nanosec_per_access 395.239
+iterator: avg_nanosec_per_kmer 2.56189
+./sshash bench -i ec.k31.sshash 
+avg_nanosec_per_positive_lookup 1060.7
+avg_nanosec_per_negative_lookup 786.358
+avg_nanosec_per_access 394.851
+iterator: avg_nanosec_per_kmer 2.76176
+./sshash bench -i se.k31.sshash 
+avg_nanosec_per_positive_lookup 975.228
+avg_nanosec_per_negative_lookup 777.359
+avg_nanosec_per_access 364.022
+iterator: avg_nanosec_per_kmer 2.58587
+./sshash bench -i se.k31.sshash 
+avg_nanosec_per_positive_lookup 974.828
+avg_nanosec_per_negative_lookup 767.215
+avg_nanosec_per_access 370.83
+iterator: avg_nanosec_per_kmer 2.48011
+./sshash bench -i se.k31.sshash 
+avg_nanosec_per_positive_lookup 979.848
+avg_nanosec_per_negative_lookup 758.218
+avg_nanosec_per_access 378.567
+iterator: avg_nanosec_per_kmer 2.50634
