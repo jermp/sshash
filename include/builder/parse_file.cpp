@@ -125,7 +125,7 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
             throw std::runtime_error("file is malformed");
         }
 
-        if (strings_offsets_builder.size() % 100'000 == 0) {
+        if (strings_offsets_builder.size() % 1'000'000 == 0) {
             std::cout << "read " << strings_offsets_builder.size() << " sequences, " << num_bases
                       << " bases, " << num_kmers << " kmers" << std::endl;
         }

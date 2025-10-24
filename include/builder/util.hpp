@@ -74,6 +74,10 @@ struct minimizer_tuple {
         if (minimizer != other.minimizer) return minimizer > other.minimizer;
         return pos_in_seq > other.pos_in_seq;
     }
+    bool operator<(minimizer_tuple other) const {
+        if (minimizer != other.minimizer) return minimizer < other.minimizer;
+        return pos_in_seq < other.pos_in_seq;
+    }
 
     uint64_t minimizer;
     uint64_t pos_in_seq;
