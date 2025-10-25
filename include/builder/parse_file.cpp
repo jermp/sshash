@@ -202,8 +202,8 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
     std::cout << "num. bits per_relative_offset " << nb.per_relative_offset << std::endl;
     std::cout << "num. bits per_string_id " << nb.per_string_id << std::endl;
 
-    if (build_config.fast and nb.per_string_id + nb.per_relative_offset > 64) {
-        throw std::runtime_error("minimier offset does not fit within 64 bits");
+    if (nb.per_string_id + nb.per_relative_offset > 64) {
+        throw std::runtime_error("minimizer offset does not fit within 64 bits");
     }
 
     strings_offsets_builder.set_num_bits(nb);
