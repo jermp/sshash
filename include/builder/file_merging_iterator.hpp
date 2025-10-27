@@ -13,7 +13,7 @@ struct file_merging_iterator  //
     {
         if (num_files_to_merge == 0) return;
 
-        /* create the input iterators and make the heap */
+        /* open files and create the input iterators */
         m_iterators.reserve(num_files_to_merge);
         for (uint64_t i = 0; i != num_files_to_merge; ++i, ++file_names_iterator) {
             m_mm_files[i].open(*file_names_iterator, mm::advice::sequential);
@@ -86,15 +86,10 @@ private:
                 --m_num_files_to_merge;
             }
             while (p) {
-                uint64_t l = p;
-                uint64_t r = p + 1;
-                if ((p & 1) == 0) {  // p is right child
-                    --l;
-                    --r;
-                }
+                uint64_t is_right_child = (p & 1) == 0;
                 uint32_t i = 0;
-                l = m_tree[l];
-                r = m_tree[r];
+                uint32_t l = m_tree[p - is_right_child];
+                uint32_t r = m_tree[p + 1 - is_right_child];
                 if (l == uint32_t(-1)) {
                     i = r;
                 } else if (r == uint32_t(-1)) {
