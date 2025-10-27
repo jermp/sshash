@@ -134,6 +134,6 @@ private:
             }
         }
     }
-};  // namespace sshash
+};
 
 }  // namespace sshash
