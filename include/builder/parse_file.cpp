@@ -125,7 +125,7 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
             throw std::runtime_error("file is malformed");
         }
 
-        if (strings_offsets_builder.size() % 1'000'000 == 0) {
+        if (build_config.verbose and strings_offsets_builder.size() % 1'000'000 == 0) {
             std::cout << "read " << strings_offsets_builder.size() << " sequences, " << num_bases
                       << " bases, " << num_kmers << " kmers" << std::endl;
         }
@@ -160,14 +160,16 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
     }
 
     timer.stop();
-    print_time(timer.elapsed(), num_kmers, "step 1.1: 'encoding input'");
 
-    std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, " << num_kmers
-              << " kmers" << std::endl;
-    std::cout << "num_kmers " << num_kmers << std::endl;
-    std::cout << "cost: 2.0 + "
-              << static_cast<double>(Kmer::bits_per_char * num_sequences * (k - 1)) / num_kmers
-              << " [bits/kmer]" << std::endl;
+    if (build_config.verbose) {
+        print_time(timer.elapsed(), num_kmers, "step 1.1: 'encoding input'");
+        std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
+                  << num_kmers << " kmers" << std::endl;
+        std::cout << "num_kmers " << num_kmers << std::endl;
+        std::cout << "cost: 2.0 + "
+                  << static_cast<double>(Kmer::bits_per_char * num_sequences * (k - 1)) / num_kmers
+                  << " [bits/kmer]" << std::endl;
+    }
 
     /*
         The parameter m (minimizer length) should be at least
@@ -177,7 +179,7 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
     */
     const uint64_t s = uint64_t(1) << Kmer::bits_per_char;
     const uint64_t lower_bound_on_m = std::ceil(std::log(num_bases) / std::log(s)) + 1;
-    if (m < lower_bound_on_m) {
+    if (build_config.verbose and m < lower_bound_on_m) {
         std::cout << "\n--> WARNING: using minimizer length " << m
                   << " but it should be at least ceil(log_" << s << "(" << num_bases
                   << "))+1 = " << lower_bound_on_m << '\n'
@@ -197,10 +199,12 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
     nb.per_relative_offset = std::ceil(std::log2(max_len - m + 1));
     nb.per_string_id = std::ceil(std::log2(num_sequences));
 
-    std::cout << "max_len " << max_len << std::endl;
-    std::cout << "num. bits per_absolute_offset " << nb.per_absolute_offset << std::endl;
-    std::cout << "num. bits per_relative_offset " << nb.per_relative_offset << std::endl;
-    std::cout << "num. bits per_string_id " << nb.per_string_id << std::endl;
+    if (build_config.verbose) {
+        std::cout << "max string length = " << max_len << std::endl;
+        std::cout << "num bits per_absolute_offset = " << nb.per_absolute_offset << std::endl;
+        std::cout << "num bits per_relative_offset = " << nb.per_relative_offset << std::endl;
+        std::cout << "num bits per_string_id = " << nb.per_string_id << std::endl;
+    }
 
     if (nb.per_string_id + nb.per_relative_offset > 64) {
         throw std::runtime_error("minimizer offset does not fit within 64 bits");
@@ -308,7 +312,10 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::istream& is,
     }
 
     timer.stop();
-    print_time(timer.elapsed(), num_kmers, "step 1.2: 'computing minimizers tuples'");
+
+    if (build_config.verbose) {
+        print_time(timer.elapsed(), num_kmers, "step 1.2: 'computing minimizers tuples'");
+    }
 
     if (build_config.weighted) {
         weights_builder.push_weight_interval(weight_value, weight_length);
@@ -321,7 +328,7 @@ void dictionary_builder<Kmer, Offsets>::parse_file(std::string const& filename) 
 {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
-    std::cout << "reading file '" << filename << "'..." << std::endl;
+    if (build_config.verbose) std::cout << "reading file '" << filename << "'..." << std::endl;
     if (util::ends_with(filename, ".gz")) {
         zip_istream zis(is);
         if (util::ends_with(filename, ".cf_seg.gz")) {

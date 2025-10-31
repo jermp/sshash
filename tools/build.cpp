@@ -54,8 +54,6 @@ int build(int argc, char** argv) {
     auto k = parser.get<uint64_t>("k");
     auto m = parser.get<uint64_t>("m");
 
-    dictionary_type dict;
-
     build_configuration build_config;
     build_config.k = k;
     build_config.m = m;
@@ -74,10 +72,11 @@ int build(int argc, char** argv) {
     }
     if (parser.parsed("t")) build_config.num_threads = parser.get<uint64_t>("t");
 
-    build_config.print();
+    // build_config.print();
 
+    essentials::logger("building data structure...");
+    dictionary_type dict;
     dict.build(input_filename, build_config);
-    assert(dict.k() == k);
 
     bool check = parser.get<bool>("check");
     if (check) {
@@ -88,12 +87,14 @@ int build(int argc, char** argv) {
         check_correctness_kmer_iterator(dict);
         check_correctness_string_iterator(dict);
     }
+
     bool bench = parser.get<bool>("bench");
     if (bench) {
         perf_test_lookup_access(dict);
         if (dict.weighted()) perf_test_lookup_weight(dict);
         perf_test_iterator(dict);
     }
+
     if (parser.parsed("output_filename")) {
         auto output_filename = parser.get<std::string>("output_filename");
         essentials::logger("saving data structure to disk...");

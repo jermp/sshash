@@ -252,8 +252,9 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     std::cout << "  partition = " << partition_id
                               << ": num kmers in buckets of size > " << lower << " and <= " << upper
                               << ": " << num_kmers_in_partition[partition_id] << std::endl;
-                    num_kmers_in_skew_index += num_kmers_in_partition[partition_id];
                 }
+
+                num_kmers_in_skew_index += num_kmers_in_partition[partition_id];
 
                 if (i == buckets.size()) break;
 

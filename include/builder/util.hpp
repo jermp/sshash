@@ -200,8 +200,7 @@ struct minimizers_tuples {
         , m_num_minimizer_positions(0)
         , m_num_super_kmers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
-        , m_num_threads(build_config.num_threads)
-        , m_tmp_dirname(build_config.tmp_dirname)  //
+        , m_build_config(build_config)  //
     {
         init();
     }
@@ -209,14 +208,16 @@ struct minimizers_tuples {
     void init() { m_num_files_to_merge = 0; }
 
     void sort_and_flush(std::vector<minimizer_tuple>& buffer) {
-        parallel_sort(buffer, m_num_threads,
+        parallel_sort(buffer, m_build_config.num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or
                                  (x.minimizer == y.minimizer and x.pos_in_seq < y.pos_in_seq);
                       });
         uint64_t id = m_num_files_to_merge.fetch_add(1);
         auto tmp_output_filename = get_tmp_output_filename(id);
-        std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
+        if (m_build_config.verbose) {
+            std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
+        }
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
         if (!out.is_open()) throw std::runtime_error("cannot open file");
         out.write(reinterpret_cast<char const*>(buffer.data()),
@@ -228,7 +229,8 @@ struct minimizers_tuples {
     std::string get_minimizers_filename() const {
         assert(m_num_files_to_merge > 0);
         std::stringstream filename;
-        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
+        filename << m_build_config.tmp_dirname << "/sshash.tmp.run_" << m_run_identifier
+                 << ".minimizers.bin";
         return filename.str();
     }
 
@@ -261,24 +263,24 @@ struct minimizers_tuples {
                  it.has_next(); it.next())  //
             {
                 auto bucket = it.bucket();
+                m_num_minimizers += 1;
                 m_num_minimizer_positions += bucket.size();
                 m_num_super_kmers += bucket.num_super_kmers();
-                ++m_num_minimizers;
             }
             input.close();
             return;
         }
 
-        std::cout << " == files to merge = " << m_num_files_to_merge << std::endl;
-
         assert(m_num_files_to_merge > 1);
-
         file_merging_iterator<minimizer_tuple> fm_iterator(files_name_iterator_begin(),
                                                            m_num_files_to_merge);
 
-        std::cout << "saving tuples to '" << get_minimizers_filename() << "'" << std::endl;
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
+
+        if (m_build_config.verbose) {
+            std::cout << "saving to file '" << get_minimizers_filename() << "'" << std::endl;
+        }
 
         m_num_minimizers = 0;
         m_num_minimizer_positions = 0;
@@ -297,7 +299,7 @@ struct minimizers_tuples {
             out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
             prev_pos_in_seq = mt.pos_in_seq;
             ++m_num_super_kmers;
-            if (m_num_super_kmers % 50000000 == 0) {
+            if (m_build_config.verbose and m_num_super_kmers % 10'000'000 == 0) {
                 std::cout << "processed " << m_num_super_kmers << " minimizer tuples" << std::endl;
             }
             fm_iterator.next();
@@ -325,15 +327,13 @@ private:
     uint64_t m_num_minimizers;
     uint64_t m_num_minimizer_positions;
     uint64_t m_num_super_kmers;
-
     uint64_t m_run_identifier;
-    uint64_t m_num_threads;
-    std::string m_tmp_dirname;
+    build_configuration m_build_config;
 
     std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;
-        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers." << id
-                 << ".bin";
+        filename << m_build_config.tmp_dirname << "/sshash.tmp.run_" << m_run_identifier
+                 << ".minimizers." << id << ".bin";
         return filename.str();
     }
 };
