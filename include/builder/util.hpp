@@ -298,7 +298,7 @@ struct minimizers_tuples {
             prev_pos_in_seq = mt.pos_in_seq;
             ++m_num_super_kmers;
             if (m_num_super_kmers % 50000000 == 0) {
-                std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
+                std::cout << "processed " << m_num_super_kmers << " minimizer tuples" << std::endl;
             }
             fm_iterator.next();
         }

@@ -81,7 +81,7 @@ dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(dictionary<Kmer, 
     strings_offsets_builder.build(d.m_spss.strings_offsets);
     strings_builder.build(d.m_spss.strings);
 
-    /* compute offsets2 and offsets3 */
+    /* displace offsets */
     assert(buckets_stats.num_buckets() == num_minimizers);
 
     const uint64_t max_bucket_size = buckets_stats.max_bucket_size();
