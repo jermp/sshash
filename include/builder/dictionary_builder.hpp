@@ -42,7 +42,9 @@ struct dictionary_builder  //
             timer.start();
             weights_builder.build(d.m_weights);
             timer.stop();
-            print_time(timer.elapsed(), num_kmers, "step 1.3: 'build weights'");
+            if (build_config.verbose) {
+                print_time(timer.elapsed(), num_kmers, "step 1.3: 'build weights'");
+            }
             if (build_config.verbose) {
                 double entropy_weights = weights_builder.print_info(num_kmers);
                 double avg_bits_per_weight =
@@ -54,7 +56,7 @@ struct dictionary_builder  //
         }
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), num_kmers, "step 1: 'parse file'");
+        if (build_config.verbose) print_time(timings.back(), num_kmers, "step 1: 'parse file'");
         timer.reset();
         /******/
 
@@ -64,12 +66,14 @@ struct dictionary_builder  //
             minimizers.merge();
             timer.stop();
             timings.push_back(timer.elapsed());
-            print_time(timings.back(), num_kmers, "step 2.1: 'merging minimizers tuples'");
 
-            std::cout << "num_minimizers = " << minimizers.num_minimizers() << std::endl;
-            std::cout << "num_minimizer_positions = " << minimizers.num_minimizer_positions()
-                      << std::endl;
-            std::cout << "num_super_kmers = " << minimizers.num_super_kmers() << std::endl;
+            if (build_config.verbose) {
+                print_time(timings.back(), num_kmers, "step 2.1: 'merging minimizers tuples'");
+                std::cout << "num_minimizers = " << minimizers.num_minimizers() << std::endl;
+                std::cout << "num_minimizer_positions = " << minimizers.num_minimizer_positions()
+                          << std::endl;
+                std::cout << "num_super_kmers = " << minimizers.num_super_kmers() << std::endl;
+            }
 
             timer.reset();
 
@@ -83,7 +87,10 @@ struct dictionary_builder  //
             assert(d.m_ssi.codewords.size() == num_minimizers);
             timer.stop();
             timings.push_back(timer.elapsed());
-            print_time(timings.back(), num_kmers, "step 2.2: 'build minimizers mphf'");
+
+            if (build_config.verbose) {
+                print_time(timings.back(), num_kmers, "step 2.2: 'build minimizers mphf'");
+            }
 
             timer.reset();
         }
@@ -141,8 +148,10 @@ struct dictionary_builder  //
 
             timer.stop();
             timings.push_back(timer.elapsed());
-            print_time(timings.back(), num_kmers,
-                       "step 2.3: 'replacing minimizer values with MPHF hashes'");
+            if (build_config.verbose) {
+                print_time(timings.back(), num_kmers,
+                           "step 2.3: 'replacing minimizer values with MPHF hashes'");
+            }
             timer.reset();
 
             timer.start();
@@ -150,28 +159,31 @@ struct dictionary_builder  //
             input.close();
             timer.stop();
             timings.push_back(timer.elapsed());
-            print_time(timings.back(), num_kmers, "step 2.4: 'merging minimizers tuples '");
+            if (build_config.verbose) {
+                print_time(timings.back(), num_kmers, "step 2.4: 'merging minimizers tuples '");
+            }
             timer.reset();
         }
         /******/
 
         /* step 3: build sparse and skew index ***/
         timer.start();
-        auto buckets_stats = build_sparse_and_skew_index(d);
+        build_sparse_and_skew_index(d);
         assert(strings_offsets_builder.size() == 0);
         timer.stop();
         timings.push_back(timer.elapsed());
-        print_time(timings.back(), num_kmers, "step 3: 'build sparse and skew index'");
+        if (build_config.verbose) {
+            print_time(timings.back(), num_kmers, "step 3: 'build sparse and skew index'");
+        }
         timer.reset();
         /******/
 
         assert(timings.size() == 6);
         double total_time = std::accumulate(timings.begin(), timings.end(), 0.0);
-        print_time(total_time, num_kmers, "total_time");
-
-        d.print_space_breakdown();
-
-        if (build_config.verbose) buckets_stats.print_less();
+        if (build_config.verbose) {
+            print_time(total_time, num_kmers, "total_time");
+            d.print_space_breakdown();
+        }
 
         minimizers.remove_tmp_file();
     }
@@ -186,8 +198,7 @@ struct dictionary_builder  //
 private:
     void parse_file(std::string const& filename);
     void parse_file(std::istream& is, const input_file_t fmt);
-
-    buckets_statistics build_sparse_and_skew_index(dictionary<Kmer, Offsets>& d);
+    void build_sparse_and_skew_index(dictionary<Kmer, Offsets>& d);
 };
 
 }  // namespace sshash
