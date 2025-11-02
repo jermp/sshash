@@ -2,6 +2,7 @@
 
 #include "include/builder/parse_file.cpp"
 #include "include/builder/build_sparse_and_skew_index.cpp"
+#include "include/builder/compute_minimizer_tuples.cpp"
 
 namespace sshash {
 
