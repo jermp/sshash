@@ -3,21 +3,10 @@
 #include <vector>
 #include <atomic>
 
-#if defined(__AVX2__)
-#include <immintrin.h>
-#include <x86intrin.h>
-#endif
-
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
 
 namespace sshash {
-
-[[maybe_unused]] static void print_time(double time, uint64_t num_kmers,
-                                        std::string const& message) {
-    std::cout << "=== " << message << " " << time / 1000000 << " [sec] ("
-              << (time * 1000) / num_kmers << " [ns/kmer])" << std::endl;
-}
 
 struct parse_runtime_error : public std::runtime_error {
     parse_runtime_error() : std::runtime_error("did you provide an input file with weights?") {}
@@ -29,35 +18,6 @@ struct parse_runtime_error : public std::runtime_error {
         throw parse_runtime_error();
     }
 }
-
-#if defined(__AVX2__)
-/*
-    This function takes 32 bytes and packs the two bits
-    in positions 1 and 2 (from right) of each byte into
-    a single 64-bit word.
-
-    This works with the map:
-    A -> 00; C -> 01; G -> 11; T -> 10.
-*/
-inline uint64_t pack2bits_shift1(__m256i v) {
-    // shift >> 1, then mask by 3 to isolate the relevant bits
-    __m256i shifted = _mm256_srli_epi16(v, 1);
-    __m256i values = _mm256_and_si256(shifted, _mm256_set1_epi8(3));
-
-    // collect bit-0 plane
-    __m256i bit0 = _mm256_slli_epi16(values, 7);
-    uint32_t mask0 = _mm256_movemask_epi8(bit0);
-
-    // collect bit-1 plane
-    __m256i bit1 = _mm256_slli_epi16(values, 6);
-    uint32_t mask1 = _mm256_movemask_epi8(bit1);
-
-    // interleave into the 64-bit result
-    uint64_t even = _pdep_u64(mask0, 0x5555555555555555ULL);  // 010101...
-    uint64_t odd = _pdep_u64(mask1, 0xAAAAAAAAAAAAAAAAULL);   // 101010...
-    return even | odd;
-}
-#endif
 
 typedef uint8_t num_kmers_in_super_kmer_uint_type;
 

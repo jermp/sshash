@@ -14,7 +14,7 @@ template <typename Kmer, typename Offsets>
 struct dictionary_builder  //
 {
     dictionary_builder(build_configuration const& build_config)
-        : build_config(build_config), num_kmers(0), minimizers(build_config) {}
+        : build_config(build_config), num_kmers(0), minimizers(build_config), total_time_musec(0) {}
 
     void build(dictionary<Kmer, Offsets>& d, std::string const& filename)  //
     {
@@ -25,123 +25,54 @@ struct dictionary_builder  //
         d.m_canonical = build_config.canonical;
         d.m_hasher.seed(build_config.seed);
 
-        std::vector<double> timings;
-        timings.reserve(7);
+        build_stats.add("input_filename", filename.c_str());
+        build_stats.add("k", d.m_k);
+        build_stats.add("m", d.m_m);
+        build_stats.add("canonical", d.m_canonical ? "true" : "false");
+        build_stats.add("seed", build_config.seed);
 
-        essentials::timer_type timer;
-        // TODO: json_lines
+        total_time_musec = 0;
 
-        /*
-            step 1: encode strings
-        */
-        timer.start();
-        encode_strings(filename);
-        d.m_num_kmers = num_kmers;
-        assert(strings_offsets_builder.size() >= 2);
-        d.m_num_strings = strings_offsets_builder.size() - 1;
-        timer.stop();
-        timings.push_back(timer.elapsed());
-        if (build_config.verbose) {
-            print_time(timings.back(), num_kmers, "step 1: 'encode strings'");
-        }
-        timer.reset();
+        do_step("step 1: encode strings", [&]() {
+            encode_strings(filename);
+            d.m_num_kmers = num_kmers;
+            assert(strings_offsets_builder.size() >= 2);
+            d.m_num_strings = strings_offsets_builder.size() - 1;
+        });
 
-        /*
-            step 1.1: build weights (if dictionary is weighted)
-        */
         if (build_config.weighted) {
-            timer.start();
-            weights_builder.build(d.m_weights);
-            timer.stop();
-            if (build_config.verbose) {
-                print_time(timings.back(), num_kmers, "step 1.1: 'build weights'");
-            }
-            timer.reset();
+            do_step("step 1.1: build weights", [&]() { weights_builder.build(d.m_weights); });
         }
 
-        /*
-            step 2: compute minimizer tuples
-        */
-        timer.start();
-        compute_minimizer_tuples();
-        timer.stop();
-        timings.push_back(timer.elapsed());
-        if (build_config.verbose) {
-            print_time(timings.back(), num_kmers, "step 2: 'compute minimizer tuples'");
-        }
-        timer.reset();
+        do_step("step 2: compute minimizer tuples", [&]() { compute_minimizer_tuples(); });
 
-        /*
-            step 3: merge minimizer tuples
-        */
-        timer.start();
-        minimizers.merge();
-        timer.stop();
-        timings.push_back(timer.elapsed());
+        do_step("step 3: merging minimizer tuples", [&]() { minimizers.merge(); });
         if (build_config.verbose) {
-            print_time(timings.back(), num_kmers, "step 3: 'merging minimizers tuples'");
             std::cout << "num_minimizers = " << minimizers.num_minimizers() << std::endl;
             std::cout << "num_minimizer_positions = " << minimizers.num_minimizer_positions()
                       << std::endl;
             std::cout << "num_super_kmers = " << minimizers.num_super_kmers() << std::endl;
         }
-        timer.reset();
 
-        /*
-            step 4: build mphf
-        */
-        timer.start();
-        build_mphf(d);
-        timer.stop();
-        timings.push_back(timer.elapsed());
-        if (build_config.verbose) { print_time(timings.back(), num_kmers, "step 4: 'build mphf'"); }
-        timer.reset();
+        do_step("step 4: build mphf", [&]() { build_mphf(d); });
 
-        /*
-            step 5: hash minimizers
-        */
-        timer.start();
-        hash_minimizers(d);
-        timer.stop();
-        timings.push_back(timer.elapsed());
+        do_step("step 5: replacing minimizer values with MPHF hashes",
+                [&]() { hash_minimizers(d); });
+
+        do_step("step 6: merging minimizers tuples", [&]() { minimizers.merge(); });
+
+        do_step("step 7: build sparse and skew index", [&]() {
+            build_sparse_and_skew_index(d);
+            minimizers.remove_tmp_file();
+            assert(strings_offsets_builder.size() == 0);
+        });
+
         if (build_config.verbose) {
-            print_time(timings.back(), num_kmers,
-                       "step 5: 'replacing minimizer values with MPHF hashes'");
-        }
-        timer.reset();
-
-        /*
-            step 6: merge minimizer tuples
-        */
-        timer.start();
-        minimizers.merge();
-        timer.stop();
-        timings.push_back(timer.elapsed());
-        if (build_config.verbose) {
-            print_time(timings.back(), num_kmers, "step 6: 'merging minimizers tuples '");
-        }
-        timer.reset();
-
-        /*
-            step 7: build sparse and skew index
-        */
-        timer.start();
-        build_sparse_and_skew_index(d);
-        assert(strings_offsets_builder.size() == 0);
-        timer.stop();
-        timings.push_back(timer.elapsed());
-        if (build_config.verbose) {
-            print_time(timings.back(), num_kmers, "step 7: 'build sparse and skew index'");
-        }
-        timer.reset();
-
-        double total_time = std::accumulate(timings.begin(), timings.end(), 0.0);
-        if (build_config.verbose) {
-            print_time(total_time, num_kmers, "total_time");
+            print_time(total_time_musec, "total time");
             d.print_space_breakdown();
         }
 
-        minimizers.remove_tmp_file();
+        build_stats.print();
     }
 
     build_configuration build_config;
@@ -151,9 +82,28 @@ struct dictionary_builder  //
     bits::bit_vector::builder strings_builder;
     weights::builder weights_builder;
 
+    essentials::timer_type timer;
     essentials::json_lines build_stats;
+    uint64_t total_time_musec;
 
 private:
+    void print_time(double time_in_musec, std::string const& message) {
+        std::cout << "=== " << message << " " << time_in_musec / 1'000'000 << " [sec] ("
+                  << (time_in_musec * 1000) / num_kmers << " [ns/kmer])" << std::endl;
+    }
+
+    template <typename Callback>
+    void do_step(std::string const& step, Callback f) {
+        timer.start();
+        f();
+        timer.stop();
+        uint64_t step_elapsed_time_musec = timer.elapsed();
+        total_time_musec += step_elapsed_time_musec;
+        if (build_config.verbose) print_time(step_elapsed_time_musec, step);
+        build_stats.add(step, step_elapsed_time_musec);
+        timer.reset();
+    }
+
     void encode_strings(std::string const& filename);
     void encode_strings(std::istream& is, const input_file_t fmt);
     void compute_minimizer_tuples();

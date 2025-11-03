@@ -2,15 +2,50 @@
 #include "util.hpp"
 #include "external/gz/zip_stream.hpp"
 
+#if defined(__AVX2__)
+#include <immintrin.h>
+#include <x86intrin.h>
+#endif
+
 namespace sshash {
+
+namespace util {
+
+#if defined(__AVX2__)
+/*
+    This function takes 32 bytes and packs the two bits
+    in positions 1 and 2 (from right) of each byte into
+    a single 64-bit word.
+
+    This works with the map:
+    A -> 00; C -> 01; G -> 11; T -> 10.
+*/
+inline uint64_t pack2bits_shift1(__m256i v) {
+    // shift >> 1, then mask by 3 to isolate the relevant bits
+    __m256i shifted = _mm256_srli_epi16(v, 1);
+    __m256i values = _mm256_and_si256(shifted, _mm256_set1_epi8(3));
+
+    // collect bit-0 plane
+    __m256i bit0 = _mm256_slli_epi16(values, 7);
+    uint32_t mask0 = _mm256_movemask_epi8(bit0);
+
+    // collect bit-1 plane
+    __m256i bit1 = _mm256_slli_epi16(values, 6);
+    uint32_t mask1 = _mm256_movemask_epi8(bit1);
+
+    // interleave into the 64-bit result
+    uint64_t even = _pdep_u64(mask0, 0x5555555555555555ULL);  // 010101...
+    uint64_t odd = _pdep_u64(mask1, 0xAAAAAAAAAAAAAAAAULL);   // 101010...
+    return even | odd;
+}
+#endif
+
+}  // namespace util
 
 template <typename Kmer, typename Offsets>
 void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
                                                        const input_file_t fmt)  //
 {
-    essentials::timer_type timer;
-    timer.start();
-
     const uint64_t k = build_config.k;
     const uint64_t m = build_config.m;
     assert(k > 0 and k >= m);
@@ -132,7 +167,7 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
             /* process 32 bytes at a time */
             for (; i + 32 <= n; i += 32) {
                 __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
-                uint64_t word = pack2bits_shift1(v);
+                uint64_t word = util::pack2bits_shift1(v);
                 strings_builder.append_bits(word, 64);
             }
 #endif
@@ -153,12 +188,9 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
         strings_builder.append_bits(0, 64);
     }
 
-    timer.stop();
-
     const uint64_t num_sequences = strings_offsets_builder.size() - 1;
 
     if (build_config.verbose) {
-        print_time(timer.elapsed(), num_kmers, "step 1.1: 'encoding input'");
         std::cout << "read " << num_sequences << " sequences, " << num_bases << " bases, "
                   << num_kmers << " kmers" << std::endl;
         std::cout << "num_kmers " << num_kmers << std::endl;
