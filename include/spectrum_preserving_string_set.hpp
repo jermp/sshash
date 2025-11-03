@@ -60,14 +60,31 @@ struct spectrum_preserving_string_set  //
             }
         }
 
+        typename Offsets::decoded_offset next_p;
+        if (size > 1) {
+            ++it;
+            next_p = strings_offsets.decode(*it);
+            __builtin_prefetch(
+                &(strings.data()[(Kmer::bits_per_char * (next_p.absolute_offset - (k - m))) / 64]),
+                0, 3);
+        }
+
         lookup_result res;
         if (_lookup_regular(res, p, kmer, mini_info)) return res;
 
+        p = next_p;
+
         for (uint64_t i = 1; i != size; ++i) {
-            ++it;
-            minimizer_offset = *it;
-            p = strings_offsets.decode(minimizer_offset);
+            if (i + 1 < size) {
+                ++it;
+                next_p = strings_offsets.decode(*it);
+                __builtin_prefetch(
+                    &(strings
+                          .data()[(Kmer::bits_per_char * (next_p.absolute_offset - (k - m))) / 64]),
+                    0, 3);
+            }
             if (_lookup_regular(res, p, kmer, mini_info)) return res;
+            p = next_p;
         }
 
         return lookup_result();
