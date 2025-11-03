@@ -259,7 +259,7 @@ struct minimizers_tuples {
             out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
             prev_pos_in_seq = mt.pos_in_seq;
             ++m_num_super_kmers;
-            if (m_build_config.verbose and m_num_super_kmers % 10'000'000 == 0) {
+            if (m_build_config.verbose and m_num_super_kmers % 100'000'000 == 0) {
                 std::cout << "processed " << m_num_super_kmers << " minimizer tuples" << std::endl;
             }
             fm_iterator.next();
