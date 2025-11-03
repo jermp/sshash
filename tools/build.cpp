@@ -45,7 +45,6 @@ int build(int argc, char** argv) {
     parser.add("weighted", "Also store the weights in compressed format.", "--weighted", false,
                true);
     parser.add("check", "Check correctness after construction.", "--check", false, true);
-    parser.add("bench", "Run performance benchmark after construction.", "--bench", false, true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
 
     if (!parser.parse()) return 0;
@@ -86,13 +85,6 @@ int build(int argc, char** argv) {
         if (build_config.weighted) check_correctness_weights(dict, input_filename);
         check_correctness_kmer_iterator(dict);
         check_correctness_string_iterator(dict);
-    }
-
-    bool bench = parser.get<bool>("bench");
-    if (bench) {
-        perf_test_lookup_access(dict);
-        if (dict.weighted()) perf_test_lookup_weight(dict);
-        perf_test_iterator(dict);
     }
 
     if (parser.parsed("output_filename")) {

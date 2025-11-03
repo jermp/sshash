@@ -7,7 +7,7 @@ using timer_type = essentials::timer<std::chrono::high_resolution_clock, std::ch
 }
 
 template <typename Dict>
-void perf_test_iterator(Dict const& dict) {
+void perf_test_iterator(Dict const& dict, essentials::json_lines& perf_stats) {
     perf::timer_type t;
     t.start();
     auto it = dict.begin();
@@ -19,12 +19,13 @@ void perf_test_iterator(Dict const& dict) {
     }
     t.stop();
     double avg_nanosec = t.elapsed() / n;
-    std::cout << "iterator: avg_nanosec_per_kmer " << avg_nanosec << std::endl;
+    std::cout << "iterator (avg_nanosec_per_kmer) = " << avg_nanosec << std::endl;
+    perf_stats.add("iterator (avg_nanosec_per_kmer)", avg_nanosec);
 }
 
 // template <typename Dict>
 // void perf_test_lookup_by_list_size(Dict const& dict) {
-//     constexpr uint64_t num_queries = 1000000;
+//     constexpr uint64_t num_queries = 1'000'000;
 //     constexpr uint64_t runs = 5;
 //     const uint64_t k = dict.k();
 
@@ -93,7 +94,7 @@ void perf_test_iterator(Dict const& dict) {
 // }
 
 template <typename Dict>
-void perf_test_lookup_access(Dict const& dict)  //
+void perf_test_lookup_access(Dict const& dict, essentials::json_lines& perf_stats)  //
 {
     using kmer_t = typename Dict::kmer_type;
     constexpr uint64_t num_queries = 1'000'000;
@@ -132,7 +133,8 @@ void perf_test_lookup_access(Dict const& dict)  //
         }
         t.stop();
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-        std::cout << "avg_nanosec_per_positive_lookup " << nanosec_per_lookup << std::endl;
+        std::cout << "positive lookup (avg_nanosec_per_kmer) = " << nanosec_per_lookup << std::endl;
+        perf_stats.add("positive lookup (avg_nanosec_per_kmer)", nanosec_per_lookup);
 
         // std::vector<kmer_t> lookup_queries_uint;
         // lookup_queries_uint.reserve(num_queries);
@@ -246,7 +248,8 @@ void perf_test_lookup_access(Dict const& dict)  //
         }
         t.stop();
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-        std::cout << "avg_nanosec_per_negative_lookup " << nanosec_per_lookup << std::endl;
+        std::cout << "negative lookup (avg_nanosec_per_kmer) " << nanosec_per_lookup << std::endl;
+        perf_stats.add("negative lookup (avg_nanosec_per_kmer)", nanosec_per_lookup);
     }
 
     {
@@ -264,13 +267,14 @@ void perf_test_lookup_access(Dict const& dict)  //
         }
         t.stop();
         double nanosec_per_access = t.elapsed() / static_cast<double>(runs * access_queries.size());
-        std::cout << "avg_nanosec_per_access " << nanosec_per_access << std::endl;
+        std::cout << "access (avg_nanosec_per_kmer) = " << nanosec_per_access << std::endl;
+        perf_stats.add("access (avg_nanosec_per_kmer)", nanosec_per_access);
     }
 
 }  // namespace sshash
 
 template <typename Dict>
-void perf_test_lookup_weight(Dict const& dict)  //
+void perf_test_lookup_weight(Dict const& dict, essentials::json_lines& perf_stats)  //
 {
     using kmer_t = typename Dict::kmer_type;
 
@@ -279,7 +283,7 @@ void perf_test_lookup_weight(Dict const& dict)  //
         return;
     }
 
-    constexpr uint64_t num_queries = 1000000;
+    constexpr uint64_t num_queries = 1'000'000;
     constexpr uint64_t runs = 5;
     essentials::uniform_int_rng<uint64_t> distr(0, dict.num_kmers() - 1,
                                                 essentials::get_random_seed());
@@ -312,7 +316,9 @@ void perf_test_lookup_weight(Dict const& dict)  //
     }
     t.stop();
     double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
-    std::cout << "avg_nanosec_per_positive_lookup_with_weight " << nanosec_per_lookup << std::endl;
+    std::cout << "positive lookup + weight (avg_nanosec_per_kmer) = " << nanosec_per_lookup
+              << std::endl;
+    perf_stats.add("positive lookup + weight (avg_nanosec_per_kmer)", nanosec_per_lookup);
 }
 
 }  // namespace sshash
