@@ -34,13 +34,28 @@ struct spectrum_preserving_string_set  //
         const uint64_t size = it.size();
         assert(size > 0);
 
-        uint64_t minimizer_offset = *it;
-        auto p = strings_offsets.decode(minimizer_offset);
+        static thread_local  //
+            std::array<typename Offsets::decoded_offset, 1ULL << constants::min_l>
+                v;
+
+        {
+            /* prefetch all memory locations */
+            uint64_t const* addr = strings.data().data();
+            for (uint64_t i = 0; i != size; ++i, ++it) {
+                uint64_t minimizer_offset = *it;
+                auto p = strings_offsets.decode(minimizer_offset);
+                __builtin_prefetch(
+                    addr + (Kmer::bits_per_char * (p.absolute_offset - (k - m))) / 64,  //
+                    0, 3                                                                //
+                );
+                v[i] = p;
+            }
+        }
 
         {
             /* check minimizer first */
             uint64_t read_mmer = uint64_t(
-                util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * p.absolute_offset));
+                util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * v[0].absolute_offset));
             if (read_mmer != mini_info.minimizer)  //
             {
                 /*
@@ -60,31 +75,9 @@ struct spectrum_preserving_string_set  //
             }
         }
 
-        typename Offsets::decoded_offset next_p;
-        if (size > 1) {
-            ++it;
-            next_p = strings_offsets.decode(*it);
-            __builtin_prefetch(
-                &(strings.data()[(Kmer::bits_per_char * (next_p.absolute_offset - (k - m))) / 64]),
-                0, 3);
-        }
-
         lookup_result res;
-        if (_lookup_regular(res, p, kmer, mini_info)) return res;
-
-        p = next_p;
-
-        for (uint64_t i = 1; i != size; ++i) {
-            if (i + 1 < size) {
-                ++it;
-                next_p = strings_offsets.decode(*it);
-                __builtin_prefetch(
-                    &(strings
-                          .data()[(Kmer::bits_per_char * (next_p.absolute_offset - (k - m))) / 64]),
-                    0, 3);
-            }
-            if (_lookup_regular(res, p, kmer, mini_info)) return res;
-            p = next_p;
+        for (uint64_t i = 0; i != size; ++i) {
+            if (_lookup_regular(res, v[i], kmer, mini_info)) return res;
         }
 
         return lookup_result();
