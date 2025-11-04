@@ -6,8 +6,6 @@
 #include "include/builder/util.hpp"
 #include "include/buckets_statistics.hpp"
 
-#include <numeric>  // for std::accumulate
-
 namespace sshash {
 
 template <typename Kmer, typename Offsets>
@@ -94,7 +92,7 @@ private:
     }
 
     template <typename Callback>
-    void do_step(std::string const& step, Callback f) {
+    void do_step(std::string const& step, Callback const& f) {
         timer.start();
         f();
         timer.stop();
