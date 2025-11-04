@@ -52,27 +52,25 @@ struct spectrum_preserving_string_set  //
             }
         }
 
-        {
-            /* check minimizer first */
-            uint64_t read_mmer = uint64_t(
+        /* check minimizer first */
+        if (uint64_t read_mmer = uint64_t(
                 util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * v[0].absolute_offset));
-            if (read_mmer != mini_info.minimizer)  //
-            {
-                /*
-                   The function `lookup_regular` determines if the minimizer is found at the
-                   offset `Kmer::bits_per_char * p.absolute_offset`, not whether the minimizer
-                   does not appear at all. In fact, it can happen that the minimizer appear but
-                   not at the specified offset, so it would be wrong to set `res.minimizer_found`
-                   to `false`. This can happen for HEAVYLOAD buckets only because their lookup is
-                   resolved via the skew index and `pos_in_bucket` might be larger than the size
-                   of the bucket (which we do not know for a HEAVYLOAD bucket). Since for streaming
-                   queries we keep track of the presence of minimizers (i.e., whether they appear
-                   in the index or not), only in this special case we set
-                   `res.minimizer_found` to `true` to indicate that we do not know whether the
-                   minimizer appears in the index or not.
-                */
-                return lookup_result(it.bucket_type() != bucket_t::HEAVYLOAD ? false : true);
-            }
+            read_mmer != mini_info.minimizer)  //
+        {
+            /*
+               The function `lookup_regular` determines if the minimizer is found at the
+               offset `Kmer::bits_per_char * p.absolute_offset`, not whether the minimizer
+               does not appear at all. In fact, it can happen that the minimizer appear but
+               not at the specified offset, so it would be wrong to set `res.minimizer_found`
+               to `false`. This can happen for HEAVYLOAD buckets only because their lookup is
+               resolved via the skew index and `pos_in_bucket` might be larger than the size
+               of the bucket (which we do not know for a HEAVYLOAD bucket). Since for streaming
+               queries we keep track of the presence of minimizers (i.e., whether they appear
+               in the index or not), only in this special case we set
+               `res.minimizer_found` to `true` to indicate that we do not know whether the
+               minimizer appears in the index or not.
+            */
+            return lookup_result(it.bucket_type() != bucket_t::HEAVYLOAD ? false : true);
         }
 
         lookup_result res;
@@ -91,30 +89,41 @@ struct spectrum_preserving_string_set  //
         const uint64_t size = it.size();
         assert(size > 0);
 
-        uint64_t minimizer_offset = *it;
-        auto p = strings_offsets.decode(minimizer_offset);
+        static thread_local  //
+            std::array<typename Offsets::decoded_offset, 1ULL << constants::min_l>
+                v;
 
         {
-            /* check minimizer first */
-            uint64_t read_mmer = uint64_t(
-                util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * p.absolute_offset));
-            auto tmp = Kmer(mini_info.minimizer);
+            /* prefetch all memory locations */
+            uint64_t const* addr = strings.data().data();
+            for (uint64_t i = 0; i != size; ++i, ++it) {
+                uint64_t minimizer_offset = *it;
+                auto p = strings_offsets.decode(minimizer_offset);
+                __builtin_prefetch(
+                    addr + (Kmer::bits_per_char * (p.absolute_offset - (k - m))) / 64,  //
+                    0, 3                                                                //
+                );
+                v[i] = p;
+            }
+        }
+
+        /* check minimizer first */
+        if (uint64_t read_mmer = uint64_t(
+                util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * v[0].absolute_offset));
+            read_mmer != mini_info.minimizer)  //
+        {
+            Kmer tmp = mini_info.minimizer;
             tmp.reverse_complement_inplace(m);
             uint64_t minimizer_rc = uint64_t(tmp);
-            if (read_mmer != mini_info.minimizer and read_mmer != minimizer_rc) {
+            if (read_mmer != minimizer_rc) {
                 /* Same note as for the function `lookup_regular`. */
                 return lookup_result(it.bucket_type() != bucket_t::HEAVYLOAD ? false : true);
             }
         }
 
         lookup_result res;
-        if (_lookup_canonical(res, p, kmer, kmer_rc, mini_info)) return res;
-
-        for (uint64_t i = 1; i != size; ++i) {
-            ++it;
-            minimizer_offset = *it;
-            p = strings_offsets.decode(minimizer_offset);
-            if (_lookup_canonical(res, p, kmer, kmer_rc, mini_info)) return res;
+        for (uint64_t i = 0; i != size; ++i) {
+            if (_lookup_canonical(res, v[i], kmer, kmer_rc, mini_info)) return res;
         }
 
         return lookup_result();

@@ -51,7 +51,7 @@ struct buckets_statistics {
     uint64_t max_bucket_size() const { return m_max_bucket_size; }
 
     void print_full() const {
-        std::cout << " === bucket statistics (full) === \n";
+        std::cout << "=== bucket statistics (full) === \n";
         for (uint64_t bucket_size = 1, prev_bucket_size = 0, prev_kmers_in_buckets = 0,
                       kmers_in_buckets = 0;
              bucket_size != MAX_BUCKET_SIZE + 1; ++bucket_size) {
@@ -90,7 +90,7 @@ struct buckets_statistics {
             }
         }
 
-        std::cout << " === super_kmer statistics === \n";
+        std::cout << "=== super_kmer statistics === \n";
         uint64_t total_super_kmers = 0;
         uint64_t total_kmers = 0;
         for (uint64_t string_size = 1; string_size != MAX_STRING_SIZE + 1; ++string_size) {
@@ -116,7 +116,7 @@ struct buckets_statistics {
     }
 
     void print_less() const {
-        std::cout << " === bucket statistics (less) === \n";
+        std::cout << "=== bucket statistics (less) === \n";
         for (uint64_t bucket_size = 1; bucket_size != 16 + 1; ++bucket_size) {
             if (m_bucket_sizes[bucket_size] > 0) {
                 std::cout << "buckets with " << bucket_size << " minimizer positions = "
@@ -124,7 +124,7 @@ struct buckets_statistics {
                           << std::endl;
             }
         }
-        std::cout << "max_bucket_size " << m_max_bucket_size << std::endl;
+        std::cout << "max_bucket_size = " << m_max_bucket_size << std::endl;
     }
 
     void operator+=(buckets_statistics const& rhs) {

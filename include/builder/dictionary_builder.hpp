@@ -30,10 +30,11 @@ struct dictionary_builder  //
         build_stats.add("m", d.m_m);
         build_stats.add("canonical", d.m_canonical ? "true" : "false");
         build_stats.add("seed", build_config.seed);
+        build_stats.add("num_threads", build_config.num_threads);
 
         total_time_musec = 0;
 
-        do_step("step 1: encode strings", [&]() {
+        do_step("step 1 (encode strings)", [&]() {
             encode_strings(filename);
             d.m_num_kmers = num_kmers;
             assert(strings_offsets_builder.size() >= 2);
@@ -41,12 +42,12 @@ struct dictionary_builder  //
         });
 
         if (build_config.weighted) {
-            do_step("step 1.1: build weights", [&]() { weights_builder.build(d.m_weights); });
+            do_step("step 1.1 (build weights)", [&]() { weights_builder.build(d.m_weights); });
         }
 
-        do_step("step 2: compute minimizer tuples", [&]() { compute_minimizer_tuples(); });
+        do_step("step 2 (compute minimizer tuples)", [&]() { compute_minimizer_tuples(); });
 
-        do_step("step 3: merging minimizer tuples", [&]() { minimizers.merge(); });
+        do_step("step 3 (merging minimizer tuples)", [&]() { minimizers.merge(); });
         if (build_config.verbose) {
             std::cout << "num_minimizers = " << minimizers.num_minimizers() << std::endl;
             std::cout << "num_minimizer_positions = " << minimizers.num_minimizer_positions()
@@ -54,14 +55,14 @@ struct dictionary_builder  //
             std::cout << "num_super_kmers = " << minimizers.num_super_kmers() << std::endl;
         }
 
-        do_step("step 4: build mphf", [&]() { build_mphf(d); });
+        do_step("step 4 (build mphf)", [&]() { build_mphf(d); });
 
-        do_step("step 5: replacing minimizer values with MPHF hashes",
+        do_step("step 5 (replacing minimizer values with MPHF hashes)",
                 [&]() { hash_minimizers(d); });
 
-        do_step("step 6: merging minimizers tuples", [&]() { minimizers.merge(); });
+        do_step("step 6 (merging minimizers tuples)", [&]() { minimizers.merge(); });
 
-        do_step("step 7: build sparse and skew index", [&]() {
+        do_step("step 7 (build sparse and skew index)", [&]() {
             build_sparse_and_skew_index(d);
             minimizers.remove_tmp_file();
             assert(strings_offsets_builder.size() == 0);
@@ -88,7 +89,7 @@ struct dictionary_builder  //
 
 private:
     void print_time(double time_in_musec, std::string const& message) {
-        std::cout << "=== " << message << " " << time_in_musec / 1'000'000 << " [sec] ("
+        std::cout << "=== " << message << ": " << time_in_musec / 1'000'000 << " [sec] ("
                   << (time_in_musec * 1000) / num_kmers << " [ns/kmer])" << std::endl;
     }
 
