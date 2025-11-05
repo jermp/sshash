@@ -178,15 +178,15 @@ such collections of stitched unitigs can be obtained from raw FASTA files.
 
 ### Example 1
 
-    ./sshash build -i ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz -k 31 -m 13 --check --bench -o salmonella_enterica.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz -k 31 -m 13 --check --bench -o salmonella_enterica.sshash
 
 This example builds a dictionary for the k-mers read from the file `../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz`,
-with k = 31 and m = 13. It also check the correctness of the dictionary (`--check` option), run a performance benchmark (`--bench` option), and serializes the index on disk to the file `salmonella_enterica.index`.
+with k = 31 and m = 13. It also check the correctness of the dictionary (`--check` option), run a performance benchmark (`--bench` option), and serializes the index on disk to the file `salmonella_enterica.sshash`.
 
 To run a performance benchmark after construction of the index,
 use:
 
-    ./sshash bench -i salmonella_enterica.index
+    ./sshash bench -i salmonella_enterica.sshash
 
 To also store the weights, use the option `--weighted`:
 
@@ -194,34 +194,34 @@ To also store the weights, use the option `--weighted`:
 
 ### Example 2
 
-    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 15 -l 2 -o salmonella_100.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 15 -o salmonella_100.sshash
 
-This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (a pangenome consisting in 100 genomes of *Salmonella Enterica*), with k = 31, m = 15, and l = 2. It also serializes the index on disk to the file `salmonella_100.index`.
+This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (a pangenome consisting in 100 genomes of *Salmonella Enterica*), with k = 31, m = 15, and l = 2. It also serializes the index on disk to the file `salmonella_100.sshash`.
 
 To perform some streaming membership queries, use:
 
-    ./sshash query -i salmonella_100.index -q ../data/queries/SRR5833294.10K.fastq.gz
+    ./sshash query -i salmonella_100.sshash -q ../data/queries/SRR5833294.10K.fastq.gz
 
 if your queries are meant to be read from a FASTQ file, or
 
-    ./sshash query -i salmonella_100.index -q ../data/queries/salmonella_enterica.fasta.gz --multiline
+    ./sshash query -i salmonella_100.sshash -q ../data/queries/salmonella_enterica.fasta.gz --multiline
 
 if your queries are to be read from a (multi-line) FASTA file.
 
 ### Example 3
 
-    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 13 -l 4 -s 347692 --canonical -o salmonella_100.canon.index
+    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 13 --canonical -o salmonella_100.canon.sshash
 
-This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, l = 4, using a seed 347692 for construction (`-s 347692`), and with the canonical parsing modality (option `--canonical`). The dictionary is serialized on disk to the file `salmonella_100.canon.index`.
+This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, and with the canonical parsing modality (option `--canonical`). The dictionary is serialized on disk to the file `salmonella_100.canon.sshash`.
 
-The "canonical" version of the dictionary offers more speed for only a little space increase (for a suitable choice of parameters m and l), especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
+The "canonical" version of the dictionary offers more speed for only a little space increase, especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
 
 Below a comparison between the dictionary built in Example 2 (not canonical)
 and the one just built (Example 3, canonical).
 
-    ./sshash query -i salmonella_100.index -q ../data/queries/SRR5833294.10K.fastq.gz
+    ./sshash query -i salmonella_100.sshash -q ../data/queries/SRR5833294.10K.fastq.gz
 
-    ./sshash query -i salmonella_100.canon.index -q ../data/queries/SRR5833294.10K.fastq.gz
+    ./sshash query -i salmonella_100.canon.sshash -q ../data/queries/SRR5833294.10K.fastq.gz
 
 Both queries should originate the following report (reported here for reference):
 
