@@ -75,8 +75,8 @@ def build_sshash(k, canonical_flag, mode, m_values):
 
         print(f"\n>>> Building {dataset} (k={k}, m={m_val}, mode={mode})\n")
 
-        # Clean tmp directory
-        subprocess.run(["rm", "-rf", str(tmp_dir / "*")], shell=True)
+        # Clean tmp directory (should be empty after each build anyway)
+        subprocess.run(f"rm -rf {tmp_dir}/*", shell=True, check=True)
 
         cmd = [
             "/usr/bin/time", "-v", "-a", "-o", str(time_file),
