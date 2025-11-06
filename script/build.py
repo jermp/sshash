@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 if len(sys.argv) < 3:
-    print("Usage: run_sshash_builds.py <log_label> <output_index_dir>")
+    print("Usage: python3 build.py <log_label> <output_index_dir>")
     sys.exit(1)
 
 log_label = sys.argv[1]
