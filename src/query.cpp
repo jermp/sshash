@@ -88,7 +88,7 @@ streaming_query_report streaming_query_from_fastq_file(Dict const* dict, std::is
         if (line.size() >= k) {
             const uint64_t num_kmers = line.size() - k + 1;
             report.num_kmers += num_kmers;
-            for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
+            for (uint64_t i = 0; i != num_kmers; ++i) {
                 char const* kmer = line.data() + i;
                 query.lookup(kmer);
             }
@@ -114,12 +114,12 @@ streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::is
     return streaming_query_from_fasta_file<Dict, Query>(dict, is);
 }
 
-template <class kmer_t, class Endpoints>
+template <typename Kmer, typename Offsets>
 streaming_query_report  //
-dictionary<kmer_t, Endpoints>::streaming_query_from_file(std::string const& filename,
-                                                         bool multiline) const  //
+dictionary<Kmer, Offsets>::streaming_query_from_file(std::string const& filename,
+                                                     bool multiline) const  //
 {
-    using dictionary_type = dictionary<kmer_t, Endpoints>;
+    using dictionary_type = dictionary<Kmer, Offsets>;
     using regular_query = streaming_query<dictionary_type, false>;
     using canonical_query = streaming_query<dictionary_type, true>;
 
@@ -129,7 +129,6 @@ dictionary<kmer_t, Endpoints>::streaming_query_from_file(std::string const& file
 
     if (util::ends_with(filename, ".fa.gz") or util::ends_with(filename, ".fasta.gz")) {
         zip_istream zis(is);
-
         if (canonical()) {
             report = streaming_query_from_fasta_file<dictionary_type, canonical_query>(this, zis,
                                                                                        multiline);
