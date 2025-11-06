@@ -270,8 +270,7 @@ void perf_test_lookup_access(Dict const& dict, essentials::json_lines& perf_stat
         std::cout << "access (avg_nanosec_per_kmer) = " << nanosec_per_access << std::endl;
         perf_stats.add("access (avg_nanosec_per_kmer)", nanosec_per_access);
     }
-
-}  // namespace sshash
+}
 
 template <typename Dict>
 void perf_test_lookup_weight(Dict const& dict, essentials::json_lines& perf_stats)  //
