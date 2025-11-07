@@ -48,7 +48,7 @@ def build_project(max_k63: bool):
     run_cmd(["make", "-j"])
 
 
-def run_bench(k: int, canonical: bool, repetitions: int = 3):
+def run_bench(k, canonical, runs = 3):
     """Run SSHASH benchmark for all datasets."""
     mode = "canon" if canonical else "regular"
     out_dir = results_dir / f"k{k}"
@@ -60,8 +60,8 @@ def run_bench(k: int, canonical: bool, repetitions: int = 3):
         index_path = index_dir / f"{dataset}{suffix}"
 
         print(f"\n>>> Benchmarking {dataset} (k={k}, mode={mode})\n")
-        for i in range(repetitions):
-            print(f"  → Run {i+1}/{repetitions}")
+        for i in range(runs):
+            print(f"  ==> run {i+1}/{runs}")
             with open(log_file, "a") as f:
                 subprocess.run(
                     ["./sshash", "bench", "-i", str(index_path)],
@@ -85,15 +85,15 @@ results_dir.mkdir(parents=True, exist_ok=True)
 
 # --- Build for k=31 ---
 build_project(max_k63=False)
-run_bench(k=31, canonical=False)
-run_bench(k=31, canonical=True)
+run_bench(31, False)
+run_bench(31, True)
 
 # --- Build for k=63 ---
 build_project(max_k63=True)
-run_bench(k=63, canonical=False)
-run_bench(k=63, canonical=True)
+run_bench(63, False)
+run_bench(63, True)
 
 # --- Restore to default ---
 build_project(max_k63=False)
 
-print("\n All SSHash benchmark runs completed successfully.\n")
+print("\n All SSHash benchmark runs completed successfully. \n")

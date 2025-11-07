@@ -71,7 +71,7 @@ def build_sshash(k, canonical, m_values):
         input_file = prefix / f"eulertigs/{dataset}.k{k}.eulertigs.fa.gz"
         output_file = index_dir / f"{dataset}.k{k}"
         if canonical:
-            output_file = output_file + ".canon"
+            output_file = str(output_file) + ".canon"
 
         print(f"\n>>> Building {dataset} (k={k}, m={m_val}, mode={mode})\n")
 
