@@ -104,13 +104,13 @@ results_dir.mkdir(parents=True, exist_ok=True)
 
 # k = 31
 build_project(max_k63=False)
-build_sshash(31, canonical=False, m_values_k31)
-build_sshash(31, canonical=True, m_values_k31)
+build_sshash(31, False, m_values_k31)
+build_sshash(31, True, m_values_k31)
 
 # k = 63
 build_project(max_k63=True)
-build_sshash(63, canonical=False, m_values_k63)
-build_sshash(63, canonical=True, m_values_k63)
+build_sshash(63, False, m_values_k63)
+build_sshash(63, True, m_values_k63)
 
 # rebuild back to default
 build_project(max_k63=False)
