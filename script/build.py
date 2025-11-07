@@ -57,11 +57,11 @@ def build_project(max_k63: bool):
     run_cmd(["make", "-j"])
 
 
-def build_sshash(k, canonical_flag, mode, m_values):
-    """Perform sshash builds for a given k, mode, and canonical flag."""
+def build_sshash(k, canonical, m_values):
     mode_dir = results_dir / f"k{k}"
     mode_dir.mkdir(parents=True, exist_ok=True)
 
+    mode = "canon" if canonical else "regular"
     log_file = mode_dir / f"{mode}-build.log"
     json_file = mode_dir / f"{mode}-build.json"
     time_file = mode_dir / f"{mode}-build.time.log"
@@ -70,8 +70,8 @@ def build_sshash(k, canonical_flag, mode, m_values):
         m_val = m_values[dataset]
         input_file = prefix / f"eulertigs/{dataset}.k{k}.eulertigs.fa.gz"
         output_file = index_dir / f"{dataset}.k{k}"
-        if canonical_flag:
-            output_file = output_file.with_suffix(".canon")
+        if canonical:
+            output_file = output_file + ".canon"
 
         print(f"\n>>> Building {dataset} (k={k}, m={m_val}, mode={mode})\n")
 
@@ -90,7 +90,7 @@ def build_sshash(k, canonical_flag, mode, m_values):
             "-d", str(tmp_dir),
             "-o", f"{output_file}.sshash"
         ]
-        if canonical_flag:
+        if canonical:
             cmd.append("--canonical")
 
         # Append stdout to .log, stderr to .json
@@ -104,15 +104,15 @@ results_dir.mkdir(parents=True, exist_ok=True)
 
 # k = 31
 build_project(max_k63=False)
-build_sshash(31, canonical_flag=False, mode="regular", m_values=m_values_k31)
-build_sshash(31, canonical_flag=True, mode="canon", m_values=m_values_k31)
+build_sshash(31, canonical=False, m_values_k31)
+build_sshash(31, canonical=True, m_values_k31)
 
 # k = 63
 build_project(max_k63=True)
-build_sshash(63, canonical_flag=False, mode="regular", m_values=m_values_k63)
-build_sshash(63, canonical_flag=True, mode="canon", m_values=m_values_k63)
+build_sshash(63, canonical=False, m_values_k63)
+build_sshash(63, canonical=True, m_values_k63)
 
 # rebuild back to default
 build_project(max_k63=False)
 
-print("\n All SSHash indexes built successfully.\n")
+print("\n All SSHash indexes built successfully. \n")
