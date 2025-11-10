@@ -54,6 +54,7 @@ def run_bench(k, canonical, runs = 3):
     out_dir = results_dir / f"k{k}"
     out_dir.mkdir(parents=True, exist_ok=True)
     log_file = out_dir / f"{mode}-bench.log"
+    json_file = out_dir / f"{mode}-bench.json"
 
     for dataset in datasets:
         suffix = f".k{k}.canon.sshash" if canonical else f".k{k}.sshash"
@@ -62,13 +63,10 @@ def run_bench(k, canonical, runs = 3):
         print(f"\n>>> Benchmarking {dataset} (k={k}, mode={mode})\n")
         for i in range(runs):
             print(f"  ==> run {i+1}/{runs}")
-            with open(log_file, "a") as f:
-                subprocess.run(
-                    ["./sshash", "bench", "-i", str(index_path)],
-                    stdout=f,
-                    stderr=f,
-                    check=True
-                )
+            cmd = ["./sshash", "bench", "-i", str(index_path)]
+            # Append stdout to .log, stderr to .json
+            with open(log_file, "a") as log, open(json_file, "a") as js:
+                subprocess.run(cmd, stdout=log, stderr=js, check=True)
 
 # ------------------------------
 #   Prepare directories
