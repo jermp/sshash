@@ -18,6 +18,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dic
     query.reset();
     while (!it.eof()) {
         bool empty_line_was_read = it.fill_buffer(buffer);
+        if (buffer.size() == 0) continue;
         const uint64_t num_kmers = buffer.size() - k + 1;
         report.num_kmers += num_kmers;
         for (uint64_t i = 0; i != num_kmers; ++i) {

@@ -314,67 +314,23 @@ minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m
 
 }  // namespace util
 
-// taken from tlx
-static inline std::istream& appendline(std::istream& is, std::string& str, char delim = '\n') {
-    size_t size = str.size();
-    size_t capacity = str.capacity();
-    std::streamsize rest = capacity - size;
-
-    if (rest == 0) {
-        // if rest is zero, already expand string
-        capacity = std::max(static_cast<size_t>(8), capacity * 2);
-        rest = capacity - size;
-    }
-
-    // give getline access to all of capacity
-    str.resize(capacity);
-
-    // get until delim or rest is filled
-    is.getline(const_cast<char*>(str.data()) + size, rest, delim);
-
-    // gcount includes the delimiter
-    size_t new_size = size + is.gcount();
-
-    // is failbit set?
-    if (!is) {
-        // if string ran out of space, expand, and retry
-        if (is.gcount() + 1 == rest) {
-            is.clear();
-            str.resize(new_size);
-            str.reserve(capacity * 2);
-            return appendline(is, str, delim);
-        }
-        // else fall through and deliver error
-    } else if (!is.eof()) {
-        // subtract delimiter
-        --new_size;
-    }
-
-    // resize string to fit its contents
-    str.resize(new_size);
-    return is;
-}
-
 struct buffered_lines_iterator {
     static const uint64_t BUFFER_SIZE = 1024;
 
     buffered_lines_iterator(std::istream& is, uint64_t buffer_size = BUFFER_SIZE)
         : m_is(is), m_buffer_size(buffer_size), m_read_chars(0) {}
 
-    bool fill_buffer(std::string& buffer,
-                     bool force = false /* force reading of m_buffer_size characters */
-    ) {
+    bool fill_buffer(std::string& buffer) {
+        if (buffer.size() >= m_buffer_size) return false;
+
         bool empty_line_was_read = false;
         uint64_t size = buffer.size();
-        uint64_t target_size = size + m_buffer_size;
-        if (force) target_size += m_buffer_size;
-
-        buffer.resize(target_size);
+        buffer.resize(m_buffer_size);
 
         char* ptr = buffer.data() + size;
-        while (size != target_size) {
+        while (size < m_buffer_size) {
             // read until '\n' or rest is filled
-            uint64_t rest = target_size - size;
+            uint64_t rest = m_buffer_size - size;
             m_is.getline(ptr, rest, '\n');
             uint64_t read_chars = m_is.gcount();
             m_read_chars += read_chars;
