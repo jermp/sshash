@@ -71,6 +71,10 @@ struct dictionary_builder  //
             d.print_space_breakdown();
         }
 
+        build_stats.add("total_build_time_in_microsec", total_time_musec);
+        build_stats.add("index_size_in_bytes", (d.num_bits() + 7) / 8);
+        build_stats.add("num_kmers", d.num_kmers());
+
         build_stats.print();
     }
 
