@@ -24,7 +24,7 @@ datasets = [
     "cod", "kestrel", "human", "ncbi-virus", "se", "hprc"
 ]
 
-queries = {"cod":"SRR12858649", "kestrel":"SRR11449743_1", "human":"SRR5833294", "ncbi-virus":"ncbi-queries", "se":"SRR801268_1", "hprc":"SRR5833294"}
+queries = {"cod":"SRR12858649", "kestrel":"SRR11449743_1", "human":"SRR5833294", "ncbi-virus":"ncbi-queries", "se":"SRR27871075_1", "hprc":"SRR5833294"}
 
 # ------------------------------
 #   Utility functions
