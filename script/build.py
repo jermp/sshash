@@ -19,18 +19,15 @@ threads = 64
 g = 16
 
 datasets = [
-    "cod", "kestrel", "human", "axolotl", "hprc",
-    "ec", "se", "ncbi-virus", "jgi_fungi.batch-0"
+    "cod", "kestrel", "human", "ncbi-virus", "se", "hprc"
 ]
 
 m_values_k31 = {
-    "cod": 20, "kestrel": 20, "human": 21, "axolotl": 21,
-    "hprc": 21, "ec": 21, "se": 21, "ncbi-virus": 19, "jgi_fungi.batch-0": 21
+    "cod": 20, "kestrel": 20, "human": 21, "ncbi-virus": 19, "se": 21, "hprc": 21
 }
 
 m_values_k63 = {
-    "cod": 24, "kestrel": 24, "human": 25, "axolotl": 25,
-    "hprc": 31, "ec": 31, "se": 31, "ncbi-virus": 23, "jgi_fungi.batch-0": 25
+    "cod": 24, "kestrel": 24, "human": 25, "ncbi-virus": 23, "se": 31, "hprc": 31
 }
 
 # --- Utilities ---

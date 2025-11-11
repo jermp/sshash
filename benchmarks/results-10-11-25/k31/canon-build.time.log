@@ -1,0 +1,207 @@
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/cod.k31.eulertigs.fa.gz -k 31 -m 20 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/cod.k31.canon.sshash --canonical"
+	User time (seconds): 55.86
+	System time (seconds): 13.46
+	Percent of CPU this job got: 230%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:30.03
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 4893484
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 3272542
+	Voluntary context switches: 30178
+	Involuntary context switches: 8313
+	Swaps: 0
+	File system inputs: 121616
+	File system outputs: 14514904
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/kestrel.k31.eulertigs.fa.gz -k 31 -m 20 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/kestrel.k31.canon.sshash --canonical"
+	User time (seconds): 138.73
+	System time (seconds): 28.72
+	Percent of CPU this job got: 229%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:12.84
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 9627436
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 7323840
+	Voluntary context switches: 38810
+	Involuntary context switches: 8515
+	Swaps: 0
+	File system inputs: 667928
+	File system outputs: 33377312
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/human.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/human.k31.canon.sshash --canonical"
+	User time (seconds): 402.01
+	System time (seconds): 77.72
+	Percent of CPU this job got: 234%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 3:24.55
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 20293184
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 16812014
+	Voluntary context switches: 105629
+	Involuntary context switches: 14100
+	Swaps: 0
+	File system inputs: 1725608
+	File system outputs: 97182920
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/axolotl.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/axolotl.k31.canon.sshash --canonical"
+	User time (seconds): 3096.75
+	System time (seconds): 465.92
+	Percent of CPU this job got: 204%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 29:02.78
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 117399064
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 83853618
+	Voluntary context switches: 949118
+	Involuntary context switches: 85961
+	Swaps: 0
+	File system inputs: 16123848
+	File system outputs: 707620200
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/hprc.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/hprc.k31.canon.sshash --canonical"
+	User time (seconds): 594.65
+	System time (seconds): 102.64
+	Percent of CPU this job got: 224%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 5:11.03
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 26835704
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 23863157
+	Voluntary context switches: 140738
+	Involuntary context switches: 17267
+	Swaps: 0
+	File system inputs: 328
+	File system outputs: 147931672
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/ec.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/ec.k31.canon.sshash --canonical"
+	User time (seconds): 153.25
+	System time (seconds): 33.92
+	Percent of CPU this job got: 211%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:28.40
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 11295764
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 8234867
+	Voluntary context switches: 31507
+	Involuntary context switches: 9385
+	Swaps: 0
+	File system inputs: 96
+	File system outputs: 35597416
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/se.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/se.k31.canon.sshash --canonical"
+	User time (seconds): 118.00
+	System time (seconds): 26.39
+	Percent of CPU this job got: 197%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:12.97
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 9106788
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 6678995
+	Voluntary context switches: 33139
+	Involuntary context switches: 8840
+	Swaps: 0
+	File system inputs: 80
+	File system outputs: 28721576
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/ncbi-virus.k31.eulertigs.fa.gz -k 31 -m 19 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/ncbi-virus.k31.canon.sshash --canonical"
+	User time (seconds): 34.94
+	System time (seconds): 9.59
+	Percent of CPU this job got: 237%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:18.78
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3577468
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 2329236
+	Voluntary context switches: 29575
+	Involuntary context switches: 7356
+	Swaps: 0
+	File system inputs: 56
+	File system outputs: 10334360
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/jgi_fungi.batch-0.k31.eulertigs.fa.gz -k 31 -m 21 -g 16 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-indexes/jgi_fungi.batch-0.k31.canon.sshash --canonical"
+	User time (seconds): 1985.87
+	System time (seconds): 329.22
+	Percent of CPU this job got: 212%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 18:10.53
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 72774192
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 58475937
+	Voluntary context switches: 742078
+	Involuntary context switches: 54485
+	Swaps: 0
+	File system inputs: 744
+	File system outputs: 484368272
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

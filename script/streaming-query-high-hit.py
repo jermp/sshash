@@ -7,12 +7,13 @@ from pathlib import Path
 # ------------------------------
 #   Argument parsing
 # ------------------------------
-if len(sys.argv) < 3:
-    print("Usage: python3 bench.py <log_label> <input_index_dir>")
+if len(sys.argv) < 4:
+    print("Usage: python3 bench.py <log_label> <input_index_dir> <input_queries_dir>")
     sys.exit(1)
 
 log_label = sys.argv[1]
 index_dir = Path(sys.argv[2]).resolve()
+query_dir = Path(sys.argv[3]).resolve()
 
 # ------------------------------
 #   Global configuration
@@ -22,6 +23,8 @@ results_dir = Path(f"results-{log_label}")
 datasets = [
     "cod", "kestrel", "human", "ncbi-virus", "se", "hprc"
 ]
+
+queries = {"cod":"SRR12858649", "kestrel":"SRR11449743_1", "human":"SRR5833294", "ncbi-virus":"ncbi-queries", "se":"SRR801268_1", "hprc":"SRR5833294"}
 
 # ------------------------------
 #   Utility functions
@@ -47,13 +50,13 @@ def build_project(max_k63: bool):
     run_cmd(["make", "-j"])
 
 
-def run_bench(k, canonical, runs = 3):
+def run_bench(k, canonical, runs = 1):
     """Run SSHASH benchmark for all datasets."""
     mode = "canon" if canonical else "regular"
     out_dir = results_dir / f"k{k}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    log_file = out_dir / f"{mode}-bench.log"
-    json_file = out_dir / f"{mode}-bench.json"
+    log_file = out_dir / f"{mode}-streaming-queries-high-hit.log"
+    json_file = out_dir / f"{mode}-streaming-queries-high-hit.json"
 
     for dataset in datasets:
         suffix = f".k{k}.canon.sshash" if canonical else f".k{k}.sshash"
@@ -62,7 +65,7 @@ def run_bench(k, canonical, runs = 3):
         print(f"\n>>> Benchmarking {dataset} (k={k}, mode={mode})\n")
         for i in range(runs):
             print(f"  ==> run {i+1}/{runs}")
-            cmd = ["./sshash", "bench", "-i", str(index_path)]
+            cmd = ["./sshash", "query", "-i", str(index_path), "-q", str(query_dir) + "/" + queries[dataset] + ".fastq.gz"]
             # Append stdout to .log, stderr to .json
             with open(log_file, "a") as log, open(json_file, "a") as js:
                 subprocess.run(cmd, stdout=log, stderr=js, check=True)
