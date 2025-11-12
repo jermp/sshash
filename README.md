@@ -5,6 +5,7 @@
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7772316.svg)](https://doi.org/10.5281/zenodo.7772316)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7239205.svg)](https://doi.org/10.5281/zenodo.7239205)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17582116.svg)](https://doi.org/10.5281/zenodo.17582116)
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/sshash_on_dark.png">
@@ -141,18 +142,6 @@ Tools and Usage
 There is one executable called `sshash` after the compilation, which can be used to run a tool.
 Run `./sshash` as follows to see a list of available tools.
 
-    == SSHash: (S)parse and (S)kew (Hash)ing of k-mers =========================
-
-    Usage: ./sshash <tool> ...
-
-    Available tools:
-      build                  build a dictionary
-      query                  query a dictionary
-      check                  check correctness of a dictionary
-      bench                  run performance tests for a dictionary
-      permute                permute a weighted input file
-      compute-statistics     compute index statistics
-
 For large-scale indexing, it could be necessary to increase the number of file descriptors that can be opened simultaneously:
 
 	ulimit -n 2048
@@ -287,6 +276,7 @@ the datasets that we used in [1].
 For the experiments in [2] and [3], we used the datasets available on [Zenodo](https://doi.org/10.5281/zenodo.7772316).
 
 #### Weights
+
 Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
 
 Create a New Release

@@ -61,16 +61,21 @@ int bench(int argc, char** argv) {
 }
 
 int help(char* arg0) {
-    std::cout << "== SSHash: (S)parse and (S)kew (Hash)ing of k-mers ========================="
-              << std::endl
+    std::cout << "== SSHash: (S)parse and (S)kew (Hash)ing of k-mers ";
+    std::cout << "(v"
+              << essentials::version_number(constants::current_version_number::x,
+                                            constants::current_version_number::y,
+                                            constants::current_version_number::z)
+                     .to_string()
+              << ") ==" << std::endl
               << std::endl;
     std::cout << "Usage: " << arg0 << " <tool> ...\n\n"
               << "Available tools:\n"
-              << "  build              \t build a dictionary \n"
-              << "  query              \t query a dictionary \n"
-              << "  check              \t check correctness of a dictionary \n"
-              << "  bench              \t run performance tests for a dictionary \n"
-              << "  permute            \t permute a weighted input file \n"
+              << "  build     build a dictionary \n"
+              << "  query     query a dictionary \n"
+              << "  check     check correctness of a dictionary \n"
+              << "  bench     run performance tests for a dictionary \n"
+              << "  permute   permute a weighted input file \n"
               << std::endl;
 
     return 0;
