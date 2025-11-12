@@ -8,7 +8,7 @@ from pathlib import Path
 #   Argument parsing
 # ------------------------------
 if len(sys.argv) < 4:
-    print("Usage: python3 bench.py <log_label> <input_index_dir> <input_queries_dir>")
+    print("Usage: python3 streaming-query-high-hit.py <log_label> <input_index_dir> <input_queries_dir>")
     sys.exit(1)
 
 log_label = sys.argv[1]

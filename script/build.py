@@ -5,15 +5,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-if len(sys.argv) < 3:
-    print("Usage: python3 build.py <log_label> <output_index_dir>")
+if len(sys.argv) < 4:
+    print("Usage: python3 build.py <log_label> <input_datasets_dir> <output_index_dir>")
     sys.exit(1)
 
 log_label = sys.argv[1]
-index_dir = Path(sys.argv[2]).resolve()
-
-prefix = Path("/mnt/hd2/pibiri/DNA")
-tmp_dir = prefix / "tmp_dir"
+datasets_dir = Path(sys.argv[2]).resolve()
+index_dir = Path(sys.argv[3]).resolve()
+tmp_dir = datasets_dir / "tmp_dir"
 results_dir = Path(f"results-{log_label}")
 threads = 64
 g = 16
@@ -65,7 +64,7 @@ def build_sshash(k, canonical, m_values):
 
     for dataset in datasets:
         m_val = m_values[dataset]
-        input_file = prefix / f"eulertigs/{dataset}.k{k}.eulertigs.fa.gz"
+        input_file = datasets_dir / f"{dataset}.k{k}.eulertigs.fa.gz"
         output_file = index_dir / f"{dataset}.k{k}"
         if canonical:
             output_file = str(output_file) + ".canon"
