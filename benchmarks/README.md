@@ -1,7 +1,9 @@
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7239205.svg)](https://doi.org/10.5281/zenodo.7239205)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17582116.svg)](https://doi.org/10.5281/zenodo.17582116)
 
 Benchmarks
 ----------
+
+UPDATE
 
 For these benchmarks we used the whole genomes of the following organisms:
 
