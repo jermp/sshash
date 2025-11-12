@@ -18,6 +18,9 @@ These are the results obtained on 10/11/25 (see logs [here](results-10-11-25))
 on a machine equipped with an AMD Ryzen Threadripper PRO 7985WX processor clocked at 5.40GHz.
 The code was compiled with `gcc` 13.3.0.
 
+The indexes were build with a max RAM usage of 16 GB and 64 threads.
+Queries were run using one thread, instead.
+
 ![](results-10-11-25/results.png)
 
 The results can be exported in CSV format using
