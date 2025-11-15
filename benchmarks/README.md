@@ -23,7 +23,7 @@ Queries were run using one thread, instead.
 
 ![](results-10-11-25/results.png)
 
-The results can be exported in CSV format using
+The results can be exported to CSV format with
 
     python3 ../script/print_csv.py ../benchmarks/results-10-11-25/k31
     python3 ../script/print_csv.py ../benchmarks/results-10-11-25/k63
