@@ -44,10 +44,10 @@ struct spectrum_preserving_string_set  //
             for (uint64_t i = 0; i != size; ++i, ++it) {
                 uint64_t minimizer_offset = *it;
                 auto p = strings_offsets.decode(minimizer_offset);
-                __builtin_prefetch(
-                    addr + (Kmer::bits_per_char * (p.absolute_offset - (k - m))) / 64,  //
-                    0, 3                                                                //
-                );
+                // __builtin_prefetch(
+                //     addr + (Kmer::bits_per_char * (p.absolute_offset - (k - m))) / 64,  //
+                //     0, 3                                                                //
+                // );
                 v[i] = p;
             }
         }
