@@ -38,18 +38,9 @@ struct spectrum_preserving_string_set  //
             std::array<typename Offsets::decoded_offset, 1ULL << constants::min_l>
                 v;
 
-        {
-            /* prefetch all memory locations */
-            uint64_t const* addr = strings.data().data();
-            for (uint64_t i = 0; i != size; ++i, ++it) {
-                uint64_t minimizer_offset = *it;
-                auto p = strings_offsets.decode(minimizer_offset);
-                // __builtin_prefetch(
-                //     addr + (Kmer::bits_per_char * (p.absolute_offset - (k - m))) / 64,  //
-                //     0, 3                                                                //
-                // );
-                v[i] = p;
-            }
+        for (uint64_t i = 0; i != size; ++i, ++it) {
+            uint64_t minimizer_offset = *it;
+            v[i] = strings_offsets.decode(minimizer_offset);
         }
 
         /* check minimizer first */
@@ -93,18 +84,9 @@ struct spectrum_preserving_string_set  //
             std::array<typename Offsets::decoded_offset, 1ULL << constants::min_l>
                 v;
 
-        {
-            /* prefetch all memory locations */
-            uint64_t const* addr = strings.data().data();
-            for (uint64_t i = 0; i != size; ++i, ++it) {
-                uint64_t minimizer_offset = *it;
-                auto p = strings_offsets.decode(minimizer_offset);
-                __builtin_prefetch(
-                    addr + (Kmer::bits_per_char * (p.absolute_offset - (k - m))) / 64,  //
-                    0, 3                                                                //
-                );
-                v[i] = p;
-            }
+        for (uint64_t i = 0; i != size; ++i, ++it) {
+            uint64_t minimizer_offset = *it;
+            v[i] = strings_offsets.decode(minimizer_offset);
         }
 
         /* check minimizer first */
