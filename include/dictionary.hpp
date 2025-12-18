@@ -70,7 +70,7 @@ struct dictionary  //
 
     /* Membership queries. */
     bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
-    bool is_member_uint(Kmer uint_kmer, bool check_reverse_complement = true) const;
+    bool is_member(Kmer uint_kmer, bool check_reverse_complement = true) const;
 
     template <typename, bool>
     friend struct streaming_query;

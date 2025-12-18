@@ -83,8 +83,7 @@ bool dictionary<Kmer, Offsets>::is_member(char const* string_kmer,
     return lookup(string_kmer, check_reverse_complement) != constants::invalid_uint64;
 }
 template <typename Kmer, typename Offsets>
-bool dictionary<Kmer, Offsets>::is_member_uint(Kmer uint_kmer,
-                                               bool check_reverse_complement) const {
+bool dictionary<Kmer, Offsets>::is_member(Kmer uint_kmer, bool check_reverse_complement) const {
     return lookup(uint_kmer, check_reverse_complement) != constants::invalid_uint64;
 }
 
