@@ -5,15 +5,14 @@
 namespace sshash {
 
 template <typename Kmer, typename Offsets>
-lookup_result dictionary<Kmer, Offsets>::lookup_uint_regular(const Kmer uint_kmer) const {
+lookup_result dictionary<Kmer, Offsets>::lookup_regular(const Kmer uint_kmer) const {
     auto mini_info = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
-    return lookup_uint_regular(uint_kmer, mini_info);
+    return lookup_regular(uint_kmer, mini_info);
 }
 
 template <typename Kmer, typename Offsets>
-lookup_result dictionary<Kmer, Offsets>::lookup_uint_regular(
-    const Kmer uint_kmer,                  //
-    const minimizer_info mini_info) const  //
+lookup_result dictionary<Kmer, Offsets>::lookup_regular(const Kmer uint_kmer,                  //
+                                                        const minimizer_info mini_info) const  //
 {
     assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
            util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
@@ -23,30 +22,29 @@ lookup_result dictionary<Kmer, Offsets>::lookup_uint_regular(
 }
 
 template <typename Kmer, typename Offsets>
-lookup_result dictionary<Kmer, Offsets>::lookup_uint_canonical(Kmer uint_kmer) const  //
+lookup_result dictionary<Kmer, Offsets>::lookup_canonical(Kmer uint_kmer) const  //
 {
     Kmer uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
     auto mini_info = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
     auto mini_info_rc = util::compute_minimizer(uint_kmer_rc, m_k, m_m, m_hasher);
     if (mini_info.minimizer < mini_info_rc.minimizer) {
-        return lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
+        return lookup_canonical(uint_kmer, uint_kmer_rc, mini_info);
     } else if (mini_info_rc.minimizer < mini_info.minimizer) {
-        return lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info_rc);
+        return lookup_canonical(uint_kmer, uint_kmer_rc, mini_info_rc);
     } else {
-        auto res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info);
+        auto res = lookup_canonical(uint_kmer, uint_kmer_rc, mini_info);
         if (res.kmer_id == constants::invalid_uint64) {
-            res = lookup_uint_canonical(uint_kmer, uint_kmer_rc, mini_info_rc);
+            res = lookup_canonical(uint_kmer, uint_kmer_rc, mini_info_rc);
         }
         return res;
     }
 }
 
 template <typename Kmer, typename Offsets>
-lookup_result dictionary<Kmer, Offsets>::lookup_uint_canonical(
-    const Kmer uint_kmer,                  //
-    const Kmer uint_kmer_rc,               //
-    const minimizer_info mini_info) const  //
+lookup_result dictionary<Kmer, Offsets>::lookup_canonical(const Kmer uint_kmer,                  //
+                                                          const Kmer uint_kmer_rc,               //
+                                                          const minimizer_info mini_info) const  //
 {
     assert(mini_info.minimizer ==
            std::min(util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher).minimizer,
@@ -61,29 +59,19 @@ template <typename Kmer, typename Offsets>
 lookup_result dictionary<Kmer, Offsets>::lookup(char const* string_kmer,
                                                 bool check_reverse_complement) const {
     Kmer uint_kmer = util::string_to_uint_kmer<Kmer>(string_kmer, m_k);
-    /*
-        SIMD here does not help, as expected, because it is only used at the
-        beginning of each query. To be useful, we would need to process a
-        batch of random lookup queries and execute this preliminary step
-        for all queries in a first pass, then invoke
-        `lookup_uint(uint_kmer, check_reverse_complement)` directly.
-    */
-    // __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(string_kmer));
-    // uint64_t word = pack2bits_shift1(v);
-    // Kmer uint_kmer(word);
-    return lookup_uint(uint_kmer, check_reverse_complement);
+    return lookup(uint_kmer, check_reverse_complement);
 }
 template <typename Kmer, typename Offsets>
-lookup_result dictionary<Kmer, Offsets>::lookup_uint(Kmer uint_kmer,
-                                                     bool check_reverse_complement) const  //
+lookup_result dictionary<Kmer, Offsets>::lookup(Kmer uint_kmer,
+                                                bool check_reverse_complement) const  //
 {
-    if (m_canonical) return lookup_uint_canonical(uint_kmer);
-    auto res = lookup_uint_regular(uint_kmer);
+    if (m_canonical) return lookup_canonical(uint_kmer);
+    auto res = lookup_regular(uint_kmer);
     assert(res.kmer_orientation == constants::forward_orientation);
     if (check_reverse_complement and res.kmer_id == constants::invalid_uint64) {
         Kmer uint_kmer_rc = uint_kmer;
         uint_kmer_rc.reverse_complement_inplace(m_k);
-        res = lookup_uint_regular(uint_kmer_rc);
+        res = lookup_regular(uint_kmer_rc);
         res.kmer_orientation = constants::backward_orientation;
     }
     return res;
@@ -97,7 +85,7 @@ bool dictionary<Kmer, Offsets>::is_member(char const* string_kmer,
 template <typename Kmer, typename Offsets>
 bool dictionary<Kmer, Offsets>::is_member_uint(Kmer uint_kmer,
                                                bool check_reverse_complement) const {
-    return lookup_uint(uint_kmer, check_reverse_complement) != constants::invalid_uint64;
+    return lookup(uint_kmer, check_reverse_complement) != constants::invalid_uint64;
 }
 
 template <typename Kmer, typename Offsets>
@@ -127,7 +115,7 @@ void dictionary<Kmer, Offsets>::forward_neighbours(Kmer suffix, neighbourhood<Km
     for (size_t i = 0; i < Kmer::alphabet_size; i++) {
         Kmer new_kmer = suffix;
         new_kmer.set(m_k - 1, Kmer::char_to_uint(Kmer::alphabet[i]));
-        res.forward[i] = lookup_uint(new_kmer, check_reverse_complement);
+        res.forward[i] = lookup(new_kmer, check_reverse_complement);
     }
 }
 template <typename Kmer, typename Offsets>
@@ -136,7 +124,7 @@ void dictionary<Kmer, Offsets>::backward_neighbours(Kmer prefix, neighbourhood<K
     for (size_t i = 0; i < Kmer::alphabet_size; i++) {
         Kmer new_kmer = prefix;
         new_kmer.set(0, Kmer::char_to_uint(Kmer::alphabet[i]));
-        res.backward[i] = lookup_uint(new_kmer, check_reverse_complement);
+        res.backward[i] = lookup(new_kmer, check_reverse_complement);
     }
 }
 

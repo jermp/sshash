@@ -39,7 +39,7 @@ struct dictionary  //
 
     /* Lookup queries. */
     lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
-    lookup_result lookup_uint(Kmer uint_kmer, bool check_reverse_complement = true) const;
+    lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement = true) const;
 
     /* Return the number of kmers in string. Since strings do not have duplicates,
        the length of the string is always size + k - 1. */
@@ -163,12 +163,12 @@ private:
 
     weights m_weights;
 
-    lookup_result lookup_uint_regular(Kmer uint_kmer) const;
-    lookup_result lookup_uint_regular(Kmer uint_kmer, minimizer_info mini_info) const;
+    lookup_result lookup_regular(Kmer uint_kmer) const;
+    lookup_result lookup_regular(Kmer uint_kmer, minimizer_info mini_info) const;
 
-    lookup_result lookup_uint_canonical(Kmer uint_kmer) const;
-    lookup_result lookup_uint_canonical(Kmer uint_kmer, Kmer uint_kmer_rc,
-                                        minimizer_info mini_info) const;
+    lookup_result lookup_canonical(Kmer uint_kmer) const;
+    lookup_result lookup_canonical(Kmer uint_kmer, Kmer uint_kmer_rc,
+                                   minimizer_info mini_info) const;
 
     void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;

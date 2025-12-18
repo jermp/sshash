@@ -158,21 +158,21 @@ private:
 
         if constexpr (canonical) {
             if (m_curr_mini_info.minimizer < m_curr_mini_info_rc.minimizer) {
-                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
+                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
             } else if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
-                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
+                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
             } else {
-                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
+                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
                 if (m_res.kmer_id == constants::invalid_uint64) {
-                    m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
+                    m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
                 }
             }
         } else {
-            m_res = m_dict->lookup_uint_regular(m_kmer, m_curr_mini_info);
+            m_res = m_dict->lookup_regular(m_kmer, m_curr_mini_info);
             bool minimizer_found = m_res.minimizer_found;
             if (m_res.kmer_id == constants::invalid_uint64) {
                 assert(m_res.kmer_orientation == constants::forward_orientation);
-                m_res = m_dict->lookup_uint_regular(m_kmer_rc, m_curr_mini_info_rc);
+                m_res = m_dict->lookup_regular(m_kmer_rc, m_curr_mini_info_rc);
                 m_res.kmer_orientation = constants::backward_orientation;
                 bool minimizer_rc_found = m_res.minimizer_found;
                 m_res.minimizer_found = minimizer_rc_found or minimizer_found;
