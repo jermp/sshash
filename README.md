@@ -25,8 +25,8 @@ The data structure is described in the following papers:
 For a dictionary of n k-mers,
 two basic queries are supported:
 
-- i = **Lookup**(g), where i is in [0,n) if the k-mer g is found in the dictionary or i = -1 otherwise;
-- g = **Access**(i), where g is the k-mer associated to the identifier i.
+- i = **Lookup**(x), where i is in [0,n) if the k-mer x is found in the dictionary or i = -1 otherwise;
+- x = **Access**(i), where x is the k-mer associated to the identifier i.
 
 If also the weights of the k-mers (their frequency counts) are stored in the dictionary, then the dictionary is said to be *weighted* and it also supports:
 
@@ -37,9 +37,9 @@ Other supported queries are:
 - **Membership Queries**: determine if a given k-mer is present in the dictionary or not.
 - **Streaming Queries**: stream through all k-mers of a given DNA file
 (.fasta or .fastq formats) to determine their membership to the dictionary.
-- **Navigational Queries**: given a k-mer g[1..k] determine if g[2..k]+x is present (forward neighbourhood) and if x+g[1..k-1] is present (backward neighbourhood), for x = A, C, G, T ('+' here means string concatenation).
-SSHash internally stores a set of strings, called *contigs* in the following, each associated to a distinct identifier.
-If a contig identifier is specified for a navigational query (rather than a k-mer), then the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the contig are returned.
+- **Navigational Queries**: given a k-mer x[1..k] determine if x[2..k]+c is present (forward neighbourhood) and if c+x[1..k-1] is present (backward neighbourhood), for c in {A,C,G,T} ('+' here means string concatenation).
+SSHash internally stores a set of strings, each associated to a distinct identifier.
+If a string identifier is specified for a navigational query (rather than a k-mer), then the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the string are returned.
 
 If you are interested in a **membership-only** version of SSHash, have a look at [SSHash-Lite](https://github.com/jermp/sshash-lite). It also works for input files with duplicate k-mers (e.g., [matchtigs](https://github.com/algbio/matchtigs) [4]). For a query sequence S and a given coverage threshold E in [0,1], the sequence is considered to be present in the dictionary if at least E*(|S|-k+1) of the k-mers of S are positive.
 
@@ -75,6 +75,8 @@ To compile the code for a release environment (see file `CMakeLists.txt` for the
     cd build
     cmake ..
     make -j
+
+**NOTE**: For best performance on `x86` architectures, the option `-D SSHASH_USE_ARCH_NATIVE` can be specified as well.
 
 For a testing environment, use the following instead:
 
@@ -250,34 +252,24 @@ Input Files
 
 SSHash is meant to index k-mers from collections that **do not contain duplicates
 nor invalid k-mers** (strings containing symbols different from {A,C,G,T}).
-These collections can be obtained, for example, by extracting the maximal unitigs of a de Bruijn graph.
-
-To do so, we can use the tool [BCALM2](https://github.com/GATB/bcalm).
-This tool builds a compacted de Bruijn graph and outputs its maximal unitigs.
-From the output of BCALM2, we can then *stitch* (i.e., glue) some unitigs to reduce the number of nucleotides. The stitiching process is carried out using the [UST](https://github.com/jermp/UST) tool.
+These collections can be obtained, for example, by extracting the maximal unitigs of a de Bruijn graph, or eulertigs, using the [GGCAT](https://github.com/algbio/ggcat) algorithm.
 
 **NOTE**: Input files are expected to have **one DNA sequence per line**. If a sequence spans multiple lines (e.g., multi-fasta), the lines should be concatenated before indexing.
 
-Below we provide a complete example (assuming both BCALM2 and UST are installed correctly) that downloads the Human (GRCh38) Chromosome 13 and extracts the maximal stitiched unitigs for k = 31.
-
-    mkdir DNA_datasets
-    wget http://ftp.ensembl.org/pub/current_fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz -O DNA_datasets/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz
-    ~/bcalm/build/bcalm -in ~/DNA_datasets/Homo_sapiens.GRCh38.dna.chromosome.13.fa.gz -kmer-size 31 -abundance-min 1 -nb-cores 8
-    ~/UST/ust -k 31 -i ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
-    gzip Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa.ust.fa
-    rm ~/Homo_sapiens.GRCh38.dna.chromosome.13.fa.unitigs.fa
-
 #### Datasets
 
-The script `scripts/download_and_preprocess_datasets.sh`
+The script `scripts/download_and_preprocess_datasets.sh` of [this release](https://github.com/jermp/sshash/releases/tag/v3.0.0)
 contains all the needed steps to download and pre-process
 the datasets that we used in [1].
 
-For the experiments in [2] and [3], we used the datasets available on [Zenodo](https://doi.org/10.5281/zenodo.7772316).
+For the experiments in [2] and [3], we used the datasets available at [https://doi.org/10.5281/zenodo.7772316](https://doi.org/10.5281/zenodo.7772316).
+
+For the latest benchmarks maintained in [this other repository](https://github.com/jermp/kmer_sets_benchmark)
+we used the datasets described at [https://zenodo.org/records/17582116](https://zenodo.org/records/17582116).
 
 #### Weights
 
-Using the option `-all-abundance-counts` of BCALM2, it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of UST to include such counts in the stitched unitigs.
+Using the option `-all-abundance-counts` of [BCALM2](https://github.com/GATB/bcalm), it is possible to also include the abundance counts of the k-mers in the BCALM2 output. Then, use the option `-a 1` of [UST](https://github.com/jermp/UST) to include such counts in the stitched unitigs.
 
 Create a New Release
 --------------------
