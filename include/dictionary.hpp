@@ -115,11 +115,6 @@ struct dictionary  //
         return iterator(this, begin_kmer_id, end_kmer_id);
     }
 
-    // FIXME: are they needed by our users?
-    // bits::bit_vector const& get_strings() const { return m_buckets.strings; }
-    // buckets<Kmer, Offsets> const& get_buckets() const { return m_buckets; }
-    // minimizers const& get_minimizers() const { return m_minimizers; }
-
     uint64_t num_bits() const;
     void print_info() const;
     void print_space_breakdown() const;

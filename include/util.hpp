@@ -207,38 +207,8 @@ static inline uint64_t get_seed_for_hash_function(build_configuration const& bui
 template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
-
     kmer_t x = 0;
     for (uint64_t i = 0; i != k; ++i) x.set(i, kmer_t::char_to_uint(str[i]));
-
-    // /* manual loop-unrolling and limiting dependencies do not seem to help much...*/
-    // assert(k >= 8);
-    // uint64_t i = 0;
-    // uint64_t w = 0;
-    // for (uint64_t iter = 0; i + 8 <= k; i += 8, ++iter) {
-    //     uint64_t w0 = kmer_t::char_to_uint(str[i + 0]) << (0 * kmer_t::bits_per_char);
-    //     uint64_t w1 = kmer_t::char_to_uint(str[i + 1]) << (1 * kmer_t::bits_per_char);
-    //     uint64_t w2 = kmer_t::char_to_uint(str[i + 2]) << (2 * kmer_t::bits_per_char);
-    //     uint64_t w3 = kmer_t::char_to_uint(str[i + 3]) << (3 * kmer_t::bits_per_char);
-    //     uint64_t w4 = kmer_t::char_to_uint(str[i + 4]) << (4 * kmer_t::bits_per_char);
-    //     uint64_t w5 = kmer_t::char_to_uint(str[i + 5]) << (5 * kmer_t::bits_per_char);
-    //     uint64_t w6 = kmer_t::char_to_uint(str[i + 6]) << (6 * kmer_t::bits_per_char);
-    //     uint64_t w7 = kmer_t::char_to_uint(str[i + 7]) << (7 * kmer_t::bits_per_char);
-    //     w |= (w0 | w1 | w2 | w3 | w4 | w5 | w6 | w7) << (iter * 8 * kmer_t::bits_per_char);
-    // }
-
-    // /* this does not seem to help...*/
-    // // if (i + 4 <= k) {
-    // //     uint64_t w0 = kmer_t::char_to_uint(str[i + 0]) << (0 * kmer_t::bits_per_char);
-    // //     uint64_t w1 = kmer_t::char_to_uint(str[i + 1]) << (1 * kmer_t::bits_per_char);
-    // //     uint64_t w2 = kmer_t::char_to_uint(str[i + 2]) << (2 * kmer_t::bits_per_char);
-    // //     uint64_t w3 = kmer_t::char_to_uint(str[i + 3]) << (3 * kmer_t::bits_per_char);
-    // //     w |= (w0 | w1 | w2 | w3) << (iter * 8 * kmer_t::bits_per_char);
-    // // }
-
-    // kmer_t x = w;
-    // for (; i != k; ++i) x.set(i, kmer_t::char_to_uint(str[i]));
-
     return x;
 }
 
