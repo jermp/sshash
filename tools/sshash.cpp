@@ -49,8 +49,6 @@ int bench(int argc, char** argv) {
     perf_stats.add("m", dict.m());
     perf_stats.add("canonical", dict.canonical() ? "true" : "false");
 
-    // perf_test_lookup_by_list_size(dict);
-
     perf_test_lookup_access(dict, perf_stats);
     if (dict.weighted()) perf_test_lookup_weight(dict, perf_stats);
     perf_test_iterator(dict, perf_stats);
