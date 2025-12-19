@@ -3,7 +3,6 @@
 
 using namespace sshash;
 
-template <class kmer_t>
 int query(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
@@ -23,15 +22,26 @@ int query(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     bool multiline = parser.get<bool>("multiline");
 
-    dictionary<kmer_t> dict;
+    dictionary_type dict;
     load_dictionary(dict, index_filename, verbose);
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
-    essentials::timer<std::chrono::high_resolution_clock, std::chrono::microseconds> t;
+    essentials::timer<std::chrono::high_resolution_clock, std::chrono::milliseconds> t;
     t.start();
     auto report = dict.streaming_query_from_file(query_filename, multiline);
     t.stop();
     essentials::logger("DONE");
+
+    essentials::json_lines query_stats;
+    query_stats.add("index_filename", index_filename.c_str());
+    query_stats.add("query_filename", query_filename.c_str());
+    query_stats.add("num_kmers", report.num_kmers);
+    query_stats.add("num_positive_kmers", report.num_positive_kmers);
+    query_stats.add("num_negative_kmers", report.num_negative_kmers);
+    query_stats.add("num_invalid_kmers", report.num_invalid_kmers);
+    query_stats.add("num_searches", report.num_searches);
+    query_stats.add("num_extensions", report.num_extensions);
+    query_stats.add("elapsed_millisec", uint64(t.elapsed()));
 
     std::cout << "==== query report:\n";
     std::cout << "num_kmers = " << report.num_kmers << std::endl;
@@ -47,10 +57,11 @@ int query(int argc, char** argv) {
     std::cout << "num_extensions = " << report.num_extensions << "/" << report.num_positive_kmers
               << " (" << (report.num_extensions * 100.0) / report.num_positive_kmers << "%)"
               << std::endl;
-    std::cout << "elapsed = " << t.elapsed() / 1000 << " millisec / ";
-    std::cout << t.elapsed() / 1000000 << " sec / ";
-    std::cout << t.elapsed() / 1000000 / 60 << " min / ";
-    std::cout << (t.elapsed() * 1000) / report.num_kmers << " ns/kmer" << std::endl;
+    std::cout << "elapsed = " << t.elapsed() / 1000 << " sec / ";
+    std::cout << t.elapsed() / 1000 / 60 << " min / ";
+    std::cout << (t.elapsed() * 1e6) / report.num_kmers << " ns/kmer" << std::endl;
+
+    query_stats.print();
 
     return 0;
 }

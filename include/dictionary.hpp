@@ -1,20 +1,26 @@
 #pragma once
 
 #include "util.hpp"
-#include "minimizers.hpp"
-#include "buckets.hpp"
-#include "skew_index.hpp"
+#include "spectrum_preserving_string_set.hpp"
+#include "sparse_and_skew_index.hpp"
 #include "weights.hpp"
 
 namespace sshash {
 
-template <class kmer_t>
-struct dictionary {
+template <typename Kmer, typename Offsets>
+struct dictionary  //
+{
+    using kmer_type = Kmer;
+
+    template <typename, typename>
+    friend struct dictionary_builder;
+
     dictionary()
         : m_vnum(constants::current_version_number::x,  //
                  constants::current_version_number::y,  //
                  constants::current_version_number::z)
-        , m_size(0)
+        , m_num_kmers(0)
+        , m_num_strings(0)
         , m_k(0)
         , m_m(0)
         , m_canonical(false) {}
@@ -23,45 +29,38 @@ struct dictionary {
     void build(std::string const& input_filename, build_configuration const& build_config);
 
     essentials::version_number vnum() const { return m_vnum; }
-    uint64_t size() const { return m_size; }
+    uint64_t num_kmers() const { return m_num_kmers; }
+    uint64_t num_strings() const { return m_num_strings; }
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
-    uint64_t num_contigs() const { return m_buckets.pieces.size() - 1; }
     bool canonical() const { return m_canonical; }
     bool weighted() const { return !m_weights.empty(); }
     hasher_type const& hasher() const { return m_hasher; }
 
-    /* Lookup queries. Return the kmer_id of the kmer or -1 if it is not found in the dictionary. */
-    uint64_t lookup(char const* string_kmer, bool check_reverse_complement = true) const;
-    uint64_t lookup_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
+    /* Lookup queries. */
+    lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
+    lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement = true) const;
 
-    /* Advanced lookup queries. Return also contig information. */
-    lookup_result lookup_advanced(char const* string_kmer,
-                                  bool check_reverse_complement = true) const;
-    lookup_result lookup_advanced_uint(kmer_t uint_kmer,
-                                       bool check_reverse_complement = true) const;
-
-    /* Return the number of kmers in contig. Since contigs do not have duplicates,
-       the length of the contig is always size + k - 1. */
-    uint64_t contig_size(uint64_t contig_id) const;
+    /* Return the number of kmers in string. Since strings do not have duplicates,
+       the length of the string is always size + k - 1. */
+    uint64_t string_size(uint64_t string_id) const;
 
     /* Navigational queries. */
-    neighbourhood<kmer_t> kmer_forward_neighbours(char const* string_kmer,
-                                                  bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_forward_neighbours(kmer_t uint_kmer,
-                                                  bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_backward_neighbours(char const* string_kmer,
-                                                   bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_backward_neighbours(kmer_t uint_kmer,
-                                                   bool check_reverse_complement = true) const;
+    neighbourhood<Kmer> kmer_forward_neighbours(char const* string_kmer,
+                                                bool check_reverse_complement = true) const;
+    neighbourhood<Kmer> kmer_forward_neighbours(Kmer uint_kmer,
+                                                bool check_reverse_complement = true) const;
+    neighbourhood<Kmer> kmer_backward_neighbours(char const* string_kmer,
+                                                 bool check_reverse_complement = true) const;
+    neighbourhood<Kmer> kmer_backward_neighbours(Kmer uint_kmer,
+                                                 bool check_reverse_complement = true) const;
 
     /* forward and backward */
-    neighbourhood<kmer_t> kmer_neighbours(char const* string_kmer,
+    neighbourhood<Kmer> kmer_neighbours(char const* string_kmer,
+                                        bool check_reverse_complement = true) const;
+    neighbourhood<Kmer> kmer_neighbours(Kmer uint_kmer, bool check_reverse_complement = true) const;
+    neighbourhood<Kmer> string_neighbours(uint64_t string_id,
                                           bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> kmer_neighbours(kmer_t uint_kmer,
-                                          bool check_reverse_complement = true) const;
-    neighbourhood<kmer_t> contig_neighbours(uint64_t contig_id,
-                                            bool check_reverse_complement = true) const;
 
     /* Return the weight of the kmer given its id. */
     uint64_t weight(uint64_t kmer_id) const;
@@ -71,10 +70,9 @@ struct dictionary {
 
     /* Membership queries. */
     bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
-    bool is_member_uint(kmer_t uint_kmer, bool check_reverse_complement = true) const;
+    bool is_member(Kmer uint_kmer, bool check_reverse_complement = true) const;
 
-    /* Streaming query. */
-    template <class, bool>
+    template <typename, bool>
     friend struct streaming_query;
 
     streaming_query_report  //
@@ -82,47 +80,44 @@ struct dictionary {
 
     struct iterator {
         iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id) {
-            m_it = ptr->m_buckets.at(begin_kmer_id, end_kmer_id, ptr->m_k);
+            m_it = ptr->m_spss.at(begin_kmer_id, end_kmer_id);
         }
 
         bool has_next() const { return m_it.has_next(); }
 
-        /* (kmer-id, kmer) */
-        std::pair<uint64_t, std::string> next() { return m_it.next(); }
+        /* (kmer-id, encoded kmer) */
+        std::pair<uint64_t, Kmer> next() { return m_it.next(); }
 
     private:
-        typename buckets<kmer_t>::iterator m_it;
+        typename spectrum_preserving_string_set<Kmer, Offsets>::iterator m_it;
     };
 
-    iterator begin() const { return iterator(this, 0, size()); }
+    iterator begin() const { return iterator(this, 0, num_kmers()); }
 
     iterator at_kmer_id(const uint64_t kmer_id) const {
-        assert(kmer_id < size());
-        return iterator(this, kmer_id, size());
+        assert(kmer_id < num_kmers());
+        return iterator(this, kmer_id, num_kmers());
     }
 
     std::pair<uint64_t, uint64_t>  // [begin, end)
-    contig_offsets(const uint64_t contig_id) const {
-        return m_buckets.contig_offsets(contig_id);
+    string_offsets(const uint64_t string_id) const {
+        return m_spss.string_offsets(string_id);
     }
 
-    iterator at_contig_id(const uint64_t contig_id) const {
-        assert(contig_id < num_contigs());
-        auto [begin, end] = contig_offsets(contig_id);
-        uint64_t contig_length = end - begin;  // in bases
-        assert(contig_length >= m_k);
-        uint64_t contig_size = contig_length - m_k + 1;  // in kmers
-        uint64_t begin_kmer_id = begin - contig_id * (m_k - 1);
-        uint64_t end_kmer_id = begin_kmer_id + contig_size;
+    iterator at_string_id(const uint64_t string_id) const {
+        assert(string_id < num_strings());
+        auto [begin, end] = string_offsets(string_id);
+        uint64_t string_length = end - begin;  // in bases
+        assert(string_length >= m_k);
+        uint64_t string_size = string_length - m_k + 1;  // in kmers
+        uint64_t begin_kmer_id = begin - string_id * (m_k - 1);
+        uint64_t end_kmer_id = begin_kmer_id + string_size;
         return iterator(this, begin_kmer_id, end_kmer_id);
     }
-
-    bits::bit_vector const& strings() const { return m_buckets.strings; }
 
     uint64_t num_bits() const;
     void print_info() const;
     void print_space_breakdown() const;
-    void compute_statistics() const;
 
     template <typename Visitor>
     void visit(Visitor& visitor) const {
@@ -134,50 +129,49 @@ struct dictionary {
         visit_impl(visitor, *this);
     }
 
-    const buckets<kmer_t>& data() const { return m_buckets; }
-    const minimizers& get_minimizers() const { return m_minimizers; }
-
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
         visitor.visit(t.m_vnum);
         util::check_version_number(t.m_vnum);
-        visitor.visit(t.m_size);
+        visitor.visit(t.m_num_kmers);
+        visitor.visit(t.m_num_strings);
         visitor.visit(t.m_k);
         visitor.visit(t.m_m);
         visitor.visit(t.m_canonical);
         visitor.visit(t.m_hasher);
-        visitor.visit(t.m_minimizers);
-        visitor.visit(t.m_buckets);
-        visitor.visit(t.m_skew_index);
+        visitor.visit(t.m_spss);
+        visitor.visit(t.m_ssi);
         visitor.visit(t.m_weights);
     }
 
     essentials::version_number m_vnum;
-    uint64_t m_size;
+    uint64_t m_num_kmers;
+    uint64_t m_num_strings;
     uint16_t m_k;
     uint16_t m_m;
     bool m_canonical;
     hasher_type m_hasher;
-    minimizers m_minimizers;
-    buckets<kmer_t> m_buckets;
-    skew_index<kmer_t> m_skew_index;
+
+    spectrum_preserving_string_set<Kmer, Offsets> m_spss;
+    sparse_and_skew_index<Kmer> m_ssi;
+
     weights m_weights;
 
-    lookup_result lookup_uint_regular(kmer_t uint_kmer) const;
-    lookup_result lookup_uint_regular(kmer_t uint_kmer, minimizer_info mini_info) const;
+    lookup_result lookup_regular(Kmer uint_kmer) const;
+    lookup_result lookup_regular(Kmer uint_kmer, minimizer_info mini_info) const;
 
-    lookup_result lookup_uint_canonical(kmer_t uint_kmer) const;
-    lookup_result lookup_uint_canonical(kmer_t uint_kmer, kmer_t uint_kmer_rc,
-                                        minimizer_info mini_info) const;
+    lookup_result lookup_canonical(Kmer uint_kmer) const;
+    lookup_result lookup_canonical(Kmer uint_kmer, Kmer uint_kmer_rc,
+                                   minimizer_info mini_info) const;
 
-    void forward_neighbours(kmer_t suffix, neighbourhood<kmer_t>& res,
+    void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;
-    void backward_neighbours(kmer_t prefix, neighbourhood<kmer_t>& res,
+    void backward_neighbours(Kmer prefix, neighbourhood<Kmer>& res,
                              bool check_reverse_complement) const;
 
-    kmer_t get_prefix(kmer_t kmer) const;
-    kmer_t get_suffix(kmer_t kmer) const;
+    Kmer get_prefix(Kmer kmer) const;
+    Kmer get_suffix(Kmer kmer) const;
 };
 
 }  // namespace sshash

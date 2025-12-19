@@ -6,9 +6,12 @@
 
 namespace sshash {
 
-template <class kmer_t, bool canonical>
-struct streaming_query {
-    streaming_query(dictionary<kmer_t> const* dict)
+template <typename Dict, bool canonical>
+struct streaming_query  //
+{
+    using kmer_t = typename Dict::kmer_type;
+
+    streaming_query(Dict const* dict)
 
         : m_dict(dict)
 
@@ -25,8 +28,8 @@ struct streaming_query {
         , m_curr_mini_info_rc()
         , m_prev_mini_info_rc()
 
-        , m_it(dict->m_buckets.strings, m_k)
-        , m_remaining_contig_bases(0)
+        , m_it(dict->m_spss.strings, m_k)
+        , m_remaining_string_bases(0)
 
         , m_num_searches(0)
         , m_num_extensions(0)
@@ -44,13 +47,13 @@ struct streaming_query {
 
     void reset() {
         m_start = true;
-        m_remaining_contig_bases = 0;
+        m_remaining_string_bases = 0;
         m_res = lookup_result();
         m_minimizer_it.reset();
         m_minimizer_it_rc.reset();
     }
 
-    lookup_result lookup_advanced(char const* kmer)  //
+    lookup_result lookup(char const* kmer)  //
     {
         /* 1. validation */
         bool is_valid =
@@ -80,7 +83,7 @@ struct streaming_query {
         m_curr_mini_info_rc = m_minimizer_it_rc.next(m_kmer_rc);
 
         /* 3. compute result */
-        if (m_remaining_contig_bases == 0) {
+        if (m_remaining_string_bases == 0) {
             seed();
         } else {
             auto expected_kmer = (m_res.kmer_orientation == constants::forward_orientation)
@@ -89,8 +92,8 @@ struct streaming_query {
             if ((expected_kmer == m_kmer) or (expected_kmer == m_kmer_rc)) {
                 ++m_num_extensions;
                 m_res.kmer_id += m_res.kmer_orientation;
-                m_res.kmer_id_in_contig += m_res.kmer_orientation;
-                m_remaining_contig_bases -= 1;
+                m_res.kmer_id_in_string += m_res.kmer_orientation;
+                m_remaining_string_bases -= 1;
             } else {
                 seed();
             }
@@ -101,7 +104,7 @@ struct streaming_query {
         m_prev_mini_info_rc = m_curr_mini_info_rc;
         m_start = false;
 
-        assert(equal_lookup_result(m_dict->lookup_advanced(kmer), m_res));
+        assert(equal_lookup_result(m_dict->lookup(kmer), m_res));
         return m_res;
     }
 
@@ -112,7 +115,7 @@ struct streaming_query {
     uint64_t num_invalid_lookups() const { return m_num_invalid; }
 
 private:
-    dictionary<kmer_t> const* m_dict;
+    Dict const* m_dict;
 
     /* result */
     lookup_result m_res;
@@ -129,8 +132,8 @@ private:
     minimizer_info m_curr_mini_info_rc, m_prev_mini_info_rc;
 
     /* string state */
-    kmer_iterator<kmer_t> m_it;
-    uint64_t m_remaining_contig_bases;
+    kmer_iterator<kmer_t, bits::bit_vector> m_it;
+    uint64_t m_remaining_string_bases;
 
     /* performance counts */
     uint64_t m_num_searches;
@@ -140,7 +143,7 @@ private:
 
     void seed()  //
     {
-        m_remaining_contig_bases = 0;
+        m_remaining_string_bases = 0;
 
         /* if minimizer does not change and previous minimizer was not found,
            surely any kmer having the same minimizer cannot be found as well */
@@ -155,21 +158,21 @@ private:
 
         if constexpr (canonical) {
             if (m_curr_mini_info.minimizer < m_curr_mini_info_rc.minimizer) {
-                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
+                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
             } else if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
-                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
+                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
             } else {
-                m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
+                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
                 if (m_res.kmer_id == constants::invalid_uint64) {
-                    m_res = m_dict->lookup_uint_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
+                    m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
                 }
             }
         } else {
-            m_res = m_dict->lookup_uint_regular(m_kmer, m_curr_mini_info);
+            m_res = m_dict->lookup_regular(m_kmer, m_curr_mini_info);
             bool minimizer_found = m_res.minimizer_found;
             if (m_res.kmer_id == constants::invalid_uint64) {
                 assert(m_res.kmer_orientation == constants::forward_orientation);
-                m_res = m_dict->lookup_uint_regular(m_kmer_rc, m_curr_mini_info_rc);
+                m_res = m_dict->lookup_regular(m_kmer_rc, m_curr_mini_info_rc);
                 m_res.kmer_orientation = constants::backward_orientation;
                 bool minimizer_rc_found = m_res.minimizer_found;
                 m_res.minimizer_found = minimizer_rc_found or minimizer_found;
@@ -183,11 +186,12 @@ private:
 
         assert(m_res.minimizer_found == true);
         m_num_searches += 1;
-        uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.contig_id * (m_k - 1));
-        m_remaining_contig_bases = (m_res.contig_size - 1) - m_res.kmer_id_in_contig;
+        uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.string_id * (m_k - 1));
+        m_remaining_string_bases =
+            (m_res.string_end - m_res.string_begin - m_k) - m_res.kmer_id_in_string;
         if (m_res.kmer_orientation == constants::backward_orientation) {
             kmer_offset += 2 * m_k;
-            m_remaining_contig_bases = m_res.kmer_id_in_contig;
+            m_remaining_string_bases = m_res.kmer_id_in_string;
         }
         m_it.at(kmer_offset);
     }

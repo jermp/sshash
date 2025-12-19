@@ -3,6 +3,8 @@
 // #include "bitpack.hpp"
 // #include <bitset>
 
+#include <cstdint>  // for uint types
+#include <cassert>
 #include <string>
 
 // template <size_t N>
@@ -14,34 +16,32 @@ namespace sshash {
 
 template <typename Kmer, uint8_t BitsPerChar>
 struct uint_kmer_t {
-    using uint_t = Kmer;
-    Kmer kmer = 0;
+    Kmer bits = 0;
 
     uint_kmer_t() {}
-    uint_kmer_t(uint64_t kmer) : kmer(kmer) {}
+    uint_kmer_t(uint64_t bits) : bits(bits) {}
 
     virtual ~uint_kmer_t() = default;
 
     explicit operator uint64_t() const {
         if constexpr (std::is_constructible_v<uint64_t, Kmer>) {
-            return static_cast<uint64_t>(kmer);
+            return static_cast<uint64_t>(bits);
         } else {  // std::bitset?
-            return (kmer & Kmer(uint64_t(-1))).to_ulong();
+            return (bits & Kmer(uint64_t(-1))).to_ulong();
         }
     }
 
-    // TODO: change to <=> when switching to C++20
-    bool operator==(uint_kmer_t const& t) const { return kmer == t.kmer; }
-    bool operator!=(uint_kmer_t const& t) const { return kmer != t.kmer; }
-    bool operator<(uint_kmer_t const& t) const { return kmer < t.kmer; }
+    bool operator==(uint_kmer_t const& t) const { return bits == t.bits; }
+    bool operator!=(uint_kmer_t const& t) const { return bits != t.bits; }
+    bool operator<(uint_kmer_t const& t) const { return bits < t.bits; }
 
-    void pad(uint16_t b) { kmer <<= b; }
+    void pad(uint16_t b) { bits <<= b; }
     void pad_char() { pad(bits_per_char); }
 
-    void drop(uint16_t b) { kmer >>= b; }
+    void drop(uint16_t b) { bits >>= b; }
     void drop64() {
         if constexpr (uint_kmer_bits == 64) {
-            kmer = 0;
+            bits = 0;
         } else {
             drop(64);
         }
@@ -49,8 +49,8 @@ struct uint_kmer_t {
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
-    void take(uint16_t b) { kmer &= ~(~Kmer(0) << b); }
-    void take64() { kmer &= Kmer(uint64_t(-1)); }
+    void take(uint16_t b) { bits &= ~(~Kmer(0) << b); }
+    void take64() { bits &= Kmer(uint64_t(-1)); }
     void take_char() { take(bits_per_char); }
     void take_chars(uint16_t k) { take(k * bits_per_char); }
 
@@ -66,31 +66,26 @@ struct uint_kmer_t {
         return res;
     }
 
-    void append(uint16_t b, uint64_t n) {
-        assert(b < uint_kmer_bits);
-        kmer = (kmer << b) | Kmer(n);
-    }
     void append64(uint64_t n) {
         if constexpr (uint_kmer_bits == 64) {
-            kmer = n;
+            bits = n;
         } else {
-            append(64, n);
+            assert(64 < uint_kmer_bits);
+            bits = (bits << 64) | Kmer(n);
         }
     }
-    void append_char(uint64_t c) { append(bits_per_char, c); }
 
     /* Set the char at position i to c,
        assuming that the position is empty. */
-    void set(uint16_t i, uint64_t c) { kmer |= Kmer(c) << (i * bits_per_char); }
+    void set(uint16_t i, uint64_t c) { bits |= Kmer(c) << (i * bits_per_char); }
 
     /* Returns the char at position i. */
     uint64_t at(uint16_t i) const {
-        return (kmer >> (i * bits_per_char)) & ((uint64_t(1) << bits_per_char) - 1);
+        return (bits >> (i * bits_per_char)) & ((uint64_t(1) << bits_per_char) - 1);
     }
 
     static constexpr uint16_t uint_kmer_bits = 8 * sizeof(Kmer);
     static constexpr uint8_t bits_per_char = BitsPerChar;
-
     static_assert(uint_kmer_bits % 64 == 0, "Kmer must use 64*k bits");
     static_assert(bits_per_char < 64, "BitsPerChar must be less than 64");
 
@@ -113,7 +108,7 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
     [[maybe_unused]] virtual void reverse_complement_inplace(uint64_t) {}
     [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
                                                             uint64_t size) {
-        for (uint64_t i = 0; i != size; ++i) { output[i] = input[i]; }
+        for (uint64_t i = 0; i != size; ++i) output[i] = input[i];
     }
 };
 
@@ -288,15 +283,21 @@ struct aa_uint_kmer_t : alpha_kmer_t<Kmer, 5, amino_acids> {
     // For proteins, there's no reverse complement, so map each character to itself
     // This allows streaming_query to work with protein alphabets
     static constexpr char canonicalize_basepair_reverse_map[256] = {
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 0, 0, 0, 0, 0,
-        0, 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-    };
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   'A', 'B', 'C', 'D', 'E', 'F', 'G',
+        'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y',
+        'Z', 0,   0,   0,   0,   0,   0,   'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k',
+        'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
+        0,   0,   0,   0};
 };
 
 // also supports bitpack<__uint128_t, 1>, std::bitset<256>, etc

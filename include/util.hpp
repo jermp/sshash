@@ -10,7 +10,13 @@
 
 namespace sshash {
 
-enum input_file_type { fasta, cf_seg };
+enum bucket_t : int {
+    SINGLETON = 0,  // minimizer appears only once
+    MIDLOAD = 1,    // minimizer appears > 1 but < 2^l times
+    HEAVYLOAD = 3   // minimizer appears >= 2^l times
+};
+
+enum input_file_t { fasta, cf_seg };
 
 struct streaming_query_report {
     streaming_query_report()
@@ -30,36 +36,41 @@ struct streaming_query_report {
 };
 
 struct lookup_result {
-    lookup_result()
+    lookup_result(bool mf = true)
         : kmer_id(constants::invalid_uint64)
-        , kmer_id_in_contig(constants::invalid_uint64)
+        , kmer_id_in_string(constants::invalid_uint64)
+        , kmer_offset(constants::invalid_uint64)
         , kmer_orientation(constants::forward_orientation)
-        , contig_id(constants::invalid_uint64)
-        , contig_size(constants::invalid_uint64)
-        , minimizer_found(true) {}
+
+        , string_id(constants::invalid_uint64)
+        , string_begin(constants::invalid_uint64)
+        , string_end(constants::invalid_uint64)
+
+        , minimizer_found(mf) {}
 
     uint64_t kmer_id;            // "absolute" kmer-id
-    uint64_t kmer_id_in_contig;  // "relative" kmer-id: 0 <= kmer_id_in_contig < contig_size
+    uint64_t kmer_id_in_string;  // "relative" kmer-id: 0 <= kmer_id_in_string < string_size,
+                                 // where string_size = string_end - string_begin - k + 1
+    uint64_t kmer_offset;
     int64_t kmer_orientation;
-    uint64_t contig_id;
-    uint64_t contig_size;
+
+    uint64_t string_id;
+    uint64_t string_begin;
+    uint64_t string_end;
+
     bool minimizer_found;
-
-    uint64_t contig_begin(const uint64_t k) const {  //
-        return kmer_id + contig_id * (k - 1) - kmer_id_in_contig;
-    }
-
-    uint64_t contig_end(const uint64_t k) const {  //
-        return contig_begin(k) + contig_size + k - 1;
-    }
 };
 
 inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
     os << "  == kmer_id = " << res.kmer_id << '\n';
-    os << "  == kmer_id_in_contig = " << res.kmer_id_in_contig << '\n';
+    os << "  == kmer_id_in_string = " << res.kmer_id_in_string << '\n';
+    os << "  == kmer_offset = " << res.kmer_offset << '\n';
     os << "  == kmer_orientation = " << res.kmer_orientation << '\n';
-    os << "  == contig_id = " << res.contig_id << '\n';
-    os << "  == contig_size = " << res.contig_size << '\n';
+    os << "  == string_id = " << res.string_id << '\n';
+    os << "  == string_begin = " << res.string_begin << '\n';
+    os << "  == string_end = " << res.string_end << '\n';
+    os << "  == string_length = " << (res.string_end - res.string_begin) << '\n';
+    os << "  == minimizer_found = " << (res.minimizer_found ? "true" : "false") << '\n';
     return os;
 }
 
@@ -100,9 +111,9 @@ struct minimizer_info {
                   << std::endl;
         good = false;
     }
-    if (expected.kmer_id_in_contig != got.kmer_id_in_contig) {
-        std::cout << "expected kmer_id_in_contig " << expected.kmer_id_in_contig << " but got "
-                  << got.kmer_id_in_contig << std::endl;
+    if (expected.kmer_id_in_string != got.kmer_id_in_string) {
+        std::cout << "expected kmer_id_in_string " << expected.kmer_id_in_string << " but got "
+                  << got.kmer_id_in_string << std::endl;
         good = false;
     }
     if (got.kmer_id != constants::invalid_uint64 and
@@ -111,14 +122,19 @@ struct minimizer_info {
                   << got.kmer_orientation << std::endl;
         good = false;
     }
-    if (expected.contig_id != got.contig_id) {
-        std::cout << "expected contig_id " << expected.contig_id << " but got " << got.contig_id
+    if (expected.string_id != got.string_id) {
+        std::cout << "expected string_id " << expected.string_id << " but got " << got.string_id
                   << std::endl;
         good = false;
     }
-    if (expected.contig_size != got.contig_size) {
-        std::cout << "expected contig_size " << expected.contig_size << " but got "
-                  << got.contig_size << std::endl;
+    if (expected.string_begin != got.string_begin) {
+        std::cout << "expected string_begin " << expected.string_begin << " but got "
+                  << got.string_begin << std::endl;
+        good = false;
+    }
+    if (expected.string_end != got.string_end) {
+        std::cout << "expected string_end " << expected.string_end << " but got " << got.string_end
+                  << std::endl;
         good = false;
     }
     return good;
@@ -127,12 +143,11 @@ struct minimizer_info {
 struct build_configuration {
     build_configuration()
         : k(31)
-        , m(17)
+        , m(20)
         , seed(constants::seed)
         , num_threads(1)
         , ram_limit_in_GiB(constants::default_ram_limit_in_GiB)
 
-        , l(constants::min_l)
         , lambda(constants::lambda)
 
         , canonical(false)
@@ -143,13 +158,12 @@ struct build_configuration {
 
     {}
 
-    uint64_t k;  // kmer size
-    uint64_t m;  // minimizer size
+    uint64_t k;  // kmer length
+    uint64_t m;  // minimizer length
     uint64_t seed;
     uint64_t num_threads;
     uint64_t ram_limit_in_GiB;
 
-    uint64_t l;     // drive dictionary trade-off
     double lambda;  // drive PTHash trade-off
 
     bool canonical;
@@ -159,12 +173,16 @@ struct build_configuration {
     std::string tmp_dirname;
 
     void print() const {
-        std::cout << "k = " << k << ", m = " << m << ", seed = " << seed
-                  << ", num_threads = " << num_threads
-                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB << ", l = " << l
-                  << ", lambda = " << lambda << ", canonical = " << (canonical ? "true" : "false")
-                  << ", weighted = " << (weighted ? "true" : "false")
-                  << ", verbose = " << (verbose ? "true" : "false") << std::endl;
+        std::cout << "k = " << k                                              //
+                  << ", m = " << m                                            //
+                  << ", seed = " << seed                                      //
+                  << ", num_threads = " << num_threads                        //
+                  << ", ram_limit_in_GiB = " << ram_limit_in_GiB              //
+                  << ", lambda = " << lambda                                  //
+                  << ", canonical = " << (canonical ? "true" : "false")       //
+                  << ", weighted = " << (weighted ? "true" : "false")         //
+                  << ", verbose = " << (verbose ? "true" : "false")           //
+                  << ", tmp_dirname = '" << tmp_dirname << "'" << std::endl;  //
     }
 };
 
@@ -190,7 +208,7 @@ template <class kmer_t>
 [[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
     assert(k <= kmer_t::max_k);
     kmer_t x = 0;
-    for (int i = k - 1; i >= 0; i--) x.append_char(kmer_t::char_to_uint(str[i]));
+    for (uint64_t i = 0; i != k; ++i) x.set(i, kmer_t::char_to_uint(str[i]));
     return x;
 }
 
@@ -266,67 +284,23 @@ minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m
 
 }  // namespace util
 
-// taken from tlx
-static inline std::istream& appendline(std::istream& is, std::string& str, char delim = '\n') {
-    size_t size = str.size();
-    size_t capacity = str.capacity();
-    std::streamsize rest = capacity - size;
-
-    if (rest == 0) {
-        // if rest is zero, already expand string
-        capacity = std::max(static_cast<size_t>(8), capacity * 2);
-        rest = capacity - size;
-    }
-
-    // give getline access to all of capacity
-    str.resize(capacity);
-
-    // get until delim or rest is filled
-    is.getline(const_cast<char*>(str.data()) + size, rest, delim);
-
-    // gcount includes the delimiter
-    size_t new_size = size + is.gcount();
-
-    // is failbit set?
-    if (!is) {
-        // if string ran out of space, expand, and retry
-        if (is.gcount() + 1 == rest) {
-            is.clear();
-            str.resize(new_size);
-            str.reserve(capacity * 2);
-            return appendline(is, str, delim);
-        }
-        // else fall through and deliver error
-    } else if (!is.eof()) {
-        // subtract delimiter
-        --new_size;
-    }
-
-    // resize string to fit its contents
-    str.resize(new_size);
-    return is;
-}
-
 struct buffered_lines_iterator {
     static const uint64_t BUFFER_SIZE = 1024;
 
     buffered_lines_iterator(std::istream& is, uint64_t buffer_size = BUFFER_SIZE)
         : m_is(is), m_buffer_size(buffer_size), m_read_chars(0) {}
 
-    bool fill_buffer(std::string& buffer,
-                     bool force = false /* force reading of m_buffer_size characters */
-    ) {
+    bool fill_buffer(std::string& buffer) {
+        if (buffer.size() >= m_buffer_size) return false;
+
         bool empty_line_was_read = false;
         uint64_t size = buffer.size();
-        uint64_t target_size = size + m_buffer_size;
-        if (force) target_size += m_buffer_size;
-
-        buffer.resize(target_size);
+        buffer.resize(m_buffer_size);
 
         char* ptr = buffer.data() + size;
-        while (size != target_size) {
+        while (size < m_buffer_size) {
             // read until '\n' or rest is filled
-            uint64_t rest = target_size - size;
+            uint64_t rest = m_buffer_size - size;
             m_is.getline(ptr, rest, '\n');
             uint64_t read_chars = m_is.gcount();
             m_read_chars += read_chars;

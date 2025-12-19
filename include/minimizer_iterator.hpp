@@ -7,7 +7,7 @@ namespace sshash {
 /*
     "Re-scan" method.
 */
-template <class kmer_t>
+template <typename Kmer>
 struct minimizer_iterator {
     minimizer_iterator() {}
 
@@ -32,14 +32,14 @@ struct minimizer_iterator {
         m_min_position = m_position - 1;
     }
 
-    minimizer_info next(kmer_t kmer) {
+    minimizer_info next(Kmer kmer) {
         if (m_min_pos_in_kmer == 0) {
             /* min leaves the window: re-scan to compute the new min */
             m_position = m_min_position + 1;
             rescan(kmer);
         } else {
             m_position += 1;
-            kmer_t mmer = kmer;
+            Kmer mmer = kmer;
             mmer.drop_chars(m_k - m_m);
             uint64_t hash = m_hasher.hash(uint64_t(mmer));
             if (hash < m_min_hash) {
@@ -54,7 +54,7 @@ struct minimizer_iterator {
         }
 
         assert(minimizer_info(m_min_value, m_min_pos_in_kmer) ==
-               util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
+               util::compute_minimizer<Kmer>(kmer, m_k, m_m, m_hasher));
 
         return {m_min_value, m_min_position, m_min_pos_in_kmer};
     }
@@ -65,13 +65,13 @@ private:
     uint64_t m_min_value, m_min_position, m_min_hash;
     hasher_type m_hasher;
 
-    void rescan(kmer_t kmer) {
+    void rescan(Kmer kmer) {
         m_min_hash = constants::invalid_uint64;
         m_min_value = constants::invalid_uint64;
         m_min_pos_in_kmer = 0;
         uint64_t begin = m_position;
         for (uint64_t i = 0; i != m_k - m_m + 1; ++i, ++m_position) {
-            kmer_t mmer = kmer;
+            Kmer mmer = kmer;
             kmer.drop_char();
             mmer.take_chars(m_m);
             uint64_t hash = m_hasher.hash(uint64_t(mmer));
@@ -89,7 +89,7 @@ private:
 /*
     "Re-scan" method.
 */
-template <class kmer_t>
+template <typename Kmer>
 struct minimizer_iterator_rc {
     minimizer_iterator_rc() {}
 
@@ -114,14 +114,14 @@ struct minimizer_iterator_rc {
         m_min_position = m_position - 1;
     }
 
-    minimizer_info next(kmer_t kmer) {
+    minimizer_info next(Kmer kmer) {
         if (m_min_pos_in_kmer == m_k - m_m) {
             /* min leaves the window: re-scan to compute the new min */
             m_position = m_min_position + 1;
             rescan(kmer);
         } else {
             m_position += 1;
-            kmer_t mmer = kmer;
+            Kmer mmer = kmer;
             mmer.take_chars(m_m);
             uint64_t hash = m_hasher.hash(uint64_t(mmer));
             if (hash <= m_min_hash) {
@@ -136,7 +136,7 @@ struct minimizer_iterator_rc {
         }
 
         assert(minimizer_info(m_min_value, m_min_pos_in_kmer) ==
-               util::compute_minimizer<kmer_t>(kmer, m_k, m_m, m_hasher));
+               util::compute_minimizer<Kmer>(kmer, m_k, m_m, m_hasher));
 
         return {m_min_value, m_min_position, m_min_pos_in_kmer};
     }
@@ -147,13 +147,13 @@ private:
     uint64_t m_min_value, m_min_position, m_min_hash;
     hasher_type m_hasher;
 
-    void rescan(kmer_t kmer) {
+    void rescan(Kmer kmer) {
         m_min_hash = constants::invalid_uint64;
         m_min_value = constants::invalid_uint64;
         m_min_pos_in_kmer = 0;
         uint64_t begin = m_position;
         for (int64_t i = m_k - m_m; i >= 0; --i, ++m_position) {
-            kmer_t mmer = kmer;
+            Kmer mmer = kmer;
             mmer.drop_chars(i);
             mmer.take_chars(m_m);
             uint64_t hash = m_hasher.hash(uint64_t(mmer));

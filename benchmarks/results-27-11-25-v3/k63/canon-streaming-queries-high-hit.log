@@ -1,0 +1,48 @@
+2025-11-28 16:36:07: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR12858649.fastq.gz'...
+2025-11-28 16:36:29: DONE
+==== query report:
+num_kmers = 97972416
+num_positive_kmers = 67275966 (68.6683%)
+num_searches = 35527313/67275966 (52.8083%)
+num_extensions = 31748653/67275966 (47.1917%)
+elapsed = 22359.6 millisec / 22.3596 sec / 0.37266 min / 228.223 ns/kmer
+2025-11-28 16:36:29: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR11449743_1.fastq.gz'...
+2025-11-28 16:37:53: DONE
+==== query report:
+num_kmers = 461383839
+num_positive_kmers = 293470517 (63.6066%)
+num_searches = 153492600/293470517 (52.3026%)
+num_extensions = 139977917/293470517 (47.6974%)
+elapsed = 83262.8 millisec / 83.2628 sec / 1.38771 min / 180.463 ns/kmer
+2025-11-28 16:37:53: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR5833294.fastq.gz'...
+2025-11-28 16:40:51: DONE
+==== query report:
+num_kmers = 477818474
+num_positive_kmers = 406529529 (85.0803%)
+num_searches = 222074093/406529529 (54.6268%)
+num_extensions = 184455436/406529529 (45.3732%)
+elapsed = 177318 millisec / 177.318 sec / 2.9553 min / 371.098 ns/kmer
+2025-11-28 16:40:51: performing queries from file '/mnt/hd2/pibiri/DNA/queries/ncbi-queries.fastq.gz'...
+2025-11-28 16:40:53: DONE
+==== query report:
+num_kmers = 10330949
+num_positive_kmers = 10230224 (99.025%)
+num_searches = 5533278/10230224 (54.0876%)
+num_extensions = 4696946/10230224 (45.9124%)
+elapsed = 2363.11 millisec / 2.36311 sec / 0.0393851 min / 228.741 ns/kmer
+2025-11-28 16:40:54: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR27871075_1.fastq.gz'...
+2025-11-28 16:55:59: DONE
+==== query report:
+num_kmers = 541466405
+num_positive_kmers = 507202856 (93.6721%)
+num_searches = 321345723/507202856 (63.3564%)
+num_extensions = 185857133/507202856 (36.6436%)
+elapsed = 905024 millisec / 905.024 sec / 15.0837 min / 1671.43 ns/kmer
+2025-11-28 16:56:01: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR5833294.fastq.gz'...
+2025-11-28 16:59:25: DONE
+==== query report:
+num_kmers = 477818474
+num_positive_kmers = 434532302 (90.9409%)
+num_searches = 241384562/434532302 (55.5504%)
+num_extensions = 193147740/434532302 (44.4496%)
+elapsed = 203222 millisec / 203.222 sec / 3.38703 min / 425.312 ns/kmer

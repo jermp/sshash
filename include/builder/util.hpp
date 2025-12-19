@@ -3,21 +3,10 @@
 #include <vector>
 #include <atomic>
 
-#if defined(__AVX2__)
-#include <immintrin.h>
-#include <x86intrin.h>
-#endif
-
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
 
 namespace sshash {
-
-[[maybe_unused]] static void print_time(double time, uint64_t num_kmers,
-                                        std::string const& message) {
-    std::cout << "=== " << message << " " << time / 1000000 << " [sec] ("
-              << (time * 1000) / num_kmers << " [ns/kmer])" << std::endl;
-}
 
 struct parse_runtime_error : public std::runtime_error {
     parse_runtime_error() : std::runtime_error("did you provide an input file with weights?") {}
@@ -29,35 +18,6 @@ struct parse_runtime_error : public std::runtime_error {
         throw parse_runtime_error();
     }
 }
-
-#if defined(__AVX2__)
-/*
-    This function takes 32 bytes and packs the two bits
-    in positions 1 and 2 (from right) of each byte into
-    a single 64-bit word.
-
-    This works with the map:
-    A -> 00; C -> 01; G -> 11; T -> 10.
-*/
-inline uint64_t pack2bits_shift1(__m256i v) {
-    // shift >> 1, then mask by 3 to isolate the relevant bits
-    __m256i shifted = _mm256_srli_epi16(v, 1);
-    __m256i values = _mm256_and_si256(shifted, _mm256_set1_epi8(3));
-
-    // collect bit-0 plane
-    __m256i bit0 = _mm256_slli_epi16(values, 7);
-    uint32_t mask0 = _mm256_movemask_epi8(bit0);
-
-    // collect bit-1 plane
-    __m256i bit1 = _mm256_slli_epi16(values, 6);
-    uint32_t mask1 = _mm256_movemask_epi8(bit1);
-
-    // interleave into the 64-bit result
-    uint64_t even = _pdep_u64(mask0, 0x5555555555555555ULL);  // 010101...
-    uint64_t odd = _pdep_u64(mask1, 0xAAAAAAAAAAAAAAAAULL);   // 101010...
-    return even | odd;
-}
-#endif
 
 typedef uint8_t num_kmers_in_super_kmer_uint_type;
 
@@ -73,6 +33,10 @@ struct minimizer_tuple {
     bool operator>(minimizer_tuple other) const {
         if (minimizer != other.minimizer) return minimizer > other.minimizer;
         return pos_in_seq > other.pos_in_seq;
+    }
+    bool operator<(minimizer_tuple other) const {
+        if (minimizer != other.minimizer) return minimizer < other.minimizer;
+        return pos_in_seq < other.pos_in_seq;
     }
 
     uint64_t minimizer;
@@ -196,8 +160,7 @@ struct minimizers_tuples {
         , m_num_minimizer_positions(0)
         , m_num_super_kmers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
-        , m_num_threads(build_config.num_threads)
-        , m_tmp_dirname(build_config.tmp_dirname)  //
+        , m_build_config(build_config)  //
     {
         init();
     }
@@ -205,14 +168,16 @@ struct minimizers_tuples {
     void init() { m_num_files_to_merge = 0; }
 
     void sort_and_flush(std::vector<minimizer_tuple>& buffer) {
-        parallel_sort(buffer, m_num_threads,
+        parallel_sort(buffer, m_build_config.num_threads,
                       [](minimizer_tuple const& x, minimizer_tuple const& y) {
                           return (x.minimizer < y.minimizer) or
                                  (x.minimizer == y.minimizer and x.pos_in_seq < y.pos_in_seq);
                       });
         uint64_t id = m_num_files_to_merge.fetch_add(1);
         auto tmp_output_filename = get_tmp_output_filename(id);
-        std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
+        if (m_build_config.verbose) {
+            std::cout << "saving to file '" << tmp_output_filename << "'..." << std::endl;
+        }
         std::ofstream out(tmp_output_filename.c_str(), std::ofstream::binary);
         if (!out.is_open()) throw std::runtime_error("cannot open file");
         out.write(reinterpret_cast<char const*>(buffer.data()),
@@ -224,7 +189,8 @@ struct minimizers_tuples {
     std::string get_minimizers_filename() const {
         assert(m_num_files_to_merge > 0);
         std::stringstream filename;
-        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers.bin";
+        filename << m_build_config.tmp_dirname << "/sshash.tmp.run_" << m_run_identifier
+                 << ".minimizers.bin";
         return filename.str();
     }
 
@@ -257,24 +223,24 @@ struct minimizers_tuples {
                  it.has_next(); it.next())  //
             {
                 auto bucket = it.bucket();
+                m_num_minimizers += 1;
                 m_num_minimizer_positions += bucket.size();
                 m_num_super_kmers += bucket.num_super_kmers();
-                ++m_num_minimizers;
             }
             input.close();
             return;
         }
 
-        std::cout << " == files to merge = " << m_num_files_to_merge << std::endl;
-
         assert(m_num_files_to_merge > 1);
-
         file_merging_iterator<minimizer_tuple> fm_iterator(files_name_iterator_begin(),
                                                            m_num_files_to_merge);
 
-        std::cout << "saving tuples to '" << get_minimizers_filename() << "'" << std::endl;
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
+
+        if (m_build_config.verbose) {
+            std::cout << "saving to file '" << get_minimizers_filename() << "'" << std::endl;
+        }
 
         m_num_minimizers = 0;
         m_num_minimizer_positions = 0;
@@ -293,18 +259,14 @@ struct minimizers_tuples {
             out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
             prev_pos_in_seq = mt.pos_in_seq;
             ++m_num_super_kmers;
-            if (m_num_super_kmers % 50000000 == 0) {
-                std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
+            if (m_build_config.verbose and m_num_super_kmers % 100'000'000 == 0) {
+                std::cout << "processed " << m_num_super_kmers << " minimizer tuples" << std::endl;
             }
             fm_iterator.next();
         }
 
         out.close();
         fm_iterator.close();
-
-        std::cout << "num_minimizers = " << m_num_minimizers << std::endl;
-        std::cout << "num_minimizer_positions = " << m_num_minimizer_positions << std::endl;
-        std::cout << "num_super_kmers = " << m_num_super_kmers << std::endl;
 
         /* remove tmp files */
         for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
@@ -325,15 +287,13 @@ private:
     uint64_t m_num_minimizers;
     uint64_t m_num_minimizer_positions;
     uint64_t m_num_super_kmers;
-
     uint64_t m_run_identifier;
-    uint64_t m_num_threads;
-    std::string m_tmp_dirname;
+    build_configuration m_build_config;
 
     std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;
-        filename << m_tmp_dirname << "/sshash.tmp.run_" << m_run_identifier << ".minimizers." << id
-                 << ".bin";
+        filename << m_build_config.tmp_dirname << "/sshash.tmp.run_" << m_run_identifier
+                 << ".minimizers." << id << ".bin";
         return filename.str();
     }
 };

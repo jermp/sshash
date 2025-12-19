@@ -97,7 +97,6 @@ void parallel_sort(std::vector<T>& data, uint64_t num_threads, Compare comp)  //
         next_ranges.clear();
         for (uint64_t i = 0; i < ranges.size(); i += 2) {
             auto [begin1, end1] = ranges[i];
-
             auto input = data.begin();
             auto output = temp_data.begin();
             if (swap) std::swap(input, output);
@@ -108,7 +107,6 @@ void parallel_sort(std::vector<T>& data, uint64_t num_threads, Compare comp)  //
             if (i + 1 < ranges.size()) {
                 auto [begin2, end2] = ranges[i + 1];
                 output_size += end2 - begin2;
-
                 parallel_merge(begin1, end1, begin2, end2, output_iterator, comp,
                                sequential_merge_threshold);
                 assert(std::is_sorted(output_iterator, output_iterator + output_size, comp));
