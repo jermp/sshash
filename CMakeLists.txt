@@ -76,6 +76,17 @@ set(SSHASH_INCLUDE_DIRS
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+set(SSHASH_INCLUDE_DIRS
+  external/pthash/include
+  external/pthash/external/bits/include
+  external/pthash/external/fastmod
+  external/pthash/external/bits/external/essentials/include
+  external/pthash/external/xxHash
+  external/pthash/external/mm_file/include
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
 # Create a static lib
 add_library(sshash_static STATIC
   ${Z_LIB_SOURCES}
