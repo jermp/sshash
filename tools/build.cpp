@@ -22,15 +22,6 @@ int build(int argc, char** argv) {
                "Seed for construction (default is " + std::to_string(constants::seed) + ").", "-s",
                false);
     parser.add("t", "Number of threads (default is 1).", "-t", false);
-<<<<<<< HEAD
-=======
-    parser.add("l",
-               "A (integer) constant that controls the space/time trade-off of the dictionary. "
-               "A reasonable values lies in [2.." +
-                   std::to_string(constants::max_l) + "). The default value is " +
-                   std::to_string(constants::min_l) + ".",
-               "-l", false);
->>>>>>> master
     parser.add("lambda",
                "A (floating point) constant that trades construction speed for space effectiveness "
                "of minimal perfect hashing. "

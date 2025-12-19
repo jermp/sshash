@@ -129,9 +129,6 @@ struct dictionary  //
         visit_impl(visitor, *this);
     }
 
-    const buckets<kmer_t>& data() const { return m_buckets; }
-    const minimizers& get_minimizers() const { return m_minimizers; }
-
 private:
     template <typename Visitor, typename T>
     static void visit_impl(Visitor& visitor, T&& t) {
