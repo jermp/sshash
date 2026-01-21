@@ -14,14 +14,14 @@ To run the benchmarks, from within the `build` directory, run
 
 where `<log_label>` should be replaced by a suitable basename, e.g., the current date.
 
-These are the results obtained on 10/11/25 (see logs [here](results-10-11-25))
+These are the results obtained on 21/01/26 (see logs [here](results-21-01-26))
 on a machine equipped with an AMD Ryzen Threadripper PRO 7985WX processor clocked at 5.40GHz.
 The code was compiled with `gcc` 13.3.0.
 
 The indexes were build with a max RAM usage of 16 GB and 64 threads.
 Queries were run using one thread, instead.
 
-![](results-10-11-25/results.png)
+![](results-21-01-26/results.png)
 
 The results can be exported to CSV format with
 
