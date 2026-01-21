@@ -219,19 +219,18 @@ private:
 
         res.kmer_offset = p.absolute_offset - mini_info.pos_in_kmer;
 
-        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end) {
+        if (kmer != util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset)) {
+            return false;
+        }
+
+        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1) {
             res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
             res.kmer_id_in_string = res.kmer_offset - res.string_begin;  // relative kmer id
         } else {
             strings_offsets.offset_to_id(res, p, k);
         }
 
-        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1 and  //
-            kmer == util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset))  //
-        {
-            return true;
-        }
-
+        if (res.kmer_offset < res.string_end - k + 1) return true;
         return false;
     }
 
@@ -257,24 +256,21 @@ private:
 
         res.kmer_offset = p.absolute_offset - pos_in_kmer;
 
-        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end) {
+        auto read_kmer =
+            util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset);
+        if (read_kmer != kmer and read_kmer != kmer_rc) return false;
+
+        res.kmer_orientation =
+            read_kmer == kmer_rc ? constants::backward_orientation : constants::forward_orientation;
+
+        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1) {
             res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
             res.kmer_id_in_string = res.kmer_offset - res.string_begin;  // relative kmer id
         } else {
             strings_offsets.offset_to_id(res, p, k);
         }
 
-        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1)  //
-        {
-            auto read_kmer =
-                util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset);
-            if (read_kmer == kmer) return true;
-            if (read_kmer == kmer_rc) {
-                res.kmer_orientation = constants::backward_orientation;
-                return true;
-            }
-        }
-
+        if (res.kmer_offset < res.string_end - k + 1) return true;
         return false;
     }
 };
