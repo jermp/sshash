@@ -15,10 +15,11 @@
 **SSHash** is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
-The data structure is described in the following papers:
+The data structure is described in the following papers (most recent first):
 
-* [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245) [1]
-* [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
+* [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://www.biorxiv.org/content/10.64898/2026.01.21.700884v1) [1]
+* [On weighted k-mer dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
+* [Sparse and skew hashing of k-mers](https://doi.org/10.1093/bioinformatics/btac245) [4]
 
 **Please, cite these papers if you use SSHash.**
 
@@ -41,7 +42,7 @@ Other supported queries are:
 SSHash internally stores a set of strings, each associated to a distinct identifier.
 If a string identifier is specified for a navigational query (rather than a k-mer), then the backward neighbourhood of the first k-mer and the forward neighbourhood of the last k-mer in the string are returned.
 
-If you are interested in a **membership-only** version of SSHash, have a look at [SSHash-Lite](https://github.com/jermp/sshash-lite). It also works for input files with duplicate k-mers (e.g., [matchtigs](https://github.com/algbio/matchtigs) [4]). For a query sequence S and a given coverage threshold E in [0,1], the sequence is considered to be present in the dictionary if at least E*(|S|-k+1) of the k-mers of S are positive.
+If you are interested in a **membership-only** version of SSHash, have a look at [SSHash-Lite](https://github.com/jermp/sshash-lite). It also works for input files with duplicate k-mers (e.g., [matchtigs](https://github.com/algbio/matchtigs) [5]). For a query sequence S and a given coverage threshold E in [0,1], the sequence is considered to be present in the dictionary if at least E*(|S|-k+1) of the k-mers of S are positive.
 
 **NOTE**: It is assumed that two k-mers being the *reverse complement* of each other are the same.
 
@@ -298,7 +299,9 @@ The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
 
 References
 ----------
-* [1] Giulio Ermanno Pibiri. [Sparse and Skew Hashing of K-Mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
-* [2] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
-* [3] Giulio Ermanno Pibiri. [On Weighted K-Mer Dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
-* [4] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.
+
+* [1] Giulio Ermanno Pibiri and Rob Patro. [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://www.biorxiv.org/content/10.64898/2026.01.21.700884v1). BioRxiv. 2026.
+* [2] Giulio Ermanno Pibiri. [On weighted k-mer dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
+* [3] Giulio Ermanno Pibiri. [On weighted k-mer dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
+* [4] Giulio Ermanno Pibiri. [Sparse and skew hashing of k-mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
+* [5] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.
