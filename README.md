@@ -171,10 +171,10 @@ such collections of stitched unitigs can be obtained from raw FASTA files.
 
 ### Example 1
 
-    ./sshash build -i ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz -k 31 -m 13 --check --bench -o salmonella_enterica.sshash
+    ./sshash build -i ../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz -k 31 -m 13 --check -o salmonella_enterica.sshash
 
 This example builds a dictionary for the k-mers read from the file `../data/unitigs_stitched/salmonella_enterica_k31_ust.fa.gz`,
-with k = 31 and m = 13. It also check the correctness of the dictionary (`--check` option), run a performance benchmark (`--bench` option), and serializes the index on disk to the file `salmonella_enterica.sshash`.
+with k = 31 and m = 13. It also check the correctness of the dictionary (`--check` option) and serializes the index on disk to the file `salmonella_enterica.sshash`.
 
 To run a performance benchmark after construction of the index,
 use:
