@@ -15,6 +15,8 @@
 **SSHash** is a compressed dictionary data structure for k-mers
 (strings of length k over the DNA alphabet {A,C,G,T}), based on **S**parse and **S**kew **Hash**ing.
 
+**NEWS:** A Rust port of SSHash is available [here](https://github.com/COMBINE-lab/sshash-rs)!
+
 The data structure is described in the following papers (most recent first):
 
 * [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://www.biorxiv.org/content/10.64898/2026.01.21.700884v1) [1]
