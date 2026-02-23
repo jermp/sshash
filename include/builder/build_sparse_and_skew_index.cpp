@@ -56,9 +56,10 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     // Encoding format: ((list_id << min_l) | (bucket_size - 2)) << 2 | status_code
     // We need: 2 bits (status) + min_l bits (bucket_size) + bits for list_id
     // list_id is bounded by the maximum number of buckets sharing the same size
-    const uint64_t bits_for_list_id = std::ceil(std::log2(buckets_stats.max_sparse_buckets_per_size() + 1));
-    const uint64_t num_bits_for_control = std::max(num_bits_per_offset + 1,
-                                                     2 + constants::min_l + bits_for_list_id);
+    const uint64_t bits_for_list_id =
+        std::ceil(std::log2(buckets_stats.max_sparse_buckets_per_size() + 1));
+    const uint64_t num_bits_for_control =
+        std::max(num_bits_per_offset + 1, 2 + constants::min_l + bits_for_list_id);
 
     if (build_config.verbose) {
         std::cout << "num_bits_per_offset = " << num_bits_per_offset << std::endl;
@@ -106,7 +107,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         const uint64_t bucket_id = it.minimizer();
         auto bucket = it.bucket();
         const uint64_t bucket_size = bucket.size();
-        
+
         if (bucket_size == 1) {
             // Handle size-1 buckets: encode directly into control codewords
             uint64_t prev_pos_in_seq = constants::invalid_uint64;

@@ -31,7 +31,8 @@ struct buckets_statistics {
         if (bucket_size < MAX_BUCKET_SIZE + 1) {
             m_bucket_sizes[bucket_size] += 1;
             if (bucket_size > 1) {
-                m_max_sparse_buckets_per_size = std::max(m_max_sparse_buckets_per_size, m_bucket_sizes[bucket_size]);
+                m_max_sparse_buckets_per_size =
+                    std::max(m_max_sparse_buckets_per_size, m_bucket_sizes[bucket_size]);
             }
         }
         m_max_bucket_size = std::max(m_max_bucket_size, bucket_size);

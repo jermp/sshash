@@ -11,7 +11,7 @@ struct minimizers_city_hasher_128 {
 
     static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
         auto ret = cityhash::CityHash128WithSeed(reinterpret_cast<char const*>(&minimizer),  //
-                              sizeof(minimizer), {seed, ~seed});
+                                                 sizeof(minimizer), {seed, ~seed});
         return {ret.first, ret.second};
     }
 };
@@ -61,7 +61,7 @@ struct kmers_city_hasher_128 {
 
     static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
         auto ret = cityhash::CityHash128WithSeed(reinterpret_cast<char const*>(&(x.bits)),  //
-                              sizeof(x.bits), {seed, ~seed});
+                                                 sizeof(x.bits), {seed, ~seed});
         return {ret.first, ret.second};
     }
 };
