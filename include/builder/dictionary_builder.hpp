@@ -75,7 +75,7 @@ struct dictionary_builder  //
         build_stats.add("index_size_in_bytes", (d.num_bits() + 7) / 8);
         build_stats.add("num_kmers", d.num_kmers());
 
-        build_stats.print();
+        if (build_config.verbose) build_stats.print();
     }
 
     build_configuration build_config;

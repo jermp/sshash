@@ -1,7 +1,7 @@
 #pragma once
 
 #include "external/pthash/include/pthash.hpp"
-#include "external/cityhash/cityhash.cpp"
+#include "external/cityhash/cityhash.hpp"
 #include "constants.hpp"
 
 namespace sshash {
@@ -10,7 +10,7 @@ struct minimizers_city_hasher_128 {
     typedef pthash::hash128 hash_type;
 
     static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
-        auto ret = CityMurmur(reinterpret_cast<char const*>(&minimizer),  //
+        auto ret = cityhash::CityHash128WithSeed(reinterpret_cast<char const*>(&minimizer),  //
                               sizeof(minimizer), {seed, ~seed});
         return {ret.first, ret.second};
     }
@@ -60,7 +60,7 @@ struct kmers_city_hasher_128 {
     typedef pthash::hash128 hash_type;
 
     static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
-        auto ret = CityMurmur(reinterpret_cast<char const*>(&(x.bits)),  //
+        auto ret = cityhash::CityHash128WithSeed(reinterpret_cast<char const*>(&(x.bits)),  //
                               sizeof(x.bits), {seed, ~seed});
         return {ret.first, ret.second};
     }

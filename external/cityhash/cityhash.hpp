@@ -48,6 +48,8 @@
 #include <stdlib.h>  // for size_t.
 #include <utility>
 
+namespace cityhash {
+
 // Microsoft Visual Studio may not have stdint.h.
 #if defined(_MSC_VER) && (_MSC_VER < 1600)
 typedef unsigned char uint8_t;
@@ -111,5 +113,7 @@ uint128 CityHashCrc128WithSeed(const char* s, size_t len, uint128 seed);
 void CityHashCrc256(const char* s, size_t len, uint64* result);
 
 #endif  // __SSE4_2__
+
+}  // namespace cityhash
 
 #endif  // CITY_HASH_H_

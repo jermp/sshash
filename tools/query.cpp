@@ -41,7 +41,7 @@ int query(int argc, char** argv) {
     query_stats.add("num_invalid_kmers", report.num_invalid_kmers);
     query_stats.add("num_searches", report.num_searches);
     query_stats.add("num_extensions", report.num_extensions);
-    query_stats.add("elapsed_millisec", uint64(t.elapsed()));
+    query_stats.add("elapsed_millisec", uint64_t(t.elapsed()));
 
     std::cout << "==== query report:\n";
     std::cout << "num_kmers = " << report.num_kmers << std::endl;

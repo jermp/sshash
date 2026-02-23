@@ -68,6 +68,9 @@ struct dictionary  //
     /* Return the string of the kmer whose id is kmer_id. */
     void access(uint64_t kmer_id, char* string_kmer) const;
 
+    /* Accessor for internal bit vector */
+    bits::bit_vector const& strings() const { return m_spss.strings; }
+
     /* Membership queries. */
     bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
     bool is_member(Kmer uint_kmer, bool check_reverse_complement = true) const;
@@ -103,6 +106,9 @@ struct dictionary  //
     string_offsets(const uint64_t string_id) const {
         return m_spss.string_offsets(string_id);
     }
+
+    /* Accessor for internal offsets structure */
+    Offsets const& strings_offsets() const { return m_spss.strings_offsets; }
 
     iterator at_string_id(const uint64_t string_id) const {
         assert(string_id < num_strings());
