@@ -1,7 +1,17 @@
 #pragma once
 
+#include <vector>
+#include <queue>
+#include <cstdint>
+#include <cassert>
+
+#include "util.hpp"
+
 namespace sshash {
 
+/*
+    Winner-tree-based implementation.
+*/
 template <typename T>
 struct file_merging_iterator  //
 {
@@ -26,7 +36,7 @@ struct file_merging_iterator  //
         if (m_iterators.size() <= scan_threshold) {
             compute_min();
         } else {
-            /* build a looser tree */
+            /* build a winner tree */
             uint64_t n = num_files_to_merge;
             uint64_t m = 2 * n - 1;
             m_size = n;
@@ -35,8 +45,7 @@ struct file_merging_iterator  //
             uint64_t i = 0;
             for (; m_begin + i != m; ++i) m_tree[m_begin + i] = i;
             for (uint64_t j = 0; i != n; ++i, ++j) m_tree[n - 1 + j] = i;
-            build(0);
-            m_min_idx = m_tree[0];
+            m_min_idx = build(0);
         }
     }
 
@@ -74,7 +83,7 @@ private:
                 if (m_num_files_to_merge == 0) return;
             }
             compute_min();
-        } else {  // update the looser tree
+        } else {  // update the winner tree
             m_min_idx = m_tree[0];
             assert(m_min_idx < m_iterators.size());
             auto& it = m_iterators[m_min_idx];
@@ -85,18 +94,26 @@ private:
                 m_tree[p] = uint32_t(-1);
                 --m_num_files_to_merge;
             }
+            const T inf = std::numeric_limits<T>::max();
             while (p) {
-                uint64_t is_right_child = (p & 1) == 0;
+                uint64_t is_r_child = (p & 1) == 0;
                 uint32_t i = 0;
-                uint32_t l = m_tree[p - is_right_child];
-                uint32_t r = m_tree[p + 1 - is_right_child];
-                if (l == uint32_t(-1)) {
-                    i = r;
-                } else if (r == uint32_t(-1)) {
-                    i = l;
-                } else {
-                    i = *(m_iterators[l].begin) < *(m_iterators[r].begin) ? l : r;
-                }
+                uint32_t l = m_tree[p - is_r_child];
+                uint32_t r = m_tree[p + 1 - is_r_child];
+
+                T const* ptr_l = (l == uint32_t(-1)) ? &inf : m_iterators[l].begin;
+                T const* ptr_r = (r == uint32_t(-1)) ? &inf : m_iterators[r].begin;
+                i = (*ptr_l < *ptr_r) ? l : r;
+
+                /* same as this code but the one above uses CMOV */
+                // if (l == uint32_t(-1)) {
+                //     i = r;
+                // } else if (r == uint32_t(-1)) {
+                //     i = l;
+                // } else {
+                //     i = *(m_iterators[l].begin) < *(m_iterators[r].begin) ? l : r;
+                // }
+
                 uint64_t parent = (p - 1) / 2;
                 m_tree[parent] = i;
                 p = parent;
@@ -111,13 +128,10 @@ private:
         uint32_t l = build(2 * p + 1);
         uint32_t r = build(2 * p + 2);
         uint32_t i = 0;
-        if (l == uint32_t(-1)) {
-            i = r;
-        } else if (r == uint32_t(-1)) {
-            i = l;
-        } else {
-            i = *(m_iterators[l].begin) < *(m_iterators[r].begin) ? l : r;
-        }
+        const T inf = std::numeric_limits<T>::max();
+        T const* ptr_l = (l == uint32_t(-1)) ? &inf : m_iterators[l].begin;
+        T const* ptr_r = (r == uint32_t(-1)) ? &inf : m_iterators[r].begin;
+        i = (*ptr_l < *ptr_r) ? l : r;
         m_tree[p] = i;
         return i;
     }

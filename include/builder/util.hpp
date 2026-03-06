@@ -39,6 +39,10 @@ struct minimizer_tuple {
         return pos_in_seq < other.pos_in_seq;
     }
 
+    static minimizer_tuple max() {
+        return {{uint64_t(-1), uint64_t(-1), uint64_t(-1)}, uint64_t(-1)};
+    }
+
     uint64_t minimizer;
     uint64_t pos_in_seq;
     num_kmers_in_super_kmer_uint_type pos_in_kmer;
