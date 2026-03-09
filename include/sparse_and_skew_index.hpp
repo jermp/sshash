@@ -8,10 +8,7 @@ namespace sshash {
 template <typename Kmer>
 struct skew_index  //
 {
-    skew_index() {
-        mphfs.resize(0);
-        positions.resize(0);
-    }
+    skew_index() {}
 
     /* Returns the number of kmers in the index. */
     uint64_t print_info() const {
@@ -47,7 +44,7 @@ struct skew_index  //
     }
 
     uint64_t num_bits() const {
-        uint64_t n = (2 * sizeof(size_t)) * 8; /* for std::vector::size */
+        uint64_t n = (2 * sizeof(size_t)) * 8; /* for span' size */
         for (uint64_t partition_id = 0; partition_id != mphfs.size(); ++partition_id) {
             auto const& f = mphfs[partition_id];
             auto const& p = positions[partition_id];
@@ -66,8 +63,8 @@ struct skew_index  //
         visit_impl(visitor, *this);
     }
 
-    std::vector<kmers_pthash_type<Kmer>> mphfs;
-    std::vector<bits::compact_vector> positions;
+    essentials::owning_span<kmers_pthash_type<Kmer>> mphfs;
+    essentials::owning_span<bits::compact_vector> positions;
     bits::compact_vector heavy_load_buckets;
 
 private:
@@ -156,7 +153,7 @@ struct sparse_and_skew_index  //
     }
 
     minimizers_control_map codewords;
-    std::vector<uint32_t> begin_buckets_of_size;
+    essentials::owning_span<uint32_t> begin_buckets_of_size;
     bits::compact_vector mid_load_buckets;
     skew_index<Kmer> ski;
 

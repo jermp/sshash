@@ -17,8 +17,9 @@ void random_kmer(char* kmer, uint64_t k) {
 }
 
 template <typename Dict>
-void load_dictionary(Dict& dict, std::string const& index_filename, bool verbose) {
-    const uint64_t num_bytes_read = essentials::load(dict, index_filename.c_str());
+void open_dictionary(Dict& dict, std::string const& index_filename, bool mmap, bool verbose) {
+    const uint64_t num_bytes_read = mmap ? essentials::mmap(dict, index_filename.c_str())
+                                         : essentials::load(dict, index_filename.c_str());
     if (verbose) {
         std::cout << "total index size: " << num_bytes_read << " [B] -- "
                   << essentials::convert(num_bytes_read, essentials::MB) << " [MB] ("

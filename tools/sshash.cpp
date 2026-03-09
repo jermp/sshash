@@ -20,12 +20,15 @@ using namespace sshash;
 int check(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
+    parser.add("mmap", "Memory-map from file on disk rather than loading in RAM.", "--mmap", false,
+               true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
+    bool mmap = parser.get<bool>("mmap");
     bool verbose = parser.get<bool>("verbose");
     dictionary_type dict;
-    load_dictionary(dict, index_filename, verbose);
+    open_dictionary(dict, index_filename, mmap, verbose);
     check_dictionary(dict);
     check_correctness_navigational_string_query(dict);
     check_correctness_kmer_iterator(dict);
@@ -36,12 +39,15 @@ int check(int argc, char** argv) {
 int bench(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
+    parser.add("mmap", "Memory-map from file on disk rather than loading in RAM.", "--mmap", false,
+               true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 0;
     auto index_filename = parser.get<std::string>("index_filename");
+    bool mmap = parser.get<bool>("mmap");
     bool verbose = parser.get<bool>("verbose");
     dictionary_type dict;
-    load_dictionary(dict, index_filename, verbose);
+    open_dictionary(dict, index_filename, mmap, verbose);
 
     essentials::json_lines perf_stats;
     perf_stats.add("index_filename", index_filename.c_str());
