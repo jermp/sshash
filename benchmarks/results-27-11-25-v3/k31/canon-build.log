@@ -1,0 +1,1623 @@
+k = 31, m = 20, seed = 1, l = 6, c = 3, canonical_parsing = true, weighted = false
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/cod.k31.eulertigs.fa.gz'...
+m_buffer_size 29411764
+read 100000 sequences, 25039667 bases, 22039697 kmers
+read 200000 sequences, 50140708 bases, 44140738 kmers
+read 300000 sequences, 75429441 bases, 66429471 kmers
+read 400000 sequences, 100861228 bases, 88861258 kmers
+read 500000 sequences, 126668305 bases, 111668335 kmers
+read 600000 sequences, 152842148 bases, 134842178 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278659621105956.minimizers.0.bin'...
+read 700000 sequences, 179047050 bases, 158047080 kmers
+read 800000 sequences, 205700376 bases, 181700406 kmers
+read 900000 sequences, 232873950 bases, 205873980 kmers
+read 1000000 sequences, 260757565 bases, 230757595 kmers
+read 1100000 sequences, 290088622 bases, 257088652 kmers
+read 1200000 sequences, 322579647 bases, 286579677 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278659621105956.minimizers.1.bin'...
+read 1300000 sequences, 361073626 bases, 322073656 kmers
+read 1400000 sequences, 398961301 bases, 356961331 kmers
+read 1500000 sequences, 424322286 bases, 379322316 kmers
+read 1600000 sequences, 449411932 bases, 401411962 kmers
+read 1700000 sequences, 474428195 bases, 423428225 kmers
+read 1800000 sequences, 499637061 bases, 445637091 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278659621105956.minimizers.2.bin'...
+read 1900000 sequences, 524718926 bases, 467718956 kmers
+read 2000000 sequences, 549832029 bases, 489832059 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278659621105956.minimizers.3.bin'...
+read 2057242 sequences, 564182460 bases, 502465200 kmers
+num_kmers 502465200
+num_super_kmers 99045246
+num_pieces 2057243 (+0.245658 [bits/kmer])
+=== step 1: 'parse_file' 35.8195 [sec] (71.2875 [ns/kmer])
+ == files to merge = 4
+num_written_tuples = 50000000
+num_written_tuples = 99045246
+num_minimizers 86909212
+building minimizers MPHF with 64 threads and 256 partitions...
+=== step 2: 'build_minimizers' 6.09538 [sec] (12.1309 [ns/kmer])
+bits_per_offset = ceil(log2(564182491)) = 30
+m_buffer_size 20833333
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278701636967223.bucket_pairs.0.bin'...
+num_singletons 80440205/86909212 (92.5566%)
+=== step 3: 'build_index' 17.8435 [sec] (35.512 [ns/kmer])
+max_num_super_kmers_in_bucket 22004
+log2_max_num_super_kmers_in_bucket 15
+num_buckets_in_skew_index 6151/86909212 (0.0070775%)
+num_partitions 7
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 1731813
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 1148051
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 939482
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 749103
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 516253
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 400682
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 22004: 574096
+num_kmers_in_skew_index 6059480 (1.20595%)
+building partitions...
+  lower 64; upper 128; num_bits_per_pos 7; keys_in_partition.size() 1731813
+    building MPHF with 64 threads and 86 partitions...
+    built mphs[0] for 1731813 keys; bits/key = 3.10989
+    built positions[0] for 1731813 keys; bits/key = 7.00022
+  lower 128; upper 256; num_bits_per_pos 8; keys_in_partition.size() 1148051
+    building MPHF with 64 threads and 57 partitions...
+    built mphs[1] for 1148051 keys; bits/key = 3.01227
+    built positions[1] for 1148051 keys; bits/key = 8.00031
+  lower 256; upper 512; num_bits_per_pos 9; keys_in_partition.size() 939482
+    building MPHF with 64 threads and 46 partitions...
+    built mphs[2] for 939482 keys; bits/key = 2.98842
+    built positions[2] for 939482 keys; bits/key = 9.00036
+  lower 512; upper 1024; num_bits_per_pos 10; keys_in_partition.size() 749103
+    building MPHF with 64 threads and 37 partitions...
+    built mphs[3] for 749103 keys; bits/key = 2.98093
+    built positions[3] for 749103 keys; bits/key = 10.0005
+  lower 1024; upper 2048; num_bits_per_pos 11; keys_in_partition.size() 516253
+    building MPHF with 64 threads and 25 partitions...
+    built mphs[4] for 516253 keys; bits/key = 2.95018
+    built positions[4] for 516253 keys; bits/key = 11.0006
+  lower 2048; upper 4096; num_bits_per_pos 12; keys_in_partition.size() 400682
+    building MPHF with 64 threads and 20 partitions...
+    built mphs[5] for 400682 keys; bits/key = 2.95939
+    built positions[5] for 400682 keys; bits/key = 12.0008
+  lower 4096; upper 22004; num_bits_per_pos 15; keys_in_partition.size() 574096
+    building MPHF with 64 threads and 28 partitions...
+    built mphs[6] for 574096 keys; bits/key = 2.95948
+    built positions[6] for 574096 keys; bits/key = 15.0006
+num_bits_for_skew_index 74646912(0.148561 [bits/kmer])
+=== step 4: 'build_skew_index' 0.902275 [sec] (1.7957 [ns/kmer])
+=== total_time 60.6607 [sec] (120.726 [ns/kmer])
+total index size: 572200160 [B] -- 572.2 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.462082 [bits/kmer] (2.67152 [bits/key]) -- 5.07209%
+  pieces: 0.0460074 [bits/kmer] -- 0.505005%
+  num_super_kmers_before_bucket: 0.294414 [bits/kmer] -- 3.23167%
+  offsets: 5.91356 [bits/kmer] -- 64.9108%
+  strings: 2.24566 [bits/kmer] -- 24.6497%
+  skew_index: 0.148561 [bits/kmer] -- 1.6307%
+  weights: 2.92956e-06 [bits/kmer] -- 3.21566e-05%
+    weight_interval_values: 5.09488e-07 [bits/kmer]
+    weight_interval_lengths: 1.91058e-06 [bits/kmer]
+    weight_dictionary: 5.09488e-07 [bits/kmer]
+  --------------
+  total: 9.11029 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 super_kmers = 92.5566%
+buckets with 2 super_kmers = 5.94664%
+buckets with 3 super_kmers = 0.722249%
+buckets with 4 super_kmers = 0.278271%
+buckets with 5 super_kmers = 0.141909%
+buckets with 6 super_kmers = 0.084189%
+buckets with 7 super_kmers = 0.054336%
+buckets with 8 super_kmers = 0.037752%
+buckets with 9 super_kmers = 0.0277301%
+buckets with 10 super_kmers = 0.0212797%
+buckets with 11 super_kmers = 0.0166691%
+buckets with 12 super_kmers = 0.0132437%
+buckets with 13 super_kmers = 0.0110966%
+buckets with 14 super_kmers = 0.00920041%
+buckets with 15 super_kmers = 0.00754465%
+buckets with 16 super_kmers = 0.00658964%
+max_num_super_kmers_in_bucket 22004
+2025-11-27 22:25:20: saving data structure to disk...
+2025-11-27 22:25:20: DONE
+k = 31, m = 20, seed = 1, l = 6, c = 3, canonical_parsing = true, weighted = false
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/kestrel.k31.eulertigs.fa.gz'...
+m_buffer_size 29411764
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.0.bin'...
+read 100000 sequences, 213090615 bases, 210090645 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.1.bin'...
+read 200000 sequences, 390706022 bases, 384706052 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.2.bin'...
+read 300000 sequences, 575071881 bases, 566071911 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.3.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.4.bin'...
+read 400000 sequences, 764532455 bases, 752532485 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.5.bin'...
+read 500000 sequences, 971034152 bases, 956034182 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.6.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278720874064879.minimizers.7.bin'...
+read 582860 sequences, 1167885005 bases, 1150399205 kmers
+num_kmers 1150399205
+num_super_kmers 225292355
+num_pieces 582861 (+0.0303996 [bits/kmer])
+=== step 1: 'parse_file' 80.4675 [sec] (69.9475 [ns/kmer])
+ == files to merge = 8
+num_written_tuples = 50000000
+num_written_tuples = 100000000
+num_written_tuples = 150000000
+num_written_tuples = 200000000
+num_written_tuples = 225292355
+num_minimizers 212008472
+building minimizers MPHF with 64 threads and 256 partitions...
+=== step 2: 'build_minimizers' 15.8973 [sec] (13.8189 [ns/kmer])
+bits_per_offset = ceil(log2(1167885036)) = 31
+m_buffer_size 20833333
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278817502740446.bucket_pairs.0.bin'...
+num_singletons 201072056/212008472 (94.8415%)
+=== step 3: 'build_index' 56.2443 [sec] (48.8911 [ns/kmer])
+max_num_super_kmers_in_bucket 7372
+log2_max_num_super_kmers_in_bucket 13
+num_buckets_in_skew_index 2668/212008472 (0.00125844%)
+num_partitions 7
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 861838
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 486191
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 276778
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 158755
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 86161
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 15153
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 7372: 37685
+num_kmers_in_skew_index 1922561 (0.167121%)
+building partitions...
+  lower 64; upper 128; num_bits_per_pos 7; keys_in_partition.size() 861838
+    building MPHF with 64 threads and 43 partitions...
+    built mphs[0] for 861838 keys; bits/key = 2.98449
+    built positions[0] for 861838 keys; bits/key = 7.00041
+  lower 128; upper 256; num_bits_per_pos 8; keys_in_partition.size() 486191
+    building MPHF with 64 threads and 24 partitions...
+    built mphs[1] for 486191 keys; bits/key = 2.95601
+    built positions[1] for 486191 keys; bits/key = 8.00067
+  lower 256; upper 512; num_bits_per_pos 9; keys_in_partition.size() 276778
+    building MPHF with 64 threads and 13 partitions...
+    built mphs[2] for 276778 keys; bits/key = 2.90601
+    built positions[2] for 276778 keys; bits/key = 9.00118
+  lower 512; upper 1024; num_bits_per_pos 10; keys_in_partition.size() 158755
+    building MPHF with 64 threads and 7 partitions...
+    built mphs[3] for 158755 keys; bits/key = 2.86308
+    built positions[3] for 158755 keys; bits/key = 10.0022
+  lower 1024; upper 2048; num_bits_per_pos 11; keys_in_partition.size() 86161
+    building MPHF with 64 threads and 4 partitions...
+    built mphs[4] for 86161 keys; bits/key = 2.9216
+    built positions[4] for 86161 keys; bits/key = 11.0038
+  lower 2048; upper 4096; num_bits_per_pos 12; keys_in_partition.size() 15153
+    building MPHF with 64 threads and 1 partitions...
+    built mphs[5] for 15153 keys; bits/key = 2.98924
+    built positions[5] for 15153 keys; bits/key = 12.0245
+  lower 4096; upper 7372; num_bits_per_pos 13; keys_in_partition.size() 37685
+    building MPHF with 64 threads and 1 partitions...
+    built mphs[6] for 37685 keys; bits/key = 2.74274
+    built positions[6] for 37685 keys; bits/key = 13.0089
+num_bits_for_skew_index 21291600(0.018508 [bits/kmer])
+=== step 4: 'build_skew_index' 1.03843 [sec] (0.902674 [ns/kmer])
+=== total_time 153.648 [sec] (133.56 [ns/kmer])
+total index size: 1284336368 [B] -- 1284.34 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.504602 [bits/kmer] (2.73807 [bits/key]) -- 5.64974%
+  pieces: 0.00740836 [bits/kmer] -- 0.0829473%
+  num_super_kmers_before_bucket: 0.299503 [bits/kmer] -- 3.35337%
+  offsets: 6.07099 [bits/kmer] -- 67.9735%
+  strings: 2.0304 [bits/kmer] -- 22.7332%
+  skew_index: 0.018508 [bits/kmer] -- 0.207224%
+  weights: 1.27956e-06 [bits/kmer] -- 1.43265e-05%
+    weight_interval_values: 2.22531e-07 [bits/kmer]
+    weight_interval_lengths: 8.34493e-07 [bits/kmer]
+    weight_dictionary: 2.22531e-07 [bits/kmer]
+  --------------
+  total: 8.93141 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 super_kmers = 94.8415%
+buckets with 2 super_kmers = 4.84071%
+buckets with 3 super_kmers = 0.187797%
+buckets with 4 super_kmers = 0.0463713%
+buckets with 5 super_kmers = 0.0230014%
+buckets with 6 super_kmers = 0.0138645%
+buckets with 7 super_kmers = 0.00932793%
+buckets with 8 super_kmers = 0.00652804%
+buckets with 9 super_kmers = 0.00484226%
+buckets with 10 super_kmers = 0.00370363%
+buckets with 11 super_kmers = 0.00290932%
+buckets with 12 super_kmers = 0.00224755%
+buckets with 13 super_kmers = 0.00189285%
+buckets with 14 super_kmers = 0.00158814%
+buckets with 15 super_kmers = 0.00133438%
+buckets with 16 super_kmers = 0.00109854%
+max_num_super_kmers_in_bucket 7372
+2025-11-27 22:27:54: saving data structure to disk...
+2025-11-27 22:27:55: DONE
+k = 31, m = 21, seed = 1, l = 6, c = 3, canonical_parsing = true, weighted = false
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/human.k31.eulertigs.fa.gz'...
+m_buffer_size 29411764
+read 100000 sequences, 24154188 bases, 21154218 kmers
+read 200000 sequences, 48616692 bases, 42616722 kmers
+read 300000 sequences, 73131027 bases, 64131057 kmers
+read 400000 sequences, 97783723 bases, 85783753 kmers
+read 500000 sequences, 122219519 bases, 107219549 kmers
+read 600000 sequences, 146714842 bases, 128714872 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.0.bin'...
+read 700000 sequences, 171233673 bases, 150233703 kmers
+read 800000 sequences, 195693297 bases, 171693327 kmers
+read 900000 sequences, 220477596 bases, 193477626 kmers
+read 1000000 sequences, 245136480 bases, 215136510 kmers
+read 1100000 sequences, 269861488 bases, 236861518 kmers
+read 1200000 sequences, 294553400 bases, 258553430 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.1.bin'...
+read 1300000 sequences, 319281499 bases, 280281529 kmers
+read 1400000 sequences, 344258826 bases, 302258856 kmers
+read 1500000 sequences, 368900321 bases, 323900351 kmers
+read 1600000 sequences, 393909637 bases, 345909667 kmers
+read 1700000 sequences, 418576764 bases, 367576794 kmers
+read 1800000 sequences, 443411012 bases, 389411042 kmers
+read 1900000 sequences, 468034254 bases, 411034284 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.2.bin'...
+read 2000000 sequences, 492922181 bases, 432922211 kmers
+read 2100000 sequences, 517852856 bases, 454852886 kmers
+read 2200000 sequences, 542402258 bases, 476402288 kmers
+read 2300000 sequences, 567260857 bases, 498260887 kmers
+read 2400000 sequences, 592478462 bases, 520478492 kmers
+read 2500000 sequences, 617295027 bases, 542295057 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.3.bin'...
+read 2600000 sequences, 642487995 bases, 564488025 kmers
+read 2700000 sequences, 667681489 bases, 586681519 kmers
+read 2800000 sequences, 693019221 bases, 609019251 kmers
+read 2900000 sequences, 718419082 bases, 631419112 kmers
+read 3000000 sequences, 743136645 bases, 653136675 kmers
+read 3100000 sequences, 768135598 bases, 675135628 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.4.bin'...
+read 3200000 sequences, 793535023 bases, 697535053 kmers
+read 3300000 sequences, 819156616 bases, 720156646 kmers
+read 3400000 sequences, 844256779 bases, 742256809 kmers
+read 3500000 sequences, 869741880 bases, 764741910 kmers
+read 3600000 sequences, 895152151 bases, 787152181 kmers
+read 3700000 sequences, 920884314 bases, 809884344 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.5.bin'...
+read 3800000 sequences, 946277252 bases, 832277282 kmers
+read 3900000 sequences, 972103084 bases, 855103114 kmers
+read 4000000 sequences, 997901794 bases, 877901824 kmers
+read 4100000 sequences, 1023962565 bases, 900962595 kmers
+read 4200000 sequences, 1050002905 bases, 924002935 kmers
+read 4300000 sequences, 1076025926 bases, 947025956 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.6.bin'...
+read 4400000 sequences, 1101901550 bases, 969901580 kmers
+read 4500000 sequences, 1127998210 bases, 992998240 kmers
+read 4600000 sequences, 1153713252 bases, 1015713282 kmers
+read 4700000 sequences, 1179840867 bases, 1038840897 kmers
+read 4800000 sequences, 1205900933 bases, 1061900963 kmers
+read 4900000 sequences, 1232271094 bases, 1085271124 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.7.bin'...
+read 5000000 sequences, 1259012297 bases, 1109012327 kmers
+read 5100000 sequences, 1285390407 bases, 1132390437 kmers
+read 5200000 sequences, 1312574199 bases, 1156574229 kmers
+read 5300000 sequences, 1339714447 bases, 1180714477 kmers
+read 5400000 sequences, 1366712530 bases, 1204712560 kmers
+read 5500000 sequences, 1394310431 bases, 1229310461 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.8.bin'...
+read 5600000 sequences, 1421869864 bases, 1253869894 kmers
+read 5700000 sequences, 1449547608 bases, 1278547638 kmers
+read 5800000 sequences, 1477685978 bases, 1303686008 kmers
+read 5900000 sequences, 1505662869 bases, 1328662899 kmers
+read 6000000 sequences, 1534165192 bases, 1354165222 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.9.bin'...
+read 6100000 sequences, 1562404847 bases, 1379404877 kmers
+read 6200000 sequences, 1591527035 bases, 1405527065 kmers
+read 6300000 sequences, 1620530378 bases, 1431530408 kmers
+read 6400000 sequences, 1650356135 bases, 1458356165 kmers
+read 6500000 sequences, 1680100604 bases, 1485100634 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.10.bin'...
+read 6600000 sequences, 1709838161 bases, 1511838191 kmers
+read 6700000 sequences, 1739768824 bases, 1538768854 kmers
+read 6800000 sequences, 1771033237 bases, 1567033267 kmers
+read 6900000 sequences, 1802734155 bases, 1595734185 kmers
+read 7000000 sequences, 1835088122 bases, 1625088152 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.11.bin'...
+read 7100000 sequences, 1868202990 bases, 1655203020 kmers
+read 7200000 sequences, 1901851887 bases, 1685851917 kmers
+read 7300000 sequences, 1936102636 bases, 1717102666 kmers
+read 7400000 sequences, 1971764013 bases, 1749764043 kmers
+read 7500000 sequences, 2008379618 bases, 1783379648 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.12.bin'...
+read 7600000 sequences, 2046720278 bases, 1818720308 kmers
+read 7700000 sequences, 2086661084 bases, 1855661114 kmers
+read 7800000 sequences, 2129062919 bases, 1895062949 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.13.bin'...
+read 7900000 sequences, 2174787944 bases, 1937787974 kmers
+read 8000000 sequences, 2224822145 bases, 1984822175 kmers
+read 8100000 sequences, 2283235897 bases, 2040235927 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.14.bin'...
+read 8200000 sequences, 2311905284 bases, 2065905314 kmers
+read 8300000 sequences, 2336057180 bases, 2087057210 kmers
+read 8400000 sequences, 2360509664 bases, 2108509694 kmers
+read 8500000 sequences, 2384831256 bases, 2129831286 kmers
+read 8600000 sequences, 2409417232 bases, 2151417262 kmers
+read 8700000 sequences, 2433616800 bases, 2172616830 kmers
+read 8800000 sequences, 2458186051 bases, 2194186081 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.15.bin'...
+read 8900000 sequences, 2482411631 bases, 2215411661 kmers
+read 9000000 sequences, 2506972327 bases, 2236972357 kmers
+read 9100000 sequences, 2531678245 bases, 2258678275 kmers
+read 9200000 sequences, 2555989557 bases, 2279989587 kmers
+read 9300000 sequences, 2580569574 bases, 2301569604 kmers
+read 9400000 sequences, 2605362813 bases, 2323362843 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.16.bin'...
+read 9500000 sequences, 2629786923 bases, 2344786953 kmers
+read 9600000 sequences, 2654330633 bases, 2366330663 kmers
+read 9700000 sequences, 2679002198 bases, 2388002228 kmers
+read 9800000 sequences, 2703471555 bases, 2409471585 kmers
+read 9900000 sequences, 2727977401 bases, 2430977431 kmers
+read 10000000 sequences, 2751909350 bases, 2451909380 kmers
+read 10100000 sequences, 2776332527 bases, 2473332557 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.17.bin'...
+read 10200000 sequences, 2800726002 bases, 2494726032 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764278875702441678.minimizers.18.bin'...
+read 10250465 sequences, 2813192630 bases, 2505678680 kmers
+num_kmers 2505678680
+num_super_kmers 535721942
+num_pieces 10250466 (+0.245454 [bits/kmer])
+=== step 1: 'parse_file' 172.811 [sec] (68.9679 [ns/kmer])
+ == files to merge = 19
+num_written_tuples = 50000000
+num_written_tuples = 100000000
+num_written_tuples = 150000000
+num_written_tuples = 200000000
+num_written_tuples = 250000000
+num_written_tuples = 300000000
+num_written_tuples = 350000000
+num_written_tuples = 400000000
+num_written_tuples = 450000000
+num_written_tuples = 500000000
+num_written_tuples = 535721942
+num_minimizers 465919362
+building minimizers MPHF with 64 threads and 256 partitions...
+=== step 2: 'build_minimizers' 39.4847 [sec] (15.7581 [ns/kmer])
+bits_per_offset = ceil(log2(2813192661)) = 32
+m_buffer_size 20833333
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279088618654493.bucket_pairs.0.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279088618654493.bucket_pairs.1.bin'...
+num_singletons 433242759/465919362 (92.9866%)
+ == files to merge = 2
+num_written_pairs = 32676603
+=== step 3: 'build_index' 141.348 [sec] (56.4112 [ns/kmer])
+max_num_super_kmers_in_bucket 32249
+log2_max_num_super_kmers_in_bucket 15
+num_buckets_in_skew_index 63334/465919362 (0.0135933%)
+num_partitions 7
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 15191124
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 11100430
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 7610580
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 4687038
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 3133730
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 1594207
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 32249: 1243030
+num_kmers_in_skew_index 44560139 (1.77837%)
+building partitions...
+  lower 64; upper 128; num_bits_per_pos 7; keys_in_partition.size() 15191124
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[0] for 15191124 keys; bits/key = 2.94094
+    built positions[0] for 15191124 keys; bits/key = 7.00002
+  lower 128; upper 256; num_bits_per_pos 8; keys_in_partition.size() 11100430
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[1] for 11100430 keys; bits/key = 2.99917
+    built positions[1] for 11100430 keys; bits/key = 8.00003
+  lower 256; upper 512; num_bits_per_pos 9; keys_in_partition.size() 7610580
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[2] for 7610580 keys; bits/key = 3.05914
+    built positions[2] for 7610580 keys; bits/key = 9.00004
+  lower 512; upper 1024; num_bits_per_pos 10; keys_in_partition.size() 4687038
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[3] for 4687038 keys; bits/key = 3.21486
+    built positions[3] for 4687038 keys; bits/key = 10.0001
+  lower 1024; upper 2048; num_bits_per_pos 11; keys_in_partition.size() 3133730
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[4] for 3133730 keys; bits/key = 3.32063
+    built positions[4] for 3133730 keys; bits/key = 11.0001
+  lower 2048; upper 4096; num_bits_per_pos 12; keys_in_partition.size() 1594207
+    building MPHF with 64 threads and 79 partitions...
+    built mphs[5] for 1594207 keys; bits/key = 3.09712
+    built positions[5] for 1594207 keys; bits/key = 12.0002
+  lower 4096; upper 32249; num_bits_per_pos 15; keys_in_partition.size() 1243030
+    building MPHF with 64 threads and 62 partitions...
+    built mphs[6] for 1243030 keys; bits/key = 3.0308
+    built positions[6] for 1243030 keys; bits/key = 15.0003
+num_bits_for_skew_index 518185552(0.206804 [bits/kmer])
+=== step 4: 'build_skew_index' 6.26459 [sec] (2.50016 [ns/kmer])
+=== total_time 359.909 [sec] (143.637 [ns/kmer])
+total index size: 3180099170 [B] -- 3180.1 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.494925 [bits/kmer] (2.66167 [bits/key]) -- 4.87455%
+  pieces: 0.0459722 [bits/kmer] -- 0.452783%
+  num_super_kmers_before_bucket: 0.318398 [bits/kmer] -- 3.13592%
+  offsets: 6.8417 [bits/kmer] -- 67.3843%
+  strings: 2.24545 [bits/kmer] -- 22.1156%
+  skew_index: 0.206804 [bits/kmer] -- 2.03683%
+  weights: 5.87466e-07 [bits/kmer] -- 5.78598e-06%
+    weight_interval_values: 1.02168e-07 [bits/kmer]
+    weight_interval_lengths: 3.8313e-07 [bits/kmer]
+    weight_dictionary: 1.02168e-07 [bits/kmer]
+  --------------
+  total: 10.1533 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 super_kmers = 92.9866%
+buckets with 2 super_kmers = 5.6374%
+buckets with 3 super_kmers = 0.597685%
+buckets with 4 super_kmers = 0.239291%
+buckets with 5 super_kmers = 0.131087%
+buckets with 6 super_kmers = 0.0829399%
+buckets with 7 super_kmers = 0.0571751%
+buckets with 8 super_kmers = 0.0415825%
+buckets with 9 super_kmers = 0.0314344%
+buckets with 10 super_kmers = 0.0244089%
+buckets with 11 super_kmers = 0.0195858%
+buckets with 12 super_kmers = 0.0160863%
+buckets with 13 super_kmers = 0.0133457%
+buckets with 14 super_kmers = 0.0112569%
+buckets with 15 super_kmers = 0.00953792%
+buckets with 16 super_kmers = 0.00818575%
+max_num_super_kmers_in_bucket 32249
+2025-11-27 22:33:56: saving data structure to disk...
+2025-11-27 22:33:58: DONE
+k = 31, m = 19, seed = 1, l = 6, c = 3, canonical_parsing = true, weighted = false
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/ncbi-virus.k31.eulertigs.fa.gz'...
+m_buffer_size 29411764
+read 100000 sequences, 25244517 bases, 22244547 kmers
+read 200000 sequences, 51983063 bases, 45983093 kmers
+read 300000 sequences, 83502239 bases, 74502269 kmers
+read 400000 sequences, 125957954 bases, 113957984 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279238485636807.minimizers.0.bin'...
+read 500000 sequences, 196376539 bases, 181376569 kmers
+read 600000 sequences, 214563709 bases, 196563739 kmers
+read 700000 sequences, 233311986 bases, 212312016 kmers
+read 800000 sequences, 251082581 bases, 227082611 kmers
+read 900000 sequences, 269982481 bases, 242982511 kmers
+read 1000000 sequences, 289026734 bases, 259026764 kmers
+read 1100000 sequences, 308418289 bases, 275418319 kmers
+read 1200000 sequences, 328185212 bases, 292185242 kmers
+read 1300000 sequences, 349175412 bases, 310175442 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279238485636807.minimizers.1.bin'...
+read 1400000 sequences, 370064780 bases, 328064810 kmers
+read 1500000 sequences, 391112878 bases, 346112908 kmers
+read 1600000 sequences, 413509635 bases, 365509665 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279238485636807.minimizers.2.bin'...
+read 1645464 sequences, 425569105 bases, 376205185 kmers
+num_kmers 376205185
+num_super_kmers 70028206
+num_pieces 1645465 (+0.262431 [bits/kmer])
+=== step 1: 'parse_file' 27.9652 [sec] (74.335 [ns/kmer])
+ == files to merge = 3
+num_written_tuples = 50000000
+num_written_tuples = 70028206
+num_minimizers 62055494
+building minimizers MPHF with 64 threads and 256 partitions...
+=== step 2: 'build_minimizers' 4.32492 [sec] (11.4962 [ns/kmer])
+bits_per_offset = ceil(log2(425569136)) = 29
+m_buffer_size 20833333
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279270850453237.bucket_pairs.0.bin'...
+num_singletons 55876049/62055494 (90.0421%)
+=== step 3: 'build_index' 11.3486 [sec] (30.1659 [ns/kmer])
+max_num_super_kmers_in_bucket 311
+log2_max_num_super_kmers_in_bucket 9
+num_buckets_in_skew_index 33/62055494 (5.31782e-05%)
+num_partitions 3
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 11429
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 4613
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 311: 4820
+num_kmers_in_skew_index 20862 (0.00554538%)
+building partitions...
+  lower 64; upper 128; num_bits_per_pos 7; keys_in_partition.size() 11429
+    building MPHF with 64 threads and 1 partitions...
+    built mphs[0] for 11429 keys; bits/key = 3.11208
+    built positions[0] for 11429 keys; bits/key = 7.03334
+  lower 128; upper 256; num_bits_per_pos 8; keys_in_partition.size() 4613
+    building MPHF with 64 threads and 1 partitions...
+    built mphs[1] for 4613 keys; bits/key = 3.79449
+    built positions[1] for 4613 keys; bits/key = 8.07457
+  lower 256; upper 311; num_bits_per_pos 9; keys_in_partition.size() 4820
+    building MPHF with 64 threads and 1 partitions...
+    built mphs[2] for 4820 keys; bits/key = 3.69793
+    built positions[2] for 4820 keys; bits/key = 9.06888
+num_bits_for_skew_index 232432(0.000617833 [bits/kmer])
+=== step 4: 'build_skew_index' 0.308427 [sec] (0.819837 [ns/kmer])
+=== total_time 43.9471 [sec] (116.817 [ns/kmer])
+total index size: 396825922 [B] -- 396.826 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.449615 [bits/kmer] (2.72575 [bits/key]) -- 5.32814%
+  pieces: 0.0487325 [bits/kmer] -- 0.577502%
+  num_super_kmers_before_bucket: 0.278932 [bits/kmer] -- 3.30547%
+  offsets: 5.39817 [bits/kmer] -- 63.9707%
+  strings: 2.26243 [bits/kmer] -- 26.8108%
+  skew_index: 0.000617833 [bits/kmer] -- 0.0073216%
+  weights: 3.91276e-06 [bits/kmer] -- 4.63679e-05%
+    weight_interval_values: 6.8048e-07 [bits/kmer]
+    weight_interval_lengths: 2.5518e-06 [bits/kmer]
+    weight_dictionary: 6.8048e-07 [bits/kmer]
+  --------------
+  total: 8.4385 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 super_kmers = 90.0421%
+buckets with 2 super_kmers = 8.21444%
+buckets with 3 super_kmers = 1.16879%
+buckets with 4 super_kmers = 0.332915%
+buckets with 5 super_kmers = 0.121902%
+buckets with 6 super_kmers = 0.053631%
+buckets with 7 super_kmers = 0.0266197%
+buckets with 8 super_kmers = 0.0143613%
+buckets with 9 super_kmers = 0.00850529%
+buckets with 10 super_kmers = 0.00518085%
+buckets with 11 super_kmers = 0.00316652%
+buckets with 12 super_kmers = 0.00211585%
+buckets with 13 super_kmers = 0.00149382%
+buckets with 14 super_kmers = 0.0010265%
+buckets with 15 super_kmers = 0.000747718%
+buckets with 16 super_kmers = 0.000525336%
+max_num_super_kmers_in_bucket 311
+2025-11-27 22:34:42: saving data structure to disk...
+2025-11-27 22:34:42: DONE
+k = 31, m = 21, seed = 1, l = 6, c = 3, canonical_parsing = true, weighted = false
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/se.k31.eulertigs.fa.gz'...
+m_buffer_size 29411764
+read 100000 sequences, 8718376 bases, 5718406 kmers
+read 200000 sequences, 17474036 bases, 11474066 kmers
+read 300000 sequences, 26299388 bases, 17299418 kmers
+read 400000 sequences, 35167021 bases, 23167051 kmers
+read 500000 sequences, 43967859 bases, 28967889 kmers
+read 600000 sequences, 52886411 bases, 34886441 kmers
+read 700000 sequences, 61937165 bases, 40937195 kmers
+read 800000 sequences, 71070675 bases, 47070705 kmers
+read 900000 sequences, 80176820 bases, 53176850 kmers
+read 1000000 sequences, 89525814 bases, 59525844 kmers
+read 1100000 sequences, 98984767 bases, 65984797 kmers
+read 1200000 sequences, 108719822 bases, 72719852 kmers
+read 1300000 sequences, 118280750 bases, 79280780 kmers
+read 1400000 sequences, 127917709 bases, 85917739 kmers
+read 1500000 sequences, 137591502 bases, 92591532 kmers
+read 1600000 sequences, 147395162 bases, 99395192 kmers
+read 1700000 sequences, 157334953 bases, 106334983 kmers
+read 1800000 sequences, 167444668 bases, 113444698 kmers
+read 1900000 sequences, 177725512 bases, 120725542 kmers
+read 2000000 sequences, 188052017 bases, 128052047 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.0.bin'...
+read 2100000 sequences, 198499489 bases, 135499519 kmers
+read 2200000 sequences, 209053217 bases, 143053247 kmers
+read 2300000 sequences, 219847953 bases, 150847983 kmers
+read 2400000 sequences, 230787134 bases, 158787164 kmers
+read 2500000 sequences, 242014317 bases, 167014347 kmers
+read 2600000 sequences, 253501939 bases, 175501969 kmers
+read 2700000 sequences, 265108629 bases, 184108659 kmers
+read 2800000 sequences, 277040099 bases, 193040129 kmers
+read 2900000 sequences, 289406610 bases, 202406640 kmers
+read 3000000 sequences, 302142147 bases, 212142177 kmers
+read 3100000 sequences, 315168399 bases, 222168429 kmers
+read 3200000 sequences, 329083022 bases, 233083052 kmers
+read 3300000 sequences, 343507959 bases, 244507989 kmers
+read 3400000 sequences, 358607940 bases, 256607970 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.1.bin'...
+read 3500000 sequences, 374790281 bases, 269790311 kmers
+read 3600000 sequences, 392123240 bases, 284123270 kmers
+read 3700000 sequences, 410698110 bases, 299698140 kmers
+read 3800000 sequences, 431358012 bases, 317358042 kmers
+read 3900000 sequences, 454179419 bases, 337179449 kmers
+read 4000000 sequences, 461236464 bases, 341236494 kmers
+read 4100000 sequences, 468031488 bases, 345031518 kmers
+read 4200000 sequences, 474889537 bases, 348889567 kmers
+read 4300000 sequences, 481729647 bases, 352729677 kmers
+read 4400000 sequences, 488721923 bases, 356721953 kmers
+read 4500000 sequences, 495625017 bases, 360625047 kmers
+read 4600000 sequences, 502596529 bases, 364596559 kmers
+read 4700000 sequences, 509600468 bases, 368600498 kmers
+read 4800000 sequences, 516484409 bases, 372484439 kmers
+read 4900000 sequences, 523427172 bases, 376427202 kmers
+read 5000000 sequences, 530371696 bases, 380371726 kmers
+read 5100000 sequences, 537329533 bases, 384329563 kmers
+read 5200000 sequences, 544209307 bases, 388209337 kmers
+read 5300000 sequences, 551189884 bases, 392189914 kmers
+read 5400000 sequences, 558101859 bases, 396101889 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.2.bin'...
+read 5500000 sequences, 565120102 bases, 400120132 kmers
+read 5600000 sequences, 572157514 bases, 404157544 kmers
+read 5700000 sequences, 579064805 bases, 408064835 kmers
+read 5800000 sequences, 586002650 bases, 412002680 kmers
+read 5900000 sequences, 592940870 bases, 415940900 kmers
+read 6000000 sequences, 600036436 bases, 420036466 kmers
+read 6100000 sequences, 607035741 bases, 424035771 kmers
+read 6200000 sequences, 614208655 bases, 428208685 kmers
+read 6300000 sequences, 621168185 bases, 432168215 kmers
+read 6400000 sequences, 628072415 bases, 436072445 kmers
+read 6500000 sequences, 635102553 bases, 440102583 kmers
+read 6600000 sequences, 642120687 bases, 444120717 kmers
+read 6700000 sequences, 649088919 bases, 448088949 kmers
+read 6800000 sequences, 656101716 bases, 452101746 kmers
+read 6900000 sequences, 663148824 bases, 456148854 kmers
+read 7000000 sequences, 670072415 bases, 460072445 kmers
+read 7100000 sequences, 677027793 bases, 464027823 kmers
+read 7200000 sequences, 684172149 bases, 468172179 kmers
+read 7300000 sequences, 691211136 bases, 472211166 kmers
+read 7400000 sequences, 698208759 bases, 476208789 kmers
+read 7500000 sequences, 705328918 bases, 480328948 kmers
+read 7600000 sequences, 712360901 bases, 484360931 kmers
+read 7700000 sequences, 719471743 bases, 488471773 kmers
+read 7800000 sequences, 726605082 bases, 492605112 kmers
+read 7900000 sequences, 733774553 bases, 496774583 kmers
+read 8000000 sequences, 740830630 bases, 500830660 kmers
+read 8100000 sequences, 747950142 bases, 504950172 kmers
+read 8200000 sequences, 755058699 bases, 509058729 kmers
+read 8300000 sequences, 762216366 bases, 513216396 kmers
+read 8400000 sequences, 769353795 bases, 517353825 kmers
+read 8500000 sequences, 776583104 bases, 521583134 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.3.bin'...
+read 8600000 sequences, 783816161 bases, 525816191 kmers
+read 8700000 sequences, 791077309 bases, 530077339 kmers
+read 8800000 sequences, 798157720 bases, 534157750 kmers
+read 8900000 sequences, 805240984 bases, 538241014 kmers
+read 9000000 sequences, 812530422 bases, 542530452 kmers
+read 9100000 sequences, 819617660 bases, 546617690 kmers
+read 9200000 sequences, 826809679 bases, 550809709 kmers
+read 9300000 sequences, 833919076 bases, 554919106 kmers
+read 9400000 sequences, 841155631 bases, 559155661 kmers
+read 9500000 sequences, 848401634 bases, 563401664 kmers
+read 9600000 sequences, 855643616 bases, 567643646 kmers
+read 9700000 sequences, 862872646 bases, 571872676 kmers
+read 9800000 sequences, 870171662 bases, 576171692 kmers
+read 9900000 sequences, 877460842 bases, 580460872 kmers
+read 10000000 sequences, 884692117 bases, 584692147 kmers
+read 10100000 sequences, 891988881 bases, 588988911 kmers
+read 10200000 sequences, 899332113 bases, 593332143 kmers
+read 10300000 sequences, 906596087 bases, 597596117 kmers
+read 10400000 sequences, 913914165 bases, 601914195 kmers
+read 10500000 sequences, 921197132 bases, 606197162 kmers
+read 10600000 sequences, 928621300 bases, 610621330 kmers
+read 10700000 sequences, 935962513 bases, 614962543 kmers
+read 10800000 sequences, 943225364 bases, 619225394 kmers
+read 10900000 sequences, 950606220 bases, 623606250 kmers
+read 11000000 sequences, 958222210 bases, 628222240 kmers
+read 11100000 sequences, 965609577 bases, 632609607 kmers
+read 11200000 sequences, 972999540 bases, 636999570 kmers
+read 11300000 sequences, 980385943 bases, 641385973 kmers
+read 11400000 sequences, 987756659 bases, 645756689 kmers
+read 11500000 sequences, 995228579 bases, 650228609 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.4.bin'...
+read 11600000 sequences, 1002715916 bases, 654715946 kmers
+read 11700000 sequences, 1010163181 bases, 659163211 kmers
+read 11800000 sequences, 1017603999 bases, 663604029 kmers
+read 11900000 sequences, 1025150283 bases, 668150313 kmers
+read 12000000 sequences, 1032736012 bases, 672736042 kmers
+read 12100000 sequences, 1040213462 bases, 677213492 kmers
+read 12200000 sequences, 1047864710 bases, 681864740 kmers
+read 12300000 sequences, 1055370919 bases, 686370949 kmers
+read 12400000 sequences, 1062882101 bases, 690882131 kmers
+read 12500000 sequences, 1070457753 bases, 695457783 kmers
+read 12600000 sequences, 1078056452 bases, 700056482 kmers
+read 12700000 sequences, 1085619838 bases, 704619868 kmers
+read 12800000 sequences, 1093220312 bases, 709220342 kmers
+read 12900000 sequences, 1100937956 bases, 713937986 kmers
+read 13000000 sequences, 1108501138 bases, 718501168 kmers
+read 13100000 sequences, 1116117632 bases, 723117662 kmers
+read 13200000 sequences, 1123791900 bases, 727791930 kmers
+read 13300000 sequences, 1131456231 bases, 732456261 kmers
+read 13400000 sequences, 1139167200 bases, 737167230 kmers
+read 13500000 sequences, 1147084189 bases, 742084219 kmers
+read 13600000 sequences, 1154903385 bases, 746903415 kmers
+read 13700000 sequences, 1162719538 bases, 751719568 kmers
+read 13800000 sequences, 1170515131 bases, 756515161 kmers
+read 13900000 sequences, 1178310843 bases, 761310873 kmers
+read 14000000 sequences, 1186158447 bases, 766158477 kmers
+read 14100000 sequences, 1194143426 bases, 771143456 kmers
+read 14200000 sequences, 1202037098 bases, 776037128 kmers
+read 14300000 sequences, 1210016683 bases, 781016713 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.5.bin'...
+read 14400000 sequences, 1217929646 bases, 785929676 kmers
+read 14500000 sequences, 1226009490 bases, 791009520 kmers
+read 14600000 sequences, 1233936479 bases, 795936509 kmers
+read 14700000 sequences, 1241953750 bases, 800953780 kmers
+read 14800000 sequences, 1249971870 bases, 805971900 kmers
+read 14900000 sequences, 1258011905 bases, 811011935 kmers
+read 15000000 sequences, 1266102845 bases, 816102875 kmers
+read 15100000 sequences, 1274149642 bases, 821149672 kmers
+read 15200000 sequences, 1282474792 bases, 826474822 kmers
+read 15300000 sequences, 1290768894 bases, 831768924 kmers
+read 15400000 sequences, 1299121736 bases, 837121766 kmers
+read 15500000 sequences, 1307304137 bases, 842304167 kmers
+read 15600000 sequences, 1315661695 bases, 847661725 kmers
+read 15700000 sequences, 1324089803 bases, 853089833 kmers
+read 15800000 sequences, 1332318556 bases, 858318586 kmers
+read 15900000 sequences, 1340760519 bases, 863760549 kmers
+read 16000000 sequences, 1349263730 bases, 869263760 kmers
+read 16100000 sequences, 1357811657 bases, 874811687 kmers
+read 16200000 sequences, 1366358116 bases, 880358146 kmers
+read 16300000 sequences, 1375026989 bases, 886027019 kmers
+read 16400000 sequences, 1383710154 bases, 891710184 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279282875766784.minimizers.6.bin'...
+read 16440873 sequences, 1387536274 bases, 894310084 kmers
+num_kmers 894310084
+num_super_kmers 201604301
+num_pieces 16440874 (+1.10303 [bits/kmer])
+=== step 1: 'parse_file' 65.3814 [sec] (73.1082 [ns/kmer])
+ == files to merge = 7
+num_written_tuples = 50000000
+num_written_tuples = 100000000
+num_written_tuples = 150000000
+num_written_tuples = 200000000
+num_written_tuples = 201604301
+num_minimizers 144120499
+building minimizers MPHF with 64 threads and 256 partitions...
+=== step 2: 'build_minimizers' 12.6663 [sec] (14.1632 [ns/kmer])
+bits_per_offset = ceil(log2(1387536305)) = 31
+m_buffer_size 20833333
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279361141144604.bucket_pairs.0.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279361141144604.bucket_pairs.1.bin'...
+num_singletons 121051637/144120499 (83.9934%)
+ == files to merge = 2
+num_written_pairs = 23068862
+=== step 3: 'build_index' 39.4047 [sec] (44.0616 [ns/kmer])
+max_num_super_kmers_in_bucket 84137
+log2_max_num_super_kmers_in_bucket 17
+num_buckets_in_skew_index 16248/144120499 (0.0112739%)
+num_partitions 7
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 4477797
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 1948141
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 1144428
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 817502
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 598296
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 442321
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 84137: 911319
+num_kmers_in_skew_index 10339804 (1.15618%)
+building partitions...
+  lower 64; upper 128; num_bits_per_pos 7; keys_in_partition.size() 4477797
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[0] for 4477797 keys; bits/key = 3.22778
+    built positions[0] for 4477797 keys; bits/key = 7.00009
+  lower 128; upper 256; num_bits_per_pos 8; keys_in_partition.size() 1948141
+    building MPHF with 64 threads and 97 partitions...
+    built mphs[1] for 1948141 keys; bits/key = 3.13402
+    built positions[1] for 1948141 keys; bits/key = 8.00018
+  lower 256; upper 512; num_bits_per_pos 9; keys_in_partition.size() 1144428
+    building MPHF with 64 threads and 57 partitions...
+    built mphs[2] for 1144428 keys; bits/key = 3.01254
+    built positions[2] for 1144428 keys; bits/key = 9.00033
+  lower 512; upper 1024; num_bits_per_pos 10; keys_in_partition.size() 817502
+    building MPHF with 64 threads and 40 partitions...
+    built mphs[3] for 817502 keys; bits/key = 2.97329
+    built positions[3] for 817502 keys; bits/key = 10.0004
+  lower 1024; upper 2048; num_bits_per_pos 11; keys_in_partition.size() 598296
+    building MPHF with 64 threads and 29 partitions...
+    built mphs[4] for 598296 keys; bits/key = 2.95535
+    built positions[4] for 598296 keys; bits/key = 11.0006
+  lower 2048; upper 4096; num_bits_per_pos 12; keys_in_partition.size() 442321
+    building MPHF with 64 threads and 22 partitions...
+    built mphs[5] for 442321 keys; bits/key = 2.96053
+    built positions[5] for 442321 keys; bits/key = 12.0008
+  lower 4096; upper 84137; num_bits_per_pos 17; keys_in_partition.size() 911319
+    building MPHF with 64 threads and 45 partitions...
+    built mphs[6] for 911319 keys; bits/key = 2.98769
+    built positions[6] for 911319 keys; bits/key = 17.0004
+num_bits_for_skew_index 125026416(0.139802 [bits/kmer])
+=== step 4: 'build_skew_index' 1.81259 [sec] (2.0268 [ns/kmer])
+=== total_time 119.265 [sec] (133.36 [ns/kmer])
+total index size: 1246772410 [B] -- 1246.77 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.428705 [bits/kmer] (2.66024 [bits/key]) -- 3.84388%
+  pieces: 0.176908 [bits/kmer] -- 1.5862%
+  num_super_kmers_before_bucket: 0.316153 [bits/kmer] -- 2.83471%
+  offsets: 6.98833 [bits/kmer] -- 62.6591%
+  strings: 3.10303 [bits/kmer] -- 27.8226%
+  skew_index: 0.139802 [bits/kmer] -- 1.2535%
+  weights: 1.64596e-06 [bits/kmer] -- 1.47581e-05%
+    weight_interval_values: 2.86254e-07 [bits/kmer]
+    weight_interval_lengths: 1.07345e-06 [bits/kmer]
+    weight_dictionary: 2.86254e-07 [bits/kmer]
+  --------------
+  total: 11.1529 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 super_kmers = 83.9934%
+buckets with 2 super_kmers = 10.3451%
+buckets with 3 super_kmers = 2.43817%
+buckets with 4 super_kmers = 1.02502%
+buckets with 5 super_kmers = 0.546504%
+buckets with 6 super_kmers = 0.339%
+buckets with 7 super_kmers = 0.232088%
+buckets with 8 super_kmers = 0.170709%
+buckets with 9 super_kmers = 0.132568%
+buckets with 10 super_kmers = 0.106718%
+buckets with 11 super_kmers = 0.088911%
+buckets with 12 super_kmers = 0.075244%
+buckets with 13 super_kmers = 0.0646494%
+buckets with 14 super_kmers = 0.0560184%
+buckets with 15 super_kmers = 0.049306%
+buckets with 16 super_kmers = 0.0428447%
+max_num_super_kmers_in_bucket 84137
+2025-11-27 22:36:42: saving data structure to disk...
+2025-11-27 22:36:43: DONE
+k = 31, m = 21, seed = 1, l = 6, c = 3, canonical_parsing = true, weighted = false
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/hprc.k31.eulertigs.fa.gz'...
+m_buffer_size 29411764
+read 100000 sequences, 15142600 bases, 12142630 kmers
+read 200000 sequences, 30291716 bases, 24291746 kmers
+read 300000 sequences, 45689080 bases, 36689110 kmers
+read 400000 sequences, 61242824 bases, 49242854 kmers
+read 500000 sequences, 77204688 bases, 62204718 kmers
+read 600000 sequences, 93322728 bases, 75322758 kmers
+read 700000 sequences, 109580784 bases, 88580814 kmers
+read 800000 sequences, 126019199 bases, 102019229 kmers
+read 900000 sequences, 142771255 bases, 115771285 kmers
+read 1000000 sequences, 159860280 bases, 129860310 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.0.bin'...
+read 1100000 sequences, 177221889 bases, 144221919 kmers
+read 1200000 sequences, 194614623 bases, 158614653 kmers
+read 1300000 sequences, 212431367 bases, 173431397 kmers
+read 1400000 sequences, 230443062 bases, 188443092 kmers
+read 1500000 sequences, 248830724 bases, 203830754 kmers
+read 1600000 sequences, 267495814 bases, 219495844 kmers
+read 1700000 sequences, 286467424 bases, 235467454 kmers
+read 1800000 sequences, 305974756 bases, 251974786 kmers
+read 1900000 sequences, 325573452 bases, 268573482 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.1.bin'...
+read 2000000 sequences, 345518992 bases, 285519022 kmers
+read 2100000 sequences, 365932818 bases, 302932848 kmers
+read 2200000 sequences, 386928554 bases, 320928584 kmers
+read 2300000 sequences, 408196559 bases, 339196589 kmers
+read 2400000 sequences, 429705966 bases, 357705996 kmers
+read 2500000 sequences, 451663903 bases, 376663933 kmers
+read 2600000 sequences, 474186039 bases, 396186069 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.2.bin'...
+read 2700000 sequences, 497212102 bases, 416212132 kmers
+read 2800000 sequences, 520661914 bases, 436661944 kmers
+read 2900000 sequences, 544613770 bases, 457613800 kmers
+read 3000000 sequences, 569210361 bases, 479210391 kmers
+read 3100000 sequences, 594100200 bases, 501100230 kmers
+read 3200000 sequences, 619323714 bases, 523323744 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.3.bin'...
+read 3300000 sequences, 645628376 bases, 546628406 kmers
+read 3400000 sequences, 672447793 bases, 570447823 kmers
+read 3500000 sequences, 699905664 bases, 594905694 kmers
+read 3600000 sequences, 728253444 bases, 620253474 kmers
+read 3700000 sequences, 756996641 bases, 645996671 kmers
+read 3800000 sequences, 786498161 bases, 672498191 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.4.bin'...
+read 3900000 sequences, 816910234 bases, 699910264 kmers
+read 4000000 sequences, 848332113 bases, 728332143 kmers
+read 4100000 sequences, 880941119 bases, 757941149 kmers
+read 4200000 sequences, 914418229 bases, 788418259 kmers
+read 4300000 sequences, 948701080 bases, 819701110 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.5.bin'...
+read 4400000 sequences, 984340067 bases, 852340097 kmers
+read 4500000 sequences, 1021325774 bases, 886325804 kmers
+read 4600000 sequences, 1059629391 bases, 921629421 kmers
+read 4700000 sequences, 1098776183 bases, 957776213 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.6.bin'...
+read 4800000 sequences, 1139816048 bases, 995816078 kmers
+read 4900000 sequences, 1182502543 bases, 1035502573 kmers
+read 5000000 sequences, 1226889874 bases, 1076889904 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.7.bin'...
+read 5100000 sequences, 1272830961 bases, 1119830991 kmers
+read 5200000 sequences, 1320724320 bases, 1164724350 kmers
+read 5300000 sequences, 1371130682 bases, 1212130712 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.8.bin'...
+read 5400000 sequences, 1423474687 bases, 1261474717 kmers
+read 5500000 sequences, 1478532677 bases, 1313532707 kmers
+read 5600000 sequences, 1536511057 bases, 1368511087 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.9.bin'...
+read 5700000 sequences, 1597650497 bases, 1426650527 kmers
+read 5800000 sequences, 1661331597 bases, 1487331627 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.10.bin'...
+read 5900000 sequences, 1728788299 bases, 1551788329 kmers
+read 6000000 sequences, 1800462732 bases, 1620462762 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.11.bin'...
+read 6100000 sequences, 1855582708 bases, 1672582738 kmers
+read 6200000 sequences, 1861290572 bases, 1675290602 kmers
+read 6300000 sequences, 1866991959 bases, 1677991989 kmers
+read 6400000 sequences, 1872712703 bases, 1680712733 kmers
+read 6500000 sequences, 1878412742 bases, 1683412772 kmers
+read 6600000 sequences, 1884126738 bases, 1686126768 kmers
+read 6700000 sequences, 1889847765 bases, 1688847795 kmers
+read 6800000 sequences, 1895565065 bases, 1691565095 kmers
+read 6900000 sequences, 1901268580 bases, 1694268610 kmers
+read 7000000 sequences, 1906975331 bases, 1696975361 kmers
+read 7100000 sequences, 1912694936 bases, 1699694966 kmers
+read 7200000 sequences, 1918405386 bases, 1702405416 kmers
+read 7300000 sequences, 1924111712 bases, 1705111742 kmers
+read 7400000 sequences, 1929830119 bases, 1707830149 kmers
+read 7500000 sequences, 1935539974 bases, 1710540004 kmers
+read 7600000 sequences, 1941266098 bases, 1713266128 kmers
+read 7700000 sequences, 1946976061 bases, 1715976091 kmers
+read 7800000 sequences, 1952688102 bases, 1718688132 kmers
+read 7900000 sequences, 1958401942 bases, 1721401972 kmers
+read 8000000 sequences, 1964117224 bases, 1724117254 kmers
+read 8100000 sequences, 1969830329 bases, 1726830359 kmers
+read 8200000 sequences, 1975558497 bases, 1729558527 kmers
+read 8300000 sequences, 1981283991 bases, 1732284021 kmers
+read 8400000 sequences, 1986995233 bases, 1734995263 kmers
+read 8500000 sequences, 1992721377 bases, 1737721407 kmers
+read 8600000 sequences, 1998449484 bases, 1740449514 kmers
+read 8700000 sequences, 2004184325 bases, 1743184355 kmers
+read 8800000 sequences, 2009910285 bases, 1745910315 kmers
+read 8900000 sequences, 2015628049 bases, 1748628079 kmers
+read 9000000 sequences, 2021346657 bases, 1751346687 kmers
+read 9100000 sequences, 2027081520 bases, 1754081550 kmers
+read 9200000 sequences, 2032818008 bases, 1756818038 kmers
+read 9300000 sequences, 2038553000 bases, 1759553030 kmers
+read 9400000 sequences, 2044303164 bases, 1762303194 kmers
+read 9500000 sequences, 2050045456 bases, 1765045486 kmers
+read 9600000 sequences, 2055782084 bases, 1767782114 kmers
+read 9700000 sequences, 2061515459 bases, 1770515489 kmers
+read 9800000 sequences, 2067264696 bases, 1773264726 kmers
+read 9900000 sequences, 2073029586 bases, 1776029616 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.12.bin'...
+read 10000000 sequences, 2078777071 bases, 1778777101 kmers
+read 10100000 sequences, 2084516688 bases, 1781516718 kmers
+read 10200000 sequences, 2090254180 bases, 1784254210 kmers
+read 10300000 sequences, 2096010791 bases, 1787010821 kmers
+read 10400000 sequences, 2101750068 bases, 1789750098 kmers
+read 10500000 sequences, 2107490469 bases, 1792490499 kmers
+read 10600000 sequences, 2113226774 bases, 1795226804 kmers
+read 10700000 sequences, 2118983996 bases, 1797984026 kmers
+read 10800000 sequences, 2124753124 bases, 1800753154 kmers
+read 10900000 sequences, 2130500309 bases, 1803500339 kmers
+read 11000000 sequences, 2136245797 bases, 1806245827 kmers
+read 11100000 sequences, 2141998968 bases, 1808998998 kmers
+read 11200000 sequences, 2147751449 bases, 1811751479 kmers
+read 11300000 sequences, 2153511605 bases, 1814511635 kmers
+read 11400000 sequences, 2159254615 bases, 1817254645 kmers
+read 11500000 sequences, 2165018820 bases, 1820018850 kmers
+read 11600000 sequences, 2170788091 bases, 1822788121 kmers
+read 11700000 sequences, 2176561459 bases, 1825561489 kmers
+read 11800000 sequences, 2182327393 bases, 1828327423 kmers
+read 11900000 sequences, 2188093393 bases, 1831093423 kmers
+read 12000000 sequences, 2193864455 bases, 1833864485 kmers
+read 12100000 sequences, 2199639949 bases, 1836639979 kmers
+read 12200000 sequences, 2205409553 bases, 1839409583 kmers
+read 12300000 sequences, 2211196032 bases, 1842196062 kmers
+read 12400000 sequences, 2216980660 bases, 1844980690 kmers
+read 12500000 sequences, 2222778653 bases, 1847778683 kmers
+read 12600000 sequences, 2228548298 bases, 1850548328 kmers
+read 12700000 sequences, 2234333686 bases, 1853333716 kmers
+read 12800000 sequences, 2240119243 bases, 1856119273 kmers
+read 12900000 sequences, 2245909832 bases, 1858909862 kmers
+read 13000000 sequences, 2251713079 bases, 1861713109 kmers
+read 13100000 sequences, 2257517156 bases, 1864517186 kmers
+read 13200000 sequences, 2263299799 bases, 1867299829 kmers
+read 13300000 sequences, 2269090355 bases, 1870090385 kmers
+read 13400000 sequences, 2274889056 bases, 1872889086 kmers
+read 13500000 sequences, 2280679358 bases, 1875679388 kmers
+read 13600000 sequences, 2286496297 bases, 1878496327 kmers
+read 13700000 sequences, 2292303406 bases, 1881303436 kmers
+read 13800000 sequences, 2298095843 bases, 1884095873 kmers
+read 13900000 sequences, 2303896230 bases, 1886896260 kmers
+read 14000000 sequences, 2309685280 bases, 1889685310 kmers
+read 14100000 sequences, 2315487789 bases, 1892487819 kmers
+read 14200000 sequences, 2321299096 bases, 1895299126 kmers
+read 14300000 sequences, 2327098692 bases, 1898098722 kmers
+read 14400000 sequences, 2332930649 bases, 1900930679 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.13.bin'...
+read 14500000 sequences, 2338742250 bases, 1903742280 kmers
+read 14600000 sequences, 2344551767 bases, 1906551797 kmers
+read 14700000 sequences, 2350372494 bases, 1909372524 kmers
+read 14800000 sequences, 2356184423 bases, 1912184453 kmers
+read 14900000 sequences, 2362012427 bases, 1915012457 kmers
+read 15000000 sequences, 2367830829 bases, 1917830859 kmers
+read 15100000 sequences, 2373646109 bases, 1920646139 kmers
+read 15200000 sequences, 2379487578 bases, 1923487608 kmers
+read 15300000 sequences, 2385319549 bases, 1926319579 kmers
+read 15400000 sequences, 2391159959 bases, 1929159989 kmers
+read 15500000 sequences, 2396996685 bases, 1931996715 kmers
+read 15600000 sequences, 2402827442 bases, 1934827472 kmers
+read 15700000 sequences, 2408655214 bases, 1937655244 kmers
+read 15800000 sequences, 2414491211 bases, 1940491241 kmers
+read 15900000 sequences, 2420340361 bases, 1943340391 kmers
+read 16000000 sequences, 2426185046 bases, 1946185076 kmers
+read 16100000 sequences, 2432032084 bases, 1949032114 kmers
+read 16200000 sequences, 2437865309 bases, 1951865339 kmers
+read 16300000 sequences, 2443712415 bases, 1954712445 kmers
+read 16400000 sequences, 2449571035 bases, 1957571065 kmers
+read 16500000 sequences, 2455436767 bases, 1960436797 kmers
+read 16600000 sequences, 2461294139 bases, 1963294169 kmers
+read 16700000 sequences, 2467151066 bases, 1966151096 kmers
+read 16800000 sequences, 2473014518 bases, 1969014548 kmers
+read 16900000 sequences, 2478879148 bases, 1971879178 kmers
+read 17000000 sequences, 2484756311 bases, 1974756341 kmers
+read 17100000 sequences, 2490639911 bases, 1977639941 kmers
+read 17200000 sequences, 2496505090 bases, 1980505120 kmers
+read 17300000 sequences, 2502376237 bases, 1983376267 kmers
+read 17400000 sequences, 2508235866 bases, 1986235896 kmers
+read 17500000 sequences, 2514118929 bases, 1989118959 kmers
+read 17600000 sequences, 2520003821 bases, 1992003851 kmers
+read 17700000 sequences, 2525879572 bases, 1994879602 kmers
+read 17800000 sequences, 2531769727 bases, 1997769757 kmers
+read 17900000 sequences, 2537665456 bases, 2000665486 kmers
+read 18000000 sequences, 2543560738 bases, 2003560768 kmers
+read 18100000 sequences, 2549454266 bases, 2006454296 kmers
+read 18200000 sequences, 2555337271 bases, 2009337301 kmers
+read 18300000 sequences, 2561224774 bases, 2012224804 kmers
+read 18400000 sequences, 2567143057 bases, 2015143087 kmers
+read 18500000 sequences, 2573036123 bases, 2018036153 kmers
+read 18600000 sequences, 2578923948 bases, 2020923978 kmers
+read 18700000 sequences, 2584830711 bases, 2023830741 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.14.bin'...
+read 18800000 sequences, 2590732809 bases, 2026732839 kmers
+read 18900000 sequences, 2596629138 bases, 2029629168 kmers
+read 19000000 sequences, 2602544769 bases, 2032544799 kmers
+read 19100000 sequences, 2608476616 bases, 2035476646 kmers
+read 19200000 sequences, 2614389831 bases, 2038389861 kmers
+read 19300000 sequences, 2620312306 bases, 2041312336 kmers
+read 19400000 sequences, 2626244668 bases, 2044244698 kmers
+read 19500000 sequences, 2632165840 bases, 2047165870 kmers
+read 19600000 sequences, 2638096284 bases, 2050096314 kmers
+read 19700000 sequences, 2644022948 bases, 2053022978 kmers
+read 19800000 sequences, 2649949779 bases, 2055949809 kmers
+read 19900000 sequences, 2655887655 bases, 2058887685 kmers
+read 20000000 sequences, 2661829270 bases, 2061829300 kmers
+read 20100000 sequences, 2667773885 bases, 2064773915 kmers
+read 20200000 sequences, 2673731680 bases, 2067731710 kmers
+read 20300000 sequences, 2679668638 bases, 2070668668 kmers
+read 20400000 sequences, 2685621410 bases, 2073621440 kmers
+read 20500000 sequences, 2691583280 bases, 2076583310 kmers
+read 20600000 sequences, 2697548031 bases, 2079548061 kmers
+read 20700000 sequences, 2703523021 bases, 2082523051 kmers
+read 20800000 sequences, 2709482823 bases, 2085482853 kmers
+read 20900000 sequences, 2715437358 bases, 2088437388 kmers
+read 21000000 sequences, 2721408412 bases, 2091408442 kmers
+read 21100000 sequences, 2727378283 bases, 2094378313 kmers
+read 21200000 sequences, 2733356793 bases, 2097356823 kmers
+read 21300000 sequences, 2739324030 bases, 2100324060 kmers
+read 21400000 sequences, 2745310949 bases, 2103310979 kmers
+read 21500000 sequences, 2751305483 bases, 2106305513 kmers
+read 21600000 sequences, 2757279970 bases, 2109280000 kmers
+read 21700000 sequences, 2763250342 bases, 2112250372 kmers
+read 21800000 sequences, 2769246031 bases, 2115246061 kmers
+read 21900000 sequences, 2775228369 bases, 2118228399 kmers
+read 22000000 sequences, 2781228805 bases, 2121228835 kmers
+read 22100000 sequences, 2787227943 bases, 2124227973 kmers
+read 22200000 sequences, 2793232303 bases, 2127232333 kmers
+read 22300000 sequences, 2799254476 bases, 2130254506 kmers
+read 22400000 sequences, 2805268478 bases, 2133268508 kmers
+read 22500000 sequences, 2811273807 bases, 2136273837 kmers
+read 22600000 sequences, 2817297446 bases, 2139297476 kmers
+read 22700000 sequences, 2823311839 bases, 2142311869 kmers
+read 22800000 sequences, 2829348673 bases, 2145348703 kmers
+read 22900000 sequences, 2835387522 bases, 2148387552 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.15.bin'...
+read 23000000 sequences, 2841415061 bases, 2151415091 kmers
+read 23100000 sequences, 2847447355 bases, 2154447385 kmers
+read 23200000 sequences, 2853464241 bases, 2157464271 kmers
+read 23300000 sequences, 2859504344 bases, 2160504374 kmers
+read 23400000 sequences, 2865558640 bases, 2163558670 kmers
+read 23500000 sequences, 2871616623 bases, 2166616653 kmers
+read 23600000 sequences, 2877666220 bases, 2169666250 kmers
+read 23700000 sequences, 2883708997 bases, 2172709027 kmers
+read 23800000 sequences, 2889780064 bases, 2175780094 kmers
+read 23900000 sequences, 2895851763 bases, 2178851793 kmers
+read 24000000 sequences, 2901936339 bases, 2181936369 kmers
+read 24100000 sequences, 2908006001 bases, 2185006031 kmers
+read 24200000 sequences, 2914097489 bases, 2188097519 kmers
+read 24300000 sequences, 2920158525 bases, 2191158555 kmers
+read 24400000 sequences, 2926232288 bases, 2194232318 kmers
+read 24500000 sequences, 2932310359 bases, 2197310389 kmers
+read 24600000 sequences, 2938383670 bases, 2200383700 kmers
+read 24700000 sequences, 2944455547 bases, 2203455577 kmers
+read 24800000 sequences, 2950553509 bases, 2206553539 kmers
+read 24900000 sequences, 2956625157 bases, 2209625187 kmers
+read 25000000 sequences, 2962750710 bases, 2212750740 kmers
+read 25100000 sequences, 2968838441 bases, 2215838471 kmers
+read 25200000 sequences, 2974964577 bases, 2218964607 kmers
+read 25300000 sequences, 2981066348 bases, 2222066378 kmers
+read 25400000 sequences, 2987174670 bases, 2225174700 kmers
+read 25500000 sequences, 2993287441 bases, 2228287471 kmers
+read 25600000 sequences, 2999404181 bases, 2231404211 kmers
+read 25700000 sequences, 3005525939 bases, 2234525969 kmers
+read 25800000 sequences, 3011641818 bases, 2237641848 kmers
+read 25900000 sequences, 3017762680 bases, 2240762710 kmers
+read 26000000 sequences, 3023914368 bases, 2243914398 kmers
+read 26100000 sequences, 3030074467 bases, 2247074497 kmers
+read 26200000 sequences, 3036215358 bases, 2250215388 kmers
+read 26300000 sequences, 3042374173 bases, 2253374203 kmers
+read 26400000 sequences, 3048520171 bases, 2256520201 kmers
+read 26500000 sequences, 3054682791 bases, 2259682821 kmers
+read 26600000 sequences, 3060872341 bases, 2262872371 kmers
+read 26700000 sequences, 3067031340 bases, 2266031370 kmers
+read 26800000 sequences, 3073202220 bases, 2269202250 kmers
+read 26900000 sequences, 3079363082 bases, 2272363112 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.16.bin'...
+read 27000000 sequences, 3085556027 bases, 2275556057 kmers
+read 27100000 sequences, 3091751521 bases, 2278751551 kmers
+read 27200000 sequences, 3097952572 bases, 2281952602 kmers
+read 27300000 sequences, 3104145541 bases, 2285145571 kmers
+read 27400000 sequences, 3110358894 bases, 2288358924 kmers
+read 27500000 sequences, 3116536976 bases, 2291537006 kmers
+read 27600000 sequences, 3122708679 bases, 2294708709 kmers
+read 27700000 sequences, 3128900397 bases, 2297900427 kmers
+read 27800000 sequences, 3135111542 bases, 2301111572 kmers
+read 27900000 sequences, 3141317211 bases, 2304317241 kmers
+read 28000000 sequences, 3147523754 bases, 2307523784 kmers
+read 28100000 sequences, 3153730407 bases, 2310730437 kmers
+read 28200000 sequences, 3159957684 bases, 2313957714 kmers
+read 28300000 sequences, 3166181142 bases, 2317181172 kmers
+read 28400000 sequences, 3172412131 bases, 2320412161 kmers
+read 28500000 sequences, 3178654828 bases, 2323654858 kmers
+read 28600000 sequences, 3184886524 bases, 2326886554 kmers
+read 28700000 sequences, 3191117068 bases, 2330117098 kmers
+read 28800000 sequences, 3197379540 bases, 2333379570 kmers
+read 28900000 sequences, 3203639436 bases, 2336639466 kmers
+read 29000000 sequences, 3209891656 bases, 2339891686 kmers
+read 29100000 sequences, 3216141216 bases, 2343141246 kmers
+read 29200000 sequences, 3222413290 bases, 2346413320 kmers
+read 29300000 sequences, 3228708327 bases, 2349708357 kmers
+read 29400000 sequences, 3234965760 bases, 2352965790 kmers
+read 29500000 sequences, 3241275202 bases, 2356275232 kmers
+read 29600000 sequences, 3247560688 bases, 2359560718 kmers
+read 29700000 sequences, 3253851429 bases, 2362851459 kmers
+read 29800000 sequences, 3260147813 bases, 2366147843 kmers
+read 29900000 sequences, 3266443188 bases, 2369443218 kmers
+read 30000000 sequences, 3272761129 bases, 2372761159 kmers
+read 30100000 sequences, 3279084870 bases, 2376084900 kmers
+read 30200000 sequences, 3285396291 bases, 2379396321 kmers
+read 30300000 sequences, 3291706637 bases, 2382706667 kmers
+read 30400000 sequences, 3298020747 bases, 2386020777 kmers
+read 30500000 sequences, 3304364961 bases, 2389364991 kmers
+read 30600000 sequences, 3310727391 bases, 2392727421 kmers
+read 30700000 sequences, 3317071594 bases, 2396071624 kmers
+read 30800000 sequences, 3323415712 bases, 2399415742 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.17.bin'...
+read 30900000 sequences, 3329790954 bases, 2402790984 kmers
+read 31000000 sequences, 3336150928 bases, 2406150958 kmers
+read 31100000 sequences, 3342541624 bases, 2409541654 kmers
+read 31200000 sequences, 3348907387 bases, 2412907417 kmers
+read 31300000 sequences, 3355301252 bases, 2416301282 kmers
+read 31400000 sequences, 3361677930 bases, 2419677960 kmers
+read 31500000 sequences, 3368088580 bases, 2423088610 kmers
+read 31600000 sequences, 3374497373 bases, 2426497403 kmers
+read 31700000 sequences, 3380954973 bases, 2429955003 kmers
+read 31800000 sequences, 3387385456 bases, 2433385486 kmers
+read 31900000 sequences, 3393821566 bases, 2436821596 kmers
+read 32000000 sequences, 3400254669 bases, 2440254699 kmers
+read 32100000 sequences, 3406661433 bases, 2443661463 kmers
+read 32200000 sequences, 3413130559 bases, 2447130589 kmers
+read 32300000 sequences, 3419570382 bases, 2450570412 kmers
+read 32400000 sequences, 3426014430 bases, 2454014460 kmers
+read 32500000 sequences, 3432484446 bases, 2457484476 kmers
+read 32600000 sequences, 3438957018 bases, 2460957048 kmers
+read 32700000 sequences, 3445449720 bases, 2464449750 kmers
+read 32800000 sequences, 3451918191 bases, 2467918221 kmers
+read 32900000 sequences, 3458402208 bases, 2471402238 kmers
+read 33000000 sequences, 3464886745 bases, 2474886775 kmers
+read 33100000 sequences, 3471383068 bases, 2478383098 kmers
+read 33200000 sequences, 3477878747 bases, 2481878777 kmers
+read 33300000 sequences, 3484417152 bases, 2485417182 kmers
+read 33400000 sequences, 3490941859 bases, 2488941889 kmers
+read 33500000 sequences, 3497445803 bases, 2492445833 kmers
+read 33600000 sequences, 3503981393 bases, 2495981423 kmers
+read 33700000 sequences, 3510547286 bases, 2499547316 kmers
+read 33800000 sequences, 3517100145 bases, 2503100175 kmers
+read 33900000 sequences, 3523655251 bases, 2506655281 kmers
+read 34000000 sequences, 3530247130 bases, 2510247160 kmers
+read 34100000 sequences, 3536826114 bases, 2513826144 kmers
+read 34200000 sequences, 3543370719 bases, 2517370749 kmers
+read 34300000 sequences, 3549941926 bases, 2520941956 kmers
+read 34400000 sequences, 3556525084 bases, 2524525114 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.18.bin'...
+read 34500000 sequences, 3563130081 bases, 2528130111 kmers
+read 34600000 sequences, 3569739780 bases, 2531739810 kmers
+read 34700000 sequences, 3576369309 bases, 2535369339 kmers
+read 34800000 sequences, 3582984603 bases, 2538984633 kmers
+read 34900000 sequences, 3589639338 bases, 2542639368 kmers
+read 35000000 sequences, 3596273782 bases, 2546273812 kmers
+read 35100000 sequences, 3602915624 bases, 2549915654 kmers
+read 35200000 sequences, 3609531465 bases, 2553531495 kmers
+read 35300000 sequences, 3616196895 bases, 2557196925 kmers
+read 35400000 sequences, 3622877377 bases, 2560877407 kmers
+read 35500000 sequences, 3629566990 bases, 2564567020 kmers
+read 35600000 sequences, 3636241308 bases, 2568241338 kmers
+read 35700000 sequences, 3642914924 bases, 2571914954 kmers
+read 35800000 sequences, 3649603351 bases, 2575603381 kmers
+read 35900000 sequences, 3656318441 bases, 2579318471 kmers
+read 36000000 sequences, 3663044755 bases, 2583044785 kmers
+read 36100000 sequences, 3669777945 bases, 2586777975 kmers
+read 36200000 sequences, 3676509798 bases, 2590509828 kmers
+read 36300000 sequences, 3683277205 bases, 2594277235 kmers
+read 36400000 sequences, 3690023259 bases, 2598023289 kmers
+read 36500000 sequences, 3696780780 bases, 2601780810 kmers
+read 36600000 sequences, 3703553916 bases, 2605553946 kmers
+read 36700000 sequences, 3710337571 bases, 2609337601 kmers
+read 36800000 sequences, 3717123025 bases, 2613123055 kmers
+read 36900000 sequences, 3723910267 bases, 2616910297 kmers
+read 37000000 sequences, 3730743453 bases, 2620743483 kmers
+read 37100000 sequences, 3737567873 bases, 2624567903 kmers
+read 37200000 sequences, 3744378273 bases, 2628378303 kmers
+read 37300000 sequences, 3751211086 bases, 2632211116 kmers
+read 37400000 sequences, 3758073143 bases, 2636073173 kmers
+read 37500000 sequences, 3764943116 bases, 2639943146 kmers
+read 37600000 sequences, 3771815746 bases, 2643815776 kmers
+read 37700000 sequences, 3778661925 bases, 2647661955 kmers
+read 37800000 sequences, 3785547694 bases, 2651547724 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.19.bin'...
+read 37900000 sequences, 3792403153 bases, 2655403183 kmers
+read 38000000 sequences, 3799297812 bases, 2659297842 kmers
+read 38100000 sequences, 3806239974 bases, 2663240004 kmers
+read 38200000 sequences, 3813157585 bases, 2667157615 kmers
+read 38300000 sequences, 3820098418 bases, 2671098448 kmers
+read 38400000 sequences, 3827045678 bases, 2675045708 kmers
+read 38500000 sequences, 3834035768 bases, 2679035798 kmers
+read 38600000 sequences, 3841003319 bases, 2683003349 kmers
+read 38700000 sequences, 3848003705 bases, 2687003735 kmers
+read 38800000 sequences, 3854998310 bases, 2690998340 kmers
+read 38900000 sequences, 3861999344 bases, 2694999374 kmers
+read 39000000 sequences, 3869022053 bases, 2699022083 kmers
+read 39100000 sequences, 3876075267 bases, 2703075297 kmers
+read 39200000 sequences, 3883150321 bases, 2707150351 kmers
+read 39300000 sequences, 3890222625 bases, 2711222655 kmers
+read 39400000 sequences, 3897268484 bases, 2715268514 kmers
+read 39500000 sequences, 3904370112 bases, 2719370142 kmers
+read 39600000 sequences, 3911448030 bases, 2723448060 kmers
+read 39700000 sequences, 3918568345 bases, 2727568375 kmers
+read 39800000 sequences, 3925645444 bases, 2731645474 kmers
+read 39900000 sequences, 3932749408 bases, 2735749438 kmers
+read 40000000 sequences, 3939899844 bases, 2739899874 kmers
+read 40100000 sequences, 3947016310 bases, 2744016340 kmers
+read 40200000 sequences, 3954176373 bases, 2748176403 kmers
+read 40300000 sequences, 3961389382 bases, 2752389412 kmers
+read 40400000 sequences, 3968552071 bases, 2756552101 kmers
+read 40500000 sequences, 3975752223 bases, 2760752253 kmers
+read 40600000 sequences, 3982970739 bases, 2764970769 kmers
+read 40700000 sequences, 3990152709 bases, 2769152739 kmers
+read 40800000 sequences, 3997405356 bases, 2773405386 kmers
+read 40900000 sequences, 4004672388 bases, 2777672418 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.20.bin'...
+read 41000000 sequences, 4011944292 bases, 2781944322 kmers
+read 41100000 sequences, 4019238344 bases, 2786238374 kmers
+read 41200000 sequences, 4026519143 bases, 2790519173 kmers
+read 41300000 sequences, 4033822566 bases, 2794822596 kmers
+read 41400000 sequences, 4041178251 bases, 2799178281 kmers
+read 41500000 sequences, 4048493790 bases, 2803493820 kmers
+read 41600000 sequences, 4055829038 bases, 2807829068 kmers
+read 41700000 sequences, 4063212559 bases, 2812212589 kmers
+read 41800000 sequences, 4070629890 bases, 2816629920 kmers
+read 41900000 sequences, 4078028063 bases, 2821028093 kmers
+read 42000000 sequences, 4085447723 bases, 2825447753 kmers
+read 42100000 sequences, 4092897915 bases, 2829897945 kmers
+read 42200000 sequences, 4100371858 bases, 2834371888 kmers
+read 42300000 sequences, 4107845174 bases, 2838845204 kmers
+read 42400000 sequences, 4115310509 bases, 2843310539 kmers
+read 42500000 sequences, 4122794181 bases, 2847794211 kmers
+read 42600000 sequences, 4130336752 bases, 2852336782 kmers
+read 42700000 sequences, 4137838898 bases, 2856838928 kmers
+read 42800000 sequences, 4145439502 bases, 2861439532 kmers
+read 42900000 sequences, 4153050260 bases, 2866050290 kmers
+read 43000000 sequences, 4160667131 bases, 2870667161 kmers
+read 43100000 sequences, 4168281208 bases, 2875281238 kmers
+read 43200000 sequences, 4175884381 bases, 2879884411 kmers
+read 43300000 sequences, 4183510403 bases, 2884510433 kmers
+read 43400000 sequences, 4191153977 bases, 2889154007 kmers
+read 43500000 sequences, 4198862981 bases, 2893863011 kmers
+read 43600000 sequences, 4206635916 bases, 2898635946 kmers
+read 43700000 sequences, 4214404635 bases, 2903404665 kmers
+read 43800000 sequences, 4222136044 bases, 2908136074 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.21.bin'...
+read 43900000 sequences, 4229915489 bases, 2912915519 kmers
+read 44000000 sequences, 4237696439 bases, 2917696469 kmers
+read 44100000 sequences, 4245541347 bases, 2922541377 kmers
+read 44200000 sequences, 4253343569 bases, 2927343599 kmers
+read 44300000 sequences, 4261209160 bases, 2932209190 kmers
+read 44400000 sequences, 4269076502 bases, 2937076532 kmers
+read 44500000 sequences, 4276951507 bases, 2941951537 kmers
+read 44600000 sequences, 4284863476 bases, 2946863506 kmers
+read 44700000 sequences, 4292779395 bases, 2951779425 kmers
+read 44800000 sequences, 4300761505 bases, 2956761535 kmers
+read 44900000 sequences, 4308749134 bases, 2961749164 kmers
+read 45000000 sequences, 4316730477 bases, 2966730507 kmers
+read 45100000 sequences, 4324743898 bases, 2971743928 kmers
+read 45200000 sequences, 4332706339 bases, 2976706369 kmers
+read 45300000 sequences, 4340799702 bases, 2981799732 kmers
+read 45400000 sequences, 4348938044 bases, 2986938074 kmers
+read 45500000 sequences, 4357089148 bases, 2992089178 kmers
+read 45600000 sequences, 4365213123 bases, 2997213153 kmers
+read 45700000 sequences, 4373409255 bases, 3002409285 kmers
+read 45800000 sequences, 4381555955 bases, 3007555985 kmers
+read 45900000 sequences, 4389760124 bases, 3012760154 kmers
+read 46000000 sequences, 4398064658 bases, 3018064688 kmers
+read 46100000 sequences, 4406387022 bases, 3023387052 kmers
+read 46200000 sequences, 4414694547 bases, 3028694577 kmers
+read 46300000 sequences, 4423058645 bases, 3034058675 kmers
+read 46400000 sequences, 4431425456 bases, 3039425486 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.22.bin'...
+read 46500000 sequences, 4439833395 bases, 3044833425 kmers
+read 46600000 sequences, 4448259061 bases, 3050259091 kmers
+read 46700000 sequences, 4456674986 bases, 3055675016 kmers
+read 46800000 sequences, 4465159451 bases, 3061159481 kmers
+read 46900000 sequences, 4473635424 bases, 3066635454 kmers
+read 47000000 sequences, 4482251403 bases, 3072251433 kmers
+read 47100000 sequences, 4490782771 bases, 3077782801 kmers
+read 47200000 sequences, 4499401922 bases, 3083401952 kmers
+read 47300000 sequences, 4508109132 bases, 3089109162 kmers
+read 47400000 sequences, 4516742321 bases, 3094742351 kmers
+read 47500000 sequences, 4525469588 bases, 3100469618 kmers
+read 47600000 sequences, 4534242679 bases, 3106242709 kmers
+read 47700000 sequences, 4542982876 bases, 3111982906 kmers
+read 47800000 sequences, 4551866465 bases, 3117866495 kmers
+read 47900000 sequences, 4560699422 bases, 3123699452 kmers
+read 48000000 sequences, 4569570230 bases, 3129570260 kmers
+read 48100000 sequences, 4578501122 bases, 3135501152 kmers
+read 48200000 sequences, 4587457020 bases, 3141457050 kmers
+read 48300000 sequences, 4596477426 bases, 3147477456 kmers
+read 48400000 sequences, 4605472867 bases, 3153472897 kmers
+read 48500000 sequences, 4614570314 bases, 3159570344 kmers
+read 48600000 sequences, 4623645571 bases, 3165645601 kmers
+read 48700000 sequences, 4632844313 bases, 3171844343 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.23.bin'...
+read 48800000 sequences, 4642092013 bases, 3178092043 kmers
+read 48900000 sequences, 4651346054 bases, 3184346084 kmers
+read 49000000 sequences, 4660631564 bases, 3190631594 kmers
+read 49100000 sequences, 4670019434 bases, 3197019464 kmers
+read 49200000 sequences, 4679397122 bases, 3203397152 kmers
+read 49300000 sequences, 4688892126 bases, 3209892156 kmers
+read 49400000 sequences, 4698398402 bases, 3216398432 kmers
+read 49500000 sequences, 4707888048 bases, 3222888078 kmers
+read 49600000 sequences, 4717466104 bases, 3229466134 kmers
+read 49700000 sequences, 4727070074 bases, 3236070104 kmers
+read 49800000 sequences, 4736756111 bases, 3242756141 kmers
+read 49900000 sequences, 4746452257 bases, 3249452287 kmers
+read 50000000 sequences, 4756246274 bases, 3256246304 kmers
+read 50100000 sequences, 4766057201 bases, 3263057231 kmers
+read 50200000 sequences, 4775878485 bases, 3269878515 kmers
+read 50300000 sequences, 4785727317 bases, 3276727347 kmers
+read 50400000 sequences, 4795653806 bases, 3283653836 kmers
+read 50500000 sequences, 4805712567 bases, 3290712597 kmers
+read 50600000 sequences, 4815738486 bases, 3297738516 kmers
+read 50700000 sequences, 4825926061 bases, 3304926091 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.24.bin'...
+read 50800000 sequences, 4836224392 bases, 3312224422 kmers
+read 50900000 sequences, 4846451475 bases, 3319451505 kmers
+read 51000000 sequences, 4856753402 bases, 3326753432 kmers
+read 51100000 sequences, 4867266326 bases, 3334266356 kmers
+read 51200000 sequences, 4877861799 bases, 3341861829 kmers
+read 51300000 sequences, 4888414798 bases, 3349414828 kmers
+read 51400000 sequences, 4899113746 bases, 3357113776 kmers
+read 51500000 sequences, 4909857519 bases, 3364857549 kmers
+read 51600000 sequences, 4920671018 bases, 3372671048 kmers
+read 51700000 sequences, 4931456761 bases, 3380456791 kmers
+read 51800000 sequences, 4942313146 bases, 3388313176 kmers
+read 51900000 sequences, 4953292346 bases, 3396292376 kmers
+read 52000000 sequences, 4964398640 bases, 3404398670 kmers
+read 52100000 sequences, 4975538457 bases, 3412538487 kmers
+read 52200000 sequences, 4986759889 bases, 3420759919 kmers
+read 52300000 sequences, 4998126697 bases, 3429126727 kmers
+read 52400000 sequences, 5009563077 bases, 3437563107 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.25.bin'...
+read 52500000 sequences, 5021022583 bases, 3446022613 kmers
+read 52600000 sequences, 5032535927 bases, 3454535957 kmers
+read 52700000 sequences, 5044218660 bases, 3463218690 kmers
+read 52800000 sequences, 5055973619 bases, 3471973649 kmers
+read 52900000 sequences, 5067872804 bases, 3480872834 kmers
+read 53000000 sequences, 5079791399 bases, 3489791429 kmers
+read 53100000 sequences, 5091783497 bases, 3498783527 kmers
+read 53200000 sequences, 5103925550 bases, 3507925580 kmers
+read 53300000 sequences, 5116240983 bases, 3517241013 kmers
+read 53400000 sequences, 5128584923 bases, 3526584953 kmers
+read 53500000 sequences, 5140962917 bases, 3535962947 kmers
+read 53600000 sequences, 5153500478 bases, 3545500508 kmers
+read 53700000 sequences, 5166148888 bases, 3555148918 kmers
+read 53800000 sequences, 5178959197 bases, 3564959227 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.26.bin'...
+read 53900000 sequences, 5191971403 bases, 3574971433 kmers
+read 54000000 sequences, 5205070227 bases, 3585070257 kmers
+read 54100000 sequences, 5218297285 bases, 3595297315 kmers
+read 54200000 sequences, 5231683093 bases, 3605683123 kmers
+read 54300000 sequences, 5245150344 bases, 3616150374 kmers
+read 54400000 sequences, 5258739173 bases, 3626739203 kmers
+read 54500000 sequences, 5272405047 bases, 3637405077 kmers
+read 54600000 sequences, 5286362231 bases, 3648362261 kmers
+read 54700000 sequences, 5300436701 bases, 3659436731 kmers
+read 54800000 sequences, 5314343049 bases, 3670343079 kmers
+read 54900000 sequences, 5328793168 bases, 3681793198 kmers
+read 55000000 sequences, 5343494365 bases, 3693494395 kmers
+read 55100000 sequences, 5358294825 bases, 3705294855 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.27.bin'...
+read 55200000 sequences, 5373204958 bases, 3717204988 kmers
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279403255191108.minimizers.28.bin'...
+read 55207753 sequences, 5374353539 bases, 3718120949 kmers
+num_kmers 3718120949
+num_super_kmers 825700183
+num_pieces 55207754 (+0.890898 [bits/kmer])
+=== step 1: 'parse_file' 266.485 [sec] (71.672 [ns/kmer])
+ == files to merge = 29
+num_written_tuples = 50000000
+num_written_tuples = 100000000
+num_written_tuples = 150000000
+num_written_tuples = 200000000
+num_written_tuples = 250000000
+num_written_tuples = 300000000
+num_written_tuples = 350000000
+num_written_tuples = 400000000
+num_written_tuples = 450000000
+num_written_tuples = 500000000
+num_written_tuples = 550000000
+num_written_tuples = 600000000
+num_written_tuples = 650000000
+num_written_tuples = 700000000
+num_written_tuples = 750000000
+num_written_tuples = 800000000
+num_written_tuples = 825700183
+num_minimizers 624010762
+building minimizers MPHF with 64 threads and 256 partitions...
+=== step 2: 'build_minimizers' 65.3272 [sec] (17.5699 [ns/kmer])
+bits_per_offset = ceil(log2(5374353570)) = 33
+m_buffer_size 20833333
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279735999139401.bucket_pairs.0.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279735999139401.bucket_pairs.1.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279735999139401.bucket_pairs.2.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279735999139401.bucket_pairs.3.bin'...
+sorting buffer...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1764279735999139401.bucket_pairs.4.bin'...
+num_singletons 521231883/624010762 (83.5293%)
+ == files to merge = 5
+num_written_pairs = 50000000
+num_written_pairs = 100000000
+num_written_pairs = 102778879
+=== step 3: 'build_index' 216.456 [sec] (58.2165 [ns/kmer])
+max_num_super_kmers_in_bucket 95844
+log2_max_num_super_kmers_in_bucket 17
+num_buckets_in_skew_index 156279/624010762 (0.0250443%)
+num_partitions 7
+computing sizes of partitions...
+  partition_id = 0: num_kmers belonging to buckets of size > 64 and <= 128: 35996374
+  partition_id = 1: num_kmers belonging to buckets of size > 128 and <= 256: 26993825
+  partition_id = 2: num_kmers belonging to buckets of size > 256 and <= 512: 19373179
+  partition_id = 3: num_kmers belonging to buckets of size > 512 and <= 1024: 13381657
+  partition_id = 4: num_kmers belonging to buckets of size > 1024 and <= 2048: 8418352
+  partition_id = 5: num_kmers belonging to buckets of size > 2048 and <= 4096: 5915012
+  partition_id = 6: num_kmers belonging to buckets of size > 4096 and <= 95844: 7265419
+num_kmers_in_skew_index 117343818 (3.156%)
+building partitions...
+  lower 64; upper 128; num_bits_per_pos 7; keys_in_partition.size() 35996374
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[0] for 35996374 keys; bits/key = 2.79838
+    built positions[0] for 35996374 keys; bits/key = 7.00001
+  lower 128; upper 256; num_bits_per_pos 8; keys_in_partition.size() 26993825
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[1] for 26993825 keys; bits/key = 2.78053
+    built positions[1] for 26993825 keys; bits/key = 8.00001
+  lower 256; upper 512; num_bits_per_pos 9; keys_in_partition.size() 19373179
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[2] for 19373179 keys; bits/key = 2.86228
+    built positions[2] for 19373179 keys; bits/key = 9.00002
+  lower 512; upper 1024; num_bits_per_pos 10; keys_in_partition.size() 13381657
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[3] for 13381657 keys; bits/key = 2.9839
+    built positions[3] for 13381657 keys; bits/key = 10
+  lower 1024; upper 2048; num_bits_per_pos 11; keys_in_partition.size() 8418352
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[4] for 8418352 keys; bits/key = 3.02475
+    built positions[4] for 8418352 keys; bits/key = 11
+  lower 2048; upper 4096; num_bits_per_pos 12; keys_in_partition.size() 5915012
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[5] for 5915012 keys; bits/key = 3.15304
+    built positions[5] for 5915012 keys; bits/key = 12.0001
+  lower 4096; upper 95844; num_bits_per_pos 17; keys_in_partition.size() 7265419
+    building MPHF with 64 threads and 256 partitions...
+    built mphs[6] for 7265419 keys; bits/key = 3.07772
+    built positions[6] for 7265419 keys; bits/key = 17
+num_bits_for_skew_index 1400841344(0.376761 [bits/kmer])
+=== step 4: 'build_skew_index' 18.1439 [sec] (4.87987 [ns/kmer])
+=== total_time 566.412 [sec] (152.338 [ns/kmer])
+total index size: 5345319756 [B] -- 5345.32 [MB]
+SPACE BREAKDOWN:
+  minimizers: 0.440906 [bits/kmer] (2.62711 [bits/key]) -- 3.8336%
+  pieces: 0.14758 [bits/kmer] -- 1.28318%
+  num_super_kmers_before_bucket: 0.316514 [bits/kmer] -- 2.75203%
+  offsets: 7.32846 [bits/kmer] -- 63.7195%
+  strings: 2.8909 [bits/kmer] -- 25.1358%
+  skew_index: 0.376761 [bits/kmer] -- 3.27586%
+  weights: 3.95899e-07 [bits/kmer] -- 3.44226e-06%
+    weight_interval_values: 6.8852e-08 [bits/kmer]
+    weight_interval_lengths: 2.58195e-07 [bits/kmer]
+    weight_dictionary: 6.8852e-08 [bits/kmer]
+  --------------
+  total: 11.5011 [bits/kmer]
+ === bucket statistics (less) === 
+buckets with 1 super_kmers = 83.5293%
+buckets with 2 super_kmers = 12.8251%
+buckets with 3 super_kmers = 2.10141%
+buckets with 4 super_kmers = 0.585352%
+buckets with 5 super_kmers = 0.255767%
+buckets with 6 super_kmers = 0.149049%
+buckets with 7 super_kmers = 0.0987449%
+buckets with 8 super_kmers = 0.0706794%
+buckets with 9 super_kmers = 0.0531121%
+buckets with 10 super_kmers = 0.0414318%
+buckets with 11 super_kmers = 0.0328145%
+buckets with 12 super_kmers = 0.0267737%
+buckets with 13 super_kmers = 0.0223161%
+buckets with 14 super_kmers = 0.0187769%
+buckets with 15 super_kmers = 0.0158791%
+buckets with 16 super_kmers = 0.0137246%
+max_num_super_kmers_in_bucket 95844
+2025-11-27 22:46:11: saving data structure to disk...
+2025-11-27 22:46:13: DONE

@@ -6,9 +6,10 @@
 
 namespace sshash {
 
-template <class kmer_t, typename Query>
-streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer_t> const* dict,
-                                                                 std::istream& is) {
+template <typename Dict, typename Query>
+streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dict,
+                                                                 std::istream& is)  //
+{
     streaming_query_report report;
     buffered_lines_iterator it(is);
     std::string buffer;
@@ -17,11 +18,12 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
     query.reset();
     while (!it.eof()) {
         bool empty_line_was_read = it.fill_buffer(buffer);
+        if (buffer.size() == 0) continue;
         const uint64_t num_kmers = buffer.size() - k + 1;
         report.num_kmers += num_kmers;
         for (uint64_t i = 0; i != num_kmers; ++i) {
             char const* kmer = buffer.data() + i;
-            query.lookup_advanced(kmer);
+            query.lookup(kmer);
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
@@ -44,9 +46,9 @@ streaming_query_report streaming_query_from_fasta_file_multiline(dictionary<kmer
     return report;
 }
 
-template <class kmer_t, typename Query>
-streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const* dict,
-                                                       std::istream& is) {
+template <typename Dict, typename Query>
+streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::istream& is)  //
+{
     streaming_query_report report;
     std::string line;
     const uint64_t k = dict->k();
@@ -60,7 +62,7 @@ streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const*
         report.num_kmers += num_kmers;
         for (uint64_t i = 0; i != num_kmers; ++i) {
             char const* kmer = line.data() + i;
-            query.lookup_advanced(kmer);
+            query.lookup(kmer);
         }
     }
     report.num_searches = query.num_searches();
@@ -73,9 +75,8 @@ streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const*
     return report;
 }
 
-template <class kmer_t, typename Query>
-streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const* dict,
-                                                       std::istream& is) {
+template <typename Dict, typename Query>
+streaming_query_report streaming_query_from_fastq_file(Dict const* dict, std::istream& is) {
     streaming_query_report report;
     std::string line;
     const uint64_t k = dict->k();
@@ -88,9 +89,9 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
         if (line.size() >= k) {
             const uint64_t num_kmers = line.size() - k + 1;
             report.num_kmers += num_kmers;
-            for (uint64_t i = 0; i != line.size() - k + 1; ++i) {
+            for (uint64_t i = 0; i != num_kmers; ++i) {
                 char const* kmer = line.data() + i;
-                query.lookup_advanced(kmer);
+                query.lookup(kmer);
             }
         }
         std::getline(is, line);  // skip '+'
@@ -106,29 +107,35 @@ streaming_query_report streaming_query_from_fastq_file(dictionary<kmer_t> const*
     return report;
 }
 
-template <class kmer_t, typename Query>
-streaming_query_report streaming_query_from_fasta_file(dictionary<kmer_t> const* dict,
-                                                       std::istream& is, bool multiline) {
-    if (multiline) return streaming_query_from_fasta_file_multiline<kmer_t, Query>(dict, is);
-    return streaming_query_from_fasta_file<kmer_t, Query>(dict, is);
+template <typename Dict, typename Query>
+streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::istream& is,
+                                                       bool multiline)  //
+{
+    if (multiline) return streaming_query_from_fasta_file_multiline<Dict, Query>(dict, is);
+    return streaming_query_from_fasta_file<Dict, Query>(dict, is);
 }
 
-template <class kmer_t>
-streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string const& filename,
-                                                                     bool multiline) const {
+template <typename Kmer, typename Offsets>
+streaming_query_report  //
+dictionary<Kmer, Offsets>::streaming_query_from_file(std::string const& filename,
+                                                     bool multiline) const  //
+{
+    using dictionary_type = dictionary<Kmer, Offsets>;
+    using regular_query = streaming_query<dictionary_type, false>;
+    using canonical_query = streaming_query<dictionary_type, true>;
+
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     streaming_query_report report;
 
     if (util::ends_with(filename, ".fa.gz") or util::ends_with(filename, ".fasta.gz")) {
         zip_istream zis(is);
-
         if (canonical()) {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, true>>(
-                this, zis, multiline);
+            report = streaming_query_from_fasta_file<dictionary_type, canonical_query>(this, zis,
+                                                                                       multiline);
         } else {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, false>>(
-                this, zis, multiline);
+            report = streaming_query_from_fasta_file<dictionary_type, regular_query>(this, zis,
+                                                                                     multiline);
         }
     } else if (util::ends_with(filename, ".fq.gz") or util::ends_with(filename, ".fastq.gz")) {
         if (multiline) {
@@ -137,19 +144,17 @@ streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string
         }
         zip_istream zis(is);
         if (canonical()) {
-            report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, true>>(this, zis);
+            report = streaming_query_from_fastq_file<dictionary_type, canonical_query>(this, zis);
         } else {
-            report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, false>>(this, zis);
+            report = streaming_query_from_fastq_file<dictionary_type, regular_query>(this, zis);
         }
     } else if (util::ends_with(filename, ".fa") or util::ends_with(filename, ".fasta")) {
         if (canonical()) {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, true>>(
-                this, is, multiline);
+            report = streaming_query_from_fasta_file<dictionary_type, canonical_query>(this, is,
+                                                                                       multiline);
         } else {
-            report = streaming_query_from_fasta_file<kmer_t, streaming_query<kmer_t, false>>(
-                this, is, multiline);
+            report = streaming_query_from_fasta_file<dictionary_type, regular_query>(this, is,
+                                                                                     multiline);
         }
     } else if (util::ends_with(filename, ".fq") or util::ends_with(filename, ".fastq")) {
         if (multiline) {
@@ -157,11 +162,9 @@ streaming_query_report dictionary<kmer_t>::streaming_query_from_file(std::string
                       << std::endl;
         }
         if (canonical()) {
-            report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, true>>(this, is);
+            report = streaming_query_from_fastq_file<dictionary_type, canonical_query>(this, is);
         } else {
-            report =
-                streaming_query_from_fastq_file<kmer_t, streaming_query<kmer_t, false>>(this, is);
+            report = streaming_query_from_fastq_file<dictionary_type, regular_query>(this, is);
         }
     } else {
         std::cerr << "unsupported query file format" << std::endl;

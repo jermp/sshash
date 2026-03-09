@@ -8,9 +8,9 @@ endif ()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-if (UNIX AND (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64"))
+if (UNIX AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64"))
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mbmi2 -mavx2")
-  if (SSHASH_USE_ARCH_NATIVE)
+  if (SSHASH_USE_ARCH_NATIVE AND NOT CMAKE_CROSSCOMPILING)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
   endif()
 endif()
@@ -33,7 +33,7 @@ if (UNIX)
 
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ggdb")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wno-missing-braces -Wno-unknown-attributes -Wno-unused-function")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-missing-braces -Wno-unknown-attributes -Wno-unused-function")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 
   if (SSHASH_USE_SANITIZERS)
@@ -48,22 +48,20 @@ else()
   set(CONDA_BUILD FALSE)
 endif()
 
+option(SSHASH_BUILD_EXECUTABLES "Build sshash executables" ON)
 MESSAGE(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 MESSAGE(STATUS "Conda build: ${CONDA_BUILD}")
 MESSAGE(STATUS "Installation prefix: ${CMAKE_INSTALL_PREFIX}")
-MESSAGE(STATUS "Compiling for processor: ${CMAKE_HOST_SYSTEM_PROCESSOR}")
+MESSAGE(STATUS "Compiling for processor: ${CMAKE_SYSTEM_PROCESSOR}")
 MESSAGE(STATUS "Compiling with flags:${CMAKE_CXX_FLAGS}")
-
-include_directories(.) # all include paths relative to parent directory
-include_directories(external/pthash/include)
-include_directories(external/pthash/external/bits/include)
-include_directories(external/pthash/external/fastmod)
-include_directories(external/pthash/external/bits/external/essentials/include)
-include_directories(external/pthash/external/xxHash)
-include_directories(external/pthash/external/mm_file/include)
+MESSAGE(STATUS "Build executables: ${SSHASH_BUILD_EXECUTABLES}")
 
 set(Z_LIB_SOURCES
   external/gz/zip_stream.cpp
+)
+
+set(CITYHASH_SOURCES
+  external/cityhash/cityhash.cpp
 )
 
 set(SSHASH_SOURCES
@@ -71,35 +69,52 @@ set(SSHASH_SOURCES
   src/dictionary.cpp
   src/query.cpp
   src/info.cpp
-  src/statistics.cpp
+)
+
+set(SSHASH_INCLUDE_DIRS
+  external/pthash/include
+  external/pthash/external/bits/include
+  external/pthash/external/fastmod
+  external/pthash/external/bits/external/essentials/include
+  external/pthash/external/xxHash
+  external/pthash/external/mm_file/include
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 # Create a static lib
 add_library(sshash_static STATIC
   ${Z_LIB_SOURCES}
+  ${CITYHASH_SOURCES}
   ${SSHASH_SOURCES}
 )
 
-add_executable(sshash tools/sshash.cpp)
-target_link_libraries(sshash
-  z
-)
+target_include_directories(sshash_static PUBLIC ${SSHASH_INCLUDE_DIRS})
 
-# tests:
-
-add_executable(test_alphabet test/test_alphabet.cpp)
-target_link_libraries(test_alphabet
-  sshash_static
-)
-
-add_executable(check test/check.cpp)
-target_link_libraries(check
-  sshash_static
-  z
-)
-
-if (CONDA_BUILD)
-  install(TARGETS sshash
-    RUNTIME DESTINATION bin
+if(SSHASH_BUILD_EXECUTABLES)
+  add_executable(sshash tools/sshash.cpp)
+  target_include_directories(sshash PUBLIC ${SSHASH_INCLUDE_DIRS})
+  target_link_libraries(sshash
+    sshash_static
+    z
   )
+
+  # tests:
+
+  add_executable(test_alphabet test/test_alphabet.cpp)
+  target_link_libraries(test_alphabet
+    sshash_static
+  )
+
+  add_executable(check test/check.cpp)
+  target_link_libraries(check
+    sshash_static
+    z
+  )
+
+  if (CONDA_BUILD)
+    install(TARGETS sshash
+      RUNTIME DESTINATION bin
+    )
+  endif()
 endif()

@@ -1,0 +1,138 @@
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/cod.k63.eulertigs.fa.gz -k 63 -m 24 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-v3-indexes/cod.k63.canon.sshash --canonical-parsing"
+	User time (seconds): 163.56
+	System time (seconds): 2.97
+	Percent of CPU this job got: 116%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 2:22.57
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1470924
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 855740
+	Voluntary context switches: 784
+	Involuntary context switches: 1258
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 4177296
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/kestrel.k63.eulertigs.fa.gz -k 63 -m 24 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-v3-indexes/kestrel.k63.canon.sshash --canonical-parsing"
+	User time (seconds): 305.10
+	System time (seconds): 5.21
+	Percent of CPU this job got: 105%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 4:55.17
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 3198680
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 1340855
+	Voluntary context switches: 303
+	Involuntary context switches: 1996
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8681744
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/human.k63.eulertigs.fa.gz -k 63 -m 25 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-v3-indexes/human.k63.canon.sshash --canonical-parsing"
+	User time (seconds): 1148.22
+	System time (seconds): 11.59
+	Percent of CPU this job got: 159%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 12:06.11
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 7613392
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 2855970
+	Voluntary context switches: 409
+	Involuntary context switches: 5671
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 21390512
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/ncbi-virus.k63.eulertigs.fa.gz -k 63 -m 23 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-v3-indexes/ncbi-virus.k63.canon.sshash --canonical-parsing"
+	User time (seconds): 107.35
+	System time (seconds): 1.87
+	Percent of CPU this job got: 103%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 1:45.21
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 1507376
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 597495
+	Voluntary context switches: 279
+	Involuntary context switches: 742
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 2184144
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/se.k63.eulertigs.fa.gz -k 63 -m 31 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-v3-indexes/se.k63.canon.sshash --canonical-parsing"
+	User time (seconds): 872.27
+	System time (seconds): 9.30
+	Percent of CPU this job got: 228%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 6:26.35
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 6451140
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 3222933
+	Voluntary context switches: 410
+	Involuntary context switches: 3692
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 14468456
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0
+	Command being timed: "./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/hprc.k63.eulertigs.fa.gz -k 63 -m 31 -t 64 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-v3-indexes/hprc.k63.canon.sshash --canonical-parsing"
+	User time (seconds): 3760.19
+	System time (seconds): 34.09
+	Percent of CPU this job got: 243%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 25:57.25
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 16835436
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 9993840
+	Voluntary context switches: 513
+	Involuntary context switches: 13450
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 59524008
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

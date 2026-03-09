@@ -1,21 +1,5 @@
-#!/bin/bash -
-#
-# File:        git-archive-all.sh
-#
-# Description: A utility script that builds an archive file(s) of all
-#              git repositories and submodules in the current path.
-#              Useful for creating a single tarfile of a git super-
-#              project that contains other submodules.
-#
-# Examples:    Use git-archive-all.sh to create archive distributions
-#              from git repositories. To use, simply do:
-#
-#                  cd $GIT_DIR; git-archive-all.sh
-#
-#              where $GIT_DIR is the root of your git superproject.
-#
-# License:     GPL3+
-#
+#!/bin/bash
+
 ###############################################################################
 #
 # This program is free software; you can redistribute it and/or modify
