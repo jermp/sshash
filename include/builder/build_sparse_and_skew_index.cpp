@@ -170,9 +170,10 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     heavy_load_buckets_builder.resize(num_minimizer_positions_of_buckets_in_skew_index,
                                       num_bits_per_offset);
 
-    d.m_ssi.begin_buckets_of_size.resize(min_size + 1, 0);
-
     {
+        std::vector<uint32_t> begin_buckets_of_size;
+        begin_buckets_of_size.resize(min_size + 1, 0);
+
         uint64_t curr_bucket_size = 2;
         uint64_t list_id = 0;
         uint64_t mid_load_buckets_size = 0;
@@ -189,7 +190,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
             if (bucket_size > curr_bucket_size) {
                 while (bucket_size > curr_bucket_size) ++curr_bucket_size;
                 if (curr_bucket_size <= min_size) {
-                    d.m_ssi.begin_buckets_of_size[curr_bucket_size] = mid_load_buckets_size;
+                    begin_buckets_of_size[curr_bucket_size] = mid_load_buckets_size;
                 } else {
                     while (curr_bucket_size > upper) {
                         lower = upper;
@@ -235,6 +236,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                 }
             }
         }
+
+        d.m_ssi.begin_buckets_of_size = std::move(begin_buckets_of_size);
     }
 
     control_codewords_builder.build(d.m_ssi.codewords.control_codewords);
@@ -259,8 +262,6 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     /* step 2. build skew index */
     timer.start();
     std::vector<uint64_t> num_kmers_in_partition(num_partitions, 0);
-    d.m_ssi.ski.mphfs.resize(num_partitions);
-    d.m_ssi.ski.positions.resize(num_partitions);
 
     {
         uint64_t partition_id = 0;
@@ -310,6 +311,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     }
 
     {
+        std::vector<kmers_pthash_type<Kmer>> mphfs;
+        std::vector<bits::compact_vector> positions;
+        mphfs.resize(num_partitions);
+        positions.resize(num_partitions);
+
         pthash::build_configuration mphf_build_config;
         mphf_build_config.lambda =
             build_config.lambda + 2.0; /* Use higher lambda here since we have less keys. */
@@ -360,29 +366,28 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                                   << ")..." << std::endl;
                     }
 
-                    auto& mphf = d.m_ssi.ski.mphfs[partition_id];
-                    mphf.build_in_internal_memory(kmers.begin(), kmers.size(), mphf_build_config);
+                    auto& F = mphfs[partition_id];
+                    F.build_in_internal_memory(kmers.begin(), kmers.size(), mphf_build_config);
 
                     if (build_config.verbose) {
                         std::cout << "    built mphs[" << partition_id << "] for " << kmers.size()
                                   << " kmers; bits/key = "
-                                  << static_cast<double>(mphf.num_bits()) / mphf.num_keys()
-                                  << std::endl;
+                                  << static_cast<double>(F.num_bits()) / F.num_keys() << std::endl;
                     }
 
                     for (uint64_t i = 0; i != kmers.size(); ++i) {
                         Kmer kmer = kmers[i];
-                        uint64_t pos = mphf(kmer);
+                        uint64_t pos = F(kmer);
                         uint32_t pos_in_bucket = positions_in_bucket[i];
                         cvb_positions.set(pos, pos_in_bucket);
                     }
-                    auto& positions = d.m_ssi.ski.positions[partition_id];
-                    cvb_positions.build(positions);
+                    auto& P = positions[partition_id];
+                    cvb_positions.build(positions[partition_id]);
 
                     if (build_config.verbose) {
-                        std::cout << "    built positions[" << partition_id << "] for "
-                                  << positions.size() << " kmers; bits/key = "
-                                  << (positions.num_bytes() * 8.0) / positions.size() << std::endl;
+                        std::cout << "    built positions[" << partition_id << "] for " << P.size()
+                                  << " kmers; bits/key = " << (P.num_bytes() * 8.0) / P.size()
+                                  << std::endl;
                     }
                 }
 
@@ -437,6 +442,9 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
             }
         }
         assert(partition_id == num_partitions - 1);
+
+        d.m_ssi.ski.mphfs = std::move(mphfs);
+        d.m_ssi.ski.positions = std::move(positions);
     }
 
     timer.stop();

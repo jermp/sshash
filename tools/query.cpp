@@ -14,16 +14,19 @@ int query(int argc, char** argv) {
                "Use this option if more the one DNA line must be parsed after each header."
                " Only valid for FASTA files (not FASTQ).",
                "--multiline", false, true);
+    parser.add("mmap", "Memory-map from file on disk rather than loading in RAM.", "--mmap", false,
+               true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
     if (!parser.parse()) return 0;
 
     auto index_filename = parser.get<std::string>("index_filename");
     auto query_filename = parser.get<std::string>("query_filename");
+    bool mmap = parser.get<bool>("mmap");
     bool verbose = parser.get<bool>("verbose");
     bool multiline = parser.get<bool>("multiline");
 
     dictionary_type dict;
-    load_dictionary(dict, index_filename, verbose);
+    open_dictionary(dict, index_filename, mmap, verbose);
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::milliseconds> t;
