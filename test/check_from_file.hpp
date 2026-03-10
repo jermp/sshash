@@ -20,7 +20,7 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
     std::string got_kmer_str(k, 0);
     std::string expected_kmer_str(k, 0);
 
-    std::cout << "checking correctness of access and positive lookup..." << std::endl;
+    std::cout << "checking correctness of access, positive lookup, and membership..." << std::endl;
 
     while (!is.eof())  //
     {
@@ -151,6 +151,13 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             if (got_uint_kmer != uint_kmer and got_uint_kmer_rc != uint_kmer) {
                 std::cout << "ERROR: got '" << got_kmer_str << "' but expected '"
                           << expected_kmer_str << "'" << std::endl;
+                return false;
+            }
+
+            // check is_member
+            bool found = dict.is_member(got_kmer_str.c_str());
+            if (!found) {
+                std::cout << "ERROR: kmer '" << got_kmer_str << "' not found" << std::endl;
                 return false;
             }
 

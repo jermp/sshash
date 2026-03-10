@@ -28,6 +28,7 @@ bool check_dictionary(Dict const& dict) {
 
             dict.access(id, kmer.data());
             uint64_t got_id = dict.lookup(kmer.c_str()).kmer_id;
+            bool found = dict.is_member(kmer.c_str());
 
             if (got_id == constants::invalid_uint64) {
                 std::lock_guard<std::mutex> lock(print_mutex);
@@ -44,6 +45,11 @@ bool check_dictionary(Dict const& dict) {
                 std::lock_guard<std::mutex> lock(print_mutex);
                 std::cerr << "[Thread " << thread_id << "] expected id " << id << " but got id "
                           << got_id << "\n";
+                return;
+            }
+            if (!found) {
+                std::lock_guard<std::mutex> lock(print_mutex);
+                std::cerr << "[Thread " << thread_id << "] id " << id << " not found\n";
                 return;
             }
         }
