@@ -94,7 +94,7 @@ private:
                 m_tree[p] = uint32_t(-1);
                 --m_num_files_to_merge;
             }
-            const T inf = std::numeric_limits<T>::max();
+            const T inf = T::max();
             while (p) {
                 uint64_t is_r_child = (p & 1) == 0;
                 uint32_t i = 0;
@@ -128,7 +128,7 @@ private:
         uint32_t l = build(2 * p + 1);
         uint32_t r = build(2 * p + 2);
         uint32_t i = 0;
-        const T inf = std::numeric_limits<T>::max();
+        const T inf = T::max();
         T const* ptr_l = (l == uint32_t(-1)) ? &inf : m_iterators[l].begin;
         T const* ptr_r = (r == uint32_t(-1)) ? &inf : m_iterators[r].begin;
         i = (*ptr_l < *ptr_r) ? l : r;
