@@ -290,6 +290,8 @@ for example
 
     bash script/create_release.sh --format zip v4.0.0.tar.gz
 
+Then upload the created archive here https://github.com/jermp/sshash/releases. It should appear under the "Assets" section of the corresponding release.
+
 **Note 1**: The sha256 hash code printed at the end is needed for distribution via Bioconda.
 
 **Note 2**: Avoid dashes in the name of the release because Bioconda does not like them.
