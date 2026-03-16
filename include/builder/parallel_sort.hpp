@@ -51,8 +51,8 @@ void parallel_merge(Iterator A_begin, Iterator A_end,                   //
 }
 
 /*
-    Data to sort is in *data*. The vector *temp_data* is the temporary
-    working memory, which must be of same size as data.
+    Data to sort is in *data*. Sorting is not in-place.
+    It uses 2x data.size() memory.
 */
 template <typename T, typename Compare>
 void parallel_sort(std::vector<T>& data, uint64_t num_threads, Compare comp)  //

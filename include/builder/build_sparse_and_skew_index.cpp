@@ -163,14 +163,14 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                   << "%)" << std::endl;
     }
 
-    bits::compact_vector::builder mid_load_buckets_builder;
-    bits::compact_vector::builder heavy_load_buckets_builder;
-    mid_load_buckets_builder.resize(num_minimizer_positions_of_buckets_larger_than_1,
-                                    num_bits_per_offset);
-    heavy_load_buckets_builder.resize(num_minimizer_positions_of_buckets_in_skew_index,
-                                      num_bits_per_offset);
-
     {
+        bits::compact_vector::builder mid_load_buckets_builder;
+        bits::compact_vector::builder heavy_load_buckets_builder;
+        mid_load_buckets_builder.resize(num_minimizer_positions_of_buckets_larger_than_1,
+                                        num_bits_per_offset);
+        heavy_load_buckets_builder.resize(num_minimizer_positions_of_buckets_in_skew_index,
+                                          num_bits_per_offset);
+
         std::vector<uint32_t> begin_buckets_of_size;
         begin_buckets_of_size.resize(min_size + 1, 0);
 
@@ -238,11 +238,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         }
 
         d.m_ssi.begin_buckets_of_size = std::move(begin_buckets_of_size);
-    }
 
-    control_codewords_builder.build(d.m_ssi.codewords.control_codewords);
-    mid_load_buckets_builder.build(d.m_ssi.mid_load_buckets);
-    heavy_load_buckets_builder.build(d.m_ssi.ski.heavy_load_buckets);
+        control_codewords_builder.build(d.m_ssi.codewords.control_codewords);
+        mid_load_buckets_builder.build(d.m_ssi.mid_load_buckets);
+        heavy_load_buckets_builder.build(d.m_ssi.ski.heavy_load_buckets);
+    }
 
     timer.stop();
 
@@ -354,6 +354,37 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
                 if (num_kmers_in_partition[partition_id] > 0)  //
                 {
+                    /*******/
+                    // {
+                    //     uint64_t RAM_available_in_bytes = essentials::GiB;
+
+                    //     uint64_t RAM_taken_in_bytes = essentials::vec_bytes(buckets) +
+                    //                                   essentials::vec_bytes(tuples) +
+
+                    //                                   essentials::vec_bytes(kmers) +
+                    //                                   essentials::vec_bytes(positions_in_bucket)
+                    //                                   +
+                    //                                   essentials::vec_bytes(cvb_positions.data())
+                    //                                   +
+
+                    //                                   d.num_bits() / 8;  // current memory
+
+                    //     std::cout << "RAM_taken_in_bytes = " << RAM_taken_in_bytes << std::endl;
+
+                    //     const uint64_t RAM_limit_in_bytes =
+                    //         build_config.ram_limit_in_GiB * essentials::GiB;
+
+                    //     if (RAM_limit_in_bytes > RAM_taken_in_bytes) {
+                    //         RAM_available_in_bytes = std::max<uint64_t>(
+                    //             RAM_limit_in_bytes - RAM_taken_in_bytes, RAM_available_in_bytes);
+                    //     }
+                    //     std::cout << "RAM_available_in_bytes = " << RAM_available_in_bytes
+                    //               << std::endl;
+
+                    //     mphf_build_config.ram = RAM_available_in_bytes / 2;  // at least 0.5 GB
+                    // }
+                    /*******/
+
                     if (build_config.verbose) {
                         const uint64_t avg_partition_size =
                             pthash::compute_avg_partition_size(kmers.size(), mphf_build_config);
@@ -382,7 +413,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                         cvb_positions.set(pos, pos_in_bucket);
                     }
                     auto& P = positions[partition_id];
-                    cvb_positions.build(positions[partition_id]);
+                    cvb_positions.build(P);
 
                     if (build_config.verbose) {
                         std::cout << "    built positions[" << partition_id << "] for " << P.size()

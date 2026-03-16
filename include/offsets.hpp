@@ -29,6 +29,7 @@ struct offsets  //
         uint64_t front() const { return m_v.front(); }
         uint64_t back() const { return m_v.back(); }
         uint64_t size() const { return m_v.size(); }
+        uint64_t num_bytes() const { return sizeof(m_nb) + essentials::vec_bytes(m_v); }
 
         void set_num_bits(num_bits nb) { m_nb = nb; }
 

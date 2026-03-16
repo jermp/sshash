@@ -132,11 +132,21 @@ private:
 
         minimizers.init();
 
+        uint64_t RAM_available_in_bytes = essentials::GiB / 2;  // at least 0.5 GB
+        {
+            const uint64_t RAM_taken_in_bytes = (f.num_bits() + strings_builder.num_bits()) / 8 +
+                                                strings_offsets_builder.num_bytes();
+            const uint64_t RAM_limit_in_bytes = build_config.ram_limit_in_GiB * essentials::GiB;
+            if (RAM_limit_in_bytes > RAM_taken_in_bytes) {
+                RAM_available_in_bytes = std::max<uint64_t>(RAM_limit_in_bytes - RAM_taken_in_bytes,
+                                                            RAM_available_in_bytes);
+            }
+        }
+
         const uint64_t num_super_kmers = minimizers.num_super_kmers();
         const uint64_t buffer_size = num_files_to_merge == 1
                                          ? num_super_kmers
-                                         : ((build_config.ram_limit_in_GiB * essentials::GiB) /
-                                            (2 * sizeof(minimizer_tuple)));
+                                         : (RAM_available_in_bytes / (3 * sizeof(minimizer_tuple)));
         const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
         assert(num_super_kmers > (num_blocks - 1) * buffer_size);
 
