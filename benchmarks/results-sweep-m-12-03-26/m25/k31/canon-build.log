@@ -1,0 +1,300 @@
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/human.k31.eulertigs.fa.gz -k 31 -m 25 -g 16 -t 16 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/human.k31.m25.canon.sshash --canonical 
+2026-03-12 18:46:25: building data structure...
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/human.k31.eulertigs.fa.gz'...
+read 1000000 sequences, 245137036 bases, 215137036 kmers
+read 2000000 sequences, 492922311 bases, 432922311 kmers
+read 3000000 sequences, 743136741 bases, 653136741 kmers
+read 4000000 sequences, 997901947 bases, 877901947 kmers
+read 5000000 sequences, 1259012338 bases, 1109012338 kmers
+read 6000000 sequences, 1534166192 bases, 1354166192 kmers
+read 7000000 sequences, 1835088477 bases, 1625088477 kmers
+read 8000000 sequences, 2224822737 bases, 1984822737 kmers
+read 9000000 sequences, 2506972380 bases, 2236972380 kmers
+read 10000000 sequences, 2751909556 bases, 2451909556 kmers
+read 10250465 sequences, 2813192630 bases, 2505678680 kmers
+num_kmers 2505678680
+cost: 2.0 + 0.245454 [bits/kmer]
+max string length = 35848
+num bits per_absolute_offset = 32
+num bits per_relative_offset = 16
+num bits per_string_id = 24
+=== step 1 (encode strings): 7.26086 [sec] (2.89776 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.0.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.1.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.2.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.3.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.4.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.5.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.6.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.7.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.8.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.9.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.10.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.11.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.12.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.13.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.14.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.15.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.16.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.17.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.18.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.19.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.20.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.21.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.22.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.23.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.24.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.25.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.26.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.27.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.28.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.29.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.30.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.31.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.32.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.33.bin'...
+=== step 2 (compute minimizer tuples): 6.09907 [sec] (2.4341 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.bin'
+processed 100000000 minimizer tuples
+processed 200000000 minimizer tuples
+processed 300000000 minimizer tuples
+processed 400000000 minimizer tuples
+processed 500000000 minimizer tuples
+processed 600000000 minimizer tuples
+processed 700000000 minimizer tuples
+=== step 3 (merging minimizer tuples): 31.0571 [sec] (12.3947 [ns/kmer])
+num_minimizers = 715091775
+num_minimizer_positions = 750921879
+num_super_kmers = 774111236
+building minimizers MPHF with 16 threads and 239 partitions (avg. partition size = 3000000)...
+=== step 4 (build mphf): 32.6702 [sec] (13.0384 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.0.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.1.bin'...
+=== step 5 (replacing minimizer values with MPHF hashes): 26.593 [sec] (10.6131 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773337585705210498.minimizers.bin'
+processed 100000000 minimizer tuples
+processed 200000000 minimizer tuples
+processed 300000000 minimizer tuples
+processed 400000000 minimizer tuples
+processed 500000000 minimizer tuples
+processed 600000000 minimizer tuples
+processed 700000000 minimizer tuples
+=== step 6 (merging minimizers tuples): 113.703 [sec] (45.3781 [ns/kmer])
+num_bits_per_offset = 32
+max_list_id = 8261206
+bits_for_list_id = 23
+num_bits_for_control = 33
+num_buckets_larger_than_1_not_in_skew_index 13642458/715091775 (1.90779%)
+num_buckets_in_skew_index 20253/715091775 (0.00283222%)
+max_bucket_size 5091
+log2_max_bucket_size 13
+num_partitions in skew index 7
+num_minimizer_positions_of_buckets_larger_than_1 47038651/750921879 (6.26412%)
+num_minimizer_positions_of_buckets_in_skew_index 2454164/750921879 (0.32682%)
+=== step 7.1 (build sparse index): 8.21771 [sec] (3.27963 [ns/kmer])
+  partition = 0: num kmers in buckets of size > 64 and <= 128: 3984661
+  partition = 1: num kmers in buckets of size > 128 and <= 256: 1892953
+  partition = 2: num kmers in buckets of size > 256 and <= 512: 840206
+  partition = 3: num kmers in buckets of size > 512 and <= 1024: 343358
+  partition = 4: num kmers in buckets of size > 1024 and <= 2048: 92264
+  partition = 5: num kmers in buckets of size > 2048 and <= 4096: 59646
+  partition = 6: num kmers in buckets of size > 4096 and <= 5091: 13312
+num kmers in skew index = 7226400 (0.288401%)
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 3984661
+    building MPHF with 16 threads and 2 partitions (avg. partition size = 3000000)...
+    built mphs[0] for 3984661 kmers; bits/key = 2.99856
+    built positions[0] for 3984661 kmers; bits/key = 7.00009
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 1892953
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 1892953)...
+    built mphs[1] for 1892953 kmers; bits/key = 2.5602
+    built positions[1] for 1892953 kmers; bits/key = 8.0002
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 840206
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 840206)...
+    built mphs[2] for 840206 kmers; bits/key = 2.41868
+    built positions[2] for 840206 kmers; bits/key = 9.00038
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 343358
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 343358)...
+    built mphs[3] for 343358 kmers; bits/key = 2.42261
+    built positions[3] for 343358 kmers; bits/key = 10.001
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 92264
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 92264)...
+    built mphs[4] for 92264 kmers; bits/key = 2.43978
+    built positions[4] for 92264 kmers; bits/key = 11.0036
+  lower = 2048; upper = 4096; num_bits_per_pos = 12; num_kmers_in_partition = 59646
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 59646)...
+    built mphs[5] for 59646 kmers; bits/key = 2.45046
+    built positions[5] for 59646 kmers; bits/key = 12.0058
+  lower = 4096; upper = 5091; num_bits_per_pos = 13; num_kmers_in_partition = 13312
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 13312)...
+    built mphs[6] for 13312 kmers; bits/key = 2.57572
+    built positions[6] for 13312 kmers; bits/key = 13.024
+=== step 7.2 (build skew index): 2.3378 [sec] (0.932999 [ns/kmer])
+=== bucket statistics (less) === 
+buckets with 1 minimizer positions = 98.0894%
+buckets with 2 minimizer positions = 1.15527%
+buckets with 3 minimizer positions = 0.326791%
+buckets with 4 minimizer positions = 0.143567%
+buckets with 5 minimizer positions = 0.0788867%
+buckets with 6 minimizer positions = 0.0489618%
+buckets with 7 minimizer positions = 0.0325175%
+buckets with 8 minimizer positions = 0.0231419%
+buckets with 9 minimizer positions = 0.0169571%
+buckets with 10 minimizer positions = 0.0129273%
+buckets with 11 minimizer positions = 0.0100885%
+buckets with 12 minimizer positions = 0.00808036%
+buckets with 13 minimizer positions = 0.00651007%
+buckets with 14 minimizer positions = 0.00530589%
+buckets with 15 minimizer positions = 0.00443593%
+buckets with 16 minimizer positions = 0.0037612%
+max_bucket_size = 5091
+=== step 7 (build sparse and skew index): 12.1925 [sec] (4.86595 [ns/kmer])
+=== total time: 229.575 [sec] (91.6221 [ns/kmer])
+total index size: 4161298350 [B] -- 4161.3 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.80715 [bits/kmer] (2.82825 [bits/key]) -- 6.07521%
+  strings_offsets: 0.153147 [bits/kmer] -- 1.15269%
+  control_codewords: 9.41782 [bits/kmer] -- 70.8854%
+  mid_load_buckets: 0.60073 [bits/kmer] -- 4.52154%
+  begin_buckets_of_size: 8.55656e-07 [bits/kmer] -- 6.4403e-06%
+  strings: 2.24545 [bits/kmer] -- 16.9009%
+  skew_index: 0.0616742 [bits/kmer] -- 0.464205%
+  weights: 5.87466e-07 [bits/kmer] -- 4.4217e-06%
+  --------------
+  total: 13.286 [bits/kmer]
+2026-03-12 18:50:15: saving data structure to disk...
+2026-03-12 18:50:17: DONE
+./sshash build -i /mnt/hd2/pibiri/DNA/eulertigs/se.k31.eulertigs.fa.gz -k 31 -m 25 -g 16 -t 16 --verbose -d /mnt/hd2/pibiri/DNA/eulertigs/tmp_dir -o /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/se.k31.m25.canon.sshash --canonical 
+2026-03-12 19:03:24: building data structure...
+reading file '/mnt/hd2/pibiri/DNA/eulertigs/se.k31.eulertigs.fa.gz'...
+read 1000000 sequences, 89525906 bases, 59525906 kmers
+read 2000000 sequences, 188052064 bases, 128052064 kmers
+read 3000000 sequences, 302142183 bases, 212142183 kmers
+read 4000000 sequences, 461236524 bases, 341236524 kmers
+read 5000000 sequences, 530371783 bases, 380371783 kmers
+read 6000000 sequences, 600036489 bases, 420036489 kmers
+read 7000000 sequences, 670072473 bases, 460072473 kmers
+read 8000000 sequences, 740830673 bases, 500830673 kmers
+read 9000000 sequences, 812530455 bases, 542530455 kmers
+read 10000000 sequences, 884692153 bases, 584692153 kmers
+read 11000000 sequences, 958222271 bases, 628222271 kmers
+read 12000000 sequences, 1032736062 bases, 672736062 kmers
+read 13000000 sequences, 1108501169 bases, 718501169 kmers
+read 14000000 sequences, 1186158510 bases, 766158510 kmers
+read 15000000 sequences, 1266102895 bases, 816102895 kmers
+read 16000000 sequences, 1349263765 bases, 869263765 kmers
+read 16440873 sequences, 1387536274 bases, 894310084 kmers
+num_kmers 894310084
+cost: 2.0 + 1.10303 [bits/kmer]
+max string length = 117016
+num bits per_absolute_offset = 31
+num bits per_relative_offset = 17
+num bits per_string_id = 24
+=== step 1 (encode strings): 4.56077 [sec] (5.09977 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.0.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.1.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.2.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.3.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.4.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.5.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.6.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.7.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.8.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.9.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.10.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.11.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.12.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.13.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.14.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.15.bin'...
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.16.bin'...
+=== step 2 (compute minimizer tuples): 2.77915 [sec] (3.1076 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.bin'
+processed 100000000 minimizer tuples
+processed 200000000 minimizer tuples
+=== step 3 (merging minimizer tuples): 10.3219 [sec] (11.5418 [ns/kmer])
+num_minimizers = 235252948
+num_minimizer_positions = 277816935
+num_super_kmers = 285815152
+building minimizers MPHF with 16 threads and 79 partitions (avg. partition size = 3000000)...
+=== step 4 (build mphf): 11.2649 [sec] (12.5962 [ns/kmer])
+saving to file '/mnt/hd2/pibiri/DNA/eulertigs/tmp_dir/sshash.tmp.run_1773338604128839032.minimizers.0.bin'...
+=== step 5 (replacing minimizer values with MPHF hashes): 10.0226 [sec] (11.2071 [ns/kmer])
+=== step 6 (merging minimizers tuples): 40.7331 [sec] (45.547 [ns/kmer])
+num_bits_per_offset = 31
+max_list_id = 13262351
+bits_for_list_id = 24
+num_bits_for_control = 32
+num_buckets_larger_than_1_not_in_skew_index 20231767/235252948 (8.60001%)
+num_buckets_in_skew_index 5208/235252948 (0.00221379%)
+max_bucket_size 3426
+log2_max_bucket_size 12
+num_partitions in skew index 6
+num_minimizer_positions_of_buckets_larger_than_1 62010874/277816935 (22.3208%)
+num_minimizer_positions_of_buckets_in_skew_index 790088/277816935 (0.284392%)
+=== step 7.1 (build sparse index): 4.76973 [sec] (5.33342 [ns/kmer])
+  partition = 0: num kmers in buckets of size > 64 and <= 128: 767657
+  partition = 1: num kmers in buckets of size > 128 and <= 256: 469396
+  partition = 2: num kmers in buckets of size > 256 and <= 512: 293742
+  partition = 3: num kmers in buckets of size > 512 and <= 1024: 135327
+  partition = 4: num kmers in buckets of size > 1024 and <= 2048: 78476
+  partition = 5: num kmers in buckets of size > 2048 and <= 3426: 31837
+num kmers in skew index = 1776435 (0.198637%)
+  lower = 64; upper = 128; num_bits_per_pos = 7; num_kmers_in_partition = 767657
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 767657)...
+    built mphs[0] for 767657 kmers; bits/key = 2.41891
+    built positions[0] for 767657 kmers; bits/key = 7.00046
+  lower = 128; upper = 256; num_bits_per_pos = 8; num_kmers_in_partition = 469396
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 469396)...
+    built mphs[1] for 469396 kmers; bits/key = 2.5636
+    built positions[1] for 469396 kmers; bits/key = 8.00075
+  lower = 256; upper = 512; num_bits_per_pos = 9; num_kmers_in_partition = 293742
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 293742)...
+    built mphs[2] for 293742 kmers; bits/key = 2.42335
+    built positions[2] for 293742 kmers; bits/key = 9.00121
+  lower = 512; upper = 1024; num_bits_per_pos = 10; num_kmers_in_partition = 135327
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 135327)...
+    built mphs[3] for 135327 kmers; bits/key = 2.57486
+    built positions[3] for 135327 kmers; bits/key = 10.0024
+  lower = 1024; upper = 2048; num_bits_per_pos = 11; num_kmers_in_partition = 78476
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 78476)...
+    built mphs[4] for 78476 kmers; bits/key = 2.58545
+    built positions[4] for 78476 kmers; bits/key = 11.0048
+  lower = 2048; upper = 3426; num_bits_per_pos = 12; num_kmers_in_partition = 31837
+    building MPHF with 16 threads and 1 partitions (avg. partition size = 31837)...
+    built mphs[5] for 31837 kmers; bits/key = 2.48265
+    built positions[5] for 31837 kmers; bits/key = 12.0112
+=== step 7.2 (build skew index): 0.96871 [sec] (1.08319 [ns/kmer])
+=== bucket statistics (less) === 
+buckets with 1 minimizer positions = 91.3978%
+buckets with 2 minimizer positions = 5.63749%
+buckets with 3 minimizer positions = 1.35665%
+buckets with 4 minimizer positions = 0.545938%
+buckets with 5 minimizer positions = 0.293861%
+buckets with 6 minimizer positions = 0.188852%
+buckets with 7 minimizer positions = 0.134177%
+buckets with 8 minimizer positions = 0.100458%
+buckets with 9 minimizer positions = 0.0775642%
+buckets with 10 minimizer positions = 0.0603589%
+buckets with 11 minimizer positions = 0.0465473%
+buckets with 12 minimizer positions = 0.0351094%
+buckets with 13 minimizer positions = 0.0262951%
+buckets with 14 minimizer positions = 0.0196312%
+buckets with 15 minimizer positions = 0.0145154%
+buckets with 16 minimizer positions = 0.0110294%
+max_bucket_size = 3426
+=== step 7 (build sparse and skew index): 6.39211 [sec] (7.14753 [ns/kmer])
+=== total time: 86.0746 [sec] (96.2469 [ns/kmer])
+total index size: 1654446626 [B] -- 1654.45 [MB]
+SPACE BREAKDOWN:
+  mphf: 0.747679 [bits/kmer] (2.84229 [bits/key]) -- 5.05197%
+  strings_offsets: 0.333373 [bits/kmer] -- 2.25255%
+  control_codewords: 8.41777 [bits/kmer] -- 56.8777%
+  mid_load_buckets: 2.14952 [bits/kmer] -- 14.524%
+  begin_buckets_of_size: 2.39738e-06 [bits/kmer] -- 1.61988e-05%
+  strings: 3.10303 [bits/kmer] -- 20.9668%
+  skew_index: 0.0483823 [bits/kmer] -- 0.326913%
+  weights: 1.64596e-06 [bits/kmer] -- 1.11215e-05%
+  --------------
+  total: 14.7998 [bits/kmer]
+2026-03-12 19:04:50: saving data structure to disk...
+2026-03-12 19:04:50: DONE
