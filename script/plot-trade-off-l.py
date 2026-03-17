@@ -96,7 +96,7 @@ def parse_results(results_dir):
 
     return pd.DataFrame(data)
 
-def plot_tradeoff(df, output_img="tradeoff_plot_l.png"):
+def plot_tradeoff(df, output_img="tradeoff_plot_l.pdf"):
     """
     Generates a space-time trade-off plot.
     Different lines for datasets/k/modes, points vary by 'l'.
@@ -111,7 +111,7 @@ def plot_tradeoff(df, output_img="tradeoff_plot_l.png"):
     df['Mode'] = pd.Categorical(df['Mode'], categories=['regular', 'canon'], ordered=True)
     df = df.sort_values(by=['Dataset', 'k', 'Mode'])
 
-    plt.figure(figsize=(10, 8))
+    plt.figure(figsize=(5, 10))
     plt.style.use('seaborn-v0_8-whitegrid')
 
     # Group by Dataset, k, and Mode with sort=False to preserve our categorical ordering
@@ -152,11 +152,22 @@ def plot_tradeoff(df, output_img="tradeoff_plot_l.png"):
     plt.gca().xaxis.set_major_locator(MultipleLocator(1))
 
     # Make axis labels bold
-    plt.xlabel("Index Space (bits/k-mer)", fontsize=12, fontweight='bold')
-    plt.ylabel("Positive Lookup Time (ns/k-mer)", fontsize=12, fontweight='bold')
-    plt.legend(title="Configuration", bbox_to_anchor=(1.05, 1), loc='upper left')
+    plt.xlabel("Index Space (bits/k-mer)", fontsize=10
+            # , fontweight='bold'
+            )
+    plt.ylabel("Positive Lookup Time (ns/k-mer)", fontsize=10
+            # , fontweight='bold'
+            )
+
+    # Legend modifications: Move above plot, centered, multi-column
+    plt.legend(title="Configuration",
+               bbox_to_anchor=(0.5, 1.02),
+               loc='lower center',
+               ncol=2,
+               borderaxespad=0.)
+
     plt.tight_layout()
-    
+
     plt.savefig(output_img, dpi=300, bbox_inches='tight')
     print(f"Plot saved successfully as '{output_img}'!")
 
@@ -167,9 +178,8 @@ if __name__ == "__main__":
 
     results_directory = sys.argv[1]
     df = parse_results(results_directory)
-    
+
     print("Extracted Data:")
     print(df.to_string(index=False))
-    
-    plot_tradeoff(df, output_img="sshash_tradeoff_l.png")
-    
+
+    plot_tradeoff(df, output_img="sshash_tradeoff_l.pdf")
