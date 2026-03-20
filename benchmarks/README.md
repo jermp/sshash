@@ -25,5 +25,5 @@ Queries were run using one thread, instead.
 
 The results can be exported to CSV format with
 
-    python3 ../script/print_csv.py ../benchmarks/results-10-11-25/k31
-    python3 ../script/print_csv.py ../benchmarks/results-10-11-25/k63
+    python3 ../script/print_csv.py ../benchmarks/results-21-01-26/k31
+    python3 ../script/print_csv.py ../benchmarks/results-21-01-26/k63
