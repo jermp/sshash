@@ -45,6 +45,9 @@ def mix_fastq(file1, file2, output_file):
                 out.write(read)
                 written_count += 1
                 
+                if written_count == 3_000_000:
+                    break
+
                 # Optional: print progress every 1M reads
                 if written_count % 1_000_000 == 0:
                     print(f"Processed {written_count:,} reads...")
@@ -64,4 +67,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     mix_fastq(args.file1, args.file2, args.output)
-    
