@@ -10,7 +10,7 @@ To run the benchmarks, from within the `build` directory, run
 
     python3 ../script/build.py <log_label> <input_datasets_dir> <output_index_dir>
     python3 ../script/bench.py <log_label> <input_index_dir>
-    python3 ../script/streaming-query-high-hit.py <log_label> <input_index_dir> <input_queries_dir>
+    python3 ../script/streaming-query.py <log_label> <input_index_dir> <input_queries_dir>
 
 where `<log_label>` should be replaced by a suitable basename, e.g., the current date.
 
