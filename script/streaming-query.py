@@ -28,7 +28,10 @@ datasets = [
 # queries = {"cod":"SRR12858649", "kestrel":"SRR11449743_1", "human":"SRR5833294", "ncbi-virus":"ncbi-queries", "se":"SRR27871075_1", "hprc":"SRR5833294"}
 
 # low hit
-queries = {"cod":"SRR11449743_1", "kestrel":"SRR12858649", "human":"SRR5901135_1", "ncbi-virus":"SRR5833294", "se":"SRR5833294", "hprc":"SRR5901135_1"}
+# queries = {"cod":"SRR11449743_1", "kestrel":"SRR12858649", "human":"SRR5901135_1", "ncbi-virus":"SRR5833294", "se":"SRR5833294", "hprc":"SRR5901135_1"}
+
+# mixed hit
+queries = {"cod":"cod-queries.mixed", "kestrel":"kestrel-queries.mixed", "human":"human-queries.mixed", "ncbi-virus":"ncbi-virus-queries.mixed", "se":"se-queries.mixed", "hprc":"hprc-queries.mixed"}
 
 # ------------------------------
 #   Utility functions
