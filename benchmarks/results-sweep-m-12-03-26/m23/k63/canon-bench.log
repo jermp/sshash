@@ -1,0 +1,30 @@
+./sshash bench -i /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/human.k63.m23.canon.sshash 
+positive lookup (avg_nanosec_per_kmer) = 662.057
+negative lookup (avg_nanosec_per_kmer) 515.14
+access (avg_nanosec_per_kmer) = 357.108
+iterator (avg_nanosec_per_kmer) = 2.71659
+./sshash bench -i /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/human.k63.m23.canon.sshash 
+positive lookup (avg_nanosec_per_kmer) = 664.989
+negative lookup (avg_nanosec_per_kmer) 513.092
+access (avg_nanosec_per_kmer) = 359.399
+iterator (avg_nanosec_per_kmer) = 2.73566
+./sshash bench -i /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/human.k63.m23.canon.sshash 
+positive lookup (avg_nanosec_per_kmer) = 668.607
+negative lookup (avg_nanosec_per_kmer) 507.922
+access (avg_nanosec_per_kmer) = 355.175
+iterator (avg_nanosec_per_kmer) = 2.72994
+./sshash bench -i /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/se.k63.m23.canon.sshash 
+positive lookup (avg_nanosec_per_kmer) = 1041.56
+negative lookup (avg_nanosec_per_kmer) 509.87
+access (avg_nanosec_per_kmer) = 407.897
+iterator (avg_nanosec_per_kmer) = 2.82341
+./sshash bench -i /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/se.k63.m23.canon.sshash 
+positive lookup (avg_nanosec_per_kmer) = 1040.46
+negative lookup (avg_nanosec_per_kmer) 501.033
+access (avg_nanosec_per_kmer) = 405.898
+iterator (avg_nanosec_per_kmer) = 2.76508
+./sshash bench -i /mnt/hd2/pibiri/DNA/sshash-sweep-m-indexes/se.k63.m23.canon.sshash 
+positive lookup (avg_nanosec_per_kmer) = 1031.89
+negative lookup (avg_nanosec_per_kmer) 495.961
+access (avg_nanosec_per_kmer) = 404.23
+iterator (avg_nanosec_per_kmer) = 2.76388
