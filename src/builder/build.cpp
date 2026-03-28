@@ -1,8 +1,8 @@
 #include "include/builder/dictionary_builder.hpp"
 
-#include "include/builder/parse_file.cpp"
-#include "include/builder/build_sparse_and_skew_index.cpp"
-#include "include/builder/compute_minimizer_tuples.cpp"
+#include "encode_strings.cpp"
+#include "compute_minimizer_tuples.cpp"
+#include "build_sparse_and_skew_index.cpp"
 
 namespace sshash {
 

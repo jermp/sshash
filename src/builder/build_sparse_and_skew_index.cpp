@@ -1,4 +1,3 @@
-#include "dictionary_builder.hpp"
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {

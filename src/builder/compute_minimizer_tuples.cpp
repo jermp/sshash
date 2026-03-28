@@ -1,5 +1,4 @@
-#include "dictionary_builder.hpp"
-#include "util.hpp"
+#include "include/util.hpp"
 #include "include/kmer_iterator.hpp"
 #include "include/minimizer_iterator.hpp"
 

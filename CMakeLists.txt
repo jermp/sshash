@@ -65,7 +65,7 @@ set(CITYHASH_SOURCES
 )
 
 set(SSHASH_SOURCES
-  src/build.cpp
+  src/builder/build.cpp
   src/dictionary.cpp
   src/query.cpp
   src/info.cpp

@@ -1,5 +1,4 @@
-#include "dictionary_builder.hpp"
-#include "util.hpp"
+#include "include/util.hpp"
 #include "external/gz/zip_stream.hpp"
 
 #if defined(__AVX2__)
