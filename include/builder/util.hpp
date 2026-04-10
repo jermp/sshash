@@ -60,22 +60,7 @@ inline std::ostream& operator<<(std::ostream& os, minimizer_tuple const& mt) {
 
 struct bucket_type {
     bucket_type(minimizer_tuple const* begin, minimizer_tuple const* end)
-        : m_begin(begin)
-        , m_end(end)
-        , m_num_super_kmers(std::distance(begin, end))
-        , m_num_minimizer_positions(0)  //
-    {
-        uint64_t prev_pos_in_seq = constants::invalid_uint64;
-        while (begin != end) {
-            uint64_t pos_in_seq = (*begin).pos_in_seq;
-            if (pos_in_seq != prev_pos_in_seq) {
-                ++m_num_minimizer_positions;
-                prev_pos_in_seq = pos_in_seq;
-            }
-            ++begin;
-        }
-        assert(m_num_minimizer_positions <= m_num_super_kmers);
-    }
+        : m_begin(begin), m_end(end) {}
 
     struct iterator {
         iterator(minimizer_tuple const* begin) : m_begin(begin) {}
@@ -103,8 +88,24 @@ struct bucket_type {
         So the method size() returns the number of minimizer
         positions which is <= the number of superkmers.
     */
-    uint64_t num_super_kmers() const { return m_num_super_kmers; }
-    uint64_t size() const { return m_num_minimizer_positions; }
+
+    uint64_t num_super_kmers() const { return std::distance(m_begin, m_end); }
+
+    uint64_t size() const {
+        uint64_t num_minimizer_positions = 0;
+        uint64_t prev_pos_in_seq = constants::invalid_uint64;
+        auto const* begin = m_begin;
+        while (begin != m_end) {
+            uint64_t pos_in_seq = (*begin).pos_in_seq;
+            if (pos_in_seq != prev_pos_in_seq) {
+                ++num_minimizer_positions;
+                prev_pos_in_seq = pos_in_seq;
+            }
+            ++begin;
+        }
+        assert(num_minimizer_positions <= num_super_kmers());
+        return num_minimizer_positions;
+    }
 
     minimizer_tuple const* begin_ptr() const { return m_begin; }
     minimizer_tuple const* end_ptr() const { return m_end; }
@@ -112,8 +113,6 @@ struct bucket_type {
 private:
     minimizer_tuple const* m_begin;
     minimizer_tuple const* m_end;
-    uint64_t m_num_super_kmers;
-    uint64_t m_num_minimizer_positions;
 };
 
 /*
