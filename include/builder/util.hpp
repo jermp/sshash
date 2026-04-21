@@ -156,8 +156,8 @@ private:
     minimizer_tuple const* m_end;
 
     minimizer_tuple const* next_begin() {
-        if (m_bucket_begin == m_end) return m_end;
-        minimizer_tuple const* begin = m_bucket_begin;
+        if (m_list_begin == m_end) return m_end;
+        minimizer_tuple const* begin = m_list_begin;
         uint64_t prev_minimizer = begin->minimizer;
         while (++begin != m_end and begin->minimizer == prev_minimizer) {}
         return begin;
