@@ -22,7 +22,7 @@ constexpr int backward_orientation = -1;
 namespace current_version_number {
 constexpr uint8_t x = 5;
 constexpr uint8_t y = 1;
-constexpr uint8_t z = 0;
+constexpr uint8_t z = 1;
 }  // namespace current_version_number
 
 }  // namespace sshash::constants
