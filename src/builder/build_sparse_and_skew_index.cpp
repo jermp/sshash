@@ -137,10 +137,9 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
     std::vector<bucket_type> buckets;
     buckets.reserve(num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
-    std::vector<minimizer_tuple> tuples;  // backed memory
-    tuples.reserve(num_super_kmers_in_buckets_larger_than_1);
 
-    // Second pass: collect buckets > 1 for sorting AND handle size-1 buckets
+    /* Second pass: register buckets > 1 (pointing directly into the mmap'd
+       `input`, no copy) and handle size-1 buckets inline. */
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
          it.has_next(); it.next())                                                  //
     {
@@ -163,17 +162,13 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                 }
             }
         } else {
-            // Collect buckets > 1 for later processing
-            minimizer_tuple const* begin = tuples.data() + tuples.size();
-            std::copy(bucket.begin_ptr(), bucket.end_ptr(), std::back_inserter(tuples));
-            minimizer_tuple const* end = tuples.data() + tuples.size();
-            buckets.push_back(bucket_type(begin, end));
+            /* Buckets > 1: store pointers directly into the mmap'd `input`.
+               `input` is kept open through step 7.2 phase (A). */
+            buckets.push_back(bucket_type(bucket.begin_ptr(), bucket.end_ptr()));
         }
     }
     assert(buckets.size() ==
            num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
-
-    input.close();
 
     std::sort(buckets.begin(), buckets.end(),
               [](bucket_type const& x, bucket_type const& y) { return x.size() < y.size(); });
@@ -407,6 +402,12 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         flush_request_buffer();
         assert(partition_id == num_partitions - 1);
     }
+
+    /* `buckets` and the mmap'd `input` are no longer needed: phase (B) walks
+       the sorted requests and per-partition tmp files, phase (C) walks the
+       per-partition tmp files. Free both now to bound RAM. */
+    std::vector<bucket_type>().swap(buckets);
+    input.close();
 
     if (build_config.verbose) {
         uint64_t total_kmers_in_skew = 0;
