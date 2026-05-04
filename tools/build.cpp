@@ -73,25 +73,38 @@ int build(int argc, char** argv) {
 
     // build_config.print();
 
-    essentials::logger("building data structure...");
-    dictionary_type dict;
-    dict.build(input_filename, build_config);
-
     bool check = parser.get<bool>("check");
-    if (check) {
-        check_correctness_lookup_access(dict, input_filename);
-        check_correctness_navigational_kmer_query(dict, input_filename);
-        check_correctness_navigational_string_query(dict);
-        if (build_config.weighted) check_correctness_weights(dict, input_filename);
-        check_correctness_kmer_iterator(dict);
-        check_correctness_string_iterator(dict);
-    }
+    bool has_output = parser.parsed("output_filename");
 
-    if (parser.parsed("output_filename")) {
+    dictionary_type dict;
+
+    if (has_output && !check) {
+        /* Streaming-save path: keeps peak RAM bounded by the build phase
+           (the strings bit-vector is never fully in RAM). After this returns
+           `dict` is not query-ready; reload from disk to query. */
         auto output_filename = parser.get<std::string>("output_filename");
-        essentials::logger("saving data structure to disk...");
-        essentials::save(dict, output_filename.c_str());
+        essentials::logger("building data structure (streaming save)...");
+        dict.build_streaming_save(input_filename, build_config, output_filename);
         essentials::logger("DONE");
+    } else {
+        essentials::logger("building data structure...");
+        dict.build(input_filename, build_config);
+
+        if (check) {
+            check_correctness_lookup_access(dict, input_filename);
+            check_correctness_navigational_kmer_query(dict, input_filename);
+            check_correctness_navigational_string_query(dict);
+            if (build_config.weighted) check_correctness_weights(dict, input_filename);
+            check_correctness_kmer_iterator(dict);
+            check_correctness_string_iterator(dict);
+        }
+
+        if (has_output) {
+            auto output_filename = parser.get<std::string>("output_filename");
+            essentials::logger("saving data structure to disk...");
+            essentials::save(dict, output_filename.c_str());
+            essentials::logger("DONE");
+        }
     }
 
     return 0;

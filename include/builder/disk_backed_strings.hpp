@@ -232,6 +232,52 @@ struct disk_backed_strings {
     }
 
     /*
+        Stream the strings to `os` in the same byte format that
+        `essentials::generic_saver::visit(bits::bit_vector const&)` would
+        produce — i.e.,
+            uint64_t m_num_bits;
+            size_t   n;            // number of 64-bit words
+            uint64_t m_data[n];
+        — without ever materializing the full bit-vector in RAM. The bytes
+        are read from the tmp file in fixed-size chunks.
+
+        This relies on `bits::bit_vector::visit_impl` writing exactly two
+        fields (`m_num_bits` and the `m_data` owning_span<uint64_t>) and on
+        `generic_saver::visit_seq` writing `size_t n` followed by the raw
+        `n * sizeof(uint64_t)` bytes. If `bits::bit_vector` ever changes its
+        on-disk representation, this method must be updated to match.
+    */
+    void save_to(std::ostream& os) const {
+        if (!m_frozen) {
+            throw std::runtime_error("disk_backed_strings: must freeze() before save_to()");
+        }
+        const uint64_t num_bits = m_num_bits;
+        os.write(reinterpret_cast<char const*>(&num_bits), sizeof(uint64_t));
+        const uint64_t total_words = (num_bits + 63) / 64;
+        const std::size_t n = static_cast<std::size_t>(total_words);
+        os.write(reinterpret_cast<char const*>(&n), sizeof(std::size_t));
+        if (total_words == 0) return;
+        std::ifstream in(m_filename, std::ifstream::binary);
+        if (!in.is_open()) {
+            throw std::runtime_error("cannot open strings tmp file '" + m_filename + "'");
+        }
+        std::vector<char> buffer(uint64_t(64) << 10);  // 64 KiB
+        uint64_t bytes_remaining = total_words * sizeof(uint64_t);
+        while (bytes_remaining > 0) {
+            const std::streamsize chunk = static_cast<std::streamsize>(
+                std::min<uint64_t>(buffer.size(), bytes_remaining));
+            in.read(buffer.data(), chunk);
+            const std::streamsize got = in.gcount();
+            if (got <= 0) {
+                throw std::runtime_error("unexpected EOF in strings tmp file '" + m_filename + "'");
+            }
+            os.write(buffer.data(), got);
+            bytes_remaining -= static_cast<uint64_t>(got);
+        }
+        in.close();
+    }
+
+    /*
         Materialize the full bit-vector in RAM. This briefly peaks at the
         bit-vector size and is used immediately before `essentials::save`.
     */
