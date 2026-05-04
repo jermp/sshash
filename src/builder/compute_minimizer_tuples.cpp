@@ -47,7 +47,8 @@ void dictionary_builder<Kmer, Offsets>::compute_minimizer_tuples()  //
             const uint64_t index_end =
                 std::min<uint64_t>(index_begin + num_sequences_per_thread, num_sequences);
 
-            kmer_iterator<Kmer, bits::bit_vector::builder> kmer_it(strings_builder, k);
+            auto strings_reader = strings_builder.make_reader();
+            kmer_iterator<Kmer, disk_backed_strings::reader> kmer_it(strings_reader, k);
             hasher_type hasher(build_config.seed);
             minimizer_iterator<Kmer> minimizer_it(k, m, hasher);
             minimizer_iterator_rc<Kmer> minimizer_it_rc(k, m, hasher);

@@ -110,7 +110,9 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     control_codewords_builder.resize(num_minimizers, num_bits_for_control);
 
     strings_offsets_builder.build(d.m_spss.strings_offsets);
-    strings_builder.build(d.m_spss.strings);
+    /* `d.m_spss.strings` is materialized later, in step 8, from the on-disk
+       strings tmp file owned by `strings_builder`. Step 7.2 phase (B) reads
+       directly from the file via a `disk_backed_strings::reader` window. */
 
     /* step 1. build sparse index */
     assert(buckets_stats.num_buckets() == num_minimizers);
@@ -451,7 +453,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
         const uint64_t k = build_config.k;
         const bool canonical = build_config.canonical;
-        kmer_iterator<Kmer, bits::bit_vector> kmer_it(d.m_spss.strings, k);
+        auto strings_reader = strings_builder.make_reader();
+        kmer_iterator<Kmer, disk_backed_strings::reader> kmer_it(strings_reader, k);
 
         while (merger.has_next())  //
         {
