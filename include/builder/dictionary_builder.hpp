@@ -5,6 +5,7 @@
 #include "include/offsets.hpp"
 #include "include/builder/util.hpp"
 #include "include/builder/disk_backed_strings.hpp"
+#include "include/builder/streaming_save.hpp"
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
@@ -21,8 +22,55 @@ struct dictionary_builder  //
 
     ~dictionary_builder() { strings_builder.remove_file(); }
 
-    void build(dictionary<Kmer, Offsets>& d, std::string const& filename)  //
+    /*
+        Build a query-ready dictionary in `d`. After this returns,
+        `d.m_spss.strings` is materialized in RAM (peak briefly equals the
+        strings size). Use this when the caller needs to query `d` post-build
+        (e.g., `--check`).
+    */
+    void build(dictionary<Kmer, Offsets>& d, std::string const& filename) {
+        run_steps_1_through_7(d, filename);
+        do_step("step 8 (materialize strings to RAM)", [&]() {
+            strings_builder.load_into(d.m_spss.strings);
+            strings_builder.remove_file();
+        });
+        finalize_stats(d);
+    }
+
+    /*
+        Build the dictionary and stream-save it to `output_filename` without
+        ever materializing `strings` in RAM. After this returns, `d` is *not*
+        query-ready (`d.m_spss.strings` is empty). Use this when the caller
+        only needs the on-disk index file and wants to keep peak RAM bounded
+        by the build phase.
+    */
+    void build_streaming_save(dictionary<Kmer, Offsets>& d,                  //
+                              std::string const& filename,                   //
+                              std::string const& output_filename)            //
     {
+        run_steps_1_through_7(d, filename);
+        do_step("step 8 (stream-save dictionary to disk)", [&]() {
+            save_streaming(d, output_filename.c_str(), &d.m_spss.strings, strings_builder);
+            strings_builder.remove_file();
+        });
+        finalize_stats(d);
+    }
+
+    build_configuration build_config;
+    uint64_t num_kmers;
+    minimizers_tuples minimizers;
+    typename Offsets::builder strings_offsets_builder;
+    disk_backed_strings strings_builder;
+    weights::builder weights_builder;
+
+    uint64_t strings_run_id;
+
+    essentials::timer_type timer;
+    essentials::json_lines build_stats;
+    uint64_t total_time_musec;
+
+private:
+    void run_steps_1_through_7(dictionary<Kmer, Offsets>& d, std::string const& filename) {
         d.m_k = build_config.k;
         d.m_m = build_config.m;
         d.m_spss.k = build_config.k;
@@ -80,18 +128,14 @@ struct dictionary_builder  //
             minimizers.remove_tmp_file();
             assert(strings_offsets_builder.size() == 0);
         });
+    }
 
-        /* The build above keeps `strings` exclusively on disk (accessed via
-           `disk_backed_strings::reader` windows). Materialize the in-RAM
-           bit_vector now for the standard `essentials::save` path. */
-        do_step("step 8 (materialize strings to RAM)", [&]() {
-            strings_builder.load_into(d.m_spss.strings);
-            strings_builder.remove_file();
-        });
-
+    void finalize_stats(dictionary<Kmer, Offsets>& d) {
         if (build_config.verbose) {
             print_time(total_time_musec, "total time");
-            d.print_space_breakdown();
+            /* `print_space_breakdown` reads d.m_spss.strings; only safe in
+               the materialize-to-RAM flow. */
+            if (d.m_spss.strings.num_bits() > 0) d.print_space_breakdown();
         }
 
         build_stats.add("total_build_time_in_microsec", total_time_musec);
@@ -101,20 +145,6 @@ struct dictionary_builder  //
         if (build_config.verbose) build_stats.print();
     }
 
-    build_configuration build_config;
-    uint64_t num_kmers;
-    minimizers_tuples minimizers;
-    typename Offsets::builder strings_offsets_builder;
-    disk_backed_strings strings_builder;
-    weights::builder weights_builder;
-
-    uint64_t strings_run_id;
-
-    essentials::timer_type timer;
-    essentials::json_lines build_stats;
-    uint64_t total_time_musec;
-
-private:
     void print_time(double time_in_musec, std::string const& message) {
         std::cout << "=== " << message << ": " << time_in_musec / 1'000'000 << " [sec] ("
                   << (time_in_musec * 1000) / num_kmers << " [ns/kmer])" << std::endl;
