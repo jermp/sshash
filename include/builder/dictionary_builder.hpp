@@ -4,6 +4,7 @@
 #include "include/dictionary.hpp"
 #include "include/offsets.hpp"
 #include "include/builder/util.hpp"
+#include "include/builder/disk_backed_strings.hpp"
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
@@ -12,7 +13,13 @@ template <typename Kmer, typename Offsets>
 struct dictionary_builder  //
 {
     dictionary_builder(build_configuration const& build_config)
-        : build_config(build_config), num_kmers(0), minimizers(build_config), total_time_musec(0) {}
+        : build_config(build_config)
+        , num_kmers(0)
+        , minimizers(build_config)
+        , strings_run_id(pthash::clock_type::now().time_since_epoch().count())
+        , total_time_musec(0) {}
+
+    ~dictionary_builder() { strings_builder.remove_file(); }
 
     void build(dictionary<Kmer, Offsets>& d, std::string const& filename)  //
     {
@@ -32,8 +39,16 @@ struct dictionary_builder  //
 
         total_time_musec = 0;
 
+        {
+            std::stringstream ss;
+            ss << build_config.tmp_dirname << "/sshash.tmp.run_" << strings_run_id
+               << ".strings.bin";
+            strings_builder.open_for_writing(ss.str());
+        }
+
         do_step("step 1 (encode strings)", [&]() {
             encode_strings(filename);
+            strings_builder.freeze();
             d.m_num_kmers = num_kmers;
             assert(strings_offsets_builder.size() >= 2);
             d.m_num_strings = strings_offsets_builder.size() - 1;
@@ -66,6 +81,14 @@ struct dictionary_builder  //
             assert(strings_offsets_builder.size() == 0);
         });
 
+        /* The build above keeps `strings` exclusively on disk (accessed via
+           `disk_backed_strings::reader` windows). Materialize the in-RAM
+           bit_vector now for the standard `essentials::save` path. */
+        do_step("step 8 (materialize strings to RAM)", [&]() {
+            strings_builder.load_into(d.m_spss.strings);
+            strings_builder.remove_file();
+        });
+
         if (build_config.verbose) {
             print_time(total_time_musec, "total time");
             d.print_space_breakdown();
@@ -82,8 +105,10 @@ struct dictionary_builder  //
     uint64_t num_kmers;
     minimizers_tuples minimizers;
     typename Offsets::builder strings_offsets_builder;
-    bits::bit_vector::builder strings_builder;
+    disk_backed_strings strings_builder;
     weights::builder weights_builder;
+
+    uint64_t strings_run_id;
 
     essentials::timer_type timer;
     essentials::json_lines build_stats;
@@ -134,8 +159,10 @@ private:
 
         uint64_t RAM_available_in_bytes = essentials::GiB / 2;  // at least 0.5 GB
         {
-            const uint64_t RAM_taken_in_bytes = (f.num_bits() + strings_builder.num_bits()) / 8 +
-                                                strings_offsets_builder.num_bytes();
+            /* `strings_builder` is now disk-backed; its in-RAM footprint is
+               bounded by its window size, not by the strings size. */
+            const uint64_t RAM_taken_in_bytes =
+                f.num_bits() / 8 + strings_offsets_builder.num_bytes();
             const uint64_t RAM_limit_in_bytes = build_config.ram_limit_in_GiB * essentials::GiB;
             if (RAM_limit_in_bytes > RAM_taken_in_bytes) {
                 RAM_available_in_bytes = std::max<uint64_t>(RAM_limit_in_bytes - RAM_taken_in_bytes,
