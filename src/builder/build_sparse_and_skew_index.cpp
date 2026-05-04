@@ -36,6 +36,62 @@ struct kmer_extraction_request {
 };
 #pragma pack(pop)
 
+/*
+    Forward iterator over a per-skew-partition tmp file produced by step
+    7.2 phase (B). Each record is `(kmer.bits, uint32_t pos_in_bucket)`.
+    This iterator yields successive Kmer values, exposing the minimal
+    interface (`*it`, `++it`) that pthash's external-memory partitioned PHF
+    builder consumes.
+
+    pthash takes the iterator by value, so it must be copyable. The
+    underlying `ifstream` is held via `shared_ptr` and shared between
+    copies; pthash's copy advances the shared stream state, which is fine
+    because the original at the call site is no longer used after the
+    build call returns.
+*/
+template <typename Kmer>
+struct skew_partition_kmer_iterator {
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = Kmer;
+    using difference_type = std::ptrdiff_t;
+    using reference = Kmer const&;
+    using pointer = Kmer const*;
+
+    skew_partition_kmer_iterator() = default;
+
+    void open(std::string const& filename) {
+        m_in = std::make_shared<std::ifstream>(filename, std::ifstream::binary);
+        if (!m_in->is_open()) {
+            throw std::runtime_error("cannot open skew-partition tmp file '" + filename + "'");
+        }
+        advance();
+    }
+
+    void close() {
+        if (m_in && m_in->is_open()) m_in->close();
+        m_in.reset();
+    }
+
+    Kmer const& operator*() const { return m_current; }
+    skew_partition_kmer_iterator& operator++() {
+        advance();
+        return *this;
+    }
+
+private:
+    std::shared_ptr<std::ifstream> m_in;
+    Kmer m_current;
+
+    void advance() {
+        decltype(Kmer{}.bits) bits;
+        m_in->read(reinterpret_cast<char*>(&bits), sizeof(bits));
+        if (m_in->gcount() != static_cast<std::streamsize>(sizeof(bits))) return;
+        uint32_t pib;
+        m_in->read(reinterpret_cast<char*>(&pib), sizeof(pib));  // skip pos_in_bucket
+        m_current.bits = bits;
+    }
+};
+
 template <typename Kmer, typename Offsets>
 void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     dictionary<Kmer, Offsets>& d)  //
@@ -504,6 +560,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         mphf_build_config.verbose = false;
         mphf_build_config.num_threads = build_config.num_threads;
         mphf_build_config.avg_partition_size = constants::avg_partition_size;
+        /* External-memory PHF: bound RAM by `--ram-limit` and spill hashes
+           to `tmp_dirname` rather than holding the partition's keys
+           (~16 B/kmer) and their hashes simultaneously in RAM. */
+        mphf_build_config.ram = (build_config.ram_limit_in_GiB * essentials::GiB) / 2;
+        mphf_build_config.tmp_dir = build_config.tmp_dirname;
 
         uint64_t lower = min_size;
         uint64_t upper = 2 * lower;
@@ -525,13 +586,46 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
             if (n > 0)  //
             {
-                std::vector<Kmer> kmers;
-                std::vector<uint32_t> positions_in_bucket;
-                kmers.reserve(n);
-                positions_in_bucket.reserve(n);
+                const std::string fn = skew_partition_filename(partition_id);
 
+                if (build_config.verbose) {
+                    const uint64_t avg_partition_size =
+                        pthash::compute_avg_partition_size(n, mphf_build_config);
+                    const uint64_t pthash_num_partitions =
+                        pthash::compute_num_partitions(n, avg_partition_size);
+                    assert(pthash_num_partitions > 0);
+                    std::cout << "    building MPHF (external memory) with "
+                              << mphf_build_config.num_threads << " threads and "
+                              << pthash_num_partitions
+                              << " partitions (avg. partition size = " << avg_partition_size
+                              << ")..." << std::endl;
+                }
+
+                /* (1) Build the MPHF by streaming kmers from the partition
+                       file. pthash's external-memory builder spills hashes
+                       to tmp_dir under its own RAM budget; the iterator's
+                       footprint is constant. */
+                auto& F = mphfs[partition_id];
                 {
-                    const std::string fn = skew_partition_filename(partition_id);
+                    skew_partition_kmer_iterator<Kmer> iter;
+                    iter.open(fn);
+                    F.build_in_external_memory(iter, n, mphf_build_config);
+                    iter.close();
+                }
+
+                if (build_config.verbose) {
+                    std::cout << "    built mphs[" << partition_id << "] for " << F.num_keys()
+                              << " kmers; bits/key = "
+                              << static_cast<double>(F.num_bits()) / F.num_keys() << std::endl;
+                }
+
+                /* (2) Re-stream the file to fill cvb_positions: for each
+                       (kmer, pos_in_bucket), set cvb_positions[F(kmer)] =
+                       pos_in_bucket. Only cvb_positions itself stays in RAM
+                       (n * num_bits_per_pos bits, the actual stored output). */
+                bits::compact_vector::builder cvb_positions;
+                cvb_positions.resize(n, num_bits_per_pos);
+                {
                     std::ifstream in(fn, std::ifstream::binary);
                     if (!in.is_open()) {
                         throw std::runtime_error("cannot open skew-partition tmp file");
@@ -541,43 +635,12 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                         in.read(reinterpret_cast<char*>(&kmer.bits), sizeof(kmer.bits));
                         uint32_t pib;
                         in.read(reinterpret_cast<char*>(&pib), sizeof(pib));
-                        kmers.push_back(kmer);
-                        positions_in_bucket.push_back(pib);
+                        cvb_positions.set(F(kmer), pib);
                     }
                     in.close();
-                    std::remove(fn.c_str());
                 }
+                std::remove(fn.c_str());
 
-                bits::compact_vector::builder cvb_positions;
-                cvb_positions.resize(n, num_bits_per_pos);
-
-                if (build_config.verbose) {
-                    const uint64_t avg_partition_size =
-                        pthash::compute_avg_partition_size(kmers.size(), mphf_build_config);
-                    const uint64_t pthash_num_partitions =
-                        pthash::compute_num_partitions(kmers.size(), avg_partition_size);
-                    assert(pthash_num_partitions > 0);
-                    std::cout << "    building MPHF with " << mphf_build_config.num_threads
-                              << " threads and " << pthash_num_partitions
-                              << " partitions (avg. partition size = " << avg_partition_size
-                              << ")..." << std::endl;
-                }
-
-                auto& F = mphfs[partition_id];
-                F.build_in_internal_memory(kmers.begin(), kmers.size(), mphf_build_config);
-
-                if (build_config.verbose) {
-                    std::cout << "    built mphs[" << partition_id << "] for " << kmers.size()
-                              << " kmers; bits/key = "
-                              << static_cast<double>(F.num_bits()) / F.num_keys() << std::endl;
-                }
-
-                for (uint64_t i = 0; i != kmers.size(); ++i) {
-                    Kmer kmer = kmers[i];
-                    uint64_t pos = F(kmer);
-                    uint32_t pos_in_bucket = positions_in_bucket[i];
-                    cvb_positions.set(pos, pos_in_bucket);
-                }
                 auto& P = positions[partition_id];
                 cvb_positions.build(P);
 
