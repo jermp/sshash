@@ -5,6 +5,7 @@
 #include "include/offsets.hpp"
 #include "include/builder/util.hpp"
 #include "include/builder/disk_backed_strings.hpp"
+#include "include/builder/disk_backed_offsets_builder.hpp"
 #include "include/builder/streaming_save.hpp"
 #include "include/buckets_statistics.hpp"
 
@@ -20,7 +21,10 @@ struct dictionary_builder  //
         , strings_run_id(pthash::clock_type::now().time_since_epoch().count())
         , total_time_musec(0) {}
 
-    ~dictionary_builder() { strings_builder.remove_file(); }
+    ~dictionary_builder() {
+        strings_builder.remove_file();
+        strings_offsets_builder.remove_file();
+    }
 
     /*
         Build a query-ready dictionary in `d`. After this returns,
@@ -59,7 +63,7 @@ struct dictionary_builder  //
     build_configuration build_config;
     uint64_t num_kmers;
     minimizers_tuples minimizers;
-    typename Offsets::builder strings_offsets_builder;
+    disk_backed_offsets_builder<Offsets> strings_offsets_builder;
     disk_backed_strings strings_builder;
     weights::builder weights_builder;
 
@@ -88,15 +92,20 @@ private:
         total_time_musec = 0;
 
         {
-            std::stringstream ss;
-            ss << build_config.tmp_dirname << "/sshash.tmp.run_" << strings_run_id
-               << ".strings.bin";
-            strings_builder.open_for_writing(ss.str());
+            std::stringstream ss_strings;
+            ss_strings << build_config.tmp_dirname << "/sshash.tmp.run_" << strings_run_id
+                       << ".strings.bin";
+            strings_builder.open_for_writing(ss_strings.str());
+            std::stringstream ss_offsets;
+            ss_offsets << build_config.tmp_dirname << "/sshash.tmp.run_" << strings_run_id
+                       << ".strings_offsets.bin";
+            strings_offsets_builder.open_for_writing(ss_offsets.str());
         }
 
         do_step("step 1 (encode strings)", [&]() {
             encode_strings(filename);
             strings_builder.freeze();
+            strings_offsets_builder.freeze();
             d.m_num_kmers = num_kmers;
             assert(strings_offsets_builder.size() >= 2);
             d.m_num_strings = strings_offsets_builder.size() - 1;

@@ -49,14 +49,19 @@ void dictionary_builder<Kmer, Offsets>::compute_minimizer_tuples()  //
 
             auto strings_reader = strings_builder.make_reader();
             kmer_iterator<Kmer, disk_backed_strings::reader> kmer_it(strings_reader, k);
+            /* Per-thread forward reader over the offsets file, positioned
+               so the first `next()` returns offsets[index_begin]. */
+            auto offsets_reader = strings_offsets_builder.make_reader(index_begin);
+            uint64_t prev_offset = offsets_reader.next();  // == offsets[index_begin]
             hasher_type hasher(build_config.seed);
             minimizer_iterator<Kmer> minimizer_it(k, m, hasher);
             minimizer_iterator_rc<Kmer> minimizer_it_rc(k, m, hasher);
 
             for (uint64_t i = index_begin; i < index_end; ++i)  //
             {
-                const uint64_t begin = strings_offsets_builder[i];
-                const uint64_t end = strings_offsets_builder[i + 1];
+                const uint64_t begin = prev_offset;
+                const uint64_t end = offsets_reader.next();  // offsets[i + 1]
+                prev_offset = end;
                 const uint64_t sequence_len = end - begin;
                 assert(sequence_len >= k);
 
