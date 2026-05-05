@@ -5,6 +5,8 @@
 
 namespace sshash {
 
+template <typename> struct disk_backed_offsets_builder;
+
 struct num_bits {
     num_bits() : per_absolute_offset(0), per_relative_offset(0), per_string_id(0) {}
     uint64_t per_absolute_offset;
@@ -100,6 +102,11 @@ struct offsets  //
     void visit(Visitor& visitor) {
         visit_impl(visitor, *this);
     }
+
+    /* Allow disk_backed_offsets_builder to populate m_seq directly via a
+       streaming forward iterator (mirroring what `Seq`'s nested builder
+       does, but with on-disk values). */
+    template <typename> friend struct disk_backed_offsets_builder;
 
 protected:
     Seq m_seq;
