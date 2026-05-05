@@ -1,15 +1,51 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "essentials.hpp"
 #include "include/dictionary.hpp"
 #include "include/offsets.hpp"
 #include "include/builder/util.hpp"
 #include "include/builder/disk_backed_strings.hpp"
 #include "include/builder/disk_backed_offsets_builder.hpp"
+#include "include/builder/streaming_compact_vector_writer.hpp"
 #include "include/builder/streaming_save.hpp"
 #include "include/buckets_statistics.hpp"
 
 namespace sshash {
+
+/*
+    Helper: load a serialized bits::compact_vector back from a tmp file
+    into the given in-RAM compact_vector. Used by the materializing build
+    flow (after step 7) so that --check / queries can run.
+*/
+inline void materialize_compact_vector_from_file(bits::compact_vector& cv,
+                                                 std::string const& filename) {
+    essentials::loader loader(filename.c_str());
+    loader.visit(cv);
+}
+
+/*
+    Tmp file paths for the compact_vectors that step 7 spills to disk.
+    Populated by build_sparse_and_skew_index; consumed by step 8 (either
+    materialized back into RAM for `build()`, or injected into the output
+    by `build_streaming_save()`).
+*/
+struct spilled_components {
+    std::string control_codewords_path;
+    std::string mid_load_buckets_path;
+    std::string heavy_load_buckets_path;
+    std::vector<std::string> skew_positions_paths;  // one entry per skew partition
+
+    void clear_files() {
+        if (!control_codewords_path.empty()) std::remove(control_codewords_path.c_str());
+        if (!mid_load_buckets_path.empty()) std::remove(mid_load_buckets_path.c_str());
+        if (!heavy_load_buckets_path.empty()) std::remove(heavy_load_buckets_path.c_str());
+        for (auto const& p : skew_positions_paths) {
+            if (!p.empty()) std::remove(p.c_str());
+        }
+    }
+};
 
 template <typename Kmer, typename Offsets>
 struct dictionary_builder  //
@@ -24,29 +60,32 @@ struct dictionary_builder  //
     ~dictionary_builder() {
         strings_builder.remove_file();
         strings_offsets_builder.remove_file();
+        spilled.clear_files();
     }
 
     /*
-        Build a query-ready dictionary in `d`. After this returns,
-        `d.m_spss.strings` is materialized in RAM (peak briefly equals the
-        strings size). Use this when the caller needs to query `d` post-build
-        (e.g., `--check`).
+        Build a query-ready dictionary in `d`. After this returns, all
+        spilled components and `d.m_spss.strings` are materialized in RAM
+        (peak briefly equals the index size). Use this when the caller
+        needs to query `d` post-build (e.g., `--check`).
     */
     void build(dictionary<Kmer, Offsets>& d, std::string const& filename) {
         run_steps_1_through_7(d, filename);
-        do_step("step 8 (materialize strings to RAM)", [&]() {
+        do_step("step 8 (materialize spilled components to RAM)", [&]() {
+            materialize_spilled_into(d);
             strings_builder.load_into(d.m_spss.strings);
             strings_builder.remove_file();
+            spilled.clear_files();
         });
         finalize_stats(d);
     }
 
     /*
         Build the dictionary and stream-save it to `output_filename` without
-        ever materializing `strings` in RAM. After this returns, `d` is *not*
-        query-ready (`d.m_spss.strings` is empty). Use this when the caller
-        only needs the on-disk index file and wants to keep peak RAM bounded
-        by the build phase.
+        ever materializing the spilled components or `strings` in RAM.
+        After this returns, `d` is *not* query-ready. Use this when the
+        caller only needs the on-disk index file and wants to keep peak RAM
+        bounded by the build phase.
     */
     void build_streaming_save(dictionary<Kmer, Offsets>& d,                  //
                               std::string const& filename,                   //
@@ -54,8 +93,35 @@ struct dictionary_builder  //
     {
         run_steps_1_through_7(d, filename);
         do_step("step 8 (stream-save dictionary to disk)", [&]() {
-            save_streaming(d, output_filename.c_str(), &d.m_spss.strings, strings_builder);
+            /* Populate placeholder compact_vectors at the visit slots whose
+               byte content the saver will substitute from disk tmp files. */
+            std::unordered_map<bits::compact_vector const*, std::string> subs;
+            if (!spilled.control_codewords_path.empty()) {
+                subs[&d.m_ssi.codewords.control_codewords] = spilled.control_codewords_path;
+            }
+            if (!spilled.mid_load_buckets_path.empty()) {
+                subs[&d.m_ssi.mid_load_buckets] = spilled.mid_load_buckets_path;
+            }
+            if (!spilled.heavy_load_buckets_path.empty()) {
+                subs[&d.m_ssi.ski.heavy_load_buckets] = spilled.heavy_load_buckets_path;
+            }
+            /* skew positions: populate the owning_span with placeholders so
+               the visit walks the right number of entries and we can take
+               their addresses for substitution. */
+            const std::size_t num_part = spilled.skew_positions_paths.size();
+            if (num_part > 0) {
+                std::vector<bits::compact_vector> placeholders(num_part);
+                d.m_ssi.ski.positions = std::move(placeholders);
+                for (std::size_t i = 0; i != num_part; ++i) {
+                    if (!spilled.skew_positions_paths[i].empty()) {
+                        subs[&d.m_ssi.ski.positions[i]] = spilled.skew_positions_paths[i];
+                    }
+                }
+            }
+            save_streaming(d, output_filename.c_str(), &d.m_spss.strings, strings_builder,
+                           std::move(subs));
             strings_builder.remove_file();
+            spilled.clear_files();
         });
         finalize_stats(d);
     }
@@ -66,6 +132,7 @@ struct dictionary_builder  //
     disk_backed_offsets_builder<Offsets> strings_offsets_builder;
     disk_backed_strings strings_builder;
     weights::builder weights_builder;
+    spilled_components spilled;
 
     uint64_t strings_run_id;
 
@@ -74,6 +141,35 @@ struct dictionary_builder  //
     uint64_t total_time_musec;
 
 private:
+    /* Load each spilled compact_vector tmp file back into the corresponding
+       in-RAM compact_vector inside `d`. Used by the materializing build
+       flow so queries can run against `d` (e.g., during --check). */
+    void materialize_spilled_into(dictionary<Kmer, Offsets>& d) {
+        if (!spilled.control_codewords_path.empty()) {
+            materialize_compact_vector_from_file(d.m_ssi.codewords.control_codewords,
+                                                 spilled.control_codewords_path);
+        }
+        if (!spilled.mid_load_buckets_path.empty()) {
+            materialize_compact_vector_from_file(d.m_ssi.mid_load_buckets,
+                                                 spilled.mid_load_buckets_path);
+        }
+        if (!spilled.heavy_load_buckets_path.empty()) {
+            materialize_compact_vector_from_file(d.m_ssi.ski.heavy_load_buckets,
+                                                 spilled.heavy_load_buckets_path);
+        }
+        const std::size_t num_part = spilled.skew_positions_paths.size();
+        if (num_part > 0) {
+            std::vector<bits::compact_vector> positions_vec(num_part);
+            for (std::size_t i = 0; i != num_part; ++i) {
+                if (!spilled.skew_positions_paths[i].empty()) {
+                    materialize_compact_vector_from_file(positions_vec[i],
+                                                         spilled.skew_positions_paths[i]);
+                }
+            }
+            d.m_ssi.ski.positions = std::move(positions_vec);
+        }
+    }
+
     void run_steps_1_through_7(dictionary<Kmer, Offsets>& d, std::string const& filename) {
         d.m_k = build_config.k;
         d.m_m = build_config.m;
