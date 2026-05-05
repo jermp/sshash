@@ -59,6 +59,12 @@ struct buckets_statistics {
     uint64_t max_bucket_size() const { return m_max_bucket_size; }
     uint64_t max_sparse_buckets_per_size() const { return m_max_sparse_buckets_per_size; }
 
+    /* Histogram bin: number of buckets whose size equals `s`. Bins beyond
+       MAX_BUCKET_SIZE are not tracked individually and return 0. */
+    uint64_t num_buckets_of_size(uint64_t s) const {
+        return s < m_bucket_sizes.size() ? m_bucket_sizes[s] : uint64_t(0);
+    }
+
     void print_full() const {
         std::cout << "=== bucket statistics (full) === \n";
         for (uint64_t bucket_size = 1, prev_bucket_size = 0, prev_kmers_in_buckets = 0,

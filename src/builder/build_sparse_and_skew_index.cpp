@@ -37,6 +37,55 @@ struct kmer_extraction_request {
 #pragma pack(pop)
 
 /*
+    Streaming reader over the merged minimizers file. Reads minimizer_tuple
+    records via std::ifstream (no mmap), and groups consecutive tuples by
+    minimizer into "buckets" — exactly as `minimizers_tuples_iterator` does
+    over an mmap'd buffer, but with bounded RAM (~ one bucket at a time).
+
+    The caller passes a vector to receive the bucket's tuples; for typical
+    inputs this peaks at max_bucket_size * sizeof(minimizer_tuple).
+*/
+struct streaming_minimizer_bucket_reader {
+    void open(std::string const& filename) {
+        m_in.open(filename, std::ifstream::binary);
+        if (!m_in.is_open()) {
+            throw std::runtime_error("cannot open minimizers tmp file '" + filename + "'");
+        }
+        // Read first record into the lookahead slot, if any.
+        m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
+        m_eof = (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple)));
+    }
+
+    void close() {
+        if (m_in.is_open()) m_in.close();
+    }
+
+    bool has_next_bucket() const { return !m_eof; }
+
+    /* Read the next bucket into `bucket_out` (cleared first). All tuples in
+       a bucket share the same minimizer. Returns the bucket's minimizer. */
+    uint64_t next_bucket(std::vector<minimizer_tuple>& bucket_out) {
+        bucket_out.clear();
+        assert(!m_eof);
+        const uint64_t mm = m_lookahead.minimizer;
+        do {
+            bucket_out.push_back(m_lookahead);
+            m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
+            if (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
+                m_eof = true;
+                break;
+            }
+        } while (m_lookahead.minimizer == mm);
+        return mm;
+    }
+
+private:
+    std::ifstream m_in;
+    minimizer_tuple m_lookahead;
+    bool m_eof = true;
+};
+
+/*
     Forward iterator over a per-skew-partition tmp file produced by step
     7.2 phase (B). Each record is `(kmer.bits, uint32_t pos_in_bucket)`.
     This iterator yields successive Kmer values, exposing the minimal
@@ -104,41 +153,51 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     const uint64_t min_size = 1ULL << constants::min_l;
     const uint64_t num_bits_per_offset = strings_offsets_builder.num_bits_per_offset();
 
-    mm::file_source<minimizer_tuple> input(minimizers.get_minimizers_filename(),
-                                           mm::advice::sequential);
+    const std::string minimizers_filename = minimizers.get_minimizers_filename();
 
     buckets_statistics buckets_stats(num_minimizers, num_kmers, num_minimizer_positions);
 
     uint64_t num_buckets_larger_than_1_not_in_skew_index = 0;
     uint64_t num_buckets_in_skew_index = 0;
-    uint64_t num_super_kmers_in_buckets_larger_than_1 = 0;
     uint64_t num_minimizer_positions_of_buckets_larger_than_1 = 0;
     uint64_t num_minimizer_positions_of_buckets_in_skew_index = 0;
 
     /*
-        First pass: collect bucket statistics to compute tighter bound.
+        Pass 1: streaming statistics over the merged minimizers file. Buckets
+        are accumulated one at a time via std::ifstream-backed reads (no
+        mmap), so RAM usage is bounded by max_bucket_size * sizeof(tuple).
     */
-    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
-         it.has_next(); it.next())                                                  //
     {
-        auto bucket = it.bucket();
-        const uint64_t bucket_size = bucket.size();
-        buckets_stats.add_bucket_size(bucket_size);
-
-        if (bucket_size > 1) {
-            if (bucket_size <= min_size) {
-                ++num_buckets_larger_than_1_not_in_skew_index;
-                num_minimizer_positions_of_buckets_larger_than_1 += bucket_size;
-            } else {
-                ++num_buckets_in_skew_index;
-                num_minimizer_positions_of_buckets_in_skew_index += bucket_size;
+        streaming_minimizer_bucket_reader reader;
+        reader.open(minimizers_filename);
+        std::vector<minimizer_tuple> bucket_buf;
+        while (reader.has_next_bucket()) {
+            reader.next_bucket(bucket_buf);
+            uint64_t bucket_size = 0;
+            {
+                uint64_t prev = constants::invalid_uint64;
+                for (auto const& mt : bucket_buf) {
+                    if (mt.pos_in_seq != prev) {
+                        ++bucket_size;
+                        prev = mt.pos_in_seq;
+                    }
+                }
             }
-            num_super_kmers_in_buckets_larger_than_1 += bucket.num_super_kmers();
+            buckets_stats.add_bucket_size(bucket_size);
+            if (bucket_size > 1) {
+                if (bucket_size <= min_size) {
+                    ++num_buckets_larger_than_1_not_in_skew_index;
+                    num_minimizer_positions_of_buckets_larger_than_1 += bucket_size;
+                } else {
+                    ++num_buckets_in_skew_index;
+                    num_minimizer_positions_of_buckets_in_skew_index += bucket_size;
+                }
+            }
+            for (auto const& mt : bucket_buf) {
+                buckets_stats.add_num_kmers_in_super_kmer(bucket_size, mt.num_kmers_in_super_kmer);
+            }
         }
-
-        for (auto mt : bucket) {
-            buckets_stats.add_num_kmers_in_super_kmer(bucket_size, mt.num_kmers_in_super_kmer);
-        }
+        reader.close();
     }
 
     assert(buckets_stats.num_buckets() == num_minimizers);
@@ -162,19 +221,16 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         std::cout << "num_bits_for_control = " << num_bits_for_control << std::endl;
     }
 
-    bits::compact_vector::builder control_codewords_builder;
-    control_codewords_builder.resize(num_minimizers, num_bits_for_control);
-
-    strings_offsets_builder.build(d.m_spss.strings_offsets);
-    /* `d.m_spss.strings` is materialized later, in step 8, from the on-disk
-       strings tmp file owned by `strings_builder`. Step 7.2 phase (B) reads
-       directly from the file via a `disk_backed_strings::reader` window. */
-
-    /* step 1. build sparse index */
-    assert(buckets_stats.num_buckets() == num_minimizers);
-
     const uint64_t max_bucket_size = buckets_stats.max_bucket_size();
     const uint64_t log2_max_bucket_size = std::ceil(std::log2(max_bucket_size));
+
+    uint64_t num_partitions = constants::max_l - constants::min_l + 1;
+    if (max_bucket_size < min_size) {
+        num_partitions = 0;
+    } else if (max_bucket_size < (1ULL << constants::max_l)) {
+        num_partitions = log2_max_bucket_size - constants::min_l;
+    }
+    assert(num_partitions <= 8);  // so that we need 3 bits to encode a partition_id
 
     if (build_config.verbose) {
         std::cout << "num_buckets_larger_than_1_not_in_skew_index "
@@ -189,55 +245,6 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                   << std::endl;
         std::cout << "max_bucket_size " << max_bucket_size << std::endl;
         std::cout << "log2_max_bucket_size " << log2_max_bucket_size << std::endl;
-    }
-
-    std::vector<bucket_type> buckets;
-    buckets.reserve(num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
-
-    /* Second pass: register buckets > 1 (pointing directly into the mmap'd
-       `input`, no copy) and handle size-1 buckets inline. */
-    for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
-         it.has_next(); it.next())                                                  //
-    {
-        const uint64_t bucket_id = it.minimizer();
-        auto bucket = it.bucket();
-        const uint64_t bucket_size = bucket.size();
-        if (bucket_size == 1) {
-            // Handle size-1 buckets: encode directly into control codewords
-            uint64_t prev_pos_in_seq = constants::invalid_uint64;
-            for (auto mt : bucket) {
-                if (mt.pos_in_seq != prev_pos_in_seq) {
-                    /*
-                        For minimizers occurring once, store a (log(N)+1)-bit
-                        code, as follows: |offset|0|, i.e., the LSB is 0.
-                    */
-                    uint64_t code = mt.pos_in_seq << 1;  // first LS bit encodes status code: 0
-                    assert(code < (uint64_t(1) << num_bits_for_control));
-                    control_codewords_builder.set(bucket_id, code);
-                    prev_pos_in_seq = mt.pos_in_seq;
-                }
-            }
-        } else {
-            /* Buckets > 1: store pointers directly into the mmap'd `input`.
-               `input` is kept open through step 7.2 phase (A). */
-            buckets.push_back(bucket_type(bucket.begin_ptr(), bucket.end_ptr()));
-        }
-    }
-    assert(buckets.size() ==
-           num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
-
-    std::sort(buckets.begin(), buckets.end(),
-              [](bucket_type const& x, bucket_type const& y) { return x.size() < y.size(); });
-
-    uint64_t num_partitions = constants::max_l - constants::min_l + 1;
-    if (max_bucket_size < min_size) {
-        num_partitions = 0;
-    } else if (max_bucket_size < (1ULL << constants::max_l)) {
-        num_partitions = log2_max_bucket_size - constants::min_l;
-    }
-    assert(num_partitions <= 8);  // so that we need 3 bits to encode a partition_id
-
-    if (build_config.verbose) {
         std::cout << "num_partitions in skew index " << num_partitions << std::endl;
         std::cout << "num_minimizer_positions_of_buckets_larger_than_1 "
                   << num_minimizer_positions_of_buckets_larger_than_1 << "/"
@@ -253,125 +260,45 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                   << "%)" << std::endl;
     }
 
-    {
-        bits::compact_vector::builder mid_load_buckets_builder;
-        bits::compact_vector::builder heavy_load_buckets_builder;
-        mid_load_buckets_builder.resize(num_minimizer_positions_of_buckets_larger_than_1,
-                                        num_bits_per_offset);
-        heavy_load_buckets_builder.resize(num_minimizer_positions_of_buckets_in_skew_index,
-                                          num_bits_per_offset);
+    /* Materialize strings_offsets now: needed below to decode pos_in_seq
+       into absolute offsets when emitting heavy-bucket kmer requests.
+       `d.m_spss.strings` is materialized later in step 8 (or stream-saved
+       directly to disk). */
+    strings_offsets_builder.build(d.m_spss.strings_offsets);
 
-        std::vector<uint32_t> begin_buckets_of_size;
-        begin_buckets_of_size.resize(min_size + 1, 0);
-
-        uint64_t curr_bucket_size = 2;
-        uint64_t list_id = 0;
-        uint64_t mid_load_buckets_size = 0;
-        uint64_t heavy_load_buckets_size = 0;
-
-        uint64_t partition_id = 0;
-        uint64_t lower = min_size;
-        uint64_t upper = 2 * lower;
-
-        for (auto bucket : buckets) {
-            const uint64_t bucket_size = bucket.size();
-            assert(bucket_size >= 2);
-
-            if (bucket_size > curr_bucket_size) {
-                while (bucket_size > curr_bucket_size) ++curr_bucket_size;
-                if (curr_bucket_size <= min_size) {
-                    begin_buckets_of_size[curr_bucket_size] = mid_load_buckets_size;
-                } else {
-                    while (curr_bucket_size > upper) {
-                        lower = upper;
-                        upper = 2 * lower;
-                        partition_id += 1;
-                        if (partition_id == num_partitions - 1) upper = max_bucket_size;
-                    }
-                }
-                list_id = 0;
-            }
-
-            if (curr_bucket_size <= min_size) {
-                uint64_t prev_pos_in_seq = constants::invalid_uint64;
-                for (auto mt : bucket) {
-                    if (prev_pos_in_seq == constants::invalid_uint64) {  // only once
-                        uint64_t p = (list_id << constants::min_l) | (curr_bucket_size - 2);
-                        uint64_t code = (p << 2) | 1;  // first two LS bits encode status code: 01
-                        assert(code < (uint64_t(1) << num_bits_for_control));
-                        control_codewords_builder.set(mt.minimizer, code);
-                    }
-                    if (mt.pos_in_seq != prev_pos_in_seq) {
-                        mid_load_buckets_builder.push_back(mt.pos_in_seq);
-                        prev_pos_in_seq = mt.pos_in_seq;
-                        mid_load_buckets_size += 1;
-                    }
-                }
-                ++list_id;
-            } else {
-                uint64_t prev_pos_in_seq = constants::invalid_uint64;
-                for (auto mt : bucket) {
-                    if (prev_pos_in_seq == constants::invalid_uint64) {  // only once
-                        assert(partition_id < 8);
-                        uint64_t p = (heavy_load_buckets_size << 3) | partition_id;
-                        uint64_t code = (p << 2) | 3;  // first two LS bits encode status code: 11
-                        assert(code < (uint64_t(1) << num_bits_for_control));
-                        control_codewords_builder.set(mt.minimizer, code);
-                    }
-                    if (mt.pos_in_seq != prev_pos_in_seq) {
-                        heavy_load_buckets_builder.push_back(mt.pos_in_seq);
-                        prev_pos_in_seq = mt.pos_in_seq;
-                        heavy_load_buckets_size += 1;
-                    }
-                }
-            }
-        }
-
-        d.m_ssi.begin_buckets_of_size = std::move(begin_buckets_of_size);
-
-        control_codewords_builder.build(d.m_ssi.codewords.control_codewords);
-        mid_load_buckets_builder.build(d.m_ssi.mid_load_buckets);
-        heavy_load_buckets_builder.build(d.m_ssi.ski.heavy_load_buckets);
+    /* Precompute the layout of mid_load_buckets from the bucket-size
+       histogram. begin_buckets_of_size[s] is the start offset (in
+       positions, not bits) of size-s bucket positions in mid_load_buckets;
+       it lets us write each bucket's positions in place during the
+       single-pass build, without needing to sort buckets by size. */
+    std::vector<uint32_t> begin_buckets_of_size(min_size + 1, 0);
+    for (uint64_t s = 3; s <= min_size; ++s) {
+        begin_buckets_of_size[s] = static_cast<uint32_t>(  //
+            begin_buckets_of_size[s - 1] +
+            buckets_stats.num_buckets_of_size(s - 1) * (s - 1));
     }
 
-    timer.stop();
+    bits::compact_vector::builder control_codewords_builder;
+    bits::compact_vector::builder mid_load_buckets_builder;
+    bits::compact_vector::builder heavy_load_buckets_builder;
+    control_codewords_builder.resize(num_minimizers, num_bits_for_control);
+    mid_load_buckets_builder.resize(num_minimizer_positions_of_buckets_larger_than_1,
+                                    num_bits_per_offset);
+    heavy_load_buckets_builder.resize(num_minimizer_positions_of_buckets_in_skew_index,
+                                      num_bits_per_offset);
 
-    build_stats.add("step 7.1 (build sparse index)", uint64_t(timer.elapsed()));
+    /* Per-size cursor for mid_load (initialized to begin_buckets_of_size)
+       and per-size list_id counter; monotone cursor for heavy_load. */
+    std::vector<uint64_t> mid_load_cursor(min_size + 1, 0);
+    for (uint64_t s = 2; s <= min_size; ++s) mid_load_cursor[s] = begin_buckets_of_size[s];
+    std::vector<uint64_t> list_id_per_size(min_size + 1, 0);
+    uint64_t heavy_load_cursor = 0;
 
-    if (build_config.verbose) {
-        print_time(uint64_t(timer.elapsed()), "step 7.1 (build sparse index)");
-    }
-
-    timer.reset();
-
-    if (num_buckets_in_skew_index == 0) {
-        if (build_config.verbose) buckets_stats.print_less();
-        return;
-    }
-
-    /*
-        step 2. build skew index
-
-        We do this in three sub-steps:
-        (A) walk the heavy-load buckets in size-sorted order, decode each
-            super-kmer's absolute starting position in `strings` and emit a
-            `kmer_extraction_request`. Requests are sort+flushed to disk in
-            chunks (external sort by `starting_pos`).
-        (B) merge the sorted runs and walk `strings` in a single forward
-            sequential pass, extracting the requested k-mers. For each k-mer
-            we append `(kmer.bits, pos_in_bucket)` to a per-partition tmp file.
-        (C) for each partition, read its tmp file, build the MPHF, then build
-            the positions compact vector. The skew index is assembled
-            partition by partition.
-
-        Avoiding the random access pattern over `strings` in (B) is the
-        precondition for moving `strings` itself out of RAM in a later step.
-    */
-    timer.start();
-
+    /* Per-partition kmer counts; filled during the heavy branch of the
+       combined pass below. */
     std::vector<uint64_t> num_kmers_in_partition(num_partitions, 0);
 
-    /* unique run identifier for the tmp files produced by this step */
+    /* Skew-index tmp file naming. */
     const uint64_t skew_run_id = pthash::clock_type::now().time_since_epoch().count();
     auto request_run_filename = [&](uint64_t id) {
         std::stringstream ss;
@@ -386,84 +313,157 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         return ss.str();
     };
 
-    /* (A) emit kmer-extraction requests, externally sorted by `starting_pos` */
+    /* External-sort buffer for kmer-extraction requests (formerly step 7.2
+       phase A; now folded into the combined pass). */
     std::atomic<uint64_t> num_request_runs{0};
+    const uint64_t request_buffer_capacity = std::max<uint64_t>(
+        uint64_t(1) << 16,
+        (build_config.ram_limit_in_GiB * essentials::GiB) /
+            (4 * sizeof(kmer_extraction_request)));
+    std::vector<kmer_extraction_request> request_buffer;
+    request_buffer.reserve(request_buffer_capacity);
+    auto flush_request_buffer = [&]() {
+        if (request_buffer.empty()) return;
+        parallel_sort(request_buffer, build_config.num_threads,
+                      [](kmer_extraction_request const& a, kmer_extraction_request const& b) {
+                          return a.starting_pos < b.starting_pos;
+                      });
+        const uint64_t id = num_request_runs.fetch_add(1);
+        const std::string fn = request_run_filename(id);
+        if (build_config.verbose) {
+            std::cout << "saving to file '" << fn << "'..." << std::endl;
+        }
+        std::ofstream out(fn, std::ofstream::binary);
+        if (!out.is_open()) throw std::runtime_error("cannot open file");
+        out.write(reinterpret_cast<char const*>(request_buffer.data()),
+                  request_buffer.size() * sizeof(kmer_extraction_request));
+        out.close();
+        request_buffer.clear();
+    };
+
+    /* Map bucket size → partition_id for heavy buckets. num_partitions <= 8
+       so this loop is constant time. */
+    auto partition_for_size = [&](uint64_t bucket_size) -> uint64_t {
+        assert(bucket_size > min_size);
+        uint64_t pid = 0;
+        uint64_t upper = 2 * min_size;
+        while (bucket_size > upper && pid + 1 < num_partitions) {
+            upper *= 2;
+            ++pid;
+        }
+        return pid;
+    };
+
+    /*
+        Combined pass: stream the merged minimizers file once and, per
+        bucket, write the appropriate part of the sparse index. For heavy
+        buckets we also emit kmer-extraction requests in-line (what was
+        formerly step 7.2 phase A). No mmap; no in-RAM `buckets` array.
+    */
     {
-        const uint64_t request_buffer_capacity = std::max<uint64_t>(
-            uint64_t(1) << 16,
-            (build_config.ram_limit_in_GiB * essentials::GiB) /
-                (4 * sizeof(kmer_extraction_request)));
-
-        std::vector<kmer_extraction_request> request_buffer;
-        request_buffer.reserve(request_buffer_capacity);
-
-        auto flush_request_buffer = [&]() {
-            if (request_buffer.empty()) return;
-            parallel_sort(request_buffer, build_config.num_threads,
-                          [](kmer_extraction_request const& a,
-                             kmer_extraction_request const& b) {
-                              return a.starting_pos < b.starting_pos;
-                          });
-            const uint64_t id = num_request_runs.fetch_add(1);
-            const std::string fn = request_run_filename(id);
-            if (build_config.verbose) {
-                std::cout << "saving to file '" << fn << "'..." << std::endl;
-            }
-            std::ofstream out(fn, std::ofstream::binary);
-            if (!out.is_open()) throw std::runtime_error("cannot open file");
-            out.write(reinterpret_cast<char const*>(request_buffer.data()),
-                      request_buffer.size() * sizeof(kmer_extraction_request));
-            out.close();
-            request_buffer.clear();
-        };
-
-        uint64_t partition_id = 0;
-        uint64_t lower = min_size;
-        uint64_t upper = 2 * lower;
-
-        for (uint64_t i = buckets.size() - num_buckets_in_skew_index; i < buckets.size(); ++i)  //
-        {
-            auto const& bucket = buckets[i];
-            const uint64_t bucket_size = bucket.size();
-            while (bucket_size > upper)  //
+        streaming_minimizer_bucket_reader reader;
+        reader.open(minimizers_filename);
+        std::vector<minimizer_tuple> bucket_buf;
+        while (reader.has_next_bucket()) {
+            const uint64_t bucket_id = reader.next_bucket(bucket_buf);
+            uint64_t bucket_size = 0;
             {
-                lower = upper;
-                upper = 2 * lower;
-                partition_id += 1;
-                if (partition_id == num_partitions - 1) upper = max_bucket_size;
-            }
-            assert(bucket_size > lower and bucket_size <= upper);
-            assert(partition_id < num_partitions);
-
-            uint32_t pos_in_bucket = uint32_t(-1);
-            uint64_t prev_pos_in_seq = constants::invalid_uint64;
-            for (auto mt : bucket)  //
-            {
-                num_kmers_in_partition[partition_id] += mt.num_kmers_in_super_kmer;
-                if (mt.pos_in_seq != prev_pos_in_seq) {
-                    prev_pos_in_seq = mt.pos_in_seq;
-                    ++pos_in_bucket;
+                uint64_t prev = constants::invalid_uint64;
+                for (auto const& mt : bucket_buf) {
+                    if (mt.pos_in_seq != prev) {
+                        ++bucket_size;
+                        prev = mt.pos_in_seq;
+                    }
                 }
-                assert(mt.pos_in_seq >= mt.pos_in_kmer);
-                const uint64_t abs_offset =
-                    d.m_spss.strings_offsets.decode(mt.pos_in_seq).absolute_offset;
-                const uint64_t starting_pos = abs_offset - mt.pos_in_kmer;
-                if (request_buffer.size() == request_buffer_capacity) flush_request_buffer();
-                request_buffer.emplace_back(starting_pos,                          //
-                                            uint32_t(partition_id),                //
-                                            pos_in_bucket,                         //
-                                            uint32_t(mt.num_kmers_in_super_kmer)); //
+            }
+
+            if (bucket_size == 1) {
+                /* Singleton: code = |offset|0|, LSB = 0. */
+                const uint64_t code = bucket_buf.front().pos_in_seq << 1;
+                assert(code < (uint64_t(1) << num_bits_for_control));
+                control_codewords_builder.set(bucket_id, code);
+            } else if (bucket_size <= min_size) {
+                /* Mid-load: write positions at the per-size cursor and
+                   assign the next list_id for this size. */
+                const uint64_t list_id = list_id_per_size[bucket_size]++;
+                const uint64_t code =
+                    (((list_id << constants::min_l) | (bucket_size - 2)) << 2) | 1;
+                assert(code < (uint64_t(1) << num_bits_for_control));
+                control_codewords_builder.set(bucket_id, code);
+
+                uint64_t cursor = mid_load_cursor[bucket_size];
+                uint64_t prev_pos_in_seq = constants::invalid_uint64;
+                for (auto const& mt : bucket_buf) {
+                    if (mt.pos_in_seq != prev_pos_in_seq) {
+                        mid_load_buckets_builder.set(cursor++, mt.pos_in_seq);
+                        prev_pos_in_seq = mt.pos_in_seq;
+                    }
+                }
+                mid_load_cursor[bucket_size] = cursor;
+            } else {
+                /* Heavy: write positions at the monotone cursor, set the
+                   codeword (encodes the start offset and partition id),
+                   and emit kmer-extraction requests for each super-kmer
+                   in the bucket. */
+                const uint64_t partition_id = partition_for_size(bucket_size);
+                assert(partition_id < num_partitions);
+                const uint64_t bucket_begin = heavy_load_cursor;
+                const uint64_t code = (((bucket_begin << 3) | partition_id) << 2) | 3;
+                assert(code < (uint64_t(1) << num_bits_for_control));
+                control_codewords_builder.set(bucket_id, code);
+
+                uint32_t pos_in_bucket = uint32_t(-1);
+                uint64_t prev_pos_in_seq = constants::invalid_uint64;
+                for (auto const& mt : bucket_buf) {
+                    num_kmers_in_partition[partition_id] += mt.num_kmers_in_super_kmer;
+                    if (mt.pos_in_seq != prev_pos_in_seq) {
+                        heavy_load_buckets_builder.set(heavy_load_cursor++, mt.pos_in_seq);
+                        prev_pos_in_seq = mt.pos_in_seq;
+                        ++pos_in_bucket;
+                    }
+                    assert(mt.pos_in_seq >= mt.pos_in_kmer);
+                    const uint64_t abs_offset =
+                        d.m_spss.strings_offsets.decode(mt.pos_in_seq).absolute_offset;
+                    const uint64_t starting_pos = abs_offset - mt.pos_in_kmer;
+                    if (request_buffer.size() == request_buffer_capacity) flush_request_buffer();
+                    request_buffer.emplace_back(starting_pos, uint32_t(partition_id),
+                                                pos_in_bucket,
+                                                uint32_t(mt.num_kmers_in_super_kmer));
+                }
             }
         }
+        reader.close();
         flush_request_buffer();
-        assert(partition_id == num_partitions - 1);
     }
 
-    /* `buckets` and the mmap'd `input` are no longer needed: phase (B) walks
-       the sorted requests and per-partition tmp files, phase (C) walks the
-       per-partition tmp files. Free both now to bound RAM. */
-    std::vector<bucket_type>().swap(buckets);
-    input.close();
+    /* Build sparse-index structures into the dictionary. */
+    d.m_ssi.begin_buckets_of_size = std::move(begin_buckets_of_size);
+    control_codewords_builder.build(d.m_ssi.codewords.control_codewords);
+    mid_load_buckets_builder.build(d.m_ssi.mid_load_buckets);
+    heavy_load_buckets_builder.build(d.m_ssi.ski.heavy_load_buckets);
+
+    timer.stop();
+    build_stats.add("step 7.1 (build sparse index)", uint64_t(timer.elapsed()));
+    if (build_config.verbose) {
+        print_time(uint64_t(timer.elapsed()), "step 7.1 (build sparse index)");
+    }
+    timer.reset();
+
+    if (num_buckets_in_skew_index == 0) {
+        if (build_config.verbose) buckets_stats.print_less();
+        return;
+    }
+
+    /*
+        step 2. build skew index
+
+        Phases (B) and (C) below; phase (A) was folded into the combined
+        sparse pass above. Phase (B) extracts k-mers from `strings` in a
+        single forward sweep guided by the externally-sorted requests, and
+        phase (C) builds the per-partition MPHF + positions in external
+        memory from the per-partition kmer files.
+    */
+    timer.start();
 
     if (build_config.verbose) {
         uint64_t total_kmers_in_skew = 0;
