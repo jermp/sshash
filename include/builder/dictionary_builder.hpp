@@ -169,11 +169,13 @@ private:
 
     void build_mphf(dictionary<Kmer, Offsets>& d) {
         const uint64_t num_minimizers = minimizers.num_minimizers();
-        mm::file_source<minimizer_tuple> input(minimizers.get_minimizers_filename(),
-                                               mm::advice::sequential);
-        minimizers_tuples_iterator iterator(input.data(), input.data() + input.size());
+        /* Stream minimizers from disk via std::ifstream (no mmap); the
+           iterator yields each distinct minimizer once, matching what
+           `minimizers_tuples_iterator` did over the mmap'd file. */
+        streaming_minimizers_iterator iterator;
+        iterator.open(minimizers.get_minimizers_filename());
         d.m_ssi.codewords.build(iterator, num_minimizers, build_config);
-        input.close();
+        iterator.close();
         assert(d.m_ssi.codewords.size() == num_minimizers);
     }
 
