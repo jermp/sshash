@@ -1,7 +1,9 @@
 #pragma once
 
-#include <vector>
 #include <atomic>
+#include <fstream>
+#include <memory>
+#include <vector>
 
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
@@ -153,6 +155,126 @@ private:
     }
 };
 
+/*
+    Streaming forward iterator over a sorted minimizers tmp file that
+    yields each distinct `minimizer` value exactly once (i.e., one value
+    per bucket). Equivalent to `minimizers_tuples_iterator` over an mmap'd
+    buffer, but reads from std::ifstream so RAM usage is constant.
+
+    Copyable: pthash's `build_in_external_memory` takes the iterator by
+    value, so the underlying ifstream is held via shared_ptr. Copies share
+    the stream state; pthash's local copy advances the shared stream, and
+    the original at the call site is unused after the build returns.
+*/
+struct streaming_minimizers_iterator {
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = uint64_t;
+    using difference_type = std::ptrdiff_t;
+    using reference = uint64_t const&;
+    using pointer = uint64_t const*;
+
+    streaming_minimizers_iterator() = default;
+
+    void open(std::string const& filename) {
+        m_in = std::make_shared<std::ifstream>(filename, std::ifstream::binary);
+        if (!m_in->is_open()) {
+            throw std::runtime_error("cannot open minimizers tmp file '" + filename + "'");
+        }
+        m_eof = false;
+        m_current = uint64_t(-1);
+        // Bootstrap: read the first tuple.
+        minimizer_tuple t;
+        m_in->read(reinterpret_cast<char*>(&t), sizeof(minimizer_tuple));
+        if (m_in->gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
+            m_eof = true;
+            return;
+        }
+        m_current = t.minimizer;
+    }
+
+    void close() {
+        if (m_in && m_in->is_open()) m_in->close();
+        m_in.reset();
+    }
+
+    uint64_t operator*() const { return m_current; }
+    streaming_minimizers_iterator& operator++() {
+        advance_to_next_minimizer();
+        return *this;
+    }
+
+private:
+    std::shared_ptr<std::ifstream> m_in;
+    uint64_t m_current = uint64_t(-1);
+    bool m_eof = true;
+
+    void advance_to_next_minimizer() {
+        const uint64_t prev = m_current;
+        minimizer_tuple t;
+        while (true) {
+            m_in->read(reinterpret_cast<char*>(&t), sizeof(minimizer_tuple));
+            if (m_in->gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
+                m_eof = true;
+                return;  // m_current holds last value; pthash has consumed `num_minimizers` keys
+            }
+            if (t.minimizer != prev) {
+                m_current = t.minimizer;
+                return;
+            }
+        }
+    }
+};
+
+/*
+    Streaming reader over a minimizers tmp file. Reads minimizer_tuple
+    records via std::ifstream (no mmap), and groups consecutive tuples by
+    minimizer into "buckets" — exactly as `minimizers_tuples_iterator` does
+    over an mmap'd buffer, but with bounded RAM (~ one bucket at a time
+    plus one record of lookahead).
+
+    The caller passes a vector to receive the bucket's tuples; for typical
+    inputs this peaks at max_bucket_size * sizeof(minimizer_tuple).
+*/
+struct streaming_minimizer_bucket_reader {
+    void open(std::string const& filename) {
+        m_in.open(filename, std::ifstream::binary);
+        if (!m_in.is_open()) {
+            throw std::runtime_error("cannot open minimizers tmp file '" + filename + "'");
+        }
+        // Read first record into the lookahead slot, if any.
+        m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
+        m_eof = (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple)));
+    }
+
+    void close() {
+        if (m_in.is_open()) m_in.close();
+    }
+
+    bool has_next_bucket() const { return !m_eof; }
+
+    /* Read the next bucket into `bucket_out` (cleared first). All tuples in
+       a bucket share the same minimizer. Returns the bucket's minimizer. */
+    uint64_t next_bucket(std::vector<minimizer_tuple>& bucket_out) {
+        bucket_out.clear();
+        assert(!m_eof);
+        const uint64_t mm = m_lookahead.minimizer;
+        do {
+            bucket_out.push_back(m_lookahead);
+            m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
+            if (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
+                m_eof = true;
+                break;
+            }
+        } while (m_lookahead.minimizer == mm);
+        return mm;
+    }
+
+private:
+    std::ifstream m_in;
+    minimizer_tuple m_lookahead;
+    bool m_eof = true;
+};
+
 struct minimizers_tuples {
     minimizers_tuples() {}
     minimizers_tuples(build_configuration const& build_config)
@@ -217,17 +339,28 @@ struct minimizers_tuples {
             assert(m_num_minimizers == 0);
             assert(m_num_minimizer_positions == 0);
             assert(m_num_super_kmers == 0);
-            mm::file_source<minimizer_tuple> input(get_minimizers_filename(),
-                                                   mm::advice::sequential);
-            for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
-                 it.has_next(); it.next())  //
-            {
-                auto bucket = it.bucket();
+
+            /* Single-pass count via streaming ifstream (no mmap). */
+            streaming_minimizer_bucket_reader reader;
+            reader.open(get_minimizers_filename());
+            std::vector<minimizer_tuple> bucket_buf;
+            while (reader.has_next_bucket()) {
+                reader.next_bucket(bucket_buf);
+                uint64_t bucket_size = 0;
+                {
+                    uint64_t prev = constants::invalid_uint64;
+                    for (auto const& mt : bucket_buf) {
+                        if (mt.pos_in_seq != prev) {
+                            ++bucket_size;
+                            prev = mt.pos_in_seq;
+                        }
+                    }
+                }
                 m_num_minimizers += 1;
-                m_num_minimizer_positions += bucket.size();
-                m_num_super_kmers += bucket.num_super_kmers();
+                m_num_minimizer_positions += bucket_size;
+                m_num_super_kmers += bucket_buf.size();
             }
-            input.close();
+            reader.close();
             return;
         }
 

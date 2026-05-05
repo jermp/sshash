@@ -37,55 +37,6 @@ struct kmer_extraction_request {
 #pragma pack(pop)
 
 /*
-    Streaming reader over the merged minimizers file. Reads minimizer_tuple
-    records via std::ifstream (no mmap), and groups consecutive tuples by
-    minimizer into "buckets" — exactly as `minimizers_tuples_iterator` does
-    over an mmap'd buffer, but with bounded RAM (~ one bucket at a time).
-
-    The caller passes a vector to receive the bucket's tuples; for typical
-    inputs this peaks at max_bucket_size * sizeof(minimizer_tuple).
-*/
-struct streaming_minimizer_bucket_reader {
-    void open(std::string const& filename) {
-        m_in.open(filename, std::ifstream::binary);
-        if (!m_in.is_open()) {
-            throw std::runtime_error("cannot open minimizers tmp file '" + filename + "'");
-        }
-        // Read first record into the lookahead slot, if any.
-        m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
-        m_eof = (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple)));
-    }
-
-    void close() {
-        if (m_in.is_open()) m_in.close();
-    }
-
-    bool has_next_bucket() const { return !m_eof; }
-
-    /* Read the next bucket into `bucket_out` (cleared first). All tuples in
-       a bucket share the same minimizer. Returns the bucket's minimizer. */
-    uint64_t next_bucket(std::vector<minimizer_tuple>& bucket_out) {
-        bucket_out.clear();
-        assert(!m_eof);
-        const uint64_t mm = m_lookahead.minimizer;
-        do {
-            bucket_out.push_back(m_lookahead);
-            m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
-            if (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
-                m_eof = true;
-                break;
-            }
-        } while (m_lookahead.minimizer == mm);
-        return mm;
-    }
-
-private:
-    std::ifstream m_in;
-    minimizer_tuple m_lookahead;
-    bool m_eof = true;
-};
-
-/*
     Forward iterator over a per-skew-partition tmp file produced by step
     7.2 phase (B). Each record is `(kmer.bits, uint32_t pos_in_bucket)`.
     This iterator yields successive Kmer values, exposing the minimal
