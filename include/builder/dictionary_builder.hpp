@@ -36,12 +36,18 @@ struct spilled_components {
     std::string mid_load_buckets_path;
     std::string heavy_load_buckets_path;
     std::vector<std::string> skew_positions_paths;  // one entry per skew partition
+    std::string codewords_mphf_path;                // step-4 minimizers MPHF
+    std::vector<std::string> skew_mphfs_paths;      // one entry per skew partition
 
     void clear_files() {
         if (!control_codewords_path.empty()) std::remove(control_codewords_path.c_str());
         if (!mid_load_buckets_path.empty()) std::remove(mid_load_buckets_path.c_str());
         if (!heavy_load_buckets_path.empty()) std::remove(heavy_load_buckets_path.c_str());
+        if (!codewords_mphf_path.empty()) std::remove(codewords_mphf_path.c_str());
         for (auto const& p : skew_positions_paths) {
+            if (!p.empty()) std::remove(p.c_str());
+        }
+        for (auto const& p : skew_mphfs_paths) {
             if (!p.empty()) std::remove(p.c_str());
         }
     }
@@ -93,28 +99,46 @@ struct dictionary_builder  //
     {
         run_steps_1_through_7(d, filename);
         do_step("step 8 (stream-save dictionary to disk)", [&]() {
-            /* Populate placeholder compact_vectors at the visit slots whose
-               byte content the saver will substitute from disk tmp files. */
-            std::unordered_map<bits::compact_vector const*, std::string> subs;
+            /* Address+type-keyed substitution map. The saver replaces the
+               visit byte content of any registered (address, type) pair
+               with the bytes of the corresponding tmp file. Type matching
+               disambiguates the case where a struct's address coincides
+               with the address of its first member. */
+            std::unordered_map<void const*, typed_address_sub> subs;
             if (!spilled.control_codewords_path.empty()) {
-                subs[&d.m_ssi.codewords.control_codewords] = spilled.control_codewords_path;
+                register_sub(subs, &d.m_ssi.codewords.control_codewords,
+                             spilled.control_codewords_path);
             }
             if (!spilled.mid_load_buckets_path.empty()) {
-                subs[&d.m_ssi.mid_load_buckets] = spilled.mid_load_buckets_path;
+                register_sub(subs, &d.m_ssi.mid_load_buckets, spilled.mid_load_buckets_path);
             }
             if (!spilled.heavy_load_buckets_path.empty()) {
-                subs[&d.m_ssi.ski.heavy_load_buckets] = spilled.heavy_load_buckets_path;
+                register_sub(subs, &d.m_ssi.ski.heavy_load_buckets,
+                             spilled.heavy_load_buckets_path);
             }
-            /* skew positions: populate the owning_span with placeholders so
-               the visit walks the right number of entries and we can take
-               their addresses for substitution. */
-            const std::size_t num_part = spilled.skew_positions_paths.size();
+            if (!spilled.codewords_mphf_path.empty()) {
+                register_sub(subs, &d.m_ssi.codewords.mphf, spilled.codewords_mphf_path);
+            }
+            /* Skew positions / mphfs: populate the owning_spans with
+               placeholders so the visit walks the right number of entries
+               and we can take their addresses for substitution. */
+            const std::size_t num_part = std::max(spilled.skew_positions_paths.size(),
+                                                  spilled.skew_mphfs_paths.size());
             if (num_part > 0) {
-                std::vector<bits::compact_vector> placeholders(num_part);
-                d.m_ssi.ski.positions = std::move(placeholders);
-                for (std::size_t i = 0; i != num_part; ++i) {
+                std::vector<bits::compact_vector> position_placeholders(num_part);
+                std::vector<kmers_pthash_type<Kmer>> mphf_placeholders(num_part);
+                d.m_ssi.ski.positions = std::move(position_placeholders);
+                d.m_ssi.ski.mphfs = std::move(mphf_placeholders);
+                for (std::size_t i = 0; i != spilled.skew_positions_paths.size(); ++i) {
                     if (!spilled.skew_positions_paths[i].empty()) {
-                        subs[&d.m_ssi.ski.positions[i]] = spilled.skew_positions_paths[i];
+                        register_sub(subs, &d.m_ssi.ski.positions[i],
+                                     spilled.skew_positions_paths[i]);
+                    }
+                }
+                for (std::size_t i = 0; i != spilled.skew_mphfs_paths.size(); ++i) {
+                    if (!spilled.skew_mphfs_paths[i].empty()) {
+                        register_sub(subs, &d.m_ssi.ski.mphfs[i],
+                                     spilled.skew_mphfs_paths[i]);
                     }
                 }
             }
@@ -157,16 +181,30 @@ private:
             materialize_compact_vector_from_file(d.m_ssi.ski.heavy_load_buckets,
                                                  spilled.heavy_load_buckets_path);
         }
-        const std::size_t num_part = spilled.skew_positions_paths.size();
+        /* Reload the spilled MPHFs back into RAM so queries work. */
+        if (!spilled.codewords_mphf_path.empty()) {
+            essentials::loader loader(spilled.codewords_mphf_path.c_str());
+            loader.visit(d.m_ssi.codewords.mphf);
+        }
+        const std::size_t num_part = std::max(spilled.skew_positions_paths.size(),
+                                              spilled.skew_mphfs_paths.size());
         if (num_part > 0) {
             std::vector<bits::compact_vector> positions_vec(num_part);
-            for (std::size_t i = 0; i != num_part; ++i) {
+            std::vector<kmers_pthash_type<Kmer>> mphfs_vec(num_part);
+            for (std::size_t i = 0; i != spilled.skew_positions_paths.size(); ++i) {
                 if (!spilled.skew_positions_paths[i].empty()) {
                     materialize_compact_vector_from_file(positions_vec[i],
                                                          spilled.skew_positions_paths[i]);
                 }
             }
+            for (std::size_t i = 0; i != spilled.skew_mphfs_paths.size(); ++i) {
+                if (!spilled.skew_mphfs_paths[i].empty()) {
+                    essentials::loader loader(spilled.skew_mphfs_paths[i].c_str());
+                    loader.visit(mphfs_vec[i]);
+                }
+            }
             d.m_ssi.ski.positions = std::move(positions_vec);
+            d.m_ssi.ski.mphfs = std::move(mphfs_vec);
         }
     }
 
@@ -288,7 +326,8 @@ private:
         std::string filename = minimizers.get_minimizers_filename();
         std::ifstream input(filename, std::ifstream::binary);
 
-        auto const& f = d.m_ssi.codewords.mphf;
+        auto& f_mut = d.m_ssi.codewords.mphf;
+        auto const& f = f_mut;
         const uint64_t num_threads = build_config.num_threads;
         const uint64_t num_files_to_merge = minimizers.num_files_to_merge();
 
@@ -343,6 +382,19 @@ private:
         }
 
         input.close();
+
+        /* The codewords MPHF is no longer needed during build (step 6 onward
+           reads minimizer values that step 5 has already replaced with
+           mphf hashes; step 7 references mphf hashes only as bucket ids).
+           Spill it to disk and free its in-RAM footprint. */
+        {
+            std::stringstream ss;
+            ss << build_config.tmp_dirname << "/sshash.tmp.run_" << strings_run_id
+               << ".codewords_mphf.bin";
+            spilled.codewords_mphf_path = ss.str();
+            essentials::save(f_mut, spilled.codewords_mphf_path.c_str());
+            f_mut = minimizers_pthash_type{};
+        }
     }
 };
 
