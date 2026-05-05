@@ -200,25 +200,38 @@ static inline uint64_t get_seed_for_hash_function(build_configuration const& bui
 }
 
 /*
-    Cap pthash's `num_threads` so its `partitioned_phf::build` parallelism
-    fits in the user's --ram-limit budget.
+    Cap pthash's `num_threads` only when leaving it equal to the user's
+    `-t` would push the build past `--ram-limit`.
 
-    pthash builds sub-partitions of the partitioned MPHF in parallel; each
-    sub-partition allocates a `pairs_t` vector of roughly
-    `avg_partition_size * sizeof(pair)` bytes during `map`/sort. With the
-    default `avg_partition_size = 3,000,000` and ~16 B/pair this is on
-    the order of ~48 MB per thread; conservatively budget 64 MB per
-    parallel sub-partition (covers the sort temporary + small constants).
+    pthash's `partitioned_phf::build` builds the partitioned MPHF's
+    sub-partitions in parallel; each sub-partition allocates a `pairs_t`
+    of roughly `avg_partition_size * sizeof(pair)` bytes during
+    `map`/sort. With the default `avg_partition_size = 3,000,000` this is
+    on the order of ~48 MB per thread; we conservatively budget 64 MiB
+    per parallel sub-partition (covers the sort temporary + slack).
 
-    With `--ram-limit = G` GiB we allow pthash up to `G/4` GiB for this
-    parallel build memory, capping pthash threads accordingly.
+    The other build steps (the streaming buffers, the per-step external
+    sort buffers, etc.) use up to roughly half of `--ram-limit`, so we
+    leave the other half available to pthash. Cap pthash threads so that
+    `64 MiB * threads <= ram_limit/2`. If the user's `-t` already fits,
+    we don't touch it: this only kicks in for pathologically tight
+    budgets (small `--ram-limit` combined with large `-t`).
 */
 static inline uint64_t cap_mphf_num_threads(uint64_t requested_num_threads,
-                                            uint64_t ram_limit_in_GiB) {
+                                            uint64_t ram_limit_in_GiB,
+                                            bool verbose,
+                                            char const* mphf_name) {
     constexpr uint64_t per_thread_estimate_bytes = uint64_t(64) << 20;  // 64 MiB
-    const uint64_t budget_bytes = (ram_limit_in_GiB * essentials::GiB) / 4;
+    const uint64_t budget_bytes = (ram_limit_in_GiB * essentials::GiB) / 2;
     const uint64_t max_parallel = std::max<uint64_t>(1, budget_bytes / per_thread_estimate_bytes);
-    return std::min<uint64_t>(requested_num_threads, max_parallel);
+    if (requested_num_threads <= max_parallel) return requested_num_threads;
+    if (verbose) {
+        std::cout << "  --> WARNING: capping pthread mphf threads for " << mphf_name
+                  << " from " << requested_num_threads << " to " << max_parallel
+                  << " to fit --ram-limit=" << ram_limit_in_GiB << " GiB"
+                  << " (pthash uses ~64 MiB per parallel sub-partition build)" << std::endl;
+    }
+    return max_parallel;
 }
 
 [[maybe_unused]] static bool ends_with(std::string const& str, std::string const& pattern) {
