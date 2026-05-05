@@ -593,6 +593,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     */
     {
         spilled.skew_positions_paths.assign(num_partitions, std::string());
+        spilled.skew_mphfs_paths.assign(num_partitions, std::string());
         std::vector<kmers_pthash_type<Kmer>> mphfs;
         mphfs.resize(num_partitions);
 
@@ -617,6 +618,12 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
             std::stringstream ss;
             ss << build_config.tmp_dirname << "/sshash.tmp.run_" << pos_run_basename_id
                << ".skew_positions.p" << partition_id << ".bin";
+            return ss.str();
+        };
+        auto skew_mphf_filename = [&](uint64_t partition_id) {
+            std::stringstream ss;
+            ss << build_config.tmp_dirname << "/sshash.tmp.run_" << pos_run_basename_id
+               << ".skew_mphf.p" << partition_id << ".bin";
             return ss.str();
         };
 
@@ -756,6 +763,14 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     std::cout << "    built positions[" << partition_id << "] for " << n
                               << " kmers; bits/key = " << num_bits_per_pos << std::endl;
                 }
+
+                /* Spill the partition's MPHF to disk (no longer needed
+                   during build) and free its in-RAM footprint. The
+                   accumulating skew MPHFs were the dominant resident
+                   memory at the end of phase C. */
+                spilled.skew_mphfs_paths[partition_id] = skew_mphf_filename(partition_id);
+                essentials::save(F, spilled.skew_mphfs_paths[partition_id].c_str());
+                F = kmers_pthash_type<Kmer>{};
             }
 
             /* advance partition state for the next iteration */
