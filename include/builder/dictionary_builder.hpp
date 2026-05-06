@@ -65,9 +65,9 @@ struct dictionary_builder  //
         in RAM. After this returns, `d` is *not* query-ready; reload the
         saved file via `essentials::load` / `essentials::mmap` to query.
     */
-    void build(dictionary<Kmer, Offsets>& d,                //
-               std::string const& filename,                 //
-               std::string const& output_filename)          //
+    void build(dictionary<Kmer, Offsets>& d,        //
+               std::string const& filename,         //
+               std::string const& output_filename)  //
     {
         run_steps_1_through_7(d, filename);
         do_step("step 8 (stream-save dictionary to disk)", [&]() {
@@ -215,8 +215,7 @@ private:
             if (num_bytes > 0) {
                 std::cout << "total index size: " << num_bytes << " [B] -- "
                           << essentials::convert(num_bytes, essentials::MB) << " [MB]\n";
-                std::cout << "  total: "
-                          << (num_kmers > 0 ? (8.0 * num_bytes) / num_kmers : 0.0)
+                std::cout << "  total: " << (num_kmers > 0 ? (8.0 * num_bytes) / num_kmers : 0.0)
                           << " [bits/kmer]" << std::endl;
             }
         }

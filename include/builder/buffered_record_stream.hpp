@@ -44,14 +44,11 @@ struct buffered_record_stream {
 
     /* Open `filename` for forward reading; optionally seek to byte
        `start_byte` before priming the read window. */
-    void open(std::string const& filename,
-              uint64_t buffer_records = default_buffer_records,
+    void open(std::string const& filename, uint64_t buffer_records = default_buffer_records,
               std::streamoff start_byte = 0) {
         m_buf.resize(std::max<uint64_t>(1, buffer_records));
         m_in.open(filename, std::ifstream::binary);
-        if (!m_in.is_open()) {
-            throw std::runtime_error("cannot open file '" + filename + "'");
-        }
+        if (!m_in.is_open()) { throw std::runtime_error("cannot open file '" + filename + "'"); }
         if (start_byte != 0) m_in.seekg(start_byte, std::ios::beg);
         m_pos = 0;
         m_size = 0;
