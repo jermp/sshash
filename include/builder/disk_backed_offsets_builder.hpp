@@ -10,6 +10,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "include/builder/buffered_record_stream.hpp"
 #include "include/offsets.hpp"
 
 namespace sshash {
@@ -130,61 +131,34 @@ struct disk_backed_offsets_builder {
         Forward-sequential reader over the offsets file. Each thread in
         compute_minimizer_tuples should construct one for its assigned
         index range; per-thread RAM footprint is the buffer size only.
+        Built on top of `buffered_record_stream<uint64_t>`.
     */
     struct reader {
         reader() = default;
-        reader(reader const&) = delete;
-        reader& operator=(reader const&) = delete;
-        reader(reader&&) = default;
-        reader& operator=(reader&&) = default;
 
         /* Open the file and seek so that the next `next()` call returns
            `*(values + start_index)`. */
         void open(std::string const& filename, uint64_t start_index,
                   uint64_t buffer_records = default_reader_buffer_records) {
-            m_buf.assign(std::max<uint64_t>(1, buffer_records), 0);
-            m_pos = 0;
-            m_size = 0;
-            m_in.open(filename, std::ifstream::binary);
-            if (!m_in.is_open()) {
-                throw std::runtime_error("cannot open offsets tmp file '" + filename + "'");
-            }
-            m_in.seekg(static_cast<std::streamoff>(start_index * sizeof(uint64_t)), std::ios::beg);
-            refill();
+            m_stream.open(filename, buffer_records,
+                          static_cast<std::streamoff>(start_index * sizeof(uint64_t)));
         }
 
-        void close() {
-            if (m_in.is_open()) m_in.close();
-            m_buf.clear();
-            m_buf.shrink_to_fit();
-            m_pos = 0;
-            m_size = 0;
-        }
+        void close() { m_stream.close(); }
 
         /* Return the next offset and advance. Caller must ensure they
            don't read past the end of the file. */
         uint64_t next() {
-            if (m_pos >= m_size) refill();
-            assert(m_pos < m_size);
-            return m_buf[m_pos++];
+            if (m_stream.empty()) {
+                throw std::runtime_error("disk_backed_offsets_builder: read past end of file");
+            }
+            const uint64_t v = m_stream.current();
+            m_stream.advance();
+            return v;
         }
 
     private:
-        std::ifstream m_in;
-        std::vector<uint64_t> m_buf;
-        uint64_t m_pos = 0;
-        uint64_t m_size = 0;
-
-        void refill() {
-            m_pos = 0;
-            m_in.read(reinterpret_cast<char*>(m_buf.data()),
-                      static_cast<std::streamsize>(m_buf.size() * sizeof(uint64_t)));
-            const std::streamsize got = m_in.gcount();
-            m_size = static_cast<uint64_t>(got) / sizeof(uint64_t);
-            if (m_size == 0) {
-                throw std::runtime_error("disk_backed_offsets_builder: read past end of file");
-            }
-        }
+        buffered_record_stream<uint64_t> m_stream;
     };
 
     /* Construct a reader positioned at `start_index`. Requires freeze(). */
@@ -202,9 +176,10 @@ struct disk_backed_offsets_builder {
     /*
         A copyable forward iterator over the entire offsets file, suitable
         for the `Iterator`-template `encode` / `build` calls in
-        `bits::endpoints_sequence` and `bits::compact_vector`. Holds the
-        underlying ifstream via shared_ptr so the iterator can be copied
-        (those APIs may copy the iterator internally).
+        `bits::endpoints_sequence` and `bits::compact_vector`. Wraps a
+        shared_ptr<buffered_record_stream<uint64_t>> so the iterator is
+        copyable; copies share the underlying stream state, which is what
+        those APIs expect.
     */
     struct full_iterator {
         using iterator_category = std::forward_iterator_tag;
@@ -217,43 +192,22 @@ struct disk_backed_offsets_builder {
 
         void open(std::string const& filename,
                   uint64_t buffer_records = default_reader_buffer_records) {
-            m_state = std::make_shared<state>();
-            m_state->buf.assign(std::max<uint64_t>(1, buffer_records), 0);
-            m_state->in.open(filename, std::ifstream::binary);
-            if (!m_state->in.is_open()) {
-                throw std::runtime_error("cannot open offsets tmp file '" + filename + "'");
-            }
-            m_state->refill();
+            m_stream = std::make_shared<buffered_record_stream<uint64_t>>();
+            m_stream->open(filename, buffer_records);
         }
 
         uint64_t operator*() const {
-            assert(m_state && m_state->pos < m_state->size);
-            return m_state->buf[m_state->pos];
+            assert(m_stream);
+            return m_stream->current();
         }
         full_iterator& operator++() {
-            assert(m_state);
-            ++m_state->pos;
-            if (m_state->pos >= m_state->size && !m_state->eof) m_state->refill();
+            assert(m_stream);
+            m_stream->advance();
             return *this;
         }
 
     private:
-        struct state {
-            std::ifstream in;
-            std::vector<uint64_t> buf;
-            uint64_t pos = 0;
-            uint64_t size = 0;
-            bool eof = false;
-            void refill() {
-                pos = 0;
-                in.read(reinterpret_cast<char*>(buf.data()),
-                        static_cast<std::streamsize>(buf.size() * sizeof(uint64_t)));
-                const std::streamsize got = in.gcount();
-                size = static_cast<uint64_t>(got) / sizeof(uint64_t);
-                if (size == 0) eof = true;
-            }
-        };
-        std::shared_ptr<state> m_state;
+        std::shared_ptr<buffered_record_stream<uint64_t>> m_stream;
     };
 
     /*
