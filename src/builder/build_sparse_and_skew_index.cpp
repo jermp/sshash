@@ -474,7 +474,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     }
 
     timer.stop();
-    build_stats.add("step 7.1 (build sparse index)", uint64_t(timer.elapsed()));
+    build_stats.add("step 7.1 (build sparse index)",
+                    musec_as_seconds_str(uint64_t(timer.elapsed())).c_str());
     if (build_config.verbose) {
         print_time(uint64_t(timer.elapsed()), "step 7.1 (build sparse index)");
     }
@@ -791,7 +792,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
     timer.stop();
 
-    build_stats.add("step 7.2 (build skew index)", uint64_t(timer.elapsed()));
+    build_stats.add("step 7.2 (build skew index)",
+                    musec_as_seconds_str(uint64_t(timer.elapsed())).c_str());
 
     if (build_config.verbose) {
         print_time(uint64_t(timer.elapsed()), "step 7.2 (build skew index)");

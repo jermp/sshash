@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdio>
+#include <filesystem>
 #include <unordered_map>
 
 #include "essentials.hpp"
@@ -277,14 +279,16 @@ private:
            can call `d.print_space_breakdown()` / `d.num_bits()` directly.
            For the streaming-save flow `d`'s spilled components are empty
            placeholders, so we read the on-disk index file's size for the
-           total — this is just a stat, no recomputation. */
+           total via `std::filesystem::file_size` — direct OS stat, no
+           recomputation. */
         const bool d_is_populated = d.m_spss.strings.num_bits() > 0;
         uint64_t num_bytes = 0;
         if (d_is_populated) {
             num_bytes = (d.num_bits() + 7) / 8;
         } else if (!saved_path.empty()) {
-            std::ifstream f(saved_path, std::ios::binary | std::ios::ate);
-            if (f.is_open()) num_bytes = static_cast<uint64_t>(f.tellg());
+            std::error_code ec;
+            const auto sz = std::filesystem::file_size(saved_path, ec);
+            if (!ec) num_bytes = static_cast<uint64_t>(sz);
         }
 
         if (build_config.verbose) {
@@ -300,7 +304,7 @@ private:
             }
         }
 
-        build_stats.add("total_build_time_in_microsec", total_time_musec);
+        build_stats.add("total_build_time", musec_as_seconds_str(total_time_musec).c_str());
         build_stats.add("index_size_in_bytes", num_bytes);
         build_stats.add("num_kmers", d.num_kmers());
 
@@ -312,6 +316,15 @@ private:
                   << (time_in_musec * 1000) / num_kmers << " [ns/kmer])" << std::endl;
     }
 
+    /* Format a microsecond count as e.g. "7.292 [sec]" for the JSON-line
+       build_stats output. Three decimals = millisecond precision, which is
+       both compact and plenty precise for build-step durations. */
+    static std::string musec_as_seconds_str(uint64_t musec) {
+        char buf[64];
+        std::snprintf(buf, sizeof(buf), "%.3f [sec]", static_cast<double>(musec) / 1.0e6);
+        return std::string(buf);
+    }
+
     template <typename Callback>
     void do_step(std::string const& step, Callback const& f) {
         timer.start();
@@ -320,7 +333,7 @@ private:
         uint64_t step_elapsed_time_musec = timer.elapsed();
         total_time_musec += step_elapsed_time_musec;
         if (build_config.verbose) print_time(step_elapsed_time_musec, step);
-        build_stats.add(step, step_elapsed_time_musec);
+        build_stats.add(step, musec_as_seconds_str(step_elapsed_time_musec).c_str());
         timer.reset();
     }
 
