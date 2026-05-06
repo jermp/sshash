@@ -146,7 +146,7 @@ struct dictionary_builder  //
             strings_builder.remove_file();
             spilled.clear_files();
         });
-        finalize_stats(d);
+        finalize_stats(d, output_filename);
     }
 
     build_configuration build_config;
@@ -272,16 +272,36 @@ private:
         });
     }
 
-    void finalize_stats(dictionary<Kmer, Offsets>& d) {
+    void finalize_stats(dictionary<Kmer, Offsets>& d, std::string const& saved_path = "") {
+        /* For the materialize-to-RAM flow `d` is fully populated and we
+           can call `d.print_space_breakdown()` / `d.num_bits()` directly.
+           For the streaming-save flow `d`'s spilled components are empty
+           placeholders, so we read the on-disk index file's size for the
+           total — this is just a stat, no recomputation. */
+        const bool d_is_populated = d.m_spss.strings.num_bits() > 0;
+        uint64_t num_bytes = 0;
+        if (d_is_populated) {
+            num_bytes = (d.num_bits() + 7) / 8;
+        } else if (!saved_path.empty()) {
+            std::ifstream f(saved_path, std::ios::binary | std::ios::ate);
+            if (f.is_open()) num_bytes = static_cast<uint64_t>(f.tellg());
+        }
+
         if (build_config.verbose) {
             print_time(total_time_musec, "total time");
-            /* `print_space_breakdown` reads d.m_spss.strings; only safe in
-               the materialize-to-RAM flow. */
-            if (d.m_spss.strings.num_bits() > 0) d.print_space_breakdown();
+            if (d_is_populated) {
+                d.print_space_breakdown();
+            } else if (num_bytes > 0) {
+                std::cout << "total index size: " << num_bytes << " [B] -- "
+                          << essentials::convert(num_bytes, essentials::MB) << " [MB]\n";
+                std::cout << "  total: "
+                          << (num_kmers > 0 ? (8.0 * num_bytes) / num_kmers : 0.0)
+                          << " [bits/kmer]" << std::endl;
+            }
         }
 
         build_stats.add("total_build_time_in_microsec", total_time_musec);
-        build_stats.add("index_size_in_bytes", (d.num_bits() + 7) / 8);
+        build_stats.add("index_size_in_bytes", num_bytes);
         build_stats.add("num_kmers", d.num_kmers());
 
         if (build_config.verbose) build_stats.print();
