@@ -347,9 +347,19 @@ private:
         }
 
         const uint64_t num_super_kmers = minimizers.num_super_kmers();
-        const uint64_t buffer_size = num_files_to_merge == 1
-                                         ? num_super_kmers
-                                         : (RAM_available_in_bytes / (3 * sizeof(minimizer_tuple)));
+        /* Cap the in-RAM buffer at ram_limit/8 worth of tuples so that
+           even when subsequent steps fragment the heap, step 5's lingering
+           pages don't blow past the budget when stacked with later step's
+           allocations. */
+        const uint64_t buffer_cap_bytes =
+            (build_config.ram_limit_in_GiB * essentials::GiB) / 8;
+        const uint64_t buffer_cap_records =
+            std::max<uint64_t>(uint64_t(1) << 16, buffer_cap_bytes / sizeof(minimizer_tuple));
+        const uint64_t buffer_size_unbounded =
+            num_files_to_merge == 1
+                ? num_super_kmers
+                : (RAM_available_in_bytes / (3 * sizeof(minimizer_tuple)));
+        const uint64_t buffer_size = std::min(buffer_size_unbounded, buffer_cap_records);
         const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
         assert(num_super_kmers > (num_blocks - 1) * buffer_size);
 

@@ -307,12 +307,14 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     };
 
     /* External-sort buffer for kmer-extraction requests (formerly step 7.2
-       phase A; now folded into the combined pass). */
+       phase A; now folded into the combined pass). Capped at ram_limit/8
+       so heap fragmentation across steps doesn't push peak RSS past the
+       --ram-limit budget. */
     std::atomic<uint64_t> num_request_runs{0};
     const uint64_t request_buffer_capacity = std::max<uint64_t>(
         uint64_t(1) << 16,
         (build_config.ram_limit_in_GiB * essentials::GiB) /
-            (4 * sizeof(kmer_extraction_request)));
+            (8 * sizeof(kmer_extraction_request)));
     std::vector<kmer_extraction_request> request_buffer;
     request_buffer.reserve(request_buffer_capacity);
     auto flush_request_buffer = [&]() {
@@ -629,9 +631,12 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
             return ss.str();
         };
 
+        /* Capped at ram_limit/8: this buffer is alive during phase C
+           alongside pthash's parallel-build memory and the currently-
+           building partition's MPHF, so it has to share the RAM budget. */
         const uint64_t pos_buffer_capacity = std::max<uint64_t>(
             uint64_t(1) << 16,
-            (build_config.ram_limit_in_GiB * essentials::GiB) / (4 * sizeof(position_tuple)));
+            (build_config.ram_limit_in_GiB * essentials::GiB) / (8 * sizeof(position_tuple)));
 
         uint64_t lower = min_size;
         uint64_t upper = 2 * lower;
