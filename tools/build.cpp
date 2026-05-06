@@ -46,6 +46,13 @@ int build(int argc, char** argv) {
                true);
     parser.add("check", "Check correctness after construction.", "--check", false, true);
     parser.add("verbose", "Verbose output during construction.", "--verbose", false, true);
+    parser.add("no_streaming_save",
+               "Force the in-RAM save path even with -o: build, materialize the dictionary in RAM, "
+               "then write it via essentials::save. Peak RSS at save time briefly equals the "
+               "in-RAM index size; useful when the user has plenty of memory and wants a single "
+               "save call rather than the streaming-save tmp-file concatenation. Implied by "
+               "--check (which always materializes for query).",
+               "--no-streaming-save", false, true);
 
     if (!parser.parse()) return 0;
 
@@ -74,19 +81,28 @@ int build(int argc, char** argv) {
     // build_config.print();
 
     bool check = parser.get<bool>("check");
+    bool no_streaming_save = parser.get<bool>("no_streaming_save");
     bool has_output = parser.parsed("output_filename");
 
     dictionary_type dict;
 
-    if (has_output && !check) {
+    if (has_output && !check && !no_streaming_save) {
         /* Streaming-save path: keeps peak RAM bounded by the build phase
-           (the strings bit-vector is never fully in RAM). After this returns
-           `dict` is not query-ready; reload from disk to query. */
+           (the strings bit-vector and the spilled compact_vectors / MPHFs
+           are never fully in RAM). After this returns `dict` is not
+           query-ready; reload from disk to query. */
         auto output_filename = parser.get<std::string>("output_filename");
         essentials::logger("building data structure (streaming save)...");
         dict.build_streaming_save(input_filename, build_config, output_filename);
         essentials::logger("DONE");
     } else {
+        /* In-RAM save path. The build still spills internally for
+           bounded-RAM construction, but at the end every spilled
+           component is materialized back into `dict` so it's
+           query-ready. Used whenever --check is requested (queries need
+           `dict` populated) or when the user explicitly opts in via
+           --no-streaming-save. Peak RSS briefly hits the full index
+           size at save time. */
         essentials::logger("building data structure...");
         dict.build(input_filename, build_config);
 
