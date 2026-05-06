@@ -25,19 +25,16 @@ struct dictionary  //
         , m_m(0)
         , m_canonical(false) {}
 
-    /* Build from input file. After this returns, `*this` is query-ready. */
-    void build(std::string const& input_filename, build_configuration const& build_config);
-
     /*
-        Build from input file and stream-save the resulting dictionary to
-        `output_filename`. The strings bit-vector is never materialized in
-        RAM during construction, so peak RAM is bounded by the build phase
-        only. After this returns, `*this` is *not* query-ready
-        (`m_spss.strings` is empty); reload via `essentials::load` to query.
+        Build from input file, streaming the resulting dictionary to
+        `output_filename` as it goes. The strings bit-vector and the
+        sparse/skew components are never fully materialized in RAM during
+        construction, so peak RAM is bounded by the build phase only.
+        After this returns, `*this` is *not* query-ready; load the saved
+        index back via `essentials::load` / `essentials::mmap` to query.
     */
-    void build_streaming_save(std::string const& input_filename,
-                              build_configuration const& build_config,
-                              std::string const& output_filename);
+    void build(std::string const& input_filename, build_configuration const& build_config,
+               std::string const& output_filename);
 
     essentials::version_number vnum() const { return m_vnum; }
     uint64_t num_kmers() const { return m_num_kmers; }

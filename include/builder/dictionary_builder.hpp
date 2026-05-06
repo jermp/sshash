@@ -17,21 +17,9 @@
 namespace sshash {
 
 /*
-    Helper: load a serialized bits::compact_vector back from a tmp file
-    into the given in-RAM compact_vector. Used by the materializing build
-    flow (after step 7) so that --check / queries can run.
-*/
-inline void materialize_compact_vector_from_file(bits::compact_vector& cv,
-                                                 std::string const& filename) {
-    essentials::loader loader(filename.c_str());
-    loader.visit(cv);
-}
-
-/*
-    Tmp file paths for the compact_vectors that step 7 spills to disk.
-    Populated by build_sparse_and_skew_index; consumed by step 8 (either
-    materialized back into RAM for `build()`, or injected into the output
-    by `build_streaming_save()`).
+    Tmp file paths for the compact_vectors and MPHFs that step 7 spills
+    to disk. Populated by build_sparse_and_skew_index and injected into
+    the output by step 8 (stream-save).
 */
 struct spilled_components {
     std::string control_codewords_path;
@@ -72,32 +60,14 @@ struct dictionary_builder  //
     }
 
     /*
-        Build a query-ready dictionary in `d`. After this returns, all
-        spilled components and `d.m_spss.strings` are materialized in RAM
-        (peak briefly equals the index size). Use this when the caller
-        needs to query `d` post-build (e.g., `--check`).
+        Build the dictionary and stream-save it to `output_filename`
+        without ever materializing the spilled components or `strings`
+        in RAM. After this returns, `d` is *not* query-ready; reload the
+        saved file via `essentials::load` / `essentials::mmap` to query.
     */
-    void build(dictionary<Kmer, Offsets>& d, std::string const& filename) {
-        run_steps_1_through_7(d, filename);
-        do_step("step 8 (materialize spilled components to RAM)", [&]() {
-            materialize_spilled_into(d);
-            strings_builder.load_into(d.m_spss.strings);
-            strings_builder.remove_file();
-            spilled.clear_files();
-        });
-        finalize_stats(d);
-    }
-
-    /*
-        Build the dictionary and stream-save it to `output_filename` without
-        ever materializing the spilled components or `strings` in RAM.
-        After this returns, `d` is *not* query-ready. Use this when the
-        caller only needs the on-disk index file and wants to keep peak RAM
-        bounded by the build phase.
-    */
-    void build_streaming_save(dictionary<Kmer, Offsets>& d,        //
-                              std::string const& filename,         //
-                              std::string const& output_filename)  //
+    void build(dictionary<Kmer, Offsets>& d,                //
+               std::string const& filename,                 //
+               std::string const& output_filename)          //
     {
         run_steps_1_through_7(d, filename);
         do_step("step 8 (stream-save dictionary to disk)", [&]() {
@@ -166,49 +136,6 @@ struct dictionary_builder  //
     uint64_t total_time_musec;
 
 private:
-    /* Load each spilled compact_vector tmp file back into the corresponding
-       in-RAM compact_vector inside `d`. Used by the materializing build
-       flow so queries can run against `d` (e.g., during --check). */
-    void materialize_spilled_into(dictionary<Kmer, Offsets>& d) {
-        if (!spilled.control_codewords_path.empty()) {
-            materialize_compact_vector_from_file(d.m_ssi.codewords.control_codewords,
-                                                 spilled.control_codewords_path);
-        }
-        if (!spilled.mid_load_buckets_path.empty()) {
-            materialize_compact_vector_from_file(d.m_ssi.mid_load_buckets,
-                                                 spilled.mid_load_buckets_path);
-        }
-        if (!spilled.heavy_load_buckets_path.empty()) {
-            materialize_compact_vector_from_file(d.m_ssi.ski.heavy_load_buckets,
-                                                 spilled.heavy_load_buckets_path);
-        }
-        /* Reload the spilled MPHFs back into RAM so queries work. */
-        if (!spilled.codewords_mphf_path.empty()) {
-            essentials::loader loader(spilled.codewords_mphf_path.c_str());
-            loader.visit(d.m_ssi.codewords.mphf);
-        }
-        const std::size_t num_part =
-            std::max(spilled.skew_positions_paths.size(), spilled.skew_mphfs_paths.size());
-        if (num_part > 0) {
-            std::vector<bits::compact_vector> positions_vec(num_part);
-            std::vector<kmers_pthash_type<Kmer>> mphfs_vec(num_part);
-            for (std::size_t i = 0; i != spilled.skew_positions_paths.size(); ++i) {
-                if (!spilled.skew_positions_paths[i].empty()) {
-                    materialize_compact_vector_from_file(positions_vec[i],
-                                                         spilled.skew_positions_paths[i]);
-                }
-            }
-            for (std::size_t i = 0; i != spilled.skew_mphfs_paths.size(); ++i) {
-                if (!spilled.skew_mphfs_paths[i].empty()) {
-                    essentials::loader loader(spilled.skew_mphfs_paths[i].c_str());
-                    loader.visit(mphfs_vec[i]);
-                }
-            }
-            d.m_ssi.ski.positions = std::move(positions_vec);
-            d.m_ssi.ski.mphfs = std::move(mphfs_vec);
-        }
-    }
-
     void run_steps_1_through_7(dictionary<Kmer, Offsets>& d, std::string const& filename) {
         d.m_k = build_config.k;
         d.m_m = build_config.m;
@@ -274,28 +201,18 @@ private:
         });
     }
 
-    void finalize_stats(dictionary<Kmer, Offsets>& d, std::string const& saved_path = "") {
-        /* For the materialize-to-RAM flow `d` is fully populated and we
-           can call `d.print_space_breakdown()` / `d.num_bits()` directly.
-           For the streaming-save flow `d`'s spilled components are empty
-           placeholders, so we read the on-disk index file's size for the
-           total via `std::filesystem::file_size` — direct OS stat, no
-           recomputation. */
-        const bool d_is_populated = d.m_spss.strings.num_bits() > 0;
+    void finalize_stats(dictionary<Kmer, Offsets>& d, std::string const& saved_path) {
+        /* `d`'s spilled components are empty placeholders post stream-save,
+           so read the on-disk index file's size via std::filesystem::file_size
+           rather than recomputing from `d`. */
         uint64_t num_bytes = 0;
-        if (d_is_populated) {
-            num_bytes = (d.num_bits() + 7) / 8;
-        } else if (!saved_path.empty()) {
-            std::error_code ec;
-            const auto sz = std::filesystem::file_size(saved_path, ec);
-            if (!ec) num_bytes = static_cast<uint64_t>(sz);
-        }
+        std::error_code ec;
+        const auto sz = std::filesystem::file_size(saved_path, ec);
+        if (!ec) num_bytes = static_cast<uint64_t>(sz);
 
         if (build_config.verbose) {
             print_time(total_time_musec, "total time");
-            if (d_is_populated) {
-                d.print_space_breakdown();
-            } else if (num_bytes > 0) {
+            if (num_bytes > 0) {
                 std::cout << "total index size: " << num_bytes << " [B] -- "
                           << essentials::convert(num_bytes, essentials::MB) << " [MB]\n";
                 std::cout << "  total: "
