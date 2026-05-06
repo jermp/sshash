@@ -49,9 +49,9 @@ void dictionary<Kmer, Offsets>::build(std::string const& filename,
 }
 
 template <typename Kmer, typename Offsets>
-void dictionary<Kmer, Offsets>::build_streaming_save(
-    std::string const& input_filename, build_configuration const& build_config,
-    std::string const& output_filename)  //
+void dictionary<Kmer, Offsets>::build_streaming_save(std::string const& input_filename,
+                                                     build_configuration const& build_config,
+                                                     std::string const& output_filename)  //
 {
     build_configuration bc = build_config;
     validate_and_normalize_build_config(bc, Kmer::max_k, Kmer::max_m);

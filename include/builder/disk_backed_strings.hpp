@@ -153,17 +153,17 @@ struct disk_backed_strings {
             const uint64_t block = bit_pos >> 6;
             const uint64_t shift = bit_pos & 63;
             ensure_window_covers(block);
-            uint64_t a = (block >= m_window_start_word &&
-                          block < m_window_start_word + m_window_size)
-                             ? m_window[block - m_window_start_word]
-                             : uint64_t(0);
+            uint64_t a =
+                (block >= m_window_start_word && block < m_window_start_word + m_window_size)
+                    ? m_window[block - m_window_start_word]
+                    : uint64_t(0);
             uint64_t word = a >> shift;
             if (shift) {
                 const uint64_t next = block + 1;
-                uint64_t b = (next >= m_window_start_word &&
-                              next < m_window_start_word + m_window_size)
-                                 ? m_window[next - m_window_start_word]
-                                 : uint64_t(0);
+                uint64_t b =
+                    (next >= m_window_start_word && next < m_window_start_word + m_window_size)
+                        ? m_window[next - m_window_start_word]
+                        : uint64_t(0);
                 word |= b << (64 - shift);
             }
             return word;
@@ -185,8 +185,7 @@ struct disk_backed_strings {
                 return;
             }
             m_in.clear();  // clear any prior eof
-            m_in.seekg(static_cast<std::streamoff>(target_word * sizeof(uint64_t)),
-                       std::ios::beg);
+            m_in.seekg(static_cast<std::streamoff>(target_word * sizeof(uint64_t)), std::ios::beg);
             const uint64_t to_read = std::min(m_window_capacity, m_total_words - target_word);
             m_in.read(reinterpret_cast<char*>(m_window.data()),
                       static_cast<std::streamsize>(to_read * sizeof(uint64_t)));
@@ -264,8 +263,8 @@ struct disk_backed_strings {
         std::vector<char> buffer(uint64_t(64) << 10);  // 64 KiB
         uint64_t bytes_remaining = total_words * sizeof(uint64_t);
         while (bytes_remaining > 0) {
-            const std::streamsize chunk = static_cast<std::streamsize>(
-                std::min<uint64_t>(buffer.size(), bytes_remaining));
+            const std::streamsize chunk =
+                static_cast<std::streamsize>(std::min<uint64_t>(buffer.size(), bytes_remaining));
             in.read(buffer.data(), chunk);
             const std::streamsize got = in.gcount();
             if (got <= 0) {
