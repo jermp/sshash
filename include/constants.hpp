@@ -4,10 +4,6 @@ namespace sshash::constants {
 
 constexpr uint64_t invalid_uint64 = uint64_t(-1);
 constexpr uint64_t default_ram_limit_in_GiB = 8;
-/* Floor on --ram-limit. Below this the build's streaming buffers + pthash's
-   internal working memory can't usefully be made to fit; rather than degrade
-   further at very tight budgets, we clamp `-g` to at least this value
-   (modest by today's desktop standards). */
 constexpr uint64_t min_ram_limit_in_GiB = 4;
 constexpr uint64_t seed = 1;
 
