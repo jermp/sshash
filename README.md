@@ -18,7 +18,7 @@
 
 The data structure is described in the following papers (most recent first):
 
-* [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://www.biorxiv.org/content/10.64898/2026.01.21.700884v1) [1]
+* [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://jermp.github.io/assets/pdf/papers/ISMB2026.pdf) [1]
 * [On weighted k-mer dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2) [2,3]
 * [Sparse and skew hashing of k-mers](https://doi.org/10.1093/bioinformatics/btac245) [4]
 
@@ -303,8 +303,8 @@ The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
 References
 ----------
 
-* [1] Giulio Ermanno Pibiri and Rob Patro. [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://www.biorxiv.org/content/10.64898/2026.01.21.700884v1). BioRxiv. 2026.
+* [1] Giulio Ermanno Pibiri and Rob Patro. [Optimizing sparse and skew hashing: faster k-mer dictionaries](https://jermp.github.io/assets/pdf/papers/ISMB2026.pdf). ISMB. 2026.
 * [2] Giulio Ermanno Pibiri. [On weighted k-mer dictionaries](https://almob.biomedcentral.com/articles/10.1186/s13015-023-00226-2). Algorithms for Molecular Biology (ALGOMB). 2023.
 * [3] Giulio Ermanno Pibiri. [On weighted k-mer dictionaries](https://drops.dagstuhl.de/opus/volltexte/2022/17043/). International Workshop on Algorithms in Bioinformatics (WABI). 2022.
-* [4] Giulio Ermanno Pibiri. [Sparse and skew hashing of k-mers](https://doi.org/10.1093/bioinformatics/btac245). Bioinformatics. 2022.
+* [4] Giulio Ermanno Pibiri. [Sparse and skew hashing of k-mers](https://doi.org/10.1093/bioinformatics/btac245). ISMB. 2022.
 * [5] Schmidt, S., Khan, S., Alanko, J., Pibiri, G. E., and Tomescu, A. I. [Matchtigs: minimum plain text representation of k-mer sets](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-023-02968-z). Genome Biology 24, 136. 2023.
