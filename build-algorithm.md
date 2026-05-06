@@ -62,7 +62,8 @@ Both go through disk-backed builders:
 - **`disk_backed_offsets_builder<Offsets>`**: appends one `uint64_t` offset
   per sequence into a small write buffer; flushes to a tmp file.
 
-In-RAM footprint of step 1 is `O(buffer)` regardless of input size.
+In-RAM footprint of step 1 is proportional to the buffer size, regardless of
+input size.
 
 ## Step 1.1 — weights (optional)
 
