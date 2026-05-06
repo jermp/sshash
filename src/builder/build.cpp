@@ -9,12 +9,14 @@ namespace sshash {
 namespace {
 
 inline void validate_and_normalize_build_config(build_configuration& bc, uint64_t max_k,
-                                                uint64_t max_m) {
+                                                uint64_t max_m)  //
+{
     if (bc.k == 0) throw std::runtime_error("k must be > 0");
     if (bc.k > max_k) {
         throw std::runtime_error("k must be less <= " + std::to_string(max_k) +
                                  " but got k = " + std::to_string(bc.k));
     }
+
     if (bc.m == 0) throw std::runtime_error("m must be > 0");
     if (bc.m > max_m) {
         throw std::runtime_error("m must be less <= " + std::to_string(max_m) +
@@ -22,10 +24,6 @@ inline void validate_and_normalize_build_config(build_configuration& bc, uint64_
     }
     if (bc.m > bc.k) throw std::runtime_error("m must be <= k");
 
-    /* Clamp --ram-limit to the floor. Below this, the streaming buffers
-       plus pthash's internal working memory can't usefully be made to
-       fit; rather than try to squeeze further we treat the floor as the
-       effective budget. */
     if (bc.ram_limit_in_GiB < constants::min_ram_limit_in_GiB) {
         if (bc.verbose) {
             std::cout << "  --> NOTE: --ram-limit raised from " << bc.ram_limit_in_GiB

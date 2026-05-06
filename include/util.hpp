@@ -221,20 +221,18 @@ static inline uint64_t get_seed_for_hash_function(build_configuration const& bui
     to capping threads — in that case we emit a warning naming the MPHF
     so the user knows the requested -t couldn't be honored.
 */
-static inline void configure_mphf_threads_and_partition(
-    pthash::build_configuration& mphf,             //
-    uint64_t requested_num_threads,                //
-    uint64_t ram_limit_in_GiB,                     //
-    bool verbose,                                  //
-    char const* mphf_name)                         //
+static inline void configure_mphf_threads_and_partition(pthash::build_configuration& mphf,  //
+                                                        uint64_t requested_num_threads,     //
+                                                        uint64_t ram_limit_in_GiB,          //
+                                                        bool verbose,                       //
+                                                        char const* mphf_name)              //
 {
-    constexpr uint64_t per_key_bytes = 32;          // pairs_t entry + sort slack
+    constexpr uint64_t per_key_bytes = 32;  // pairs_t entry + sort slack
     constexpr uint64_t min_avg_partition_size = uint64_t(100) * 1000;
     const uint64_t default_avg = constants::avg_partition_size;
 
     const uint64_t pthash_ram = (ram_limit_in_GiB * essentials::GiB) / 2;
-    const uint64_t per_thread =
-        pthash_ram / std::max<uint64_t>(1, requested_num_threads);
+    const uint64_t per_thread = pthash_ram / std::max<uint64_t>(1, requested_num_threads);
     const uint64_t avg_for_thread_budget = per_thread / per_key_bytes;
 
     if (avg_for_thread_budget >= default_avg) {
@@ -249,14 +247,13 @@ static inline void configure_mphf_threads_and_partition(
     } else {
         /* Pathological: not enough RAM per thread even at the floor.
            Cap threads so the floor fits. */
-        const uint64_t max_threads = std::max<uint64_t>(
-            1, pthash_ram / (per_key_bytes * min_avg_partition_size));
+        const uint64_t max_threads =
+            std::max<uint64_t>(1, pthash_ram / (per_key_bytes * min_avg_partition_size));
         if (verbose) {
             std::cout << "  --> WARNING: not enough RAM per thread for " << mphf_name
-                      << " (--ram-limit=" << ram_limit_in_GiB << " GiB, "
-                      << requested_num_threads << " requested threads): capping to "
-                      << max_threads << " threads at min partition size "
-                      << min_avg_partition_size << std::endl;
+                      << " (--ram-limit=" << ram_limit_in_GiB << " GiB, " << requested_num_threads
+                      << " requested threads): capping to " << max_threads
+                      << " threads at min partition size " << min_avg_partition_size << std::endl;
         }
         mphf.num_threads = max_threads;
         mphf.avg_partition_size = min_avg_partition_size;
