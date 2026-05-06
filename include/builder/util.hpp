@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 
+#include "buffered_record_stream.hpp"
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
 
@@ -159,12 +160,14 @@ private:
     Streaming forward iterator over a sorted minimizers tmp file that
     yields each distinct `minimizer` value exactly once (i.e., one value
     per bucket). Equivalent to `minimizers_tuples_iterator` over an mmap'd
-    buffer, but reads from std::ifstream so RAM usage is constant.
+    buffer, but built on top of `buffered_record_stream<minimizer_tuple>`
+    so RAM usage is constant.
 
     Copyable: pthash's `build_in_external_memory` takes the iterator by
-    value, so the underlying ifstream is held via shared_ptr. Copies share
-    the stream state; pthash's local copy advances the shared stream, and
-    the original at the call site is unused after the build returns.
+    value, so the underlying buffered stream is held via shared_ptr.
+    Copies share the stream state; pthash's local copy advances the
+    shared stream, and the original at the call site is unused after the
+    build returns.
 */
 struct streaming_minimizers_iterator {
     using iterator_category = std::forward_iterator_tag;
@@ -176,25 +179,14 @@ struct streaming_minimizers_iterator {
     streaming_minimizers_iterator() = default;
 
     void open(std::string const& filename) {
-        m_in = std::make_shared<std::ifstream>(filename, std::ifstream::binary);
-        if (!m_in->is_open()) {
-            throw std::runtime_error("cannot open minimizers tmp file '" + filename + "'");
-        }
-        m_eof = false;
-        m_current = uint64_t(-1);
-        // Bootstrap: read the first tuple.
-        minimizer_tuple t;
-        m_in->read(reinterpret_cast<char*>(&t), sizeof(minimizer_tuple));
-        if (m_in->gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
-            m_eof = true;
-            return;
-        }
-        m_current = t.minimizer;
+        m_stream = std::make_shared<buffered_record_stream<minimizer_tuple>>();
+        m_stream->open(filename);
+        m_current = m_stream->empty() ? uint64_t(-1) : m_stream->current().minimizer;
     }
 
     void close() {
-        if (m_in && m_in->is_open()) m_in->close();
-        m_in.reset();
+        if (m_stream) m_stream->close();
+        m_stream.reset();
     }
 
     uint64_t operator*() const { return m_current; }
@@ -204,21 +196,16 @@ struct streaming_minimizers_iterator {
     }
 
 private:
-    std::shared_ptr<std::ifstream> m_in;
+    std::shared_ptr<buffered_record_stream<minimizer_tuple>> m_stream;
     uint64_t m_current = uint64_t(-1);
-    bool m_eof = true;
 
     void advance_to_next_minimizer() {
         const uint64_t prev = m_current;
-        minimizer_tuple t;
-        while (true) {
-            m_in->read(reinterpret_cast<char*>(&t), sizeof(minimizer_tuple));
-            if (m_in->gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
-                m_eof = true;
-                return;  // m_current holds last value; pthash has consumed `num_minimizers` keys
-            }
-            if (t.minimizer != prev) {
-                m_current = t.minimizer;
+        while (!m_stream->empty()) {
+            m_stream->advance();
+            if (m_stream->empty()) return;  // m_current holds last value
+            if (m_stream->current().minimizer != prev) {
+                m_current = m_stream->current().minimizer;
                 return;
             }
         }
@@ -236,43 +223,27 @@ private:
     inputs this peaks at max_bucket_size * sizeof(minimizer_tuple).
 */
 struct streaming_minimizer_bucket_reader {
-    void open(std::string const& filename) {
-        m_in.open(filename, std::ifstream::binary);
-        if (!m_in.is_open()) {
-            throw std::runtime_error("cannot open minimizers tmp file '" + filename + "'");
-        }
-        // Read first record into the lookahead slot, if any.
-        m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
-        m_eof = (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple)));
-    }
+    void open(std::string const& filename) { m_stream.open(filename); }
 
-    void close() {
-        if (m_in.is_open()) m_in.close();
-    }
+    void close() { m_stream.close(); }
 
-    bool has_next_bucket() const { return !m_eof; }
+    bool has_next_bucket() const { return !m_stream.empty(); }
 
     /* Read the next bucket into `bucket_out` (cleared first). All tuples in
        a bucket share the same minimizer. Returns the bucket's minimizer. */
     uint64_t next_bucket(std::vector<minimizer_tuple>& bucket_out) {
         bucket_out.clear();
-        assert(!m_eof);
-        const uint64_t mm = m_lookahead.minimizer;
+        assert(has_next_bucket());
+        const uint64_t mm = m_stream.current().minimizer;
         do {
-            bucket_out.push_back(m_lookahead);
-            m_in.read(reinterpret_cast<char*>(&m_lookahead), sizeof(minimizer_tuple));
-            if (m_in.gcount() != static_cast<std::streamsize>(sizeof(minimizer_tuple))) {
-                m_eof = true;
-                break;
-            }
-        } while (m_lookahead.minimizer == mm);
+            bucket_out.push_back(m_stream.current());
+            m_stream.advance();
+        } while (!m_stream.empty() && m_stream.current().minimizer == mm);
         return mm;
     }
 
 private:
-    std::ifstream m_in;
-    minimizer_tuple m_lookahead;
-    bool m_eof = true;
+    buffered_record_stream<minimizer_tuple> m_stream;
 };
 
 struct minimizers_tuples {

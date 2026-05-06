@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "buffered_record_stream.hpp"
 #include "util.hpp"
 
 namespace sshash {
@@ -79,70 +80,9 @@ struct file_merging_iterator  //
     }
 
 private:
-    /*
-        A buffered, forward-only reader over a single run file. Reads in
-        chunks of `m_buf.size()` records via std::ifstream and presents a
-        T-by-reference current-value interface.
-    */
-    struct buffered_stream {
-        buffered_stream() = default;
-        buffered_stream(buffered_stream const&) = delete;
-        buffered_stream& operator=(buffered_stream const&) = delete;
-        buffered_stream(buffered_stream&&) = default;
-        buffered_stream& operator=(buffered_stream&&) = default;
-
-        void open(std::string const& filename, uint64_t buffer_records) {
-            m_buf.resize(std::max<uint64_t>(1, buffer_records));
-            m_in.open(filename, std::ifstream::binary);
-            if (!m_in.is_open()) {
-                throw std::runtime_error("cannot open run file '" + filename + "'");
-            }
-            m_pos = 0;
-            m_size = 0;
-            m_eof = false;
-            refill();
-        }
-
-        void close() {
-            if (m_in.is_open()) m_in.close();
-            m_buf.clear();
-            m_buf.shrink_to_fit();
-            m_pos = 0;
-            m_size = 0;
-            m_eof = true;
-        }
-
-        bool empty() const { return m_pos >= m_size; }
-
-        T const& current() const {
-            assert(!empty());
-            return m_buf[m_pos];
-        }
-
-        void advance() {
-            assert(!empty());
-            ++m_pos;
-            if (m_pos >= m_size && !m_eof) refill();
-        }
-
-    private:
-        std::ifstream m_in;
-        std::vector<T> m_buf;
-        uint64_t m_pos = 0;
-        uint64_t m_size = 0;
-        bool m_eof = true;
-
-        void refill() {
-            m_pos = 0;
-            m_in.read(reinterpret_cast<char*>(m_buf.data()),
-                      static_cast<std::streamsize>(m_buf.size() * sizeof(T)));
-            const std::streamsize got = m_in.gcount();
-            m_size = static_cast<uint64_t>(got) / sizeof(T);
-            if (m_size == 0) m_eof = true;
-        }
-    };
-
-    std::vector<buffered_stream> m_streams;
+    /* Each input run is read via a small buffered ifstream. */
+    using stream_t = buffered_record_stream<T>;
+    std::vector<stream_t> m_streams;
     std::vector<uint32_t> m_tree;
 
     uint64_t m_begin = 0, m_size = 0;

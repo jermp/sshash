@@ -56,17 +56,30 @@ struct position_tuple {
 #pragma pack(pop)
 
 /*
-    Forward iterator over a per-skew-partition tmp file produced by step
-    7.2 phase (B). Each record is `(kmer.bits, uint32_t pos_in_bucket)`.
-    This iterator yields successive Kmer values, exposing the minimal
-    interface (`*it`, `++it`) that pthash's external-memory partitioned PHF
-    builder consumes.
+    Per-skew-partition tmp file record (written by step 7.2 phase (B),
+    consumed by phase (C)): a kmer's bit pattern + the pos_in_bucket
+    we'll later pack into the partition's positions compact_vector.
+*/
+#pragma pack(push, 4)
+template <typename Kmer>
+struct skew_kmer_record_t {
+    using kmer_bits_t = decltype(Kmer{}.bits);
+    kmer_bits_t kmer_bits;
+    uint32_t pib;
+};
+#pragma pack(pop)
+
+/*
+    Forward iterator over a per-skew-partition tmp file produced by phase
+    (B). Yields successive Kmer values via the minimal interface (`*it`,
+    `++it`) that pthash's external-memory partitioned PHF builder
+    consumes.
 
     pthash takes the iterator by value, so it must be copyable. The
-    underlying `ifstream` is held via `shared_ptr` and shared between
-    copies; pthash's copy advances the shared stream state, which is fine
-    because the original at the call site is no longer used after the
-    build call returns.
+    underlying buffered_record_stream is held via shared_ptr and shared
+    between copies; pthash's copy advances the shared stream state, which
+    is fine because the original at the call site is unused after the
+    build returns.
 */
 template <typename Kmer>
 struct skew_partition_kmer_iterator {
@@ -79,36 +92,28 @@ struct skew_partition_kmer_iterator {
     skew_partition_kmer_iterator() = default;
 
     void open(std::string const& filename) {
-        m_in = std::make_shared<std::ifstream>(filename, std::ifstream::binary);
-        if (!m_in->is_open()) {
-            throw std::runtime_error("cannot open skew-partition tmp file '" + filename + "'");
-        }
-        advance();
+        m_stream = std::make_shared<buffered_record_stream<skew_kmer_record_t<Kmer>>>();
+        m_stream->open(filename);
+        if (!m_stream->empty()) m_current.bits = m_stream->current().kmer_bits;
     }
 
     void close() {
-        if (m_in && m_in->is_open()) m_in->close();
-        m_in.reset();
+        if (m_stream) m_stream->close();
+        m_stream.reset();
     }
 
     Kmer const& operator*() const { return m_current; }
     skew_partition_kmer_iterator& operator++() {
-        advance();
+        if (!m_stream->empty()) {
+            m_stream->advance();
+            if (!m_stream->empty()) m_current.bits = m_stream->current().kmer_bits;
+        }
         return *this;
     }
 
 private:
-    std::shared_ptr<std::ifstream> m_in;
+    std::shared_ptr<buffered_record_stream<skew_kmer_record_t<Kmer>>> m_stream;
     Kmer m_current;
-
-    void advance() {
-        decltype(Kmer{}.bits) bits;
-        m_in->read(reinterpret_cast<char*>(&bits), sizeof(bits));
-        if (m_in->gcount() != static_cast<std::streamsize>(sizeof(bits))) return;
-        uint32_t pib;
-        m_in->read(reinterpret_cast<char*>(&pib), sizeof(pib));  // skip pos_in_bucket
-        m_current.bits = bits;
-    }
 };
 
 template <typename Kmer, typename Offsets>
@@ -551,9 +556,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     kmer = std::min(kmer, kmer_rc);
                 }
                 auto& w = partition_writers[req.partition_id];
-                w.write(reinterpret_cast<char const*>(&kmer.bits), sizeof(kmer.bits));
-                w.write(reinterpret_cast<char const*>(&req.pos_in_bucket),
-                        sizeof(req.pos_in_bucket));
+                skew_kmer_record_t<Kmer> rec{kmer.bits, req.pos_in_bucket};
+                w.write(reinterpret_cast<char const*>(&rec), sizeof(rec));
                 kmer_it.next();
             }
             merger.next();
@@ -703,20 +707,19 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                         pos_buffer.clear();
                     };
 
-                    std::ifstream in(kmer_fn, std::ifstream::binary);
-                    if (!in.is_open()) {
-                        throw std::runtime_error("cannot open skew-partition tmp file");
-                    }
+                    buffered_record_stream<skew_kmer_record_t<Kmer>> rec_stream;
+                    rec_stream.open(kmer_fn);
                     for (uint64_t i = 0; i != n; ++i) {
+                        assert(!rec_stream.empty());
+                        auto const& rec = rec_stream.current();
                         Kmer kmer;
-                        in.read(reinterpret_cast<char*>(&kmer.bits), sizeof(kmer.bits));
-                        uint32_t pib;
-                        in.read(reinterpret_cast<char*>(&pib), sizeof(pib));
+                        kmer.bits = rec.kmer_bits;
                         const uint64_t pos = F(kmer);
                         if (pos_buffer.size() == pos_buffer_capacity) flush_pos_buffer();
-                        pos_buffer.emplace_back(pos, pib);
+                        pos_buffer.emplace_back(pos, rec.pib);
+                        rec_stream.advance();
                     }
-                    in.close();
+                    rec_stream.close();
                     std::remove(kmer_fn.c_str());
                     flush_pos_buffer();
                 }
