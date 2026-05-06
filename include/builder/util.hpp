@@ -61,106 +61,10 @@ inline std::ostream& operator<<(std::ostream& os, minimizer_tuple const& mt) {
     return os;
 }
 
-struct bucket_type {
-    bucket_type(minimizer_tuple const* begin, minimizer_tuple const* end)
-        : m_begin(begin), m_end(end) {}
-
-    struct iterator {
-        iterator(minimizer_tuple const* begin) : m_begin(begin) {}
-
-        inline minimizer_tuple operator*() const { return *m_begin; }
-        inline void operator++() { ++m_begin; }
-        bool operator==(iterator const& other) const { return m_begin == other.m_begin; }
-        bool operator!=(iterator const& other) const { return !(*this == other); }
-
-    private:
-        minimizer_tuple const* m_begin;
-    };
-
-    iterator begin() const { return iterator(m_begin); }
-    iterator end() const { return iterator(m_end); }
-
-    /*
-        When a canonical index is built (option `--canonical`),
-        a minimizer offset can correspond to more than one super-kmer.
-        A super-kmer is uniquely identified by the couple
-          (minimizer offset, position of minimizer in the first kmer of the super-kmer).
-        These two components, together, give the
-        starting position of a super-kmer in the sequence.
-
-        So the method size() returns the number of minimizer
-        positions which is <= the number of superkmers.
-    */
-
-    uint64_t num_super_kmers() const { return std::distance(m_begin, m_end); }
-
-    uint64_t size() const {
-        uint64_t num_minimizer_positions = 0;
-        uint64_t prev_pos_in_seq = constants::invalid_uint64;
-        auto const* begin = m_begin;
-        while (begin != m_end) {
-            uint64_t pos_in_seq = (*begin).pos_in_seq;
-            if (pos_in_seq != prev_pos_in_seq) {
-                ++num_minimizer_positions;
-                prev_pos_in_seq = pos_in_seq;
-            }
-            ++begin;
-        }
-        assert(num_minimizer_positions <= num_super_kmers());
-        return num_minimizer_positions;
-    }
-
-    minimizer_tuple const* begin_ptr() const { return m_begin; }
-    minimizer_tuple const* end_ptr() const { return m_end; }
-
-private:
-    minimizer_tuple const* m_begin;
-    minimizer_tuple const* m_end;
-};
-
-/*
-    Iterate over the "bucket" of a minimizer, i.e.,
-    the sorted list of minimizer tuples
-    (minimizer, pos_in_seq, pos_in_kmer, num_kmers_in_superkmer).
-*/
-struct minimizers_tuples_iterator {
-    typedef minimizer_tuple value_type;
-    using iterator_category = std::forward_iterator_tag;
-
-    minimizers_tuples_iterator(minimizer_tuple const* begin, minimizer_tuple const* end)
-        : m_bucket_begin(begin), m_bucket_end(begin), m_end(end) {
-        m_bucket_end = next_begin();
-    }
-
-    inline uint64_t minimizer() const { return (*m_bucket_begin).minimizer; }
-    inline uint64_t operator*() const { return minimizer(); }
-    inline void next() {
-        m_bucket_begin = m_bucket_end;
-        m_bucket_end = next_begin();
-    }
-    inline void operator++() { next(); }
-    bool has_next() const { return m_bucket_begin != m_end; }
-    bucket_type bucket() const { return bucket_type(m_bucket_begin, m_bucket_end); }
-
-private:
-    minimizer_tuple const* m_bucket_begin;
-    minimizer_tuple const* m_bucket_end;
-    minimizer_tuple const* m_end;
-
-    minimizer_tuple const* next_begin() {
-        if (m_bucket_begin == m_end) return m_end;
-        minimizer_tuple const* begin = m_bucket_begin;
-        uint64_t prev_minimizer = begin->minimizer;
-        while (++begin != m_end and begin->minimizer == prev_minimizer) {}
-        return begin;
-    }
-};
-
 /*
     Streaming forward iterator over a sorted minimizers tmp file that
     yields each distinct `minimizer` value exactly once (i.e., one value
-    per bucket). Equivalent to `minimizers_tuples_iterator` over an mmap'd
-    buffer, but built on top of `buffered_record_stream<minimizer_tuple>`
+    per bucket), built on top of `buffered_record_stream<minimizer_tuple>`
     so RAM usage is constant.
 
     Copyable: pthash's `build_in_external_memory` takes the iterator by
@@ -215,9 +119,8 @@ private:
 /*
     Streaming reader over a minimizers tmp file. Reads minimizer_tuple
     records via std::ifstream (no mmap), and groups consecutive tuples by
-    minimizer into "buckets" — exactly as `minimizers_tuples_iterator` does
-    over an mmap'd buffer, but with bounded RAM (~ one bucket at a time
-    plus one record of lookahead).
+    minimizer into "buckets" with bounded RAM (~ one bucket at a time plus
+    one record of lookahead).
 
     The caller passes a vector to receive the bucket's tuples; for typical
     inputs this peaks at max_bucket_size * sizeof(minimizer_tuple).
