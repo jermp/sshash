@@ -1,16 +1,16 @@
 # SSHash build algorithm
 
 This note describes how `sshash build` constructs a dictionary while keeping
-peak resident memory bounded by the user-supplied `--ram-limit` (in GiB).
+peak resident memory bounded by the user-supplied `-g` (in GiB).
 
 The design has two ideas, applied uniformly:
 
 1. **Spill, don't accumulate.** Every intermediate that grows with the input
-   size is written to a tmp file under `--tmp-dirname` rather than held in a
+   size is written to a tmp file under `-d` (tmp dir) rather than held in a
    `std::vector` / bit-vector in RAM. Producers append through a small write
    buffer; consumers re-read through a small read buffer
    (`buffered_record_stream<T>`).
-2. **Cap working buffers at a fraction of `--ram-limit`.** Buffers that live
+2. **Cap working buffers at a fraction of `-g`.** Buffers that live
    only inside one step are sized as `ram_limit_in_GiB · GiB / N` (with `N`
    typically 2 or 8). The constants are picked so that even when several
    buffers are alive at the same time across overlapping steps, their sum
@@ -209,7 +209,7 @@ either:
   | Step 5 hashing buffer                  | `min(ram/8, RAM_available/3)` |
   | Step 7.2 kmer-request external sort    | `ram_limit / 8`          |
   | Step 7.2 phase-C `position_tuple` sort | `ram_limit / 8`          |
-  | pthash external-memory builds          | `ram_limit / 2` (its own `--ram`) |
+  | pthash external-memory builds          | `ram_limit / 2` (its own `ram` field) |
   | Every disk-backed reader/writer        | `default_buffer_records ≈ 32 KiB` |
   | Every external merge front (per run)   | `4096 · sizeof(T)`       |
 
@@ -220,7 +220,7 @@ is a hard floor of `min_ram_limit_in_GiB` (enforced in
 `validate_and_normalize_build_config`) below which step 4's MPHF builder
 no longer has enough room to make progress.
 
-The result: peak RSS during the build is governed by `--ram-limit`, not by
+The result: peak RSS during the build is governed by `-g`, not by
 the input size or by the on-disk index size, and the saved index is
 identical (byte-for-byte) to one written by an in-RAM builder followed by
 `essentials::save`.
