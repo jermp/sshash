@@ -37,24 +37,14 @@ inline void validate_and_normalize_build_config(build_configuration& bc, uint64_
 }  // namespace
 
 template <typename Kmer, typename Offsets>
-void dictionary<Kmer, Offsets>::build(std::string const& filename,
-                                      build_configuration const& build_config)  //
+void dictionary<Kmer, Offsets>::build(std::string const& input_filename,
+                                      build_configuration const& build_config,
+                                      std::string const& output_filename)  //
 {
     build_configuration bc = build_config;
     validate_and_normalize_build_config(bc, Kmer::max_k, Kmer::max_m);
     dictionary_builder<Kmer, Offsets> builder(bc);
-    builder.build(*this, filename);
-}
-
-template <typename Kmer, typename Offsets>
-void dictionary<Kmer, Offsets>::build_streaming_save(std::string const& input_filename,
-                                                     build_configuration const& build_config,
-                                                     std::string const& output_filename)  //
-{
-    build_configuration bc = build_config;
-    validate_and_normalize_build_config(bc, Kmer::max_k, Kmer::max_m);
-    dictionary_builder<Kmer, Offsets> builder(bc);
-    builder.build_streaming_save(*this, input_filename, output_filename);
+    builder.build(*this, input_filename, output_filename);
 }
 
 }  // namespace sshash
