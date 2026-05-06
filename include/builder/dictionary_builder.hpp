@@ -345,8 +345,7 @@ private:
     void build_mphf(dictionary<Kmer, Offsets>& d) {
         const uint64_t num_minimizers = minimizers.num_minimizers();
         /* Stream minimizers from disk via std::ifstream (no mmap); the
-           iterator yields each distinct minimizer once, matching what
-           `minimizers_tuples_iterator` did over the mmap'd file. */
+           iterator yields each distinct minimizer once. */
         streaming_minimizers_iterator iterator;
         iterator.open(minimizers.get_minimizers_filename());
         d.m_ssi.codewords.build(iterator, num_minimizers, build_config);
