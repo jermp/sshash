@@ -93,9 +93,9 @@ struct dictionary_builder  //
         caller only needs the on-disk index file and wants to keep peak RAM
         bounded by the build phase.
     */
-    void build_streaming_save(dictionary<Kmer, Offsets>& d,                  //
-                              std::string const& filename,                   //
-                              std::string const& output_filename)            //
+    void build_streaming_save(dictionary<Kmer, Offsets>& d,        //
+                              std::string const& filename,         //
+                              std::string const& output_filename)  //
     {
         run_steps_1_through_7(d, filename);
         do_step("step 8 (stream-save dictionary to disk)", [&]() {
@@ -122,8 +122,8 @@ struct dictionary_builder  //
             /* Skew positions / mphfs: populate the owning_spans with
                placeholders so the visit walks the right number of entries
                and we can take their addresses for substitution. */
-            const std::size_t num_part = std::max(spilled.skew_positions_paths.size(),
-                                                  spilled.skew_mphfs_paths.size());
+            const std::size_t num_part =
+                std::max(spilled.skew_positions_paths.size(), spilled.skew_mphfs_paths.size());
             if (num_part > 0) {
                 std::vector<bits::compact_vector> position_placeholders(num_part);
                 std::vector<kmers_pthash_type<Kmer>> mphf_placeholders(num_part);
@@ -137,8 +137,7 @@ struct dictionary_builder  //
                 }
                 for (std::size_t i = 0; i != spilled.skew_mphfs_paths.size(); ++i) {
                     if (!spilled.skew_mphfs_paths[i].empty()) {
-                        register_sub(subs, &d.m_ssi.ski.mphfs[i],
-                                     spilled.skew_mphfs_paths[i]);
+                        register_sub(subs, &d.m_ssi.ski.mphfs[i], spilled.skew_mphfs_paths[i]);
                     }
                 }
             }
@@ -186,8 +185,8 @@ private:
             essentials::loader loader(spilled.codewords_mphf_path.c_str());
             loader.visit(d.m_ssi.codewords.mphf);
         }
-        const std::size_t num_part = std::max(spilled.skew_positions_paths.size(),
-                                              spilled.skew_mphfs_paths.size());
+        const std::size_t num_part =
+            std::max(spilled.skew_positions_paths.size(), spilled.skew_mphfs_paths.size());
         if (num_part > 0) {
             std::vector<bits::compact_vector> positions_vec(num_part);
             std::vector<kmers_pthash_type<Kmer>> mphfs_vec(num_part);
@@ -351,14 +350,12 @@ private:
            even when subsequent steps fragment the heap, step 5's lingering
            pages don't blow past the budget when stacked with later step's
            allocations. */
-        const uint64_t buffer_cap_bytes =
-            (build_config.ram_limit_in_GiB * essentials::GiB) / 8;
+        const uint64_t buffer_cap_bytes = (build_config.ram_limit_in_GiB * essentials::GiB) / 8;
         const uint64_t buffer_cap_records =
             std::max<uint64_t>(uint64_t(1) << 16, buffer_cap_bytes / sizeof(minimizer_tuple));
         const uint64_t buffer_size_unbounded =
-            num_files_to_merge == 1
-                ? num_super_kmers
-                : (RAM_available_in_bytes / (3 * sizeof(minimizer_tuple)));
+            num_files_to_merge == 1 ? num_super_kmers
+                                    : (RAM_available_in_bytes / (3 * sizeof(minimizer_tuple)));
         const uint64_t buffer_size = std::min(buffer_size_unbounded, buffer_cap_records);
         const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
         assert(num_super_kmers > (num_blocks - 1) * buffer_size);

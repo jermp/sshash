@@ -96,9 +96,7 @@ struct disk_backed_offsets_builder {
     std::string const& filename() const { return m_filename; }
 
     /* In-RAM footprint of the builder (excluding the on-disk file). */
-    uint64_t num_bytes() const {
-        return sizeof(m_nb) + m_buf.capacity() * sizeof(uint64_t);
-    }
+    uint64_t num_bytes() const { return sizeof(m_nb) + m_buf.capacity() * sizeof(uint64_t); }
 
     void set_num_bits(num_bits nb) { m_nb = nb; }
 
@@ -151,8 +149,7 @@ struct disk_backed_offsets_builder {
             if (!m_in.is_open()) {
                 throw std::runtime_error("cannot open offsets tmp file '" + filename + "'");
             }
-            m_in.seekg(static_cast<std::streamoff>(start_index * sizeof(uint64_t)),
-                       std::ios::beg);
+            m_in.seekg(static_cast<std::streamoff>(start_index * sizeof(uint64_t)), std::ios::beg);
             refill();
         }
 

@@ -14,19 +14,15 @@ namespace sshash {
 #pragma pack(push, 4)
 struct kmer_extraction_request {
     kmer_extraction_request() {}
-    kmer_extraction_request(uint64_t starting_pos, uint32_t partition_id,
-                            uint32_t pos_in_bucket, uint32_t num_kmers_in_super_kmer)
+    kmer_extraction_request(uint64_t starting_pos, uint32_t partition_id, uint32_t pos_in_bucket,
+                            uint32_t num_kmers_in_super_kmer)
         : starting_pos(starting_pos)
         , partition_id(partition_id)
         , pos_in_bucket(pos_in_bucket)
         , num_kmers_in_super_kmer(num_kmers_in_super_kmer) {}
 
-    bool operator<(kmer_extraction_request const& o) const {
-        return starting_pos < o.starting_pos;
-    }
-    bool operator>(kmer_extraction_request const& o) const {
-        return starting_pos > o.starting_pos;
-    }
+    bool operator<(kmer_extraction_request const& o) const { return starting_pos < o.starting_pos; }
+    bool operator>(kmer_extraction_request const& o) const { return starting_pos > o.starting_pos; }
 
     static kmer_extraction_request max() {
         return kmer_extraction_request(uint64_t(-1), uint32_t(-1), uint32_t(-1), uint32_t(-1));
@@ -232,8 +228,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     std::vector<uint32_t> begin_buckets_of_size(min_size + 1, 0);
     for (uint64_t s = 3; s <= min_size; ++s) {
         begin_buckets_of_size[s] = static_cast<uint32_t>(  //
-            begin_buckets_of_size[s - 1] +
-            buckets_stats.num_buckets_of_size(s - 1) * (s - 1));
+            begin_buckets_of_size[s - 1] + buckets_stats.num_buckets_of_size(s - 1) * (s - 1));
     }
     d.m_ssi.begin_buckets_of_size = std::move(begin_buckets_of_size);
 
@@ -270,8 +265,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
        compact_vector writer to assemble the final mid_load_buckets file. */
     auto mid_load_per_size_path = [&](uint64_t s) {
         std::stringstream ss;
-        ss << build_config.tmp_dirname << "/sshash.tmp.run_" << step7_run_id
-           << ".mid_load_size_" << s << ".bin";
+        ss << build_config.tmp_dirname << "/sshash.tmp.run_" << step7_run_id << ".mid_load_size_"
+           << s << ".bin";
         return ss.str();
     };
     std::vector<std::ofstream> mid_load_per_size(min_size + 1);
@@ -295,14 +290,14 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     const uint64_t skew_run_id = pthash::clock_type::now().time_since_epoch().count();
     auto request_run_filename = [&](uint64_t id) {
         std::stringstream ss;
-        ss << build_config.tmp_dirname << "/sshash.tmp.run_" << skew_run_id
-           << ".kmer_requests." << id << ".bin";
+        ss << build_config.tmp_dirname << "/sshash.tmp.run_" << skew_run_id << ".kmer_requests."
+           << id << ".bin";
         return ss.str();
     };
     auto skew_partition_filename = [&](uint64_t pid) {
         std::stringstream ss;
-        ss << build_config.tmp_dirname << "/sshash.tmp.run_" << skew_run_id
-           << ".skew_kmers." << pid << ".bin";
+        ss << build_config.tmp_dirname << "/sshash.tmp.run_" << skew_run_id << ".skew_kmers." << pid
+           << ".bin";
         return ss.str();
     };
 
@@ -311,10 +306,9 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
        so heap fragmentation across steps doesn't push peak RSS past the
        --ram-limit budget. */
     std::atomic<uint64_t> num_request_runs{0};
-    const uint64_t request_buffer_capacity = std::max<uint64_t>(
-        uint64_t(1) << 16,
-        (build_config.ram_limit_in_GiB * essentials::GiB) /
-            (8 * sizeof(kmer_extraction_request)));
+    const uint64_t request_buffer_capacity =
+        std::max<uint64_t>(uint64_t(1) << 16, (build_config.ram_limit_in_GiB * essentials::GiB) /
+                                                  (8 * sizeof(kmer_extraction_request)));
     std::vector<kmer_extraction_request> request_buffer;
     request_buffer.reserve(request_buffer_capacity);
     auto flush_request_buffer = [&]() {
@@ -424,8 +418,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                         d.m_spss.strings_offsets.decode(mt.pos_in_seq).absolute_offset;
                     const uint64_t starting_pos = abs_offset - mt.pos_in_kmer;
                     if (request_buffer.size() == request_buffer_capacity) flush_request_buffer();
-                    request_buffer.emplace_back(starting_pos, uint32_t(partition_id),
-                                                pos_in_bucket,
+                    request_buffer.emplace_back(starting_pos, uint32_t(partition_id), pos_in_bucket,
                                                 uint32_t(mt.num_kmers_in_super_kmer));
                 }
             }
@@ -452,8 +445,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     {
         streaming_compact_vector_writer mid_load_writer;
         mid_load_writer.open(spilled.mid_load_buckets_path,
-                             num_minimizer_positions_of_buckets_larger_than_1,
-                             num_bits_per_offset);
+                             num_minimizer_positions_of_buckets_larger_than_1, num_bits_per_offset);
         uint64_t global_index = 0;
         for (uint64_t s = 2; s <= min_size; ++s) {
             const uint64_t expected = buckets_stats.num_buckets_of_size(s) * s;
@@ -518,8 +510,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
             std::string operator*() const {
                 std::stringstream ss;
-                ss << tmp_dirname << "/sshash.tmp.run_" << skew_run_id
-                   << ".kmer_requests." << i << ".bin";
+                ss << tmp_dirname << "/sshash.tmp.run_" << skew_run_id << ".kmer_requests." << i
+                   << ".bin";
                 return ss.str();
             }
             void operator++() { ++i; }
@@ -606,8 +598,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         mphf_build_config.verbose = false;
         util::configure_mphf_threads_and_partition(mphf_build_config, build_config.num_threads,
                                                    build_config.ram_limit_in_GiB,
-                                                   build_config.verbose,
-                                                   "skew partition MPHF");
+                                                   build_config.verbose, "skew partition MPHF");
         mphf_build_config.ram = (build_config.ram_limit_in_GiB * essentials::GiB) / 2;
         mphf_build_config.tmp_dir = build_config.tmp_dirname;
 

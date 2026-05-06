@@ -32,8 +32,10 @@ struct streaming_compact_vector_writer {
     streaming_compact_vector_writer& operator=(streaming_compact_vector_writer const&) = delete;
 
     void open(std::string const& filename, uint64_t num_entries, uint64_t width) {
-        if (width == 0) throw std::runtime_error("streaming_compact_vector_writer: width must be > 0");
-        if (width > 64) throw std::runtime_error("streaming_compact_vector_writer: width must be <= 64");
+        if (width == 0)
+            throw std::runtime_error("streaming_compact_vector_writer: width must be > 0");
+        if (width > 64)
+            throw std::runtime_error("streaming_compact_vector_writer: width must be <= 64");
         m_filename = filename;
         m_num_entries = num_entries;
         m_width = width;
@@ -66,9 +68,7 @@ struct streaming_compact_vector_writer {
     /* Write a value at position `index`. Successive calls must satisfy
        `index >= previous_index`; gaps are filled with zero. */
     void set(uint64_t index, uint64_t value) {
-        if (m_have_last_index) {
-            assert(index >= m_last_index);
-        }
+        if (m_have_last_index) { assert(index >= m_last_index); }
         m_have_last_index = true;
         m_last_index = index;
 

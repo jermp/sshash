@@ -54,9 +54,9 @@ struct typed_address_sub {
     recursion via val.visit(*this)).
 */
 struct streaming_strings_saver {
-    streaming_strings_saver(std::ostream& os,                                       //
-                            bits::bit_vector const* strings_addr,                   //
-                            disk_backed_strings const* strings_storage,             //
+    streaming_strings_saver(std::ostream& os,                            //
+                            bits::bit_vector const* strings_addr,        //
+                            disk_backed_strings const* strings_storage,  //
                             std::unordered_map<void const*, typed_address_sub> address_subs)
         : m_os(os)
         , m_strings_addr(strings_addr)
@@ -149,9 +149,9 @@ private:
     standard essentials path.
 */
 template <typename T>
-void save_streaming(T const& t, char const* filename,                                  //
-                    bits::bit_vector const* strings_addr,                              //
-                    disk_backed_strings const& strings_storage,                        //
+void save_streaming(T const& t, char const* filename,            //
+                    bits::bit_vector const* strings_addr,        //
+                    disk_backed_strings const& strings_storage,  //
                     std::unordered_map<void const*, typed_address_sub> address_subs = {}) {
     std::ofstream out(filename, std::ios::binary);
     if (!out.good()) {
@@ -164,11 +164,10 @@ void save_streaming(T const& t, char const* filename,                           
 
 /* Helper: register a typed substitution at the address of `addr`. */
 template <typename T>
-inline void register_sub(std::unordered_map<void const*, typed_address_sub>& subs,
-                         T const* addr, std::string filename) {
+inline void register_sub(std::unordered_map<void const*, typed_address_sub>& subs, T const* addr,
+                         std::string filename) {
     subs.insert_or_assign(static_cast<void const*>(addr),
-                          typed_address_sub{std::move(filename),
-                                            std::type_index(typeid(T))});
+                          typed_address_sub{std::move(filename), std::type_index(typeid(T))});
 }
 
 }  // namespace sshash
