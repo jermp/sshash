@@ -4,11 +4,6 @@
 
 namespace sshash {
 
-/*
-    The minimizer of a kmer and of its reverse complement is the same m-mer, so a
-    single bucket probe resolves both orientations at once. This is the only
-    lookup path: there is no separate "canonical" modality.
-*/
 template <typename Kmer, typename Offsets>
 lookup_result dictionary<Kmer, Offsets>::lookup(const Kmer uint_kmer,                  //
                                                 const Kmer uint_kmer_rc,               //

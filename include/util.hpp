@@ -74,10 +74,10 @@ inline std::ostream& operator<<(std::ostream& os, lookup_result const& res) {
     return os;
 }
 
-template <class kmer_t>
+template <typename Kmer>
 struct neighbourhood {
-    std::array<lookup_result, kmer_t::alphabet_size> forward;
-    std::array<lookup_result, kmer_t::alphabet_size> backward;
+    std::array<lookup_result, Kmer::alphabet_size> forward;
+    std::array<lookup_result, Kmer::alphabet_size> backward;
 };
 
 struct minimizer_info {
@@ -201,55 +201,55 @@ static inline uint64_t get_seed_for_hash_function(build_configuration const& bui
     return std::equal(pattern.begin(), pattern.end(), str.end() - pattern.size());
 }
 
-template <class kmer_t>
-[[maybe_unused]] static kmer_t string_to_uint_kmer(char const* str, uint64_t k) {
-    assert(k <= kmer_t::max_k);
-    kmer_t x = 0;
-    for (uint64_t i = 0; i != k; ++i) x.set(i, kmer_t::char_to_uint(str[i]));
+template <typename Kmer>
+[[maybe_unused]] static Kmer string_to_uint_kmer(char const* str, uint64_t k) {
+    assert(k <= Kmer::max_k);
+    Kmer x = 0;
+    for (uint64_t i = 0; i != k; ++i) x.set(i, Kmer::char_to_uint(str[i]));
     return x;
 }
 
-template <class kmer_t>
-static void uint_kmer_to_string(kmer_t x, char* str, uint64_t k) {
-    assert(k <= kmer_t::max_k);
-    for (uint64_t i = 0; i != k; ++i) str[i] = kmer_t::uint64_to_char(x.pop_char());
+template <typename Kmer>
+static void uint_kmer_to_string(Kmer x, char* str, uint64_t k) {
+    assert(k <= Kmer::max_k);
+    for (uint64_t i = 0; i != k; ++i) str[i] = Kmer::uint64_to_char(x.pop_char());
 }
 
-template <class kmer_t>
-[[maybe_unused]] static std::string uint_kmer_to_string(kmer_t x, uint64_t k) {
-    assert(k <= kmer_t::max_k);
+template <typename Kmer>
+[[maybe_unused]] static std::string uint_kmer_to_string(Kmer x, uint64_t k) {
+    assert(k <= Kmer::max_k);
     std::string str;
     str.resize(k);
     uint_kmer_to_string(x, str.data(), k);
     return str;
 }
 
-template <class kmer_t>
+template <typename Kmer>
 [[maybe_unused]] static std::string uint_minimizer_to_string(uint64_t minimizer, uint64_t m) {
-    assert(m <= kmer_t::max_m);
+    assert(m <= Kmer::max_m);
     std::string str;
     str.resize(m);
-    kmer_t x = minimizer;
+    Kmer x = minimizer;
     uint_kmer_to_string(x, str.data(), m);
     return str;
 }
 
-template <class kmer_t>
+template <typename Kmer>
 [[maybe_unused]] static bool is_valid(char const* str, uint64_t size) {
     for (uint64_t i = 0; i != size; ++i) {
-        if (!kmer_t::is_valid(str[i])) return false;
+        if (!Kmer::is_valid(str[i])) return false;
     }
     return true;
 }
 
-template <class kmer_t>
-static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const uint64_t pos) {
-    static_assert(kmer_t::uint_kmer_bits % 64 == 0);
-    kmer_t kmer = 0;
-    for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
+template <typename Kmer>
+static Kmer read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const uint64_t pos) {
+    static_assert(Kmer::uint_kmer_bits % 64 == 0);
+    Kmer kmer = 0;
+    for (int i = Kmer::uint_kmer_bits - 64; i >= 0; i -= 64) {
         if (pos + i < bv.num_bits()) kmer.append64(bv.get_word64(pos + i));
     }
-    kmer.take(kmer_t::bits_per_char * k);
+    kmer.take(Kmer::bits_per_char * k);
     return kmer;
 }
 
@@ -258,13 +258,13 @@ static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const u
     complement, under the numeric order on the packed encoding. For alphabets
     that have no reverse complement (e.g. amino acids) this is the identity.
 */
-template <class kmer_t>
+template <typename Kmer>
 inline uint64_t canonical_mmer(const uint64_t mmer, const uint64_t m) {
-    if constexpr (!kmer_t::has_reverse_complement) {
+    if constexpr (!Kmer::has_reverse_complement) {
         (void)m;
         return mmer;
     } else {
-        return std::min(mmer, kmer_t::reverse_complement_mmer(mmer, m));
+        return std::min(mmer, Kmer::reverse_complement_mmer(mmer, m));
     }
 }
 
@@ -273,13 +273,13 @@ inline uint64_t canonical_mmer(const uint64_t mmer, const uint64_t m) {
     equals its own reverse complement (possible only for even k) is deemed
     canonical, so that the answer is always well defined.
 */
-template <class kmer_t>
-inline bool is_canonical(kmer_t kmer, const uint64_t k) {
-    if constexpr (!kmer_t::has_reverse_complement) {
+template <typename Kmer>
+inline bool is_canonical(Kmer kmer, const uint64_t k) {
+    if constexpr (!Kmer::has_reverse_complement) {
         (void)k;
         return true;
     } else {
-        kmer_t kmer_rc = kmer;
+        Kmer kmer_rc = kmer;
         kmer_rc.reverse_complement_inplace(k);
         return !(kmer_rc < kmer);
     }
@@ -318,20 +318,20 @@ inline bool is_canonical(kmer_t kmer, const uint64_t k) {
     m=13, and makes the minimizer not strictly forward, which the parser and the
     lookup already tolerate.
 */
-template <class kmer_t>
-minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
+template <typename Kmer>
+minimizer_info compute_minimizer(Kmer kmer, const uint64_t k, const uint64_t m,
                                  hasher_type const& hasher)  //
 {
-    assert(m <= kmer_t::max_m);
+    assert(m <= Kmer::max_m);
     assert(m <= k);
 
     /* The first locus is peeled off the loop so that `min_hash` starts out at a
        real hash value: initializing it to invalid_uint64 would make an actual
        hash of invalid_uint64 register as a tie rather than as the minimum. */
-    kmer_t window = kmer;
-    kmer_t first = window;
+    Kmer window = kmer;
+    Kmer first = window;
     first.take_chars(m);
-    uint64_t minimizer = canonical_mmer<kmer_t>(uint64_t(first), m);
+    uint64_t minimizer = canonical_mmer<Kmer>(uint64_t(first), m);
     uint64_t min_hash = hasher.hash(minimizer);
     uint64_t leftmost = 0;
     uint64_t rightmost = 0;
@@ -339,9 +339,9 @@ minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m
     window.drop_char();
 
     for (uint64_t i = 1; i != k - m + 1; ++i) {
-        kmer_t mmer = window;
+        Kmer mmer = window;
         mmer.take_chars(m);
-        uint64_t value = canonical_mmer<kmer_t>(uint64_t(mmer), m);
+        uint64_t value = canonical_mmer<Kmer>(uint64_t(mmer), m);
         uint64_t hash = hasher.hash(value);
         if (hash < min_hash) {  // leftmost
             min_hash = hash;
@@ -360,7 +360,7 @@ minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m
         /* rc(kmer) is the canonical frame: mirror its leftmost tied locus */
         kmer.drop_chars(rightmost);
         kmer.take_chars(m);
-        return {canonical_mmer<kmer_t>(uint64_t(kmer), m), rightmost};
+        return {canonical_mmer<Kmer>(uint64_t(kmer), m), rightmost};
     }
 
     return {minimizer, leftmost};
