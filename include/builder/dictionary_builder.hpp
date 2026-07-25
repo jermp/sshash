@@ -20,13 +20,11 @@ struct dictionary_builder  //
         d.m_m = build_config.m;
         d.m_spss.k = build_config.k;
         d.m_spss.m = build_config.m;
-        d.m_canonical = build_config.canonical;
         d.m_hasher.seed(build_config.seed);
 
         build_stats.add("input_filename", filename.c_str());
         build_stats.add("k", d.m_k);
         build_stats.add("m", d.m_m);
-        build_stats.add("canonical", d.m_canonical ? "true" : "false");
         build_stats.add("seed", build_config.seed);
         build_stats.add("num_threads", build_config.num_threads);
 

@@ -6,7 +6,7 @@
 
 namespace sshash {
 
-template <typename Dict, bool canonical>
+template <typename Dict>
 struct streaming_query  //
 {
     using kmer_t = typename Dict::kmer_type;
@@ -22,11 +22,8 @@ struct streaming_query  //
         , m_m(dict->m_m)
 
         , m_minimizer_it(dict->m_k, dict->m_m, dict->m_hasher)
-        , m_minimizer_it_rc(dict->m_k, dict->m_m, dict->m_hasher)
         , m_curr_mini_info()
         , m_prev_mini_info()
-        , m_curr_mini_info_rc()
-        , m_prev_mini_info_rc()
 
         , m_it(dict->m_spss.strings, m_k)
         , m_remaining_string_bases(0)
@@ -36,21 +33,13 @@ struct streaming_query  //
         , m_num_invalid(0)
         , m_num_negative(0)
 
-    {
-        if (canonical != m_dict->m_canonical) {
-            std::stringstream ss;
-            ss << "dict.canonical() = " << (m_dict->canonical() ? "true" : "false")
-               << " but required " << (canonical ? "true" : "false");
-            throw std::runtime_error(ss.str());
-        }
-    }
+    {}
 
     void reset() {
         m_start = true;
         m_remaining_string_bases = 0;
         m_res = lookup_result();
         m_minimizer_it.reset();
-        m_minimizer_it_rc.reset();
     }
 
     lookup_result lookup(char const* kmer)  //
@@ -80,7 +69,6 @@ struct streaming_query  //
         }
 
         m_curr_mini_info = m_minimizer_it.next(m_kmer);
-        m_curr_mini_info_rc = m_minimizer_it_rc.next(m_kmer_rc);
 
         /* 3. compute result */
         if (m_remaining_string_bases == 0) {
@@ -101,7 +89,6 @@ struct streaming_query  //
 
         /* 4. update state */
         m_prev_mini_info = m_curr_mini_info;
-        m_prev_mini_info_rc = m_curr_mini_info_rc;
         m_start = false;
 
         assert(equal_lookup_result(m_dict->lookup(kmer), m_res));
@@ -127,9 +114,7 @@ private:
 
     /* minimizer state */
     minimizer_iterator<kmer_t> m_minimizer_it;
-    minimizer_iterator_rc<kmer_t> m_minimizer_it_rc;
     minimizer_info m_curr_mini_info, m_prev_mini_info;
-    minimizer_info m_curr_mini_info_rc, m_prev_mini_info_rc;
 
     /* string state */
     kmer_iterator<kmer_t, bits::bit_vector> m_it;
@@ -147,37 +132,15 @@ private:
 
         /* if minimizer does not change and previous minimizer was not found,
            surely any kmer having the same minimizer cannot be found as well */
-        if (m_curr_mini_info.minimizer == m_prev_mini_info.minimizer and        //
-            m_curr_mini_info_rc.minimizer == m_prev_mini_info_rc.minimizer and  //
-            m_res.minimizer_found == false)                                     //
+        if (m_curr_mini_info.minimizer == m_prev_mini_info.minimizer and  //
+            m_res.minimizer_found == false)                               //
         {
             assert(m_res.kmer_id == constants::invalid_uint64);
             m_num_negative += 1;
             return;
         }
 
-        if constexpr (canonical) {
-            if (m_curr_mini_info.minimizer < m_curr_mini_info_rc.minimizer) {
-                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
-            } else if (m_curr_mini_info_rc.minimizer < m_curr_mini_info.minimizer) {
-                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
-            } else {
-                m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info);
-                if (m_res.kmer_id == constants::invalid_uint64) {
-                    m_res = m_dict->lookup_canonical(m_kmer, m_kmer_rc, m_curr_mini_info_rc);
-                }
-            }
-        } else {
-            m_res = m_dict->lookup_regular(m_kmer, m_curr_mini_info);
-            bool minimizer_found = m_res.minimizer_found;
-            if (m_res.kmer_id == constants::invalid_uint64) {
-                assert(m_res.kmer_orientation == constants::forward_orientation);
-                m_res = m_dict->lookup_regular(m_kmer_rc, m_curr_mini_info_rc);
-                m_res.kmer_orientation = constants::backward_orientation;
-                bool minimizer_rc_found = m_res.minimizer_found;
-                m_res.minimizer_found = minimizer_rc_found or minimizer_found;
-            }
-        }
+        m_res = m_dict->lookup(m_kmer, m_kmer_rc, m_curr_mini_info);
 
         if (m_res.kmer_id == constants::invalid_uint64) {
             m_num_negative += 1;

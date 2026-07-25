@@ -27,9 +27,9 @@ struct spectrum_preserving_string_set  //
     }
 
     template <typename Iterator>
-    lookup_result lookup_regular(Iterator it,                           //
-                                 const Kmer kmer,                       //
-                                 const minimizer_info mini_info) const  //
+    lookup_result lookup(Iterator it,                           //
+                         const Kmer kmer, const Kmer kmer_rc,   //
+                         const minimizer_info mini_info) const  //
     {
         const uint64_t size = it.size();
         assert(size > 0);
@@ -43,13 +43,16 @@ struct spectrum_preserving_string_set  //
             v[i] = strings_offsets.decode(minimizer_offset);
         }
 
-        /* check minimizer first */
+        /* Check minimizer first. The minimizer's value is the canonical m-mer at
+           the anchored locus, so the m-mer stored at that offset is either the
+           minimizer itself or its reverse complement. */
         if (uint64_t read_mmer = uint64_t(
                 util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * v[0].absolute_offset));
-            read_mmer != mini_info.minimizer)  //
+            read_mmer != mini_info.minimizer and
+            util::canonical_mmer<Kmer>(read_mmer, m) != mini_info.minimizer)  //
         {
             /*
-               The function `lookup_regular` determines if the minimizer is found at the
+               This function determines if the minimizer is found at the
                offset `Kmer::bits_per_char * p.absolute_offset`, not whether the minimizer
                does not appear at all. In fact, it can happen that the minimizer appear but
                not at the specified offset, so it would be wrong to set `res.minimizer_found`
@@ -66,46 +69,7 @@ struct spectrum_preserving_string_set  //
 
         lookup_result res;
         for (uint64_t i = 0; i != size; ++i) {
-            if (_lookup_regular(res, v[i], kmer, mini_info)) return res;
-        }
-
-        return lookup_result();
-    }
-
-    template <typename Iterator>
-    lookup_result lookup_canonical(Iterator it,                           //
-                                   const Kmer kmer, const Kmer kmer_rc,   //
-                                   const minimizer_info mini_info) const  //
-    {
-        const uint64_t size = it.size();
-        assert(size > 0);
-
-        static thread_local  //
-            std::array<typename Offsets::decoded_offset, 1ULL << constants::min_l>
-                v;
-
-        for (uint64_t i = 0; i != size; ++i, ++it) {
-            uint64_t minimizer_offset = *it;
-            v[i] = strings_offsets.decode(minimizer_offset);
-        }
-
-        /* check minimizer first */
-        if (uint64_t read_mmer = uint64_t(
-                util::read_kmer_at<Kmer>(strings, m, Kmer::bits_per_char * v[0].absolute_offset));
-            read_mmer != mini_info.minimizer)  //
-        {
-            Kmer tmp = mini_info.minimizer;
-            tmp.reverse_complement_inplace(m);
-            uint64_t minimizer_rc = uint64_t(tmp);
-            if (read_mmer != minimizer_rc) {
-                /* Same note as for the function `lookup_regular`. */
-                return lookup_result(it.bucket_type() != bucket_t::HEAVYLOAD ? false : true);
-            }
-        }
-
-        lookup_result res;
-        for (uint64_t i = 0; i != size; ++i) {
-            if (_lookup_canonical(res, v[i], kmer, kmer_rc, mini_info)) return res;
+            if (_lookup(res, v[i], kmer, kmer_rc, mini_info)) return res;
         }
 
         return lookup_result();
@@ -210,47 +174,34 @@ private:
         visitor.visit(t.strings);
     }
 
-    bool _lookup_regular(lookup_result& res,                    //
-                         typename Offsets::decoded_offset p,    //
-                         const Kmer kmer,                       //
-                         const minimizer_info mini_info) const  //
+    /*
+        The minimizer is anchored at locus `pos_in_kmer` of the kmer and, by
+        mirror-equivariance, at locus `k - m - pos_in_kmer` of its reverse
+        complement. So a minimizer occurrence at offset j is the anchor of a kmer
+        starting either at j - pos_in_kmer or at j - (k - m - pos_in_kmer):
+        always exactly two candidates, with no case analysis. They lie within
+        2k-m characters of each other, hence usually on the same cache line.
+    */
+    bool _lookup(lookup_result& res,                    //
+                 typename Offsets::decoded_offset p,    //
+                 const Kmer kmer,                       //
+                 const Kmer kmer_rc,                    //
+                 const minimizer_info mini_info) const  //
     {
-        if (p.absolute_offset < mini_info.pos_in_kmer) return false;
-
-        res.kmer_offset = p.absolute_offset - mini_info.pos_in_kmer;
-
-        if (kmer != util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset)) {
-            return false;
-        }
-
-        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1) {
-            res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
-            res.kmer_id_in_string = res.kmer_offset - res.string_begin;  // relative kmer id
+        if constexpr (Kmer::has_reverse_complement) {
+            if (_lookup_at(res, p, kmer, kmer_rc, mini_info.pos_in_kmer)) return true;
+            return _lookup_at(res, p, kmer, kmer_rc, k - m - mini_info.pos_in_kmer);
         } else {
-            strings_offsets.offset_to_id(res, p, k);
+            /* no reverse complement: the two candidates would coincide */
+            return _lookup_at(res, p, kmer, kmer_rc, mini_info.pos_in_kmer);
         }
-
-        if (res.kmer_offset < res.string_end - k + 1) return true;
-        return false;
     }
 
-    bool _lookup_canonical(lookup_result& res,                    //
-                           typename Offsets::decoded_offset p,    //
-                           const Kmer kmer,                       //
-                           const Kmer kmer_rc,                    //
-                           const minimizer_info mini_info) const  //
-    {
-        uint64_t pos_in_kmer = mini_info.pos_in_kmer;
-        if (__lookup_canonical(res, p, kmer, kmer_rc, pos_in_kmer)) return true;
-        pos_in_kmer = k - m - mini_info.pos_in_kmer;
-        return __lookup_canonical(res, p, kmer, kmer_rc, pos_in_kmer);
-    }
-
-    bool __lookup_canonical(lookup_result& res,                  //
-                            typename Offsets::decoded_offset p,  //
-                            const Kmer kmer,                     //
-                            const Kmer kmer_rc,                  //
-                            const uint64_t pos_in_kmer) const    //
+    bool _lookup_at(lookup_result& res,                  //
+                    typename Offsets::decoded_offset p,  //
+                    const Kmer kmer,                     //
+                    const Kmer kmer_rc,                  //
+                    const uint64_t pos_in_kmer) const    //
     {
         if (p.absolute_offset < pos_in_kmer) return false;
 

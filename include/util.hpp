@@ -150,7 +150,6 @@ struct build_configuration {
 
         , lambda(constants::lambda)
 
-        , canonical(false)
         , weighted(false)
         , verbose(true)
 
@@ -166,7 +165,6 @@ struct build_configuration {
 
     double lambda;  // drive PTHash trade-off
 
-    bool canonical;
     bool weighted;
     bool verbose;
 
@@ -179,7 +177,6 @@ struct build_configuration {
                   << ", num_threads = " << num_threads                        //
                   << ", ram_limit_in_GiB = " << ram_limit_in_GiB              //
                   << ", lambda = " << lambda                                  //
-                  << ", canonical = " << (canonical ? "true" : "false")       //
                   << ", weighted = " << (weighted ? "true" : "false")         //
                   << ", verbose = " << (verbose ? "true" : "false")           //
                   << ", tmp_dirname = '" << tmp_dirname << "'" << std::endl;  //
@@ -257,7 +254,69 @@ static kmer_t read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const u
 }
 
 /*
-    This implements the random minimizer.
+    The canonical m-mer at a locus: the smaller of the m-mer and its reverse
+    complement, under the numeric order on the packed encoding. For alphabets
+    that have no reverse complement (e.g. amino acids) this is the identity.
+*/
+template <class kmer_t>
+inline uint64_t canonical_mmer(const uint64_t mmer, const uint64_t m) {
+    if constexpr (!kmer_t::has_reverse_complement) {
+        (void)m;
+        return mmer;
+    } else {
+        return std::min(mmer, kmer_t::reverse_complement_mmer(mmer, m));
+    }
+}
+
+/*
+    True if `kmer` is the canonical one of the pair (kmer, rc(kmer)). A kmer that
+    equals its own reverse complement (possible only for even k) is deemed
+    canonical, so that the answer is always well defined.
+*/
+template <class kmer_t>
+inline bool is_canonical(kmer_t kmer, const uint64_t k) {
+    if constexpr (!kmer_t::has_reverse_complement) {
+        (void)k;
+        return true;
+    } else {
+        kmer_t kmer_rc = kmer;
+        kmer_rc.reverse_complement_inplace(k);
+        return !(kmer_rc < kmer);
+    }
+}
+
+/*
+    This implements the random minimizer of a kmer x: the locus i* in [0, k-m]
+    minimizing h(kappa(i)), where kappa(i) := min(x_i, rc(x_i)) is the canonical
+    m-mer at locus i. The minimizer's value is kappa(i*).
+
+    Because kappa(i) is invariant under reverse-complementation and the sequence
+    (kappa(0), ..., kappa(k-m)) of rc(x) is the reversal of that of x, the locus
+    selected for rc(x) is the mirror image of the one selected for x, and the
+    value is literally the same m-mer. So x and rc(x) always land in the same
+    bucket -- a lookup costs a single probe -- while the minimizer remains a
+    minimizer of the window under a single random order, which is what keeps the
+    density (and hence the number of super-kmers) at that of the plain forward
+    minimizer, 2/(k-m+2).
+
+    When the alphabet has no reverse complement, kappa is the identity and this
+    reduces exactly to the plain forward minimizer.
+
+    Selecting on h(kappa(i)) rather than on min(h(x_i), h(rc(x_i))) -- the two
+    are interchangeable, since both are strand-symmetric and induce a uniformly
+    random order on the loci of a window whose 2(k-m+1) m-mers are distinct, so
+    both have density 2/(k-m+2) -- costs one hash per m-mer instead of two, the
+    same as the plain forward minimizer.
+
+    Ties -- h(kappa(i)) == h(kappa(j)) for i != j, which happens when x_i == x_j
+    or x_i == rc(x_j) -- must be broken in a mirror-equivariant way, or x and
+    rc(x) would be sent to different buckets, which is a correctness failure and
+    not merely a density one. We break them in the frame of the canonical kmer
+    min(x, rc(x)), which is literally the same string for x and rc(x): that
+    amounts to taking the leftmost tied locus when x is canonical and the
+    rightmost one otherwise. The rule fires on ~1e-5 of the windows for k=31,
+    m=13, and makes the minimizer not strictly forward, which the parser and the
+    lookup already tolerate.
 */
 template <class kmer_t>
 minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m,
@@ -265,21 +324,46 @@ minimizer_info compute_minimizer(kmer_t kmer, const uint64_t k, const uint64_t m
 {
     assert(m <= kmer_t::max_m);
     assert(m <= k);
-    uint64_t min_hash = constants::invalid_uint64;
-    kmer_t minimizer = kmer_t(-1);
-    uint64_t pos = 0;
-    for (uint64_t i = 0; i != k - m + 1; ++i) {
-        kmer_t mmer = kmer;
+
+    /* The first locus is peeled off the loop so that `min_hash` starts out at a
+       real hash value: initializing it to invalid_uint64 would make an actual
+       hash of invalid_uint64 register as a tie rather than as the minimum. */
+    kmer_t window = kmer;
+    kmer_t first = window;
+    first.take_chars(m);
+    uint64_t minimizer = canonical_mmer<kmer_t>(uint64_t(first), m);
+    uint64_t min_hash = hasher.hash(minimizer);
+    uint64_t leftmost = 0;
+    uint64_t rightmost = 0;
+    bool tie = false;
+    window.drop_char();
+
+    for (uint64_t i = 1; i != k - m + 1; ++i) {
+        kmer_t mmer = window;
         mmer.take_chars(m);
-        uint64_t hash = hasher.hash(uint64_t(mmer));
-        if (hash < min_hash) {
+        uint64_t value = canonical_mmer<kmer_t>(uint64_t(mmer), m);
+        uint64_t hash = hasher.hash(value);
+        if (hash < min_hash) {  // leftmost
             min_hash = hash;
-            minimizer = mmer;
-            pos = i;
+            minimizer = value;
+            leftmost = i;
+            rightmost = i;
+            tie = false;
+        } else if (hash == min_hash) {
+            rightmost = i;
+            tie = true;
         }
-        kmer.drop_char();
+        window.drop_char();
     }
-    return {uint64_t(minimizer), pos};
+
+    if (tie and !is_canonical(kmer, k)) {
+        /* rc(kmer) is the canonical frame: mirror its leftmost tied locus */
+        kmer.drop_chars(rightmost);
+        kmer.take_chars(m);
+        return {canonical_mmer<kmer_t>(uint64_t(kmer), m), rightmost};
+    }
+
+    return {minimizer, leftmost};
 }
 
 }  // namespace util

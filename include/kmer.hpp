@@ -105,7 +105,14 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
     static char uint64_to_char(uint64_t x) { return alphabet[x]; }
 
     // Revcompl only makes sense for DNA, fallback to noop otherwise
+    static constexpr bool has_reverse_complement = false;
     [[maybe_unused]] virtual void reverse_complement_inplace(uint64_t) {}
+
+    /* Reverse complement of an m-mer packed in the low m*bits_per_char bits of a
+       word, for m <= max_m. Same fallback as above: the identity. */
+    [[maybe_unused]] static uint64_t reverse_complement_mmer(uint64_t mmer, uint64_t) {
+        return mmer;
+    }
     [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
                                                             uint64_t size) {
         for (uint64_t i = 0; i != size; ++i) output[i] = input[i];
@@ -156,12 +163,28 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
         return res;
     }
 
+    static constexpr bool has_reverse_complement = true;
+
     [[maybe_unused]] void reverse_complement_inplace(uint64_t k) override {
         assert(k <= max_k);
         dna_uint_kmer_t rev(0);
         for (uint16_t i = 0; i < uint_kmer_bits; i += 64) { rev.append64(crc64(base::pop64())); }
         rev.drop(uint_kmer_bits - k * bits_per_char);
         *this = rev;
+    }
+
+    /*
+        Reverse complement of an m-mer packed in the low m*bits_per_char bits of a
+        single word. This is `reverse_complement_inplace` specialized to a value
+        that is known to fit in 64 bits, hence a single crc64 regardless of how
+        wide the kmer type is. Used to canonicalize the m-mers of a kmer, which is
+        done once per character of the input during construction and once per
+        character of the query at lookup time.
+    */
+    [[maybe_unused]] static uint64_t reverse_complement_mmer(uint64_t mmer, uint64_t m) {
+        assert(m <= max_m);
+        assert(m * bits_per_char < 64);
+        return crc64(mmer) >> (64 - m * bits_per_char);
     }
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING

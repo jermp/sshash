@@ -50,7 +50,6 @@ void dictionary_builder<Kmer, Offsets>::compute_minimizer_tuples()  //
             kmer_iterator<Kmer, bits::bit_vector::builder> kmer_it(strings_builder, k);
             hasher_type hasher(build_config.seed);
             minimizer_iterator<Kmer> minimizer_it(k, m, hasher);
-            minimizer_iterator_rc<Kmer> minimizer_it_rc(k, m, hasher);
 
             for (uint64_t i = index_begin; i < index_end; ++i)  //
             {
@@ -65,25 +64,12 @@ void dictionary_builder<Kmer, Offsets>::compute_minimizer_tuples()  //
 
                 kmer_it.at(Kmer::bits_per_char * begin);
                 minimizer_it.set_position(begin);
-                minimizer_it_rc.set_position(begin);
 
                 for (uint64_t j = 0; j != sequence_len - k + 1; ++j) {
                     auto uint_kmer = kmer_it.get();
                     auto mini_info = minimizer_it.next(uint_kmer);
                     assert(mini_info.pos_in_seq < end - m + 1);
                     assert(mini_info.pos_in_kmer < k - m + 1);
-
-                    if (build_config.canonical) {
-                        auto uint_kmer_rc = uint_kmer;
-                        uint_kmer_rc.reverse_complement_inplace(k);
-                        auto mini_info_rc = minimizer_it_rc.next(uint_kmer_rc);
-                        assert(mini_info_rc.pos_in_seq < end - m + 1);
-                        assert(mini_info_rc.pos_in_kmer < k - m + 1);
-                        if (mini_info_rc.minimizer < mini_info.minimizer) {
-                            mini_info = mini_info_rc;
-                            mini_info.pos_in_kmer = k - m - mini_info.pos_in_kmer;
-                        }
-                    }
 
                     mini_info.pos_in_seq =
                         strings_offsets_builder.encode(mini_info.pos_in_seq, begin, i);
@@ -92,8 +78,13 @@ void dictionary_builder<Kmer, Offsets>::compute_minimizer_tuples()  //
                         prev_mini_info = mini_info;
                     }
 
-                    if (mini_info.minimizer != prev_mini_info.minimizer or
-                        mini_info.pos_in_seq != prev_mini_info.pos_in_seq)  //
+                    /*
+                        The minimizer's value is the canonical m-mer at the
+                        anchored locus, hence a function of `pos_in_seq` alone:
+                        comparing positions is enough to detect a super-kmer
+                        break, no need to also compare values.
+                    */
+                    if (mini_info.pos_in_seq != prev_mini_info.pos_in_seq)  //
                     {
                         save(prev_mini_info, num_kmers_in_super_kmer);
                         prev_mini_info = mini_info;

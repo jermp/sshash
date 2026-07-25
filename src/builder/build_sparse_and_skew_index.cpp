@@ -459,12 +459,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     d.m_spss.strings, k, Kmer::bits_per_char * starting_pos_of_super_kmer);
                 for (uint64_t i = 0; i != mt.num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
-                    if (build_config.canonical) { /* take the canonical kmer */
-                        auto kmer_rc = kmer;
-                        kmer_rc.reverse_complement_inplace(k);
-                        kmer = std::min(kmer, kmer_rc);
-                    }
-                    kmers.push_back(kmer);
+                    /* take the canonical kmer: a kmer and its reverse complement
+                       share a bucket, hence a skew-index partition */
+                    auto kmer_rc = kmer;
+                    kmer_rc.reverse_complement_inplace(k);
+                    kmers.push_back(std::min(kmer, kmer_rc));
                     positions_in_bucket.push_back(pos_in_bucket);
                     it.next();
                 }

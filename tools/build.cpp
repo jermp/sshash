@@ -39,9 +39,6 @@ int build(int argc, char** argv) {
                "RAM limit in GiB. Default value is " +
                    std::to_string(constants::default_ram_limit_in_GiB) + " GiB.",
                "-g", false);
-    parser.add("canonical",
-               "This option results in a trade-off between index space and lookup time.",
-               "--canonical", false, true);
     parser.add("weighted", "Also store the weights in compressed format.", "--weighted", false,
                true);
     parser.add("check", "Check correctness after construction.", "--check", false, true);
@@ -59,7 +56,6 @@ int build(int argc, char** argv) {
 
     if (parser.parsed("seed")) build_config.seed = parser.get<uint64_t>("seed");
     if (parser.parsed("lambda")) build_config.lambda = parser.get<double>("lambda");
-    build_config.canonical = parser.get<bool>("canonical");
     build_config.weighted = parser.get<bool>("weighted");
     build_config.verbose = parser.get<bool>("verbose");
     if (parser.parsed("tmp_dirname")) {

@@ -93,8 +93,9 @@ struct bucket_type {
     iterator end() const { return iterator(m_end); }
 
     /*
-        When a canonical index is built (option `--canonical`),
-        a minimizer offset can correspond to more than one super-kmer.
+        A minimizer offset can correspond to more than one super-kmer: the
+        minimizer is not strictly forward (see `util::compute_minimizer`), so a
+        locus can be abandoned and later re-selected.
         A super-kmer is uniquely identified by the couple
           (minimizer offset, position of minimizer in the first kmer of the super-kmer).
         These two components, together, give the
