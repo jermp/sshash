@@ -254,7 +254,7 @@ static Kmer read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const uin
 }
 
 /*
-    The canonical m-mer at a locus: the smaller of the m-mer and its reverse
+    The canonical m-mer: the smaller of the m-mer and its reverse
     complement, under the numeric order on the packed encoding. For alphabets
     that have no reverse complement (e.g. amino acids) this is the identity.
 */
@@ -302,21 +302,13 @@ inline bool is_canonical(Kmer kmer, const uint64_t k) {
     When the alphabet has no reverse complement, kappa is the identity and this
     reduces exactly to the plain forward minimizer.
 
-    Selecting on h(kappa(i)) rather than on min(h(x_i), h(rc(x_i))) -- the two
-    are interchangeable, since both are strand-symmetric and induce a uniformly
-    random order on the loci of a window whose 2(k-m+1) m-mers are distinct, so
-    both have density 2/(k-m+2) -- costs one hash per m-mer instead of two, the
-    same as the plain forward minimizer.
-
     Ties -- h(kappa(i)) == h(kappa(j)) for i != j, which happens when x_i == x_j
     or x_i == rc(x_j) -- must be broken in a mirror-equivariant way, or x and
     rc(x) would be sent to different buckets, which is a correctness failure and
     not merely a density one. We break them in the frame of the canonical kmer
     min(x, rc(x)), which is literally the same string for x and rc(x): that
     amounts to taking the leftmost tied locus when x is canonical and the
-    rightmost one otherwise. The rule fires on ~1e-5 of the windows for k=31,
-    m=13, and makes the minimizer not strictly forward, which the parser and the
-    lookup already tolerate.
+    rightmost one otherwise.
 */
 template <typename Kmer>
 minimizer_info compute_minimizer(Kmer kmer, const uint64_t k, const uint64_t m,

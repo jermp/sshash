@@ -5,19 +5,6 @@
 namespace sshash {
 
 template <typename Kmer, typename Offsets>
-lookup_result dictionary<Kmer, Offsets>::lookup(const Kmer uint_kmer,                  //
-                                                const Kmer uint_kmer_rc,               //
-                                                const minimizer_info mini_info) const  //
-{
-    assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
-           util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
-
-    const Kmer uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
-    auto it = m_ssi.lookup(uint_kmer_canon, mini_info);
-    return m_spss.lookup(it, uint_kmer, uint_kmer_rc, mini_info);
-}
-
-template <typename Kmer, typename Offsets>
 lookup_result dictionary<Kmer, Offsets>::lookup(char const* string_kmer,
                                                 bool check_reverse_complement) const {
     Kmer uint_kmer = util::string_to_uint_kmer<Kmer>(string_kmer, m_k);
@@ -35,6 +22,16 @@ lookup_result dictionary<Kmer, Offsets>::lookup(Kmer uint_kmer,
         return lookup_result();
     }
     return res;
+}
+template <typename Kmer, typename Offsets>
+lookup_result dictionary<Kmer, Offsets>::lookup(const Kmer uint_kmer,                  //
+                                                const Kmer uint_kmer_rc,               //
+                                                const minimizer_info mini_info) const  //
+{
+    assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
+           util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
+    auto it = m_ssi.lookup(uint_kmer, uint_kmer_rc, mini_info);
+    return m_spss.lookup(it, uint_kmer, uint_kmer_rc, mini_info);
 }
 
 template <typename Kmer, typename Offsets>
