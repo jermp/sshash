@@ -269,6 +269,48 @@ inline uint64_t canonical_mmer(const uint64_t mmer, const uint64_t m) {
 }
 
 /*
+    The canonical m-mer at locus i of a kmer x, given rc(x).
+
+    Uses rc(x_i) = rc(x)_{k-m-i}: the reverse complements of all k-m+1 loci are
+    windows of the single reverse complement of the whole kmer, so the kmer is
+    reverse-complemented once instead of once per locus. `window` is x shifted so
+    that locus i sits at its low end -- the forward sliding window the callers
+    already carry along.
+
+    When the whole kmer fits in a word -- always so for the 64-bit kmer type, and
+    for k <= 32 with the wider one -- the reverse window is extracted with a plain
+    64-bit shift; otherwise with a shift of the wide type, which costs a few
+    instructions more but still beats reverse-complementing every locus.
+*/
+template <typename Kmer>
+inline uint64_t canonical_mmer_at(Kmer window, Kmer const& kmer_rc, const uint64_t k,
+                                  const uint64_t m, const uint64_t i)  //
+{
+    window.take_chars(m);
+    if constexpr (!Kmer::has_reverse_complement) {
+        (void)kmer_rc;
+        (void)k;
+        (void)i;
+        return uint64_t(window);
+    } else {
+        constexpr uint64_t b = Kmer::bits_per_char;
+        assert(i + m <= k);
+        uint64_t rc;
+        if (k * b <= 64) {
+            const uint64_t mask = m * b == 64 ? ~uint64_t(0) : (uint64_t(1) << (m * b)) - 1;
+            rc = (uint64_t(kmer_rc) >> (b * (k - m - i))) & mask;
+        } else {
+            Kmer mmer_rc = kmer_rc;
+            mmer_rc.drop_chars(k - m - i);
+            mmer_rc.take_chars(m);
+            rc = uint64_t(mmer_rc);
+        }
+        assert(rc == Kmer::reverse_complement_mmer(uint64_t(window), m));
+        return std::min(uint64_t(window), rc);
+    }
+}
+
+/*
     True if `kmer` is the canonical one of the pair (kmer, rc(kmer)). A kmer that
     equals its own reverse complement (possible only for even k) is deemed
     canonical, so that the answer is always well defined.
@@ -309,21 +351,41 @@ inline bool is_canonical(Kmer kmer, const uint64_t k) {
     min(x, rc(x)), which is literally the same string for x and rc(x): that
     amounts to taking the leftmost tied locus when x is canonical and the
     rightmost one otherwise.
+
+    Since rc(x_i) = rc(x)_{k-m-i}, the reverse complements of all k-m+1 loci are
+    just windows of the single reverse complement of the whole kmer: `kmer_rc` is
+    reverse-complemented once and each rc(x_i) is read out of it with a shift,
+    instead of reverse-complementing every locus separately. The caller usually
+    has rc(x) already -- a lookup needs it anyway to recognise which orientation
+    it found -- in which case the reverse complementation is free.
 */
 template <typename Kmer>
-minimizer_info compute_minimizer(Kmer kmer, const uint64_t k, const uint64_t m,
+minimizer_info compute_minimizer(Kmer kmer, Kmer const& kmer_rc, const uint64_t k, const uint64_t m,
                                  hasher_type const& hasher)  //
 {
     assert(m <= Kmer::max_m);
     assert(m <= k);
 
+    /*
+        The canonical m-mer at locus i. The forward window slides left to right,
+        so it is carried along; the reverse one runs right to left over kmer_rc,
+        so it is extracted with a shift rather than slid.
+
+        When the whole kmer fits in a word -- always so for the 64-bit kmer type,
+        and for k <= 32 with the wider one -- that shift is done on a plain
+        uint64_t. Otherwise it has to be a shift of the wide type, which costs a
+        few instructions more but is still cheaper than reverse-complementing
+        every locus separately.
+    */
+    auto kappa = [&](Kmer const& window, const uint64_t i) {
+        return canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i);
+    };
+
     /* The first locus is peeled off the loop so that `min_hash` starts out at a
        real hash value: initializing it to invalid_uint64 would make an actual
        hash of invalid_uint64 register as a tie rather than as the minimum. */
     Kmer window = kmer;
-    Kmer first = window;
-    first.take_chars(m);
-    uint64_t minimizer = canonical_mmer<Kmer>(uint64_t(first), m);
+    uint64_t minimizer = kappa(window, 0);
     uint64_t min_hash = hasher.hash(minimizer);
     uint64_t leftmost = 0;
     uint64_t rightmost = 0;
@@ -331,9 +393,7 @@ minimizer_info compute_minimizer(Kmer kmer, const uint64_t k, const uint64_t m,
     window.drop_char();
 
     for (uint64_t i = 1; i != k - m + 1; ++i) {
-        Kmer mmer = window;
-        mmer.take_chars(m);
-        uint64_t value = canonical_mmer<Kmer>(uint64_t(mmer), m);
+        uint64_t value = kappa(window, i);
         uint64_t hash = hasher.hash(value);
         if (hash < min_hash) {  // leftmost
             min_hash = hash;
@@ -348,14 +408,22 @@ minimizer_info compute_minimizer(Kmer kmer, const uint64_t k, const uint64_t m,
         window.drop_char();
     }
 
-    if (tie and !is_canonical(kmer, k)) {
+    if (tie and kmer_rc < kmer) {
         /* rc(kmer) is the canonical frame: mirror its leftmost tied locus */
         kmer.drop_chars(rightmost);
-        kmer.take_chars(m);
-        return {canonical_mmer<Kmer>(uint64_t(kmer), m), rightmost};
+        return {kappa(kmer, rightmost), rightmost};
     }
 
     return {minimizer, leftmost};
+}
+
+template <typename Kmer>
+minimizer_info compute_minimizer(Kmer kmer, const uint64_t k, const uint64_t m,
+                                 hasher_type const& hasher)  //
+{
+    Kmer kmer_rc = kmer;
+    kmer_rc.reverse_complement_inplace(k);
+    return compute_minimizer(kmer, kmer_rc, k, m, hasher);
 }
 
 }  // namespace util

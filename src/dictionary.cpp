@@ -16,7 +16,9 @@ lookup_result dictionary<Kmer, Offsets>::lookup(Kmer uint_kmer,
 {
     Kmer uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
-    auto mini_info = util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher);
+    /* the reverse complement is needed anyway to tell the two orientations
+       apart, so computing the minimizer from it costs nothing extra */
+    auto mini_info = util::compute_minimizer(uint_kmer, uint_kmer_rc, m_k, m_m, m_hasher);
     auto res = lookup(uint_kmer, uint_kmer_rc, mini_info);
     if (!check_reverse_complement and res.kmer_orientation == constants::backward_orientation) {  //
         return lookup_result();
@@ -29,7 +31,7 @@ lookup_result dictionary<Kmer, Offsets>::lookup(const Kmer uint_kmer,           
                                                 const minimizer_info mini_info) const  //
 {
     assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
-           util::compute_minimizer(uint_kmer, m_k, m_m, m_hasher));
+           util::compute_minimizer(uint_kmer, uint_kmer_rc, m_k, m_m, m_hasher));
     auto it = m_ssi.lookup(uint_kmer, uint_kmer_rc, mini_info);
     return m_spss.lookup(it, uint_kmer, uint_kmer_rc, mini_info);
 }
