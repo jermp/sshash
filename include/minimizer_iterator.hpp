@@ -13,17 +13,14 @@ namespace sshash {
     iterator computes exactly the same thing incrementally, which the assertion
     at the end of `next` checks.
 
-    The extra state compared to a plain forward minimizer is `m_num_mins`, the
-    number of loci of the current window attaining the minimum hash -- a tie
+    The only extra state compared to a plain forward minimizer is `m_num_mins`,
+    the number of loci of the current window attaining the minimum hash: a tie
     cannot be broken by position alone without breaking mirror-equivariance, so
-    when there is one we have to look at the kmer's own orientation -- and
-    `m_kmer_rc`, the reverse complement of the current kmer.
+    when there is one we have to look at the kmer's own orientation.
 
-    `m_kmer_rc` serves every locus at once, via rc(x_i) = rc(x)_{k-m-i}, so no
-    m-mer is ever reverse-complemented on its own; and it is itself slid one
-    character at a time rather than recomputed. Like the window minimum, it
-    assumes the kmers handed to `next` are consecutive, which `set_position` and
-    `reset` restart.
+    The kmer is reverse-complemented once per call and that single value serves
+    every locus, via rc(x_i) = rc(x)_{k-m-i}, so no m-mer is ever
+    reverse-complemented on its own.
 */
 template <typename Kmer>
 struct minimizer_iterator {
@@ -49,21 +46,21 @@ struct minimizer_iterator {
         m_min_pos_in_kmer = 0;
         m_min_position = m_position - 1;
         m_num_mins = 0;
-        m_fresh = true;
     }
 
     minimizer_info next(Kmer kmer) {
-        slide_reverse_complement(kmer);
+        Kmer kmer_rc = kmer;
+        kmer_rc.reverse_complement_inplace(m_k);
 
         if (m_min_pos_in_kmer == 0) {
             /* min leaves the window: re-scan to compute the new min */
             m_position = m_min_position + 1;
-            rescan(kmer);
+            rescan(kmer, kmer_rc);
         } else {
             m_position += 1;
             Kmer window = kmer;
             window.drop_chars(m_k - m_m);
-            uint64_t value = util::canonical_mmer_at<Kmer>(window, m_kmer_rc, m_k, m_m, m_k - m_m);
+            uint64_t value = util::canonical_mmer_at<Kmer>(window, kmer_rc, m_k, m_m, m_k - m_m);
             uint64_t hash = m_hasher.hash(value);
             if (hash < m_min_hash) {
                 m_min_hash = hash;
@@ -81,10 +78,10 @@ struct minimizer_iterator {
         }
 
         minimizer_info mini_info(m_min_value, m_min_position, m_min_pos_in_kmer);
-        if (m_num_mins > 1) break_tie(kmer, mini_info);
+        if (m_num_mins > 1) break_tie(kmer, kmer_rc, mini_info);
 
         assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
-               util::compute_minimizer<Kmer>(kmer, m_kmer_rc, m_k, m_m, m_hasher));
+               util::compute_minimizer<Kmer>(kmer, kmer_rc, m_k, m_m, m_hasher));
 
         return mini_info;
     }
@@ -94,44 +91,14 @@ private:
     uint64_t m_position, m_min_pos_in_kmer;
     uint64_t m_min_value, m_min_position, m_min_hash;
     uint64_t m_num_mins;
-    Kmer m_kmer_rc;
-    bool m_fresh;
     hasher_type m_hasher;
 
-    /*
-        rc(x) for the kmer just handed in. After a restart it is computed
-        outright; otherwise the kmer has slid by one character, so its reverse
-        complement has too: the new character's complement enters at the front
-        and the oldest one falls off the back.
-    */
-    void slide_reverse_complement(Kmer const& kmer) {
-        if constexpr (!Kmer::has_reverse_complement) {
-            (void)kmer;
-            return;
-        } else {
-            if (m_fresh) {
-                m_kmer_rc = kmer;
-                m_kmer_rc.reverse_complement_inplace(m_k);
-                m_fresh = false;
-            } else {
-                m_kmer_rc.pad_char();
-                m_kmer_rc.set(0, Kmer::complement_char(kmer.at(m_k - 1)));
-                m_kmer_rc.take(m_k * Kmer::bits_per_char);
-            }
-            assert([&] {
-                Kmer expected = kmer;
-                expected.reverse_complement_inplace(m_k);
-                return expected == m_kmer_rc;
-            }());
-        }
-    }
-
-    void rescan(Kmer kmer) {
+    void rescan(Kmer kmer, Kmer const& kmer_rc) {
         const uint64_t begin = m_position;
 
         /* first locus, peeled off the loop: see `util::compute_minimizer` */
         {
-            m_min_value = util::canonical_mmer_at<Kmer>(kmer, m_kmer_rc, m_k, m_m, 0);
+            m_min_value = util::canonical_mmer_at<Kmer>(kmer, kmer_rc, m_k, m_m, 0);
             kmer.drop_char();
             m_min_hash = m_hasher.hash(m_min_value);
             m_min_pos_in_kmer = 0;
@@ -140,7 +107,7 @@ private:
         }
 
         for (uint64_t i = 1; i != m_k - m_m + 1; ++i, ++m_position) {
-            uint64_t value = util::canonical_mmer_at<Kmer>(kmer, m_kmer_rc, m_k, m_m, i);
+            uint64_t value = util::canonical_mmer_at<Kmer>(kmer, kmer_rc, m_k, m_m, i);
             kmer.drop_char();
             uint64_t hash = m_hasher.hash(value);
             if (hash < m_min_hash) {  // leftmost
@@ -165,9 +132,9 @@ private:
 
         It runs on ~1e-5 of the windows.
     */
-    void break_tie(Kmer kmer, minimizer_info& mini_info) const {
+    void break_tie(Kmer kmer, Kmer const& kmer_rc, minimizer_info& mini_info) const {
         assert(m_num_mins > 1);
-        if (!(m_kmer_rc < kmer)) return;  // the kmer is already the canonical frame
+        if (!(kmer_rc < kmer)) return;  // the kmer is already the canonical frame
 
         const uint64_t window_begin = m_min_position - m_min_pos_in_kmer;
         uint64_t pos_in_kmer = m_min_pos_in_kmer;
@@ -176,7 +143,7 @@ private:
         Kmer window = kmer;
         window.drop_chars(m_min_pos_in_kmer + 1);
         for (uint64_t i = m_min_pos_in_kmer + 1; i != m_k - m_m + 1; ++i) {
-            uint64_t v = util::canonical_mmer_at<Kmer>(window, m_kmer_rc, m_k, m_m, i);
+            uint64_t v = util::canonical_mmer_at<Kmer>(window, kmer_rc, m_k, m_m, i);
             if (m_hasher.hash(v) == m_min_hash) {  // rightmost
                 pos_in_kmer = i;
                 value = v;

@@ -114,8 +114,6 @@ struct alpha_kmer_t : uint_kmer_t<Kmer, BitsPerChar> {
         return mmer;
     }
 
-    /* Complement of a single packed character. Same fallback: the identity. */
-    [[maybe_unused]] static uint64_t complement_char(uint64_t c) { return c; }
     [[maybe_unused]] static void compute_reverse_complement(char const* input, char* output,
                                                             uint64_t size) {
         for (uint64_t i = 0; i != size; ++i) output[i] = input[i];
@@ -188,19 +186,6 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
         assert(m <= max_m);
         assert(m * bits_per_char < 64);
         return crc64(mmer) >> (64 - m * bits_per_char);
-    }
-
-    /*
-        Complement of a single packed character: the per-character half of what
-        crc64 does to a whole word. Lets a reverse complement be slid one
-        character at a time instead of recomputed.
-    */
-    [[maybe_unused]] static uint64_t complement_char(uint64_t c) {
-#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
-        return c ^ 3;  // A<->T is 00<->11, C<->G is 01<->10
-#else
-        return c ^ 2;  // A<->T is 00<->10, C<->G is 01<->11
-#endif
     }
 
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING

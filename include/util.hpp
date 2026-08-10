@@ -283,14 +283,12 @@ inline uint64_t canonical_mmer(const uint64_t mmer, const uint64_t m) {
     instructions more but still beats reverse-complementing every locus.
 */
 template <typename Kmer>
-inline uint64_t canonical_mmer_at(Kmer window, Kmer const& kmer_rc, const uint64_t k,
-                                  const uint64_t m, const uint64_t i)  //
+inline uint64_t canonical_mmer_at(Kmer window, [[maybe_unused]] Kmer const& kmer_rc,
+                                  [[maybe_unused]] const uint64_t k, const uint64_t m,
+                                  [[maybe_unused]] const uint64_t i)  //
 {
     window.take_chars(m);
     if constexpr (!Kmer::has_reverse_complement) {
-        (void)kmer_rc;
-        (void)k;
-        (void)i;
         return uint64_t(window);
     } else {
         constexpr uint64_t b = Kmer::bits_per_char;
@@ -366,17 +364,6 @@ minimizer_info compute_minimizer(Kmer kmer, Kmer const& kmer_rc, const uint64_t 
     assert(m <= Kmer::max_m);
     assert(m <= k);
 
-    /*
-        The canonical m-mer at locus i. The forward window slides left to right,
-        so it is carried along; the reverse one runs right to left over kmer_rc,
-        so it is extracted with a shift rather than slid.
-
-        When the whole kmer fits in a word -- always so for the 64-bit kmer type,
-        and for k <= 32 with the wider one -- that shift is done on a plain
-        uint64_t. Otherwise it has to be a shift of the wide type, which costs a
-        few instructions more but is still cheaper than reverse-complementing
-        every locus separately.
-    */
     auto kappa = [&](Kmer const& window, const uint64_t i) {
         return canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i);
     };
