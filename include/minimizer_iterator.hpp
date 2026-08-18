@@ -125,33 +125,45 @@ private:
     }
 
     /*
-        Two or more loci of the window attain the minimum hash, and the leftmost
-        of them is the one currently held. Leftmost is the right answer when the
-        kmer is canonical; otherwise the canonical frame is rc(kmer), whose
-        leftmost tied locus is this window's rightmost one.
+        Two or more loci of the window attain the minimum hash (all carrying the
+        same class, so only the sampled position is at stake). Apply the
+        centre-closest tie-break of `util::compute_minimizer`: take the tied
+        locus closest to the window centre, and between two equally close ones
+        -- mirror images i and k-m-i -- the smaller index if kmer <= rc(kmer),
+        the larger otherwise. Forward and mirror-equivariant. It runs on ~1e-4
+        of the windows, so the rescan below costs nothing overall.
 
-        It runs on ~1e-5 of the windows.
+        Tied loci cannot precede the leftmost minimum, so the scan starts there.
     */
     void break_tie(Kmer kmer, Kmer const& kmer_rc, minimizer_info& mini_info) const {
         assert(m_num_mins > 1);
-        if (!(kmer_rc < kmer)) return;  // the kmer is already the canonical frame
 
         const uint64_t window_begin = m_min_position - m_min_pos_in_kmer;
-        uint64_t pos_in_kmer = m_min_pos_in_kmer;
-        uint64_t value = m_min_value;
+        const uint64_t two_c = m_k - m_m;
+        uint64_t best_dist = constants::invalid_uint64;
+        uint64_t lo = m_min_pos_in_kmer;
+        uint64_t hi = m_min_pos_in_kmer;
 
         Kmer window = kmer;
-        window.drop_chars(m_min_pos_in_kmer + 1);
-        for (uint64_t i = m_min_pos_in_kmer + 1; i != m_k - m_m + 1; ++i) {
-            uint64_t v = util::canonical_mmer_at<Kmer>(window, kmer_rc, m_k, m_m, i);
-            if (m_hasher.hash(v) == m_min_hash) {  // rightmost
-                pos_in_kmer = i;
-                value = v;
+        window.drop_chars(m_min_pos_in_kmer);
+        for (uint64_t i = m_min_pos_in_kmer; i != m_k - m_m + 1; ++i) {
+            const uint64_t v = util::canonical_mmer_at<Kmer>(window, kmer_rc, m_k, m_m, i);
+            if (m_hasher.hash(v) == m_min_hash) {
+                assert(v == m_min_value);
+                const uint64_t dist = 2 * i > two_c ? 2 * i - two_c : two_c - 2 * i;
+                if (dist < best_dist) {
+                    best_dist = dist;
+                    lo = i;
+                    hi = i;
+                } else if (dist == best_dist) {
+                    hi = i;
+                }
             }
             window.drop_char();
         }
 
-        mini_info = minimizer_info(value, window_begin + pos_in_kmer, pos_in_kmer);
+        const uint64_t chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
+        mini_info = minimizer_info(m_min_value, window_begin + chosen, chosen);
     }
 };
 

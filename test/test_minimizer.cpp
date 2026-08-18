@@ -43,8 +43,8 @@ static void check_equivariance(kmer_t kmer, uint64_t k, uint64_t m, hasher_type 
         return;
     }
     if (a.pos_in_kmer + b.pos_in_kmer != k - m) {
-        fail("locus of kmer '" + util::uint_kmer_to_string(kmer, k) +
-             "' is " + std::to_string(a.pos_in_kmer) + " but that of its reverse complement is " +
+        fail("locus of kmer '" + util::uint_kmer_to_string(kmer, k) + "' is " +
+             std::to_string(a.pos_in_kmer) + " but that of its reverse complement is " +
              std::to_string(b.pos_in_kmer) + " (should mirror to " +
              std::to_string(k - m - a.pos_in_kmer) + ")");
         return;
@@ -93,8 +93,14 @@ static void test_kmers(uint64_t k, uint64_t m, uint64_t num_kmers, std::mt19937_
 
 /*
     The incremental "re-scan" iterator must agree with the brute-force reference
-    on every window of a sequence, including the windows where a tie fires and
-    the anchor consequently moves backwards.
+    on every window of a sequence, including the windows where a tie fires.
+
+    The scheme must also be *forward*: the sampled position must never decrease
+    as the window slides, so that the number of super-kmers equals the number of
+    sampled positions. The centre-closest tie-break is what guarantees this
+    (leftmost-if-canonical / rightmost-otherwise, the previous rule, is
+    mirror-equivariant too but moves the anchor backwards on ~1e-5 of the
+    windows).
 */
 template <typename kmer_t>
 static void test_iterator(uint64_t k, uint64_t m, uint64_t length, std::mt19937_64& gen) {
@@ -105,6 +111,7 @@ static void test_iterator(uint64_t k, uint64_t m, uint64_t length, std::mt19937_
     minimizer_iterator<kmer_t> it(k, m, hasher);
     it.set_position(0);
 
+    uint64_t prev_pos_in_seq = 0;
     for (uint64_t i = 0; i + k <= length; ++i) {
         kmer_t kmer = util::string_to_uint_kmer<kmer_t>(s.data() + i, k);
         auto got = it.next(kmer);
@@ -117,10 +124,18 @@ static void test_iterator(uint64_t k, uint64_t m, uint64_t length, std::mt19937_
         }
         /* pos_in_seq must be the absolute position of the selected locus */
         if (got.pos_in_seq != i + got.pos_in_kmer) {
-            fail("iterator reports pos_in_seq " + std::to_string(got.pos_in_seq) + " but expected " +
-                 std::to_string(i + got.pos_in_kmer));
+            fail("iterator reports pos_in_seq " + std::to_string(got.pos_in_seq) +
+                 " but expected " + std::to_string(i + got.pos_in_kmer));
             return;
         }
+        /* forwardness: the sampled position never decreases */
+        if (got.pos_in_seq < prev_pos_in_seq) {
+            fail("scheme is not forward: sampled position " + std::to_string(got.pos_in_seq) +
+                 " after " + std::to_string(prev_pos_in_seq) + " (k=" + std::to_string(k) +
+                 ", m=" + std::to_string(m) + ")");
+            return;
+        }
+        prev_pos_in_seq = got.pos_in_seq;
     }
 }
 

@@ -342,13 +342,23 @@ inline bool is_canonical(Kmer kmer, const uint64_t k) {
     When the alphabet has no reverse complement, kappa is the identity and this
     reduces exactly to the plain forward minimizer.
 
-    Ties -- h(kappa(i)) == h(kappa(j)) for i != j, which happens when x_i == x_j
-    or x_i == rc(x_j) -- must be broken in a mirror-equivariant way, or x and
+    Ties -- h(kappa(i)) == h(kappa(j)) for i != j, which happens when x_i = x_j
+    or x_i = rc(x_j) -- must be broken in a mirror-equivariant way, or x and
     rc(x) would be sent to different buckets, which is a correctness failure and
-    not merely a density one. We break them in the frame of the canonical kmer
-    min(x, rc(x)), which is literally the same string for x and rc(x): that
-    amounts to taking the leftmost tied locus when x is canonical and the
-    rightmost one otherwise.
+    not merely a density one. No leftmost rule can be equivariant: the mirror
+    reverses the order of the tied loci, so "leftmost" names different loci on
+    the two strands. We use the tie-break of [Cologni and Pibiri, "Canonical
+    Schemes and Minimizers", Proposition 24]: among the tied loci, take the one
+    closest to the centre (k-m)/2 of the window -- the one reference point both
+    strands agree on -- and when two are equally close (they are then mirror
+    images i and k-m-i), take the smaller index if x <= rc(x) and the larger
+    otherwise. This rule is mirror-equivariant (for odd k, where x != rc(x)
+    always) and, unlike the previous frame-of-the-canonical-kmer rule, it is
+    also *forward*: the distance of a fixed locus to the centre is monotone as
+    the window slides right, so a locus at least as close as another stays so,
+    and the anchor never moves backwards. Forwardness makes the number of
+    super-kmers equal the number of sampled positions -- nothing is ever
+    abandoned and re-opened.
 
     Since rc(x_i) = rc(x)_{k-m-i}, the reverse complements of all k-m+1 loci are
     just windows of the single reverse complement of the whole kmer: `kmer_rc` is
@@ -357,6 +367,49 @@ inline bool is_canonical(Kmer kmer, const uint64_t k) {
     has rc(x) already -- a lookup needs it anyway to recognise which orientation
     it found -- in which case the reverse complementation is free.
 */
+/*
+    A tie at the minimum (rare, rate ~ sigma^{-m/2}): all tied loci carry the
+    same class, so only the sampled position is at stake, not the value. Take
+    the tied locus closest to the centre of the window; the doubled distance
+    |2i - (k-m)| avoids the half-integer centre of an odd window.
+
+    Deliberately not inlined: this runs on ~1e-4 of the windows, and letting its
+    loop inline into the lookup path costs measurably more than the call.
+*/
+template <typename Kmer>
+__attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer const& kmer_rc,
+                                                     const uint64_t k, const uint64_t m,
+                                                     hasher_type const& hasher,
+                                                     const uint64_t min_hash,
+                                                     const uint64_t minimizer,
+                                                     const uint64_t leftmost,
+                                                     const uint64_t rightmost)  //
+{
+    const uint64_t two_c = k - m;
+    uint64_t best_dist = constants::invalid_uint64;
+    uint64_t lo = leftmost;
+    uint64_t hi = leftmost;
+    Kmer window = kmer;
+    window.drop_chars(leftmost);
+    for (uint64_t i = leftmost; i <= rightmost; ++i) {
+        if (hasher.hash(canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i)) == min_hash) {
+            assert(canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i) == minimizer);
+            const uint64_t dist = 2 * i > two_c ? 2 * i - two_c : two_c - 2 * i;
+            if (dist < best_dist) {
+                best_dist = dist;
+                lo = i;
+                hi = i;
+            } else if (dist == best_dist) {
+                hi = i;
+            }
+        }
+        window.drop_char();
+    }
+    /* lo and hi are the two equally-closest loci (mirror images), or one locus */
+    const uint64_t chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
+    return {minimizer, chosen};
+}
+
 template <typename Kmer>
 minimizer_info compute_minimizer(Kmer kmer, Kmer const& kmer_rc, const uint64_t k, const uint64_t m,
                                  hasher_type const& hasher)  //
@@ -395,12 +448,9 @@ minimizer_info compute_minimizer(Kmer kmer, Kmer const& kmer_rc, const uint64_t 
         window.drop_char();
     }
 
-    if (tie and kmer_rc < kmer) {
-        /* rc(kmer) is the canonical frame: mirror its leftmost tied locus */
-        kmer.drop_chars(rightmost);
-        return {kappa(kmer, rightmost), rightmost};
+    if (__builtin_expect(tie, false)) {
+        return resolve_tie(kmer, kmer_rc, k, m, hasher, min_hash, minimizer, leftmost, rightmost);
     }
-
     return {minimizer, leftmost};
 }
 

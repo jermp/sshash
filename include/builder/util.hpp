@@ -93,16 +93,16 @@ struct bucket_type {
     iterator end() const { return iterator(m_end); }
 
     /*
-        A minimizer offset can correspond to more than one super-kmer: the
-        minimizer is not strictly forward (see `util::compute_minimizer`), so a
-        locus can be abandoned and later re-selected.
         A super-kmer is uniquely identified by the couple
           (minimizer offset, position of minimizer in the first kmer of the super-kmer).
         These two components, together, give the
         starting position of a super-kmer in the sequence.
 
-        So the method size() returns the number of minimizer
-        positions which is <= the number of superkmers.
+        The minimizer is forward (see `util::compute_minimizer`), so a locus is
+        never abandoned and later re-selected, and the number of super-kmers
+        equals the number of minimizer positions. The code below does not rely
+        on that and stays correct for a non-forward scheme too, where size() --
+        the number of minimizer positions -- is < the number of super-kmers.
     */
     uint64_t num_super_kmers() const { return m_num_super_kmers; }
     uint64_t size() const { return m_num_minimizer_positions; }
