@@ -58,23 +58,24 @@ inline std::ostream& operator<<(std::ostream& os, minimizer_tuple const& mt) {
     return os;
 }
 
+/*
+    The bucket of a minimizer: its tuples, sorted by pos_in_seq. The minimizer
+    is forward (see `util::compute_minimizer`), so a locus is never abandoned
+    and later re-selected: each tuple carries a distinct pos_in_seq, and the
+    number of tuples (= super-kmers) equals the number of minimizer positions,
+    which is what size() returns. `minimizers_tuples::merge` checks this.
+*/
 struct bucket_type {
     bucket_type(minimizer_tuple const* begin, minimizer_tuple const* end)
         : m_begin(begin)
-        , m_end(end)
-        , m_num_super_kmers(std::distance(begin, end))
-        , m_num_minimizer_positions(0)  //
+        , m_end(end)  //
     {
-        uint64_t prev_pos_in_seq = constants::invalid_uint64;
-        while (begin != end) {
-            uint64_t pos_in_seq = (*begin).pos_in_seq;
-            if (pos_in_seq != prev_pos_in_seq) {
-                ++m_num_minimizer_positions;
-                prev_pos_in_seq = pos_in_seq;
-            }
-            ++begin;
-        }
-        assert(m_num_minimizer_positions <= m_num_super_kmers);
+        assert([&] { /* one tuple per minimizer position: the scheme is forward */
+                     for (auto it = begin; it + 1 < end; ++it) {
+                         if (it->pos_in_seq == (it + 1)->pos_in_seq) return false;
+                     }
+                     return true;
+        }());
     }
 
     struct iterator {
@@ -92,20 +93,7 @@ struct bucket_type {
     iterator begin() const { return iterator(m_begin); }
     iterator end() const { return iterator(m_end); }
 
-    /*
-        A super-kmer is uniquely identified by the couple
-          (minimizer offset, position of minimizer in the first kmer of the super-kmer).
-        These two components, together, give the
-        starting position of a super-kmer in the sequence.
-
-        The minimizer is forward (see `util::compute_minimizer`), so a locus is
-        never abandoned and later re-selected, and the number of super-kmers
-        equals the number of minimizer positions. The code below does not rely
-        on that and stays correct for a non-forward scheme too, where size() --
-        the number of minimizer positions -- is < the number of super-kmers.
-    */
-    uint64_t num_super_kmers() const { return m_num_super_kmers; }
-    uint64_t size() const { return m_num_minimizer_positions; }
+    uint64_t size() const { return std::distance(m_begin, m_end); }
 
     minimizer_tuple const* begin_ptr() const { return m_begin; }
     minimizer_tuple const* end_ptr() const { return m_end; }
@@ -113,8 +101,6 @@ struct bucket_type {
 private:
     minimizer_tuple const* m_begin;
     minimizer_tuple const* m_end;
-    uint64_t m_num_super_kmers;
-    uint64_t m_num_minimizer_positions;
 };
 
 /*
@@ -160,7 +146,6 @@ struct minimizers_tuples {
     minimizers_tuples(build_configuration const& build_config)
         : m_num_minimizers(0)
         , m_num_minimizer_positions(0)
-        , m_num_super_kmers(0)
         , m_run_identifier(pthash::clock_type::now().time_since_epoch().count())
         , m_build_config(build_config)  //
     {
@@ -218,17 +203,9 @@ struct minimizers_tuples {
 
             assert(m_num_minimizers == 0);
             assert(m_num_minimizer_positions == 0);
-            assert(m_num_super_kmers == 0);
             mm::file_source<minimizer_tuple> input(get_minimizers_filename(),
                                                    mm::advice::sequential);
-            for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());
-                 it.has_next(); it.next())  //
-            {
-                auto bucket = it.bucket();
-                m_num_minimizers += 1;
-                m_num_minimizer_positions += bucket.size();
-                m_num_super_kmers += bucket.num_super_kmers();
-            }
+            count_and_check_forward(input.data(), input.data() + input.size());
             input.close();
             return;
         }
@@ -246,23 +223,15 @@ struct minimizers_tuples {
 
         m_num_minimizers = 0;
         m_num_minimizer_positions = 0;
-        m_num_super_kmers = 0;
         uint64_t prev_minimizer = constants::invalid_uint64;
         uint64_t prev_pos_in_seq = constants::invalid_uint64;
         while (fm_iterator.has_next()) {
             minimizer_tuple mt = *fm_iterator;
-            if (mt.minimizer != prev_minimizer) {
-                prev_minimizer = mt.minimizer;
-                ++m_num_minimizers;
-                ++m_num_minimizer_positions;
-            } else {
-                if (mt.pos_in_seq != prev_pos_in_seq) ++m_num_minimizer_positions;
-            }
+            count_and_check_forward_one(mt, prev_minimizer, prev_pos_in_seq);
             out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
-            prev_pos_in_seq = mt.pos_in_seq;
-            ++m_num_super_kmers;
-            if (m_build_config.verbose and m_num_super_kmers % 100'000'000 == 0) {
-                std::cout << "processed " << m_num_super_kmers << " minimizer tuples" << std::endl;
+            if (m_build_config.verbose and m_num_minimizer_positions % 100'000'000 == 0) {
+                std::cout << "processed " << m_num_minimizer_positions << " minimizer tuples"
+                          << std::endl;
             }
             fm_iterator.next();
         }
@@ -279,8 +248,11 @@ struct minimizers_tuples {
 
     uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
     uint64_t num_minimizers() const { return m_num_minimizers; }
+
+    /* One tuple per minimizer position, the scheme being forward (checked by
+       `merge`), so this is also the number of super-kmers and the number of
+       records in the merged tuples file. */
     uint64_t num_minimizer_positions() const { return m_num_minimizer_positions; }
-    uint64_t num_super_kmers() const { return m_num_super_kmers; }
 
     void remove_tmp_file() { std::remove(get_minimizers_filename().c_str()); }
 
@@ -288,9 +260,38 @@ private:
     std::atomic<uint64_t> m_num_files_to_merge;
     uint64_t m_num_minimizers;
     uint64_t m_num_minimizer_positions;
-    uint64_t m_num_super_kmers;
     uint64_t m_run_identifier;
     build_configuration m_build_config;
+
+    /*
+        Count minimizers and minimizer positions over tuples sorted by
+        (minimizer, pos_in_seq), checking the forwardness requirement: the
+        scheme never re-selects an abandoned locus, so no (minimizer,
+        pos_in_seq) pair may appear twice. Everything downstream sizes the
+        index by the tuple count, so a violation must stop the build.
+    */
+    void count_and_check_forward_one(minimizer_tuple const& mt, uint64_t& prev_minimizer,
+                                     uint64_t& prev_pos_in_seq)  //
+    {
+        if (mt.minimizer != prev_minimizer) {
+            prev_minimizer = mt.minimizer;
+            ++m_num_minimizers;
+        } else if (mt.pos_in_seq == prev_pos_in_seq) {
+            throw std::runtime_error(
+                "the minimizer scheme is not forward: "
+                "a (minimizer, position) pair occurs in more than one super-kmer");
+        }
+        prev_pos_in_seq = mt.pos_in_seq;
+        ++m_num_minimizer_positions;
+    }
+
+    void count_and_check_forward(minimizer_tuple const* begin, minimizer_tuple const* end) {
+        uint64_t prev_minimizer = constants::invalid_uint64;
+        uint64_t prev_pos_in_seq = constants::invalid_uint64;
+        for (; begin != end; ++begin) {
+            count_and_check_forward_one(*begin, prev_minimizer, prev_pos_in_seq);
+        }
+    }
 
     std::string get_tmp_output_filename(uint64_t id) const {
         std::stringstream filename;

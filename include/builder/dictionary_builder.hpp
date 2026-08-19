@@ -48,7 +48,6 @@ struct dictionary_builder  //
             std::cout << "num_minimizers = " << minimizers.num_minimizers() << std::endl;
             std::cout << "num_minimizer_positions = " << minimizers.num_minimizer_positions()
                       << std::endl;
-            std::cout << "num_super_kmers = " << minimizers.num_super_kmers() << std::endl;
         }
 
         do_step("step 4 (build mphf)", [&]() { build_mphf(d); });
@@ -141,21 +140,22 @@ private:
             }
         }
 
-        const uint64_t num_super_kmers = minimizers.num_super_kmers();
+        /* one tuple per minimizer position (the scheme is forward), so this is
+           the number of records in the tuples file */
+        const uint64_t num_tuples = minimizers.num_minimizer_positions();
         const uint64_t buffer_size = num_files_to_merge == 1
-                                         ? num_super_kmers
+                                         ? num_tuples
                                          : (RAM_available_in_bytes / (3 * sizeof(minimizer_tuple)));
-        const uint64_t num_blocks = (num_super_kmers + buffer_size - 1) / buffer_size;
-        assert(num_super_kmers > (num_blocks - 1) * buffer_size);
+        const uint64_t num_blocks = (num_tuples + buffer_size - 1) / buffer_size;
+        assert(num_tuples > (num_blocks - 1) * buffer_size);
 
         std::vector<std::thread> threads;
         threads.reserve(num_threads);
 
         std::vector<minimizer_tuple> buffer;
         for (uint64_t i = 0; i != num_blocks; ++i) {
-            const uint64_t n = (i == num_blocks - 1)
-                                   ? num_super_kmers - (num_blocks - 1) * buffer_size
-                                   : buffer_size;
+            const uint64_t n =
+                (i == num_blocks - 1) ? num_tuples - (num_blocks - 1) * buffer_size : buffer_size;
             buffer.resize(n);
             input.read(reinterpret_cast<char*>(buffer.data()),
                        buffer.size() * sizeof(minimizer_tuple));

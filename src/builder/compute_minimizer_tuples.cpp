@@ -28,14 +28,9 @@ void dictionary_builder<Kmer, Offsets>::compute_minimizer_tuples()  //
                             uint64_t num_kmers_in_super_kmer)  //
             {
                 assert(num_kmers_in_super_kmer <= k - m + 1 /* max num kmers in super-kmer */);
-                if (!buffer.empty() and                                   //
-                    buffer.back().minimizer == mini_info.minimizer and    //
-                    buffer.back().pos_in_seq == mini_info.pos_in_seq and  //
-                    buffer.back().pos_in_kmer == mini_info.pos_in_kmer)   //
-                {
-                    buffer.back().num_kmers_in_super_kmer += num_kmers_in_super_kmer;
-                    return;
-                }
+                /* the scheme is forward: a minimizer position is never saved twice */
+                assert(buffer.empty() or !(buffer.back().minimizer == mini_info.minimizer and
+                                           buffer.back().pos_in_seq == mini_info.pos_in_seq));
                 if (buffer.size() == buffer_size) {
                     minimizers.sort_and_flush(buffer);
                     buffer.clear();
