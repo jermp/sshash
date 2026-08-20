@@ -12,7 +12,7 @@ def format_time(microseconds):
     seconds = int(seconds % 60)
     return f"{minutes}:{seconds:02d}"
 
-def parse_build_file(path, canonical_flag):
+def parse_build_file(path):
     """Parse build JSONL file."""
     results = []
     with open(path) as f:
@@ -42,14 +42,13 @@ def parse_build_file(path, canonical_flag):
                 "k": k,
                 "Collection": collection,
                 "m": d["m"],
-                "canonical": "yes" if canonical_flag else "no",
                 "bits_per_kmer": f"{bits_per_kmer:.2f}",
                 "total_GB": f"{gb:.2f}",
                 "build_time": build_time_fmt
             })
     return results
 
-def parse_bench_file(path, canonical_flag):
+def parse_bench_file(path):
     """Parse benchmark JSONL file and average per collection."""
     lookup_data = {}
     with open(path) as f:
@@ -67,9 +66,8 @@ def parse_bench_file(path, canonical_flag):
             collection = fname.split(".")[0].capitalize()
             m = d["m"]
             k = d["k"]
-            canonical = "yes" if canonical_flag else "no"
 
-            key = (collection, m, canonical)
+            key = (collection, m)
             entry = lookup_data.setdefault(key, {
                 "k": k,
                 "pos": [], "neg": [], "access": [], "iter": []
@@ -94,7 +92,7 @@ def parse_bench_file(path, canonical_flag):
     return lookup_data
 
 
-def parse_streaming_file(path, canonical_flag):
+def parse_streaming_file(path):
     """Parse streaming queries JSON file."""
     stream_data = {}
     if not os.path.exists(path):
@@ -113,9 +111,7 @@ def parse_streaming_file(path, canonical_flag):
 
             fname = os.path.basename(d["index_filename"])
             collection = fname.split(".")[0].capitalize()
-            canonical = "yes" if canonical_flag else "no"
 
-            key = (collection, canonical)
             num_kmers = int(d["num_kmers"])
             num_pos = int(d["num_positive_kmers"])
             num_ext = int(d["num_extensions"])
@@ -125,7 +121,7 @@ def parse_streaming_file(path, canonical_flag):
             hit_rate = (num_pos / num_kmers) * 100 if num_kmers else 0
             extension_rate = (num_ext / num_pos) * 100 if num_pos else 0
 
-            stream_data[key] = {
+            stream_data[collection] = {
                 "ns_per_kmer": f"{ns_per_kmer}",
                 "hit_rate": f"{hit_rate:.2f}",
                 "extension_rate": f"{extension_rate:.2f}"
@@ -135,41 +131,26 @@ def parse_streaming_file(path, canonical_flag):
 
 def main():
     if len(sys.argv) != 2:
-        print("Usage: print.py input_dir", file=sys.stderr)
+        print("Usage: print_csv.py input_dir", file=sys.stderr)
         sys.exit(1)
 
     input_dir = sys.argv[1]
-    reg_build_path = input_dir + "/regular-build.json"
-    canon_build_path = input_dir + "/canon-build.json"
-    reg_bench_path = input_dir + "/regular-bench.json"
-    canon_bench_path = input_dir + "/canon-bench.json"
-    reg_stream_path = input_dir + "/regular-streaming-queries-high-hit.json"
-    canon_stream_path = input_dir + "/canon-streaming-queries-high-hit.json"
-
-    reg_build = parse_build_file(reg_build_path, False)
-    canon_build = parse_build_file(canon_build_path, True)
-    reg_bench = parse_bench_file(reg_bench_path, False)
-    canon_bench = parse_bench_file(canon_bench_path, True)
-    reg_stream = parse_streaming_file(reg_stream_path, False)
-    canon_stream = parse_streaming_file(canon_stream_path, True)
-
-    # merge everything
-    all_builds = reg_build + canon_build
-    lookup_all = {**reg_bench, **canon_bench}
-    stream_all = {**reg_stream, **canon_stream}
+    builds = parse_build_file(input_dir + "/build.json")
+    lookup_all = parse_bench_file(input_dir + "/bench.json")
+    stream_all = parse_streaming_file(input_dir + "/streaming-queries.json")
 
     # CSV header
-    print("k,Collection,m,canonical,bits_per_kmer,total_GB,build_time,positive_lookup_ns,negative_lookup_ns,access_ns,iteration_ns,ns_per_kmer,hit_rate,extension_rate")
+    print("k,Collection,m,bits_per_kmer,total_GB,build_time,positive_lookup_ns,negative_lookup_ns,access_ns,iteration_ns,ns_per_kmer,hit_rate,extension_rate")
 
-    for r in sorted(all_builds, key=lambda x: (int(x["k"]), x["Collection"], x["canonical"])):
+    for r in sorted(builds, key=lambda x: (int(x["k"]), x["Collection"])):
         lookup = lookup_all.get(
-            (r["Collection"], r["m"], r["canonical"]), # key
+            (r["Collection"], r["m"]), # key
             {"pos": "NA", "neg": "NA", "access": "NA", "iter": "NA", "k": r["k"]})
         stream = stream_all.get(
-            (r["Collection"], r["canonical"]), # key
+            r["Collection"], # key
             {"ns_per_kmer": "NA", "hit_rate": "NA", "extension_rate": "NA"})
 
-        print(f"{r['k']},{r['Collection']},{r['m']},{r['canonical']},{r['bits_per_kmer']},{r['total_GB']},{r['build_time']},{lookup['pos']},{lookup['neg']},{lookup['access']},{lookup['iter']},{stream['ns_per_kmer']},{stream['hit_rate']},{stream['extension_rate']}")
+        print(f"{r['k']},{r['Collection']},{r['m']},{r['bits_per_kmer']},{r['total_GB']},{r['build_time']},{lookup['pos']},{lookup['neg']},{lookup['access']},{lookup['iter']},{stream['ns_per_kmer']},{stream['hit_rate']},{stream['extension_rate']}")
 
 if __name__ == "__main__":
     main()

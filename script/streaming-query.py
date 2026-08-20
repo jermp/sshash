@@ -57,19 +57,17 @@ def build_project(max_k63: bool):
     run_cmd(["make", "-j"])
 
 
-def run_bench(k, canonical, runs = 1):
+def run_bench(k, runs = 1):
     """Run SSHASH benchmark for all datasets."""
-    mode = "canon" if canonical else "regular"
     out_dir = results_dir / f"k{k}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    log_file = out_dir / f"{mode}-streaming-queries.log"
-    json_file = out_dir / f"{mode}-streaming-queries.json"
+    log_file = out_dir / "streaming-queries.log"
+    json_file = out_dir / "streaming-queries.json"
 
     for dataset in datasets:
-        suffix = f".k{k}.canon.sshash" if canonical else f".k{k}.sshash"
-        index_path = index_dir / f"{dataset}{suffix}"
+        index_path = index_dir / f"{dataset}.k{k}.sshash"
 
-        print(f"\n>>> Benchmarking {dataset} (k={k}, mode={mode})\n")
+        print(f"\n>>> Benchmarking {dataset} (k={k})\n")
         for i in range(runs):
             print(f"  ==> run {i+1}/{runs}")
             cmd = ["./sshash", "query", "-i", str(index_path), "-q", str(query_dir) + "/" + queries[dataset] + ".fastq.gz"]
@@ -92,13 +90,11 @@ results_dir.mkdir(parents=True, exist_ok=True)
 
 # --- Build for k=31 ---
 build_project(max_k63=False)
-run_bench(31, False)
-run_bench(31, True)
+run_bench(31)
 
 # --- Build for k=63 ---
 build_project(max_k63=True)
-run_bench(63, False)
-run_bench(63, True)
+run_bench(63)
 
 # --- Restore to default ---
 build_project(max_k63=False)
