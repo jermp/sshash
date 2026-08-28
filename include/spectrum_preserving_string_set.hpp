@@ -26,17 +26,42 @@ struct spectrum_preserving_string_set  //
         return util::read_kmer_at<Kmer>(strings, k - 1, Kmer::bits_per_char * (string_end - k + 1));
     }
 
+    /*
+        The decoded locate set of one minimizer, filled by `lookup` (which
+        decodes straight into it, at no extra cost) and consumed by
+        `lookup_from_positions`: it lets streaming queries verify kmers
+        sharing the minimizer of their last seed without a codeword lookup
+        nor offset decoding. Only buckets of known size up to
+        `max_cached_size` are cached: HEAVYLOAD buckets have unknown size,
+        and larger buckets are too rare to be worth a bigger cache.
+        Buckets whose minimizer is not found are never cached (size = 0).
+    */
+    struct bucket_cache {
+        static constexpr uint64_t max_cached_size = 8;
+        uint64_t size = 0;  // 0 = nothing cached
+        std::array<typename Offsets::decoded_offset, max_cached_size> positions;
+    };
+
     template <typename Iterator>
-    lookup_result lookup(Iterator it,                           //
-                         const Kmer kmer, const Kmer kmer_rc,   //
-                         const minimizer_info mini_info) const  //
+    lookup_result lookup(Iterator it,                          //
+                         const Kmer kmer, const Kmer kmer_rc,  //
+                         const minimizer_info mini_info,       //
+                         bucket_cache* cache = nullptr) const  //
     {
         const uint64_t size = it.size();
         assert(size > 0);
 
         static thread_local  //
             std::array<typename Offsets::decoded_offset, 1ULL << constants::min_l>
-                v;
+                tl;
+
+        auto* v = tl.data();
+        if (cache != nullptr) {
+            cache->size = 0;
+            if (it.bucket_type() != bucket_t::HEAVYLOAD and size <= bucket_cache::max_cached_size) {
+                v = cache->positions.data();
+            }
+        }
 
         for (uint64_t i = 0; i != size; ++i, ++it) {
             uint64_t minimizer_offset = *it;
@@ -67,11 +92,26 @@ struct spectrum_preserving_string_set  //
             return lookup_result(it.bucket_type() != bucket_t::HEAVYLOAD ? false : true);
         }
 
+        if (v != tl.data()) cache->size = size;
+
+        return lookup_from_positions(v, size, kmer, kmer_rc, mini_info);
+    }
+
+    /*
+        The verification half of `lookup`: try the candidate loci of each
+        position of the minimizer's locate set. The positions must be the
+        decoded locate set of `mini_info.minimizer`, whose presence at
+        `positions[0]` has already been checked.
+    */
+    lookup_result lookup_from_positions(typename Offsets::decoded_offset const* positions,  //
+                                        const uint64_t size,                                //
+                                        const Kmer kmer, const Kmer kmer_rc,                //
+                                        const minimizer_info mini_info) const               //
+    {
         lookup_result res;
         for (uint64_t i = 0; i != size; ++i) {
-            if (_lookup(res, v[i], kmer, kmer_rc, mini_info)) return res;
+            if (_lookup(res, positions[i], kmer, kmer_rc, mini_info)) return res;
         }
-
         return lookup_result();
     }
 

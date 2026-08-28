@@ -38,6 +38,8 @@ streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dic
     }
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
+    report.num_memo_singleton = query.num_memo_singleton();
+    report.num_memo_light = query.num_memo_light();
     report.num_positive_kmers = query.num_positive_lookups();
     report.num_negative_kmers = query.num_negative_lookups();
     report.num_invalid_kmers = query.num_invalid_lookups();
@@ -67,6 +69,8 @@ streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::is
     }
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
+    report.num_memo_singleton = query.num_memo_singleton();
+    report.num_memo_light = query.num_memo_light();
     report.num_positive_kmers = query.num_positive_lookups();
     report.num_negative_kmers = query.num_negative_lookups();
     report.num_invalid_kmers = query.num_invalid_lookups();
@@ -99,6 +103,8 @@ streaming_query_report streaming_query_from_fastq_file(Dict const* dict, std::is
     }
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
+    report.num_memo_singleton = query.num_memo_singleton();
+    report.num_memo_light = query.num_memo_light();
     report.num_positive_kmers = query.num_positive_lookups();
     report.num_negative_kmers = query.num_negative_lookups();
     report.num_invalid_kmers = query.num_invalid_lookups();

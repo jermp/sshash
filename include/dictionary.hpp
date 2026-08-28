@@ -11,6 +11,7 @@ template <typename Kmer, typename Offsets>
 struct dictionary  //
 {
     using kmer_type = Kmer;
+    using spss_type = spectrum_preserving_string_set<Kmer, Offsets>;
 
     template <typename, typename>
     friend struct dictionary_builder;
@@ -161,12 +162,13 @@ private:
     uint16_t m_m;
     hasher_type m_hasher;
 
-    spectrum_preserving_string_set<Kmer, Offsets> m_spss;
+    spss_type m_spss;
     sparse_and_skew_index<Kmer> m_ssi;
 
     weights m_weights;
 
-    lookup_result lookup(Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info) const;
+    lookup_result lookup(Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info,
+                         typename spss_type::bucket_cache* cache = nullptr) const;
 
     void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;
