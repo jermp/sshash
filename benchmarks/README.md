@@ -23,14 +23,19 @@ Queries were run using one thread, instead.
 
 ![](results-21-01-26/results.png)
 
-The results can be exported to CSV format with
+The results of a run, for both k=31 and k=63 at once, can be exported to CSV
+format (every collected quantity) or to a markdown table (the main quantities)
+with
 
-    python3 ../benchmarks/print_csv.py ../benchmarks/results-21-01-26/k31
-    python3 ../benchmarks/print_csv.py ../benchmarks/results-21-01-26/k63
+    python3 ../benchmarks/print_table.py <results_dir>
+    python3 ../benchmarks/print_table.py <results_dir> --md
+
+where `<results_dir>` is the directory written by the scripts above (e.g.,
+`results-21-01-26`), containing the `k31` and `k63` subdirectories.
 
 Note that the scripts now produce a single set of result files per `k`
 (`build.json`, `bench.json`, and `streaming-queries.json`), since the
 regular/canonical distinction is gone: there is one indexing modality only.
 Result directories archived before this change instead hold a `regular-` and a
-`canon-` file for each of those; to re-read them, use the version of
-`print_csv.py` from the corresponding commit.
+`canon-` file for each of those; to re-read them, use the `print_csv.py`
+script from the corresponding commit.
