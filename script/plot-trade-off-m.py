@@ -32,102 +32,96 @@ def parse_results(results_dir):
             if not k_match: continue
             k_val = int(k_match.group(1))
 
-            for mode in ['regular', 'canon']:
-                build_json = k_dir / f"{mode}-build.json"
-                bench_json = k_dir / f"{mode}-bench.json"
+            build_json = k_dir / "build.json"
+            bench_json = k_dir / "bench.json"
 
-                if not build_json.exists() or not bench_json.exists():
-                    continue
+            if not build_json.exists() or not bench_json.exists():
+                continue
 
-                # 1. Parse Build JSON for Space (bits/k-mer)
-                space_dict = {}
-                with open(build_json, 'r') as f:
-                    for line in f:
-                        try:
-                            j = json.loads(line)
+            # 1. Parse Build JSON for Space (bits/k-mer)
+            space_dict = {}
+            with open(build_json, 'r') as f:
+                for line in f:
+                    try:
+                        j = json.loads(line)
 
-                            # Extract dataset name from "/mnt/.../human.k31.eulertigs.fa.gz"
-                            filename = os.path.basename(j.get("input_filename", ""))
-                            ds = filename.split('.')[0] if filename else "unknown"
+                        # Extract dataset name from "/mnt/.../human.k31.eulertigs.fa.gz"
+                        filename = os.path.basename(j.get("input_filename", ""))
+                        ds = filename.split('.')[0] if filename else "unknown"
 
-                            if "index_size_in_bytes" in j and "num_kmers" in j:
-                                bytes_size = float(j["index_size_in_bytes"])
-                                num_kmers = float(j["num_kmers"])
-                                # Calculate bits per k-mer
-                                bits_per_kmer = (bytes_size * 8.0) / num_kmers
-                                space_dict[ds] = bits_per_kmer
-                        except json.JSONDecodeError:
-                            continue
+                        if "index_size_in_bytes" in j and "num_kmers" in j:
+                            bytes_size = float(j["index_size_in_bytes"])
+                            num_kmers = float(j["num_kmers"])
+                            # Calculate bits per k-mer
+                            bits_per_kmer = (bytes_size * 8.0) / num_kmers
+                            space_dict[ds] = bits_per_kmer
+                    except json.JSONDecodeError:
+                        continue
 
-                # 2. Parse Bench JSON for Query Time (ns/kmer)
-                time_dict = {}
-                count_dict = {}
-                with open(bench_json, 'r') as f:
-                    for line in f:
-                        try:
-                            j = json.loads(line)
+            # 2. Parse Bench JSON for Query Time (ns/kmer)
+            time_dict = {}
+            count_dict = {}
+            with open(bench_json, 'r') as f:
+                for line in f:
+                    try:
+                        j = json.loads(line)
 
-                            # Extract dataset name from ".../human.k31.m17.sshash"
-                            filename = os.path.basename(j.get("index_filename", ""))
-                            ds = filename.split('.')[0] if filename else "unknown"
+                        # Extract dataset name from ".../human.k31.m17.sshash"
+                        filename = os.path.basename(j.get("index_filename", ""))
+                        ds = filename.split('.')[0] if filename else "unknown"
 
-                            # Use positive lookup time
-                            t_str = j.get("positive lookup (avg_nanosec_per_kmer)")
-                            if t_str is not None:
-                                t = float(t_str)
-                                time_dict[ds] = time_dict.get(ds, 0.0) + t
-                                count_dict[ds] = count_dict.get(ds, 0) + 1
-                        except json.JSONDecodeError:
-                            continue
+                        # Use positive lookup time
+                        t_str = j.get("positive lookup (avg_nanosec_per_kmer)")
+                        if t_str is not None:
+                            t = float(t_str)
+                            time_dict[ds] = time_dict.get(ds, 0.0) + t
+                            count_dict[ds] = count_dict.get(ds, 0) + 1
+                    except json.JSONDecodeError:
+                        continue
 
-                # 3. Combine and store
-                for ds in space_dict.keys():
-                    if ds in time_dict and count_dict[ds] > 0:
-                        # Average the 3 benchmark runs
-                        avg_time = time_dict[ds] / count_dict[ds]
-                        data.append({
-                            'Dataset': ds,
-                            'k': k_val,
-                            'm': m_val,
-                            'Mode': mode,
-                            'Space (bits/k-mer)': space_dict[ds],
-                            'Query Time (ns/k-mer)': avg_time
-                        })
+            # 3. Combine and store
+            for ds in space_dict.keys():
+                if ds in time_dict and count_dict[ds] > 0:
+                    # Average the 3 benchmark runs
+                    avg_time = time_dict[ds] / count_dict[ds]
+                    data.append({
+                        'Dataset': ds,
+                        'k': k_val,
+                        'm': m_val,
+                        'Space (bits/k-mer)': space_dict[ds],
+                        'Query Time (ns/k-mer)': avg_time
+                    })
 
     return pd.DataFrame(data)
 
 def plot_tradeoff(df, output_img="tradeoff_plot.pdf"):
     """
     Generates a space-time trade-off plot.
-    Different lines for datasets/k/modes, points vary by 'm'.
+    Different lines for datasets/k, points vary by 'm'.
     """
     if df.empty:
         print("No data parsed! Please check the JSON keys in the script.")
         return
 
     # Enforce categorical order so the legend is populated exactly how we want:
-    # Human before SE, and regular before canon
+    # Human before SE
     df['Dataset'] = pd.Categorical(df['Dataset'], categories=['human', 'se'], ordered=True)
-    df['Mode'] = pd.Categorical(df['Mode'], categories=['regular', 'canon'], ordered=True)
-    df = df.sort_values(by=['Dataset', 'k', 'Mode'])
+    df = df.sort_values(by=['Dataset', 'k'])
 
     plt.figure(figsize=(5, 10))
     plt.style.use('seaborn-v0_8-whitegrid')
 
-    # Group by Dataset, k, and Mode with sort=False to preserve our categorical ordering
-    groups = df.groupby(['Dataset', 'k', 'Mode'], sort=False)
+    # Group by Dataset and k with sort=False to preserve our categorical ordering
+    groups = df.groupby(['Dataset', 'k'], sort=False)
 
-    for (dataset, k, mode), group in groups:
+    for (dataset, k), group in groups:
         # Sort by m to make the line connect logically
         group = group.sort_values(by='m')
 
-        label = f"{'Human' if dataset == 'human' else 'SE'} (k={k}, {mode})"
+        label = f"{'Human' if dataset == 'human' else 'SE'} (k={k})"
 
-        # Color logic: Red for Human, Blue for SE. Darker if canonical.
-        if dataset == 'human':
-            color = 'firebrick' if mode == 'canon' else 'lightcoral'
-        else: # se
-            color = 'royalblue' if mode == 'canon' else 'lightskyblue'
+        # Color logic: Red for Human, Blue for SE.
+        color = 'firebrick' if dataset == 'human' else 'royalblue'
 
         # Marker logic: Circle for k=31, Square for k=63
         marker = 'o' if k == 31 else 's'

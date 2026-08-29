@@ -72,7 +72,10 @@ private:
 
     inline void fill_buff_reverse() {
         static_assert(Kmer::uint_kmer_bits % 64 == 0);
-        for (int i = Kmer::uint_kmer_bits; i > 0; i -= 64) {
+        /* fill the buffer with the bits at [m_pos - uint_kmer_bits, m_pos),
+           in order: `append64` appends at the low end, so words must be
+           appended from the highest address down to the lowest */
+        for (int i = 64; i <= Kmer::uint_kmer_bits; i += 64) {
             m_buff.append64(m_bv->get_word64(std::max<uint64_t>(m_pos, Kmer::uint_kmer_bits) - i));
         }
         m_avail = std::min<uint64_t>(m_pos, Kmer::uint_kmer_bits);

@@ -21,7 +21,6 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
     uint64_t num_buckets_larger_than_1_not_in_skew_index = 0;
     uint64_t num_buckets_in_skew_index = 0;
-    uint64_t num_super_kmers_in_buckets_larger_than_1 = 0;
     uint64_t num_minimizer_positions_of_buckets_larger_than_1 = 0;
     uint64_t num_minimizer_positions_of_buckets_in_skew_index = 0;
 
@@ -41,7 +40,6 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                 ++num_buckets_in_skew_index;
                 num_minimizer_positions_of_buckets_in_skew_index += bucket_size;
             }
-            num_super_kmers_in_buckets_larger_than_1 += bucket.num_super_kmers();
         }
 
         for (auto mt : bucket) {
@@ -97,7 +95,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     std::vector<bucket_type> buckets;
     buckets.reserve(num_buckets_larger_than_1_not_in_skew_index + num_buckets_in_skew_index);
     std::vector<minimizer_tuple> tuples;  // backed memory
-    tuples.reserve(num_super_kmers_in_buckets_larger_than_1);
+    tuples.reserve(num_minimizer_positions_of_buckets_larger_than_1 +
+                   num_minimizer_positions_of_buckets_in_skew_index);
 
     // Second pass: collect buckets > 1 for sorting AND handle size-1 buckets
     for (minimizers_tuples_iterator it(input.data(), input.data() + input.size());  //
@@ -108,20 +107,13 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
         const uint64_t bucket_size = bucket.size();
 
         if (bucket_size == 1) {
-            // Handle size-1 buckets: encode directly into control codewords
-            uint64_t prev_pos_in_seq = constants::invalid_uint64;
-            for (auto mt : bucket) {
-                if (mt.pos_in_seq != prev_pos_in_seq) {
-                    /*
-                        For minimizers occurring once, store a (log(N)+1)-bit
-                        code, as follows: |offset|0|, i.e., the LSB is 0.
-                    */
-                    uint64_t code = mt.pos_in_seq << 1;  // first LS bit encodes status code: 0
-                    assert(code < (uint64_t(1) << num_bits_for_control));
-                    control_codewords_builder.set(bucket_id, code);
-                    prev_pos_in_seq = mt.pos_in_seq;
-                }
-            }
+            /*
+                For minimizers occurring once, store a (log(N)+1)-bit
+                code, as follows: |offset|0|, i.e., the LSB is 0.
+            */
+            const uint64_t code = (*bucket.begin()).pos_in_seq << 1;  // LSB encodes status: 0
+            assert(code < (uint64_t(1) << num_bits_for_control));
+            control_codewords_builder.set(bucket_id, code);
         } else {
             // Collect buckets > 1 for later processing
             minimizer_tuple const* begin = tuples.data() + tuples.size();
@@ -202,37 +194,21 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
             }
 
             if (curr_bucket_size <= min_size) {
-                uint64_t prev_pos_in_seq = constants::invalid_uint64;
-                for (auto mt : bucket) {
-                    if (prev_pos_in_seq == constants::invalid_uint64) {  // only once
-                        uint64_t p = (list_id << constants::min_l) | (curr_bucket_size - 2);
-                        uint64_t code = (p << 2) | 1;  // first two LS bits encode status code: 01
-                        assert(code < (uint64_t(1) << num_bits_for_control));
-                        control_codewords_builder.set(mt.minimizer, code);
-                    }
-                    if (mt.pos_in_seq != prev_pos_in_seq) {
-                        mid_load_buckets_builder.push_back(mt.pos_in_seq);
-                        prev_pos_in_seq = mt.pos_in_seq;
-                        mid_load_buckets_size += 1;
-                    }
-                }
+                uint64_t p = (list_id << constants::min_l) | (curr_bucket_size - 2);
+                uint64_t code = (p << 2) | 1;  // first two LS bits encode status code: 01
+                assert(code < (uint64_t(1) << num_bits_for_control));
+                control_codewords_builder.set(bucket.begin_ptr()->minimizer, code);
+                for (auto mt : bucket) mid_load_buckets_builder.push_back(mt.pos_in_seq);
+                mid_load_buckets_size += bucket_size;
                 ++list_id;
             } else {
-                uint64_t prev_pos_in_seq = constants::invalid_uint64;
-                for (auto mt : bucket) {
-                    if (prev_pos_in_seq == constants::invalid_uint64) {  // only once
-                        assert(partition_id < 8);
-                        uint64_t p = (heavy_load_buckets_size << 3) | partition_id;
-                        uint64_t code = (p << 2) | 3;  // first two LS bits encode status code: 11
-                        assert(code < (uint64_t(1) << num_bits_for_control));
-                        control_codewords_builder.set(mt.minimizer, code);
-                    }
-                    if (mt.pos_in_seq != prev_pos_in_seq) {
-                        heavy_load_buckets_builder.push_back(mt.pos_in_seq);
-                        prev_pos_in_seq = mt.pos_in_seq;
-                        heavy_load_buckets_size += 1;
-                    }
-                }
+                assert(partition_id < 8);
+                uint64_t p = (heavy_load_buckets_size << 3) | partition_id;
+                uint64_t code = (p << 2) | 3;  // first two LS bits encode status code: 11
+                assert(code < (uint64_t(1) << num_bits_for_control));
+                control_codewords_builder.set(bucket.begin_ptr()->minimizer, code);
+                for (auto mt : bucket) heavy_load_buckets_builder.push_back(mt.pos_in_seq);
+                heavy_load_buckets_size += bucket_size;
             }
         }
 
@@ -443,13 +419,9 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
             assert(bucket.size() > lower and bucket.size() <= upper);
             uint64_t pos_in_bucket = -1;
-            uint64_t prev_pos_in_seq = constants::invalid_uint64;
             for (auto mt : bucket)  //
             {
-                if (mt.pos_in_seq != prev_pos_in_seq) {
-                    prev_pos_in_seq = mt.pos_in_seq;
-                    ++pos_in_bucket;
-                }
+                ++pos_in_bucket;  // one position per tuple: the scheme is forward
                 assert(mt.pos_in_seq >= mt.pos_in_kmer);
 
                 mt.pos_in_seq = d.m_spss.strings_offsets.decode(mt.pos_in_seq).absolute_offset;
@@ -459,12 +431,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     d.m_spss.strings, k, Kmer::bits_per_char * starting_pos_of_super_kmer);
                 for (uint64_t i = 0; i != mt.num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
-                    if (build_config.canonical) { /* take the canonical kmer */
-                        auto kmer_rc = kmer;
-                        kmer_rc.reverse_complement_inplace(k);
-                        kmer = std::min(kmer, kmer_rc);
-                    }
-                    kmers.push_back(kmer);
+                    /* take the canonical kmer: a kmer and its reverse complement
+                       share a bucket, hence a skew-index partition */
+                    auto kmer_rc = kmer;
+                    kmer_rc.reverse_complement_inplace(k);
+                    kmers.push_back(std::min(kmer, kmer_rc));
                     positions_in_bucket.push_back(pos_in_bucket);
                     it.next();
                 }

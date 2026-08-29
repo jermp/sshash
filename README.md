@@ -204,29 +204,20 @@ if your queries are to be read from a (multi-line) FASTA file.
 
 ### Example 3
 
-    ./sshash build -i ../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz -k 31 -m 13 --canonical -o salmonella_100.canon.sshash
-
-This example builds a dictionary from the input file `../data/unitigs_stitched/salmonella_100_k31_ust.fa.gz` (same used in Example 2), with k = 31, m = 13, and with the canonical parsing modality (option `--canonical`). The dictionary is serialized on disk to the file `salmonella_100.canon.sshash`.
-
-The "canonical" version of the dictionary offers more speed for only a little space increase, especially under low-hit workloads -- when the majority of k-mers are not found in the dictionary. (For all details, refer to the paper.)
-
-Below a comparison between the dictionary built in Example 2 (not canonical)
-and the one just built (Example 3, canonical).
-
     ./sshash query -i salmonella_100.sshash -q ../data/queries/SRR5833294.10K.fastq.gz
 
-    ./sshash query -i salmonella_100.canon.sshash -q ../data/queries/SRR5833294.10K.fastq.gz
+A k-mer and its reverse complement always share a bucket, so a lookup costs a
+single bucket probe and reports, in `kmer_orientation`, which of the two was
+found. This is the only indexing modality: there is no `--canonical` flag to
+choose, and no space-versus-speed trade-off to make.
 
-Both queries should originate the following report (reported here for reference):
+The query above should originate the following report (reported here for reference):
 
     ==== query report:
     num_kmers = 460000
     num_positive_kmers = 46 (0.01%)
     num_searches = 42/46 (91.3043%)
     num_extensions = 4/46 (8.69565%)
-
-The canonical dictionary can be twice as fast as the regular dictionary
-for low-hit workloads, even on this tiny example, for only +0.3 bits/k-mer.
 
 ### Example 4
 

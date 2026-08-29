@@ -1,0 +1,78 @@
+./sshash query -i /mnt/hd2/pibiri/DNA/sshash-indexes-new/cod.k31.sshash -q /mnt/hd2/pibiri/DNA/queries/SRR12858649.fastq.gz 
+2026-08-28 20:34:21: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR12858649.fastq.gz'...
+2026-08-28 20:34:24: DONE
+==== query report:
+num_kmers = 163287360
+num_positive_kmers = 132860997 (81.3664%)
+num_negative_kmers = 30426363 (18.6336%)
+num_invalid_kmers = 0 (0%)
+num_searches = 6576340/132860997 (4.94979%)
+num_extensions = 126284657/132860997 (95.0502%)
+num_memo_singleton = 193441
+num_memo_light = 6812848
+elapsed = 3.77 sec / 0.0628333 min / 23.0881 ns/kmer
+./sshash query -i /mnt/hd2/pibiri/DNA/sshash-indexes-new/kestrel.k31.sshash -q /mnt/hd2/pibiri/DNA/queries/SRR11449743_1.fastq.gz 
+2026-08-28 20:34:25: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR11449743_1.fastq.gz'...
+2026-08-28 20:34:52: DONE
+==== query report:
+num_kmers = 695737535
+num_positive_kmers = 525542891 (75.5375%)
+num_negative_kmers = 170183654 (24.4609%)
+num_invalid_kmers = 10990 (0.00157962%)
+num_searches = 12437476/525542891 (2.3666%)
+num_extensions = 513105415/525542891 (97.6334%)
+num_memo_singleton = 997817
+num_memo_light = 34475911
+elapsed = 26.537 sec / 0.442283 min / 38.1423 ns/kmer
+./sshash query -i /mnt/hd2/pibiri/DNA/sshash-indexes-new/human.k31.sshash -q /mnt/hd2/pibiri/DNA/queries/SRR5833294.fastq.gz 
+2026-08-28 20:34:53: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR5833294.fastq.gz'...
+2026-08-28 20:36:52: DONE
+==== query report:
+num_kmers = 1569974986
+num_positive_kmers = 1437949378 (91.5906%)
+num_negative_kmers = 130996597 (8.34387%)
+num_invalid_kmers = 1029011 (0.0655431%)
+num_searches = 100222623/1437949378 (6.96983%)
+num_extensions = 1337726755/1437949378 (93.0302%)
+num_memo_singleton = 1072506
+num_memo_light = 27289697
+elapsed = 119.021 sec / 1.98368 min / 75.8108 ns/kmer
+./sshash query -i /mnt/hd2/pibiri/DNA/sshash-indexes-new/ncbi-virus.k31.sshash -q /mnt/hd2/pibiri/DNA/queries/ncbi-queries.fastq.gz 
+2026-08-28 20:36:52: performing queries from file '/mnt/hd2/pibiri/DNA/queries/ncbi-queries.fastq.gz'...
+2026-08-28 20:36:53: DONE
+==== query report:
+num_kmers = 14092875
+num_positive_kmers = 13983775 (99.2258%)
+num_negative_kmers = 108161 (0.767487%)
+num_invalid_kmers = 939 (0.00666294%)
+num_searches = 590894/13983775 (4.22557%)
+num_extensions = 13392881/13983775 (95.7744%)
+num_memo_singleton = 433
+num_memo_light = 107455
+elapsed = 0.356 sec / 0.00593333 min / 25.261 ns/kmer
+./sshash query -i /mnt/hd2/pibiri/DNA/sshash-indexes-new/se.k31.sshash -q /mnt/hd2/pibiri/DNA/queries/SRR27871075_1.fastq.gz 
+2026-08-28 20:36:53: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR27871075_1.fastq.gz'...
+2026-08-28 20:39:01: DONE
+==== query report:
+num_kmers = 789838196
+num_positive_kmers = 764882549 (96.8404%)
+num_negative_kmers = 24935381 (3.15702%)
+num_invalid_kmers = 20266 (0.00256584%)
+num_searches = 218875709/764882549 (28.6156%)
+num_extensions = 546006840/764882549 (71.3844%)
+num_memo_singleton = 85669
+num_memo_light = 7940520
+elapsed = 128.19 sec / 2.1365 min / 162.299 ns/kmer
+./sshash query -i /mnt/hd2/pibiri/DNA/sshash-indexes-new/hprc.k31.sshash -q /mnt/hd2/pibiri/DNA/queries/SRR5833294.fastq.gz 
+2026-08-28 20:39:04: performing queries from file '/mnt/hd2/pibiri/DNA/queries/SRR5833294.fastq.gz'...
+2026-08-28 20:41:15: DONE
+==== query report:
+num_kmers = 1569974986
+num_positive_kmers = 1485223278 (94.6017%)
+num_negative_kmers = 83722697 (5.33274%)
+num_invalid_kmers = 1029011 (0.0655431%)
+num_searches = 135823240/1485223278 (9.14497%)
+num_extensions = 1349400038/1485223278 (90.855%)
+num_memo_singleton = 565997
+num_memo_light = 17514165
+elapsed = 131.342 sec / 2.18903 min / 83.6587 ns/kmer

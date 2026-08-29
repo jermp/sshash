@@ -11,6 +11,7 @@ template <typename Kmer, typename Offsets>
 struct dictionary  //
 {
     using kmer_type = Kmer;
+    using spss_type = spectrum_preserving_string_set<Kmer, Offsets>;
 
     template <typename, typename>
     friend struct dictionary_builder;
@@ -22,8 +23,7 @@ struct dictionary  //
         , m_num_kmers(0)
         , m_num_strings(0)
         , m_k(0)
-        , m_m(0)
-        , m_canonical(false) {}
+        , m_m(0) {}
 
     /* Build from input file. */
     void build(std::string const& input_filename, build_configuration const& build_config);
@@ -33,11 +33,16 @@ struct dictionary  //
     uint64_t num_strings() const { return m_num_strings; }
     uint64_t k() const { return m_k; }
     uint64_t m() const { return m_m; }
-    bool canonical() const { return m_canonical; }
     bool weighted() const { return !m_weights.empty(); }
     hasher_type const& hasher() const { return m_hasher; }
 
-    /* Lookup queries. */
+    /*
+        Lookup queries. A kmer and its reverse complement share a bucket, so a
+        lookup always costs a single probe and reports, via
+        `lookup_result::kmer_orientation`, which of the two was found. Pass
+        `check_reverse_complement = false` to restrict the answer to kmers
+        occurring in forward orientation.
+    */
     lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
     lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement = true) const;
 
@@ -75,7 +80,7 @@ struct dictionary  //
     bool is_member(char const* string_kmer, bool check_reverse_complement = true) const;
     bool is_member(Kmer uint_kmer, bool check_reverse_complement = true) const;
 
-    template <typename, bool>
+    template <typename>
     friend struct streaming_query;
 
     streaming_query_report  //
@@ -144,7 +149,6 @@ private:
         visitor.visit(t.m_num_strings);
         visitor.visit(t.m_k);
         visitor.visit(t.m_m);
-        visitor.visit(t.m_canonical);
         visitor.visit(t.m_hasher);
         visitor.visit(t.m_spss);
         visitor.visit(t.m_ssi);
@@ -156,20 +160,15 @@ private:
     uint64_t m_num_strings;
     uint16_t m_k;
     uint16_t m_m;
-    bool m_canonical;
     hasher_type m_hasher;
 
-    spectrum_preserving_string_set<Kmer, Offsets> m_spss;
+    spss_type m_spss;
     sparse_and_skew_index<Kmer> m_ssi;
 
     weights m_weights;
 
-    lookup_result lookup_regular(Kmer uint_kmer) const;
-    lookup_result lookup_regular(Kmer uint_kmer, minimizer_info mini_info) const;
-
-    lookup_result lookup_canonical(Kmer uint_kmer) const;
-    lookup_result lookup_canonical(Kmer uint_kmer, Kmer uint_kmer_rc,
-                                   minimizer_info mini_info) const;
+    lookup_result lookup(Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info,
+                         typename spss_type::bucket_cache* cache = nullptr) const;
 
     void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;

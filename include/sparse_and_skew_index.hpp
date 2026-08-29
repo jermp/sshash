@@ -109,7 +109,9 @@ struct sparse_and_skew_index  //
         bits::compact_vector::iterator m_it;
     };
 
-    bucket_iterator lookup(const Kmer uint_kmer, const minimizer_info mini_info) const  //
+    bucket_iterator lookup(const Kmer uint_kmer,                  //
+                           const Kmer uint_kmer_rc,               //
+                           const minimizer_info mini_info) const  //
     {
         uint64_t code = codewords.lookup(mini_info.minimizer);
 
@@ -132,7 +134,8 @@ struct sparse_and_skew_index  //
         }
 
         assert(status == bucket_t::HEAVYLOAD);  // minimizer is part of the skew index
-        uint64_t offset = ski.lookup(uint_kmer, code);
+        const Kmer uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
+        uint64_t offset = ski.lookup(uint_kmer_canon, code);
         return {this, offset, 1, bucket_t::HEAVYLOAD};
     }
 

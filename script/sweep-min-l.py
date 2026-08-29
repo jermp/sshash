@@ -87,26 +87,23 @@ def build_project(max_k63: bool):
     ])
     run_cmd(["make", "-j"])
 
-def build_sshash(k, canonical, m_values, l_val):
+def build_sshash(k, m_values, l_val):
     # Differentiate results dir by l_val
-    mode_dir = results_dir / f"l{l_val}" / f"k{k}"
-    mode_dir.mkdir(parents=True, exist_ok=True)
+    out_dir = results_dir / f"l{l_val}" / f"k{k}"
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-    mode = "canon" if canonical else "regular"
-    log_file = mode_dir / f"{mode}-build.log"
-    json_file = mode_dir / f"{mode}-build.json"
-    time_file = mode_dir / f"{mode}-build.time.log"
+    log_file = out_dir / "build.log"
+    json_file = out_dir / "build.json"
+    time_file = out_dir / "build.time.log"
 
     for dataset in datasets:
         m_val = m_values[dataset]
         input_file = datasets_dir / f"{dataset}.k{k}.eulertigs.fa.gz"
-        
+
         # 2. Append l_val to the output filename
         output_file = index_dir / f"{dataset}.k{k}.l{l_val}"
-        if canonical:
-            output_file = str(output_file) + ".canon"
 
-        print(f"\n>>> Building {dataset} (k={k}, m={m_val}, l={l_val}, mode={mode})\n")
+        print(f"\n>>> Building {dataset} (k={k}, m={m_val}, l={l_val})\n")
 
         # Clean tmp directory (should be empty after each build anyway)
         subprocess.run(f"rm -rf {tmp_dir}/*", shell=True, check=True)
@@ -123,29 +120,24 @@ def build_sshash(k, canonical, m_values, l_val):
             "-d", str(tmp_dir),
             "-o", f"{output_file}.sshash"
         ]
-        if canonical:
-            cmd.append("--canonical")
 
         # Append stdout to .log, stderr to .json
         with open(log_file, "a") as log, open(json_file, "a") as js:
             subprocess.run(cmd, stdout=log, stderr=js, check=True)
 
-def run_bench(k, canonical, l_val, runs=3):
+def run_bench(k, l_val, runs=3):
     """Run SSHASH benchmark for all datasets."""
-    mode = "canon" if canonical else "regular"
-    
     # Store results in the specific l_val / k folder
     out_dir = results_dir / f"l{l_val}" / f"k{k}"
     out_dir.mkdir(parents=True, exist_ok=True)
-    log_file = out_dir / f"{mode}-bench.log"
-    json_file = out_dir / f"{mode}-bench.json"
+    log_file = out_dir / "bench.log"
+    json_file = out_dir / "bench.json"
 
     for dataset in datasets:
-        # Match the new index naming scheme that includes l_val
-        suffix = f".k{k}.l{l_val}.canon.sshash" if canonical else f".k{k}.l{l_val}.sshash"
-        index_path = index_dir / f"{dataset}{suffix}"
+        # Match the index naming scheme that includes l_val
+        index_path = index_dir / f"{dataset}.k{k}.l{l_val}.sshash"
 
-        print(f"\n>>> Benchmarking {dataset} (k={k}, l={l_val}, mode={mode})\n")
+        print(f"\n>>> Benchmarking {dataset} (k={k}, l={l_val})\n")
         for i in range(runs):
             print(f"  ==> run {i+1}/{runs}")
             cmd = ["./sshash", "bench", "-i", str(index_path)]
@@ -166,23 +158,15 @@ for current_l in l_values_to_test:
     # Update the header file
     update_constants_hpp(current_l)
     
-    # Build and benchmark for k = 31 (Regular)
+    # Build and benchmark for k = 31
     build_project(max_k63=False)
-    build_sshash(31, False, m_values_k31, current_l)
-    run_bench(31, False, current_l)
-    
-    # Build and benchmark for k = 31 (Canonical)
-    build_sshash(31, True, m_values_k31, current_l)
-    run_bench(31, True, current_l)
+    build_sshash(31, m_values_k31, current_l)
+    run_bench(31, current_l)
 
-    # Build and benchmark for k = 63 (Regular)
+    # Build and benchmark for k = 63
     build_project(max_k63=True)
-    build_sshash(63, False, m_values_k63, current_l)
-    run_bench(63, False, current_l)
-    
-    # Build and benchmark for k = 63 (Canonical)
-    build_sshash(63, True, m_values_k63, current_l)
-    run_bench(63, True, current_l)
+    build_sshash(63, m_values_k63, current_l)
+    run_bench(63, current_l)
 
 # Restore default constants file at the end
 print("\nRestoring default constants.hpp (min_l = 6)...")

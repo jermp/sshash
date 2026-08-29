@@ -55,7 +55,6 @@ void dictionary<Kmer, Offsets>::print_info() const {
     std::cout << "k = " << k() << '\n';
     std::cout << "num_minimizers = " << m_ssi.codewords.size() << std::endl;
     std::cout << "m = " << m() << '\n';
-    std::cout << "canonical = " << (canonical() ? "true" : "false") << '\n';
     std::cout << "weighted = " << (weighted() ? "true" : "false") << '\n';
     print_space_breakdown();
 }

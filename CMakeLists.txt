@@ -106,6 +106,11 @@ if(SSHASH_BUILD_EXECUTABLES)
     sshash_static
   )
 
+  add_executable(test_minimizer test/test_minimizer.cpp)
+  target_link_libraries(test_minimizer
+    sshash_static
+  )
+
   add_executable(check test/check.cpp)
   target_link_libraries(check
     sshash_static
