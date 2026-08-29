@@ -34,8 +34,8 @@ struct streaming_query  //
         , m_num_extensions(0)
         , m_num_invalid(0)
         , m_num_negative(0)
-        , m_num_memo_singleton(0)
-        , m_num_memo_light(0)
+        , m_num_skipped_singleton_lookups(0)
+        , m_num_bucket_cache_hits(0)
 
     {}
 
@@ -106,8 +106,8 @@ struct streaming_query  //
     uint64_t num_positive_lookups() const { return num_searches() + num_extensions(); }
     uint64_t num_negative_lookups() const { return m_num_negative; }
     uint64_t num_invalid_lookups() const { return m_num_invalid; }
-    uint64_t num_memo_singleton() const { return m_num_memo_singleton; }
-    uint64_t num_memo_light() const { return m_num_memo_light; }
+    uint64_t num_skipped_singleton_lookups() const { return m_num_skipped_singleton_lookups; }
+    uint64_t num_bucket_cache_hits() const { return m_num_bucket_cache_hits; }
 
 private:
     Dict const* m_dict;
@@ -129,8 +129,8 @@ private:
     uint64_t m_remaining_string_bases;
 
     /*
-        Last real seed state, for the memos of `seed`: the minimizer of the
-        last `m_dict->lookup` call (with, for the singleton memo, the stream
+        Last real seed state, for the shortcuts of `seed`: the minimizer of
+        the last `m_dict->lookup` call (with, for the singleton shortcut, the stream
         position of its occurrence and whether a positive match anchors it),
         and the cached decoded locate set of that minimizer.
     */
@@ -142,8 +142,8 @@ private:
     uint64_t m_num_extensions;
     uint64_t m_num_invalid;
     uint64_t m_num_negative;
-    uint64_t m_num_memo_singleton;
-    uint64_t m_num_memo_light;
+    uint64_t m_num_skipped_singleton_lookups;
+    uint64_t m_num_bucket_cache_hits;
 
     /* large and cold: keep it last, away from the per-kmer members above */
     typename Dict::spss_type::bucket_cache m_bucket_cache;
@@ -159,7 +159,7 @@ private:
     }
 
     /* Outlined: `seed` inlines into `lookup` at two call sites, and letting
-       its body (grown by the memos) bloat the extension fast path measurably
+       its body (grown by the shortcuts) bloat the extension fast path measurably
        slows down streams that rarely seed. */
     __attribute__((noinline)) void seed()  //
     {
@@ -178,7 +178,7 @@ private:
             /*
                 The minimizer is present but the kmer may not be -- the most
                 common negative in a positive stream, e.g., a sequencing error
-                inside the kmer. Two memos avoid the full lookup.
+                inside the kmer. Two shortcuts avoid the full lookup.
 
                 1. The last seed matched via a singleton bucket, at position L
                    say, and the current kmer still carries the very same
@@ -193,6 +193,9 @@ private:
                    itself, so it is excluded too -- unless the minimizer is
                    its own reverse complement (possible for even m only), in
                    which case we fall through to the verification below.
+                   Only a singleton bucket admits this free skip: a larger
+                   bucket has candidate loci the failed extension never
+                   examined, so those must be verified against the text.
             */
             if (m_last_seed_positive and m_bucket_cache.size == 1 and
                 m_curr_mini_info.pos_in_seq == m_last_seed_mini_info.pos_in_seq and
@@ -200,7 +203,7 @@ private:
             {
                 m_res = lookup_result();
                 m_num_negative += 1;
-                m_num_memo_singleton += 1;
+                m_num_skipped_singleton_lookups += 1;
                 return;
             }
 
@@ -211,12 +214,12 @@ private:
                 m_res = m_dict->m_spss.lookup_from_positions(  //
                     m_bucket_cache.positions.data(), m_bucket_cache.size, m_kmer, m_kmer_rc,
                     m_curr_mini_info);
-                m_num_memo_light += 1;
+                m_num_bucket_cache_hits += 1;
                 if (m_res.kmer_id == constants::invalid_uint64) {
                     m_num_negative += 1;
                     return;
                 }
-                /* keep the singleton memo anchored to the latest match */
+                /* keep the singleton shortcut anchored to the latest match */
                 m_last_seed_mini_info = m_curr_mini_info;
                 m_last_seed_positive = true;
                 m_num_searches += 1;

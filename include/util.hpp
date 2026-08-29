@@ -26,8 +26,8 @@ struct streaming_query_report {
         , num_invalid_kmers(0)
         , num_searches(0)
         , num_extensions(0)
-        , num_memo_singleton(0)
-        , num_memo_light(0) {}
+        , num_skipped_singleton_lookups(0)
+        , num_bucket_cache_hits(0) {}
 
     uint64_t num_kmers;
     uint64_t num_positive_kmers;
@@ -37,10 +37,10 @@ struct streaming_query_report {
     uint64_t num_extensions;
 
     /* seeds answered from the state of the last seed, saving a full lookup:
-       singleton-bucket negatives answered for free, and light-bucket seeds
+       negatives implied by a singleton bucket (skipped entirely), and seeds
        verified from the cached locate set (see `streaming_query::seed`) */
-    uint64_t num_memo_singleton;
-    uint64_t num_memo_light;
+    uint64_t num_skipped_singleton_lookups;
+    uint64_t num_bucket_cache_hits;
 };
 
 struct lookup_result {
