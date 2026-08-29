@@ -20,7 +20,7 @@ constexpr int forward_orientation = 1;
 constexpr int backward_orientation = -1;
 
 namespace current_version_number {
-constexpr uint8_t x = 7;
+constexpr uint8_t x = 6;
 constexpr uint8_t y = 0;
 constexpr uint8_t z = 0;
 }  // namespace current_version_number
