@@ -252,7 +252,7 @@ private:
         if (read_kmer != kmer and read_kmer != kmer_rc) return false;
 
         res.kmer_orientation =
-            read_kmer == kmer_rc ? constants::backward_orientation : constants::forward_orientation;
+            read_kmer == kmer ? constants::forward_orientation : constants::backward_orientation;
 
         if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1) {
             res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
