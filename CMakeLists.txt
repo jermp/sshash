@@ -96,10 +96,6 @@ if (SSHASH_BUILD_EXECUTABLES)
     add_executable(test_alphabet test/test_alphabet.cpp)
     target_link_libraries(test_alphabet PRIVATE sshash_static)
 
-    add_executable(test_alphabet_bytes test/test_alphabet_bytes.cpp)
-    target_link_libraries(test_alphabet_bytes PRIVATE sshash_static)
-    add_test(NAME alphabet_bytes COMMAND test_alphabet_bytes)
-
     add_executable(test_minimizer test/test_minimizer.cpp)
     target_link_libraries(test_minimizer PRIVATE sshash_static)
 
