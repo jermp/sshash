@@ -90,11 +90,23 @@ target_link_libraries(sshash_static PUBLIC ZLIB::ZLIB)
 add_library(sshash::sshash ALIAS sshash_static)
 
 if (SSHASH_BUILD_EXECUTABLES)
+    enable_testing()
+
     add_executable(sshash tools/sshash.cpp)
     target_link_libraries(sshash PRIVATE sshash_static)
 
     add_executable(test_alphabet test/test_alphabet.cpp)
     target_link_libraries(test_alphabet PRIVATE sshash_static)
+
+    add_executable(test_alphabet_bytes test/test_alphabet_bytes.cpp)
+    target_link_libraries(test_alphabet_bytes PRIVATE sshash_static)
+    if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        # Exercise signed-char indexing and turn out-of-bounds reads into failures.
+        target_compile_options(test_alphabet_bytes PRIVATE
+            -fsigned-char -fsanitize=bounds -fno-sanitize-recover=bounds)
+        target_link_libraries(test_alphabet_bytes PRIVATE -fsanitize=bounds)
+    endif ()
+    add_test(NAME alphabet_bytes COMMAND test_alphabet_bytes)
 
     add_executable(test_minimizer test/test_minimizer.cpp)
     target_link_libraries(test_minimizer PRIVATE sshash_static)

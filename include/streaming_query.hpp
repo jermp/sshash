@@ -66,8 +66,10 @@ struct streaming_query  //
             m_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
             m_kmer_rc.pad_char();
-            m_kmer_rc.set(0, kmer_t::char_to_uint(
-                                 kmer_t::canonicalize_basepair_reverse_map[int(kmer[m_k - 1])]));
+            m_kmer_rc.set(0,
+                          kmer_t::char_to_uint(
+                              kmer_t::canonicalize_basepair_reverse_map[static_cast<unsigned char>(
+                                  kmer[m_k - 1])]));
             m_kmer_rc.take(m_k * kmer_t::bits_per_char);
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);

@@ -8,6 +8,7 @@ jobs:
   build:
     strategy:
       matrix:
+        build_type: [Release]
         compiler:
           - { name: gcc, version: 11}
           - { name: gcc, version: 12}
@@ -16,7 +17,10 @@ jobs:
           - { name: clang, version: 16}
           - { name: clang, version: 17}
           - { name: clang, version: 18}
-    name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }})
+        include:
+          - compiler: { name: gcc, version: 14}
+            build_type: Debug
+    name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }})${{ matrix.build_type == 'Debug' && ' with assertions' || '' }}
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
@@ -41,5 +45,6 @@ jobs:
           submodules: recursive
       - name: Build
         run: |
-          cmake -B ./build
+          cmake -B ./build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           cmake --build ./build --parallel
+          ctest --test-dir ./build --output-on-failure
