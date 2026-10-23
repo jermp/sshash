@@ -414,7 +414,10 @@ __attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer cons
         window.drop_char();
     }
     /* lo and hi are the two equally-closest loci (mirror images), or one locus */
-    const uint64_t chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
+    uint64_t chosen = lo;
+    if constexpr (Kmer::has_reverse_complement) {
+        chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
+    }
     return {minimizer, chosen};
 }
 

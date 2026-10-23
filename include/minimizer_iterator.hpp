@@ -162,7 +162,10 @@ private:
             window.drop_char();
         }
 
-        const uint64_t chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
+        uint64_t chosen = lo;
+        if constexpr (Kmer::has_reverse_complement) {
+            chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
+        }
         mini_info = minimizer_info(m_min_value, window_begin + chosen, chosen);
     }
 };
