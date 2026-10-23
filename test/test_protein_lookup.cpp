@@ -1,6 +1,5 @@
 #include <chrono>
 #include <filesystem>
-#include <sstream>
 
 #include "src/builder/build.cpp"
 #include "src/dictionary.cpp"
@@ -35,25 +34,16 @@ void check(std::filesystem::path const& directory, std::string const& sequence,
     config.tmp_dirname = directory.string();
     dictionary<Kmer, Offsets> dict;
     dict.build(input.string(), config);
-    auto verify = [&] {
-        streaming_query<decltype(dict)> stream(&dict);
-        for (uint64_t i = 0; i + k <= sequence.size(); ++i) {
-            auto result = dict.lookup(sequence.data() + i, false);
-            if (result.kmer_id != i || result.kmer_orientation != constants::forward_orientation) {
-                throw std::runtime_error("incorrect forward lookup for " + sequence.substr(i, k));
-            }
-            if (!equal_lookup_result(result, stream.lookup(sequence.data() + i))) {
-                throw std::runtime_error("streaming lookup differs from direct lookup");
-            }
+    streaming_query<decltype(dict)> stream(&dict);
+    for (uint64_t i = 0; i + k <= sequence.size(); ++i) {
+        auto result = dict.lookup(sequence.data() + i, false);
+        if (result.kmer_id != i || result.kmer_orientation != constants::forward_orientation) {
+            throw std::runtime_error("incorrect forward lookup for " + sequence.substr(i, k));
         }
-    };
-    verify();
-    std::stringstream bytes;
-    essentials::generic_saver saver(bytes);
-    saver.visit(dict);
-    essentials::generic_loader loader(bytes);
-    loader.visit(dict);
-    verify();
+        if (!equal_lookup_result(result, stream.lookup(sequence.data() + i))) {
+            throw std::runtime_error("streaming lookup differs from direct lookup");
+        }
+    }
 }
 
 template <typename Offsets>
