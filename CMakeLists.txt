@@ -90,14 +90,18 @@ target_link_libraries(sshash_static PUBLIC ZLIB::ZLIB)
 add_library(sshash::sshash ALIAS sshash_static)
 
 if (SSHASH_BUILD_EXECUTABLES)
+    enable_testing()
+
     add_executable(sshash tools/sshash.cpp)
     target_link_libraries(sshash PRIVATE sshash_static)
 
     add_executable(test_alphabet test/test_alphabet.cpp)
     target_link_libraries(test_alphabet PRIVATE sshash_static)
+    add_test(NAME alphabet COMMAND test_alphabet 31)
 
     add_executable(test_minimizer test/test_minimizer.cpp)
     target_link_libraries(test_minimizer PRIVATE sshash_static)
+    add_test(NAME minimizer COMMAND test_minimizer)
 
     add_executable(check test/check.cpp)
     target_link_libraries(check PRIVATE sshash_static)

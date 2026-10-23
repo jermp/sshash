@@ -11,9 +11,12 @@ std::ostream& operator<<(std::ostream& os, __uint128_t x) {
     return os;
 }
 
+static uint64_t num_failed = 0;
+
 template <typename T>
 void expect(T got, T expected) {
     if (got != expected) {
+        ++num_failed;
         std::cerr << "got '" << got << "' but expected '" << expected << "'" << std::endl;
     }
 }
@@ -42,6 +45,7 @@ int main(int argc, char** argv) {
     for (uint64_t i = 0; i != read.length() - k + 1; ++i) {
         bool is_valid = util::is_valid<kmer_t>(read.data() + i, k);
         if (!is_valid) {
+            ++num_failed;
             std::cerr << "ERROR: '" << std::string(read.data() + i, k) << "' is NOT valid!"
                       << std::endl;
         }
@@ -116,5 +120,5 @@ int main(int argc, char** argv) {
     expect(kmer_t::canonicalize_basepair_reverse_map[int('G')], 'C');
     expect(kmer_t::canonicalize_basepair_reverse_map[int('g')], 'c');
 
-    return 0;
+    return num_failed != 0;
 }
