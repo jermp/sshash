@@ -99,6 +99,10 @@ if (SSHASH_BUILD_EXECUTABLES)
     add_executable(test_minimizer test/test_minimizer.cpp)
     target_link_libraries(test_minimizer PRIVATE sshash_static)
 
+    add_executable(test_encoded_endpoints test/test_encoded_endpoints.cpp)
+    target_link_libraries(test_encoded_endpoints PRIVATE sshash_static)
+    add_test(NAME encoded_endpoints COMMAND test_encoded_endpoints)
+
     add_executable(check test/check.cpp)
     target_link_libraries(check PRIVATE sshash_static)
 
