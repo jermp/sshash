@@ -41,7 +41,7 @@ if (UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -ggdb -Wall -Wextra -Werror -Wno-missing-braces -Wno-unknown-attributes -Wno-unused-function -pthread")
 
     if (SSHASH_USE_SANITIZERS)
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fno-omit-frame-pointer")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address,bounds -fno-sanitize-recover=all -fno-omit-frame-pointer")
     endif ()
 endif ()
 
