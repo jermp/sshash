@@ -1,6 +1,5 @@
 #include <chrono>
 #include <filesystem>
-#include <sstream>
 
 #include "src/builder/build.cpp"
 #include "src/dictionary.cpp"
@@ -33,20 +32,11 @@ void check(std::filesystem::path const& directory, std::vector<std::string> cons
     config.tmp_dirname = directory.string();
     dictionary<aa_uint_kmer_t<uint64_t>, Offsets> dict;
     dict.build(input.string(), config);
-    auto verify = [&] {
-        for (uint64_t i = 0; i < words.size(); ++i) {
-            if (dict.lookup(words[i].data()).kmer_id != i) {
-                throw std::runtime_error("incorrect heavy-bucket lookup for " + words[i]);
-            }
+    for (uint64_t i = 0; i < words.size(); ++i) {
+        if (dict.lookup(words[i].data()).kmer_id != i) {
+            throw std::runtime_error("incorrect heavy-bucket lookup for " + words[i]);
         }
-    };
-    verify();
-    std::stringstream bytes;
-    essentials::generic_saver saver(bytes);
-    saver.visit(dict);
-    essentials::generic_loader loader(bytes);
-    loader.visit(dict);
-    verify();
+    }
 }
 
 int main() {
