@@ -43,6 +43,25 @@ void verify(dict_type const& dict, std::vector<std::string> const& strings) {
 
 int main() {
     try {
+        // Exercise large coordinate widths without allocating the sequences.
+        for (unsigned exponent : {16, 32, 40}) {
+            for (int delta : {-1, 0, 1}) {
+                uint64_t end = (uint64_t(1) << exponent) + delta;
+                num_bits nb;
+                nb.per_absolute_offset = std::ceil(std::log2(end));
+                encoded_offsets::builder builder;
+                builder.set_num_bits(nb);
+                builder.push_back(0);
+                builder.push_back(end / 2);
+                builder.push_back(end);
+                encoded_offsets offsets;
+                builder.build(offsets);
+                if (offsets.access(1) != end / 2 || offsets.access(2) != end) {
+                    throw std::runtime_error("incorrect large encoded endpoint");
+                }
+            }
+        }
+
         test_directory directory;
         build_configuration config;
         config.k = 3;
