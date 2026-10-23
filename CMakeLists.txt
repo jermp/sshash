@@ -90,8 +90,6 @@ target_link_libraries(sshash_static PUBLIC ZLIB::ZLIB)
 add_library(sshash::sshash ALIAS sshash_static)
 
 if (SSHASH_BUILD_EXECUTABLES)
-    enable_testing()
-
     add_executable(sshash tools/sshash.cpp)
     target_link_libraries(sshash PRIVATE sshash_static)
 
