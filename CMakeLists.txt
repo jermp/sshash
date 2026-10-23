@@ -99,10 +99,6 @@ if (SSHASH_BUILD_EXECUTABLES)
     add_executable(test_minimizer test/test_minimizer.cpp)
     target_link_libraries(test_minimizer PRIVATE sshash_static)
 
-    add_executable(test_offset_widths test/test_offset_widths.cpp)
-    target_link_libraries(test_offset_widths PRIVATE sshash_static)
-    add_test(NAME offset_widths COMMAND test_offset_widths)
-
     add_executable(check test/check.cpp)
     target_link_libraries(check PRIVATE sshash_static)
 

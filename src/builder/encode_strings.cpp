@@ -10,16 +10,6 @@ namespace sshash {
 
 namespace util {
 
-// Keep integer ranges exact even when floating-point log2 rounds down.
-inline num_bits offset_widths(uint64_t num_bases, uint64_t max_len, uint64_t m,
-                              uint64_t num_sequences) {
-    num_bits nb;
-    nb.per_absolute_offset = bits::util::ceil_log2_uint64(num_bases);
-    nb.per_relative_offset = bits::util::ceil_log2_uint64(max_len - m + 1);
-    nb.per_string_id = bits::util::ceil_log2_uint64(num_sequences);
-    return nb;
-}
-
 #if defined(__AVX2__)
 /*
     This function takes 32 bytes and packs the two bits
@@ -228,8 +218,10 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
         weights_builder.finalize(num_kmers);
     }
 
-    const num_bits nb = util::offset_widths(strings_offsets_builder.back(), max_len, m,
-                                           num_sequences);
+    num_bits nb;
+    nb.per_absolute_offset = bits::util::ceil_log2_uint64(strings_offsets_builder.back());
+    nb.per_relative_offset = bits::util::ceil_log2_uint64(max_len - m + 1);
+    nb.per_string_id = bits::util::ceil_log2_uint64(num_sequences);
 
     if (build_config.verbose) {
         std::cout << "max string length = " << max_len << std::endl;
