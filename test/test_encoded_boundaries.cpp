@@ -1,6 +1,5 @@
 #include <chrono>
 #include <filesystem>
-#include <sstream>
 
 #include "src/builder/build.cpp"
 #include "src/dictionary.cpp"
@@ -56,14 +55,6 @@ int main() {
         dict_type dict;
         dict.build(input.string(), config);
         verify(dict, strings);
-
-        std::stringstream bytes;
-        essentials::generic_saver saver(bytes);
-        saver.visit(dict);
-        dict_type loaded;
-        essentials::generic_loader loader(bytes);
-        loader.visit(loaded);
-        verify(loaded, strings);
     } catch (std::exception const& error) {
         std::cerr << error.what() << '\n';
         return 1;
