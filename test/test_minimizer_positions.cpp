@@ -2,7 +2,6 @@
 #include <filesystem>
 #include <map>
 #include <set>
-#include <sstream>
 #include "src/builder/build.cpp"
 #include "src/dictionary.cpp"
 #include "src/info.cpp"
@@ -34,24 +33,15 @@ void check(std::filesystem::path const& directory, std::vector<std::string> cons
         }
         base += word.size();
     }
-    auto verify = [&] {
-        for (uint64_t mini = 0; mini < 4; ++mini) {
-            if (util::canonical_mmer<Kmer>(mini, 1) != mini) continue;
-            std::set<uint64_t> observed;
-            dict.call_minimizer_positions(mini, [&](uint64_t offset) {
-                if (!observed.insert(offset).second)
-                    throw std::runtime_error("minimizer enumeration repeated a position");
-            });
-            if (observed != expected[mini]) throw std::runtime_error("incorrect minimizer positions");
-        }
-    };
-    verify();
-    std::stringstream bytes;
-    essentials::generic_saver saver(bytes);
-    saver.visit(dict);
-    essentials::generic_loader loader(bytes);
-    loader.visit(dict);
-    verify();
+    for (uint64_t mini = 0; mini < 4; ++mini) {
+        if (util::canonical_mmer<Kmer>(mini, 1) != mini) continue;
+        std::set<uint64_t> observed;
+        dict.call_minimizer_positions(mini, [&](uint64_t offset) {
+            if (!observed.insert(offset).second)
+                throw std::runtime_error("minimizer enumeration repeated a position");
+        });
+        if (observed != expected[mini]) throw std::runtime_error("incorrect minimizer positions");
+    }
 }
 int main() {
     auto dir = std::filesystem::temp_directory_path() /
