@@ -90,6 +90,8 @@ target_link_libraries(sshash_static PUBLIC ZLIB::ZLIB)
 add_library(sshash::sshash ALIAS sshash_static)
 
 if (SSHASH_BUILD_EXECUTABLES)
+    enable_testing()
+
     add_executable(sshash tools/sshash.cpp)
     target_link_libraries(sshash PRIVATE sshash_static)
 
@@ -101,6 +103,10 @@ if (SSHASH_BUILD_EXECUTABLES)
 
     add_executable(check test/check.cpp)
     target_link_libraries(check PRIVATE sshash_static)
+
+    add_executable(test_encoded_boundaries test/test_encoded_boundaries.cpp)
+    target_link_libraries(test_encoded_boundaries PRIVATE sshash_static)
+    add_test(NAME encoded_boundaries COMMAND test_encoded_boundaries)
 
     if (CONDA_BUILD)
         install(TARGETS sshash RUNTIME DESTINATION bin)
