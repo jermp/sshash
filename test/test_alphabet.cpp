@@ -30,6 +30,22 @@ int main(int argc, char** argv) {
         std::cerr << "k must be less <= " << kmer_t::max_k << " but got k = " << k << '\n';
         return 1;
     }
+
+    auto check_take = [](auto all_bits) {
+        uint_kmer_t<decltype(all_bits), 4> value;
+        value.bits = all_bits;
+        value.take_chars(value.max_k);
+        if (value.bits != all_bits) return false;
+        value.take(value.uint_kmer_bits - 1);
+        if (value.bits != (all_bits >> 1)) return false;
+        value.take(0);
+        return value.bits == 0;
+    };
+    if (!check_take(~uint64_t(0)) || !check_take(~__uint128_t(0))) {
+        std::cerr << "incorrect k-mer mask\n";
+        return 1;
+    }
+
     std::string read(
         "ttgttagcaaatgaagtcttagaacttttaagtcaagaaatttcaaaaaatgagatggaaaactatatatctcaaatcaaattcaatgaa"
         "aaactatcaaataacgaaactgctatttttacagcaccaaacgaacttatggctaaatttatacaaactagatatgcttctaagatcgct"

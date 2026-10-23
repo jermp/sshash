@@ -49,7 +49,9 @@ struct uint_kmer_t {
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
-    void take(uint16_t b) { bits &= ~(~Kmer(0) << b); }
+    void take(uint16_t b) {
+        if (b < uint_kmer_bits) bits &= ~(~Kmer(0) << b);
+    }
     void take64() { bits &= Kmer(uint64_t(-1)); }
     void take_char() { take(bits_per_char); }
     void take_chars(uint16_t k) { take(k * bits_per_char); }
