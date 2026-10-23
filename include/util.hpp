@@ -393,7 +393,7 @@ __attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer cons
                                                      const uint64_t leftmost,
                                                      const uint64_t rightmost)  //
 {
-    const uint64_t two_c = k - m;
+    const int64_t twice_center = k - m;
     uint64_t best_dist = constants::invalid_uint64;
     uint64_t lo = leftmost;
     uint64_t hi = leftmost;
@@ -402,7 +402,7 @@ __attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer cons
     for (uint64_t i = leftmost; i <= rightmost; ++i) {
         if (hasher.hash(canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i)) == min_hash) {
             assert(canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i) == minimizer);
-            const uint64_t dist = 2 * i > two_c ? 2 * i - two_c : two_c - 2 * i;
+            const uint64_t dist = std::abs(2 * int64_t(i) - twice_center);
             if (dist < best_dist) {
                 best_dist = dist;
                 lo = i;

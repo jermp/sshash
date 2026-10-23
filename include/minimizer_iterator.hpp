@@ -139,7 +139,7 @@ private:
         assert(m_num_mins > 1);
 
         const uint64_t window_begin = m_min_position - m_min_pos_in_kmer;
-        const uint64_t two_c = m_k - m_m;
+        const int64_t twice_center = m_k - m_m;
         uint64_t best_dist = constants::invalid_uint64;
         uint64_t lo = m_min_pos_in_kmer;
         uint64_t hi = m_min_pos_in_kmer;
@@ -150,7 +150,7 @@ private:
             const uint64_t v = util::canonical_mmer_at<Kmer>(window, kmer_rc, m_k, m_m, i);
             if (m_hasher.hash(v) == m_min_hash) {
                 assert(v == m_min_value);
-                const uint64_t dist = 2 * i > two_c ? 2 * i - two_c : two_c - 2 * i;
+                const uint64_t dist = std::abs(2 * int64_t(i) - twice_center);
                 if (dist < best_dist) {
                     best_dist = dist;
                     lo = i;
