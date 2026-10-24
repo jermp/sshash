@@ -381,17 +381,15 @@ inline bool is_canonical(Kmer kmer, const uint64_t k) {
     the tied locus closest to the centre of the window; the doubled distance
     |2i - (k-m)| avoids the half-integer centre of an odd window.
 
-    Deliberately not inlined: this runs on ~1e-4 of the windows, and letting its
-    loop inline into the lookup path costs measurably more than the call.
+    Shared by direct lookup and the incremental minimizer iterator. Keep the
+    scan inlineable here; direct lookup uses the noinline wrapper below.
 */
 template <typename Kmer>
-__attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer const& kmer_rc,
-                                                     const uint64_t k, const uint64_t m,
-                                                     hasher_type const& hasher,
-                                                     const uint64_t min_hash,
-                                                     const uint64_t minimizer,
-                                                     const uint64_t leftmost,
-                                                     const uint64_t rightmost)  //
+inline uint64_t resolve_tie_position(Kmer const& kmer, Kmer const& kmer_rc,
+                                     const uint64_t k, const uint64_t m,
+                                     hasher_type const& hasher, const uint64_t min_hash,
+                                     [[maybe_unused]] const uint64_t minimizer,
+                                     const uint64_t leftmost, const uint64_t rightmost)  //
 {
     const int64_t twice_center = k - m;
     uint64_t best_dist = constants::invalid_uint64;
@@ -399,7 +397,7 @@ __attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer cons
     uint64_t hi = leftmost;
     Kmer window = kmer;
     window.drop_chars(leftmost);
-    for (uint64_t i = leftmost; i <= rightmost; ++i) {
+    for (uint64_t i = leftmost; i != rightmost + 1; ++i) {
         if (hasher.hash(canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i)) == min_hash) {
             assert(canonical_mmer_at<Kmer>(window, kmer_rc, k, m, i) == minimizer);
             const uint64_t dist = std::abs(2 * int64_t(i) - twice_center);
@@ -418,7 +416,20 @@ __attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer cons
     if constexpr (Kmer::has_reverse_complement) {
         chosen = (lo == hi or !(kmer_rc < kmer)) ? lo : hi;
     }
-    return {minimizer, chosen};
+    return chosen;
+}
+
+/* Keep the rare tie scan out of the direct lookup path. */
+template <typename Kmer>
+__attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer const& kmer_rc,
+                                                     const uint64_t k, const uint64_t m,
+                                                     hasher_type const& hasher,
+                                                     const uint64_t min_hash,
+                                                     const uint64_t minimizer,
+                                                     const uint64_t leftmost,
+                                                     const uint64_t rightmost) {
+    return {minimizer, resolve_tie_position(kmer, kmer_rc, k, m, hasher, min_hash, minimizer,
+                                          leftmost, rightmost)};
 }
 
 template <typename Kmer>
