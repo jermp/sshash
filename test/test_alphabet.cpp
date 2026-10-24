@@ -1,4 +1,5 @@
 #include "include/kmer.hpp"
+#include "include/kmer_iterator.hpp"
 #include "include/util.hpp"
 #include "tools/common.hpp"  // for random_kmer
 
@@ -33,6 +34,29 @@ int main(int argc, char** argv) {
         std::cerr << "k must be less <= " << kmer_t::max_k << " but got k = " << k << '\n';
         return 1;
     }
+
+    auto check_take = [](auto all_bits) {
+        uint_kmer_t<decltype(all_bits), 4> value;
+        bits::bit_vector::builder builder;
+        builder.resize(3 * value.uint_kmer_bits, true);
+        bits::bit_vector data;
+        builder.build(data);
+        if (util::read_kmer_at<decltype(value)>(data, value.max_k, 4).bits != all_bits) return false;
+        kmer_iterator<decltype(value), bits::bit_vector> it(data, value.max_k, 4);
+        if (it.get().bits != all_bits) return false;
+        value.bits = all_bits;
+        value.take_chars(value.max_k);
+        if (value.bits != all_bits) return false;
+        value.take(value.uint_kmer_bits - 1);
+        if (value.bits != (all_bits >> 1)) return false;
+        value.take(0);
+        return value.bits == 0;
+    };
+    if (!check_take(~uint64_t(0)) || !check_take(~__uint128_t(0))) {
+        std::cerr << "incorrect k-mer mask\n";
+        return 1;
+    }
+
     using dna = dna_uint_kmer_t<uint64_t>;
     using protein = aa_uint_kmer_t<uint64_t>;
     for (unsigned byte = 128; byte < 256; ++byte) {
