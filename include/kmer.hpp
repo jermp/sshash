@@ -148,6 +148,12 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
     // Use odd lengths for DNA to avoid dealing with self-complements
     static constexpr uint16_t max_k = base::max_k - !(base::max_k % 2);
     static constexpr uint16_t max_m = base::max_m - !(base::max_m % 2);
+
+    void take_chars(uint16_t k) {
+        assert(k <= max_k);
+        base::take(k * bits_per_char);
+    }
+
     /*
         This works with the map:
         A -> 00; C -> 01; G -> 11; T -> 10.
