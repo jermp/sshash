@@ -68,7 +68,7 @@ struct streaming_query  //
             m_kmer_rc.pad_char();
             const unsigned char c = kmer[m_k - 1];
             m_kmer_rc.set(0, kmer_t::char_to_uint(kmer_t::canonicalize_basepair_reverse_map[c]));
-            m_kmer_rc.take(m_k * kmer_t::bits_per_char);
+            m_kmer_rc.take_chars(m_k);
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
             m_kmer_rc = m_kmer;

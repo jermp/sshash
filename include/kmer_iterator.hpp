@@ -27,7 +27,7 @@ struct kmer_iterator  //
     Kmer get() {
         if (m_avail < m_uint_kmer_bits) fill_buff();
         auto kmer = m_buff;
-        kmer.take(m_uint_kmer_bits);
+        if (m_uint_kmer_bits < Kmer::uint_kmer_bits) kmer.take(m_uint_kmer_bits);
         return kmer;
     }
 
