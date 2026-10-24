@@ -421,7 +421,7 @@ inline uint64_t resolve_tie_position(Kmer const& kmer, Kmer const& kmer_rc,
 
 /* Keep the rare tie scan out of the direct lookup path. */
 template <typename Kmer>
-__attribute__((noinline)) minimizer_info resolve_tie(Kmer const& kmer, Kmer const& kmer_rc,
+[[gnu::noinline]] minimizer_info resolve_tie(Kmer const& kmer, Kmer const& kmer_rc,
                                                      const uint64_t k, const uint64_t m,
                                                      hasher_type const& hasher,
                                                      const uint64_t min_hash,
