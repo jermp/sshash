@@ -211,13 +211,6 @@ single bucket probe and reports, in `kmer_orientation`, which of the two was
 found. This is the only indexing modality: there is no `--canonical` flag to
 choose, and no space-versus-speed trade-off to make.
 
-The C++ API `dictionary::call_minimizer_positions(minimizer, callback)` takes a
-canonical encoded m-mer and calls the callback with each indexed absolute base
-offset, including all positions in heavy buckets. This supports candidate
-generation from the existing index. It does not enumerate occurrences that were
-not selected as minimizers. Empty dictionaries and absent minimizers produce no
-callbacks.
-
 The query above should originate the following report (reported here for reference):
 
     ==== query report:
@@ -247,6 +240,15 @@ For reference, the index built on the original collection:
     ./sshash build -i ../data/unitigs_stitched/with_weights/ecoli_sakai.ust.k31.fa.gz -k 31 -m 13 --weighted --verbose
 
 already achieves a 12.4X better space than the empirical entropy.
+
+### Minimizer positions
+
+The C++ API `dictionary::call_minimizer_positions(minimizer, callback)` takes a
+canonical encoded m-mer and calls the callback with each indexed absolute
+character offset, including all positions in heavy buckets. This supports
+candidate generation from the existing index. It does not enumerate occurrences
+that were not selected as minimizers. Empty dictionaries and absent minimizers
+produce no callbacks.
 
 Input Files
 -----------

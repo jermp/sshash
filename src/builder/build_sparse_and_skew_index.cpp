@@ -111,7 +111,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                 For minimizers occurring once, store a (log(N)+1)-bit
                 code, as follows: |offset|0|, i.e., the LSB is 0.
             */
-            const uint64_t code = (*bucket.begin()).pos_in_seq << 1;  // LSB encodes status: 0
+            const uint64_t code =
+                (*bucket.begin()).pos_in_seq << minimizer_codeword::singleton_bits;
             assert(code < (uint64_t(1) << num_bits_for_control));
             control_codewords_builder.set(bucket_id, code);
         } else {
@@ -136,7 +137,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     } else if (max_bucket_size < (1ULL << constants::max_l)) {
         num_partitions = log2_max_bucket_size - constants::min_l;
     }
-    assert(num_partitions <= 8);  // so that we need 3 bits to encode a partition_id
+    assert(num_partitions <= (uint64_t(1) << minimizer_codeword::partition_bits));
 
     if (build_config.verbose) {
         std::cout << "num_partitions in skew index " << num_partitions << std::endl;
@@ -195,16 +196,17 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
             if (curr_bucket_size <= min_size) {
                 uint64_t p = (list_id << constants::min_l) | (curr_bucket_size - 2);
-                uint64_t code = (p << 2) | 1;  // first two LS bits encode status code: 01
+                uint64_t code = (p << minimizer_codeword::status_bits) | bucket_t::MIDLOAD;
                 assert(code < (uint64_t(1) << num_bits_for_control));
                 control_codewords_builder.set(bucket.begin_ptr()->minimizer, code);
                 for (auto mt : bucket) mid_load_buckets_builder.push_back(mt.pos_in_seq);
                 mid_load_buckets_size += bucket_size;
                 ++list_id;
             } else {
-                assert(partition_id < 8);
-                uint64_t p = (heavy_load_buckets_size << 3) | partition_id;
-                uint64_t code = (p << 2) | 3;  // first two LS bits encode status code: 11
+                assert(partition_id < (uint64_t(1) << minimizer_codeword::partition_bits));
+                uint64_t p =
+                    (heavy_load_buckets_size << minimizer_codeword::partition_bits) | partition_id;
+                uint64_t code = (p << minimizer_codeword::status_bits) | bucket_t::HEAVYLOAD;
                 assert(code < (uint64_t(1) << num_bits_for_control));
                 control_codewords_builder.set(bucket.begin_ptr()->minimizer, code);
                 for (auto mt : bucket) heavy_load_buckets_builder.push_back(mt.pos_in_seq);

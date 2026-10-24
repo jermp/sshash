@@ -32,9 +32,8 @@ struct skew_index  //
     }
 
     uint64_t lookup(const Kmer uint_kmer, uint64_t code) const {
-        code >>= 2;
-        uint64_t partition_id = code & 7;
-        uint64_t begin = code >> 3;
+        uint64_t partition_id = minimizer_codeword::heavy_partition(code);
+        uint64_t begin = minimizer_codeword::heavy_begin(code);
         assert(partition_id < mphfs.size());
         auto const& f = mphfs[partition_id];
         auto const& p = positions[partition_id];
@@ -116,7 +115,7 @@ struct sparse_and_skew_index  //
                            const minimizer_info mini_info) const  //
     {
         uint64_t code = codewords.lookup(mini_info.minimizer);
-        if ((code & 3) != bucket_t::HEAVYLOAD) return sparse_bucket(code);
+        if (!minimizer_codeword::is_heavy(code)) return sparse_bucket(code);
         const Kmer uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
         return {this, ski.lookup(uint_kmer_canon, code), 1, bucket_t::HEAVYLOAD};
     }
@@ -124,10 +123,10 @@ struct sparse_and_skew_index  //
     // Candidate positions for a minimizer, without a full-kmer discriminator.
     // Heavy buckets have no stored length: the caller must verify minimizers
     // and stop at the first mismatch. A missing key also needs verification.
-    bucket_iterator lookup(uint64_t minimizer) const {
+    bucket_iterator minimizer_candidates(uint64_t minimizer) const {
         uint64_t code = codewords.lookup(minimizer);
-        if ((code & 3) != bucket_t::HEAVYLOAD) return sparse_bucket(code);
-        uint64_t begin = code >> 5;
+        if (!minimizer_codeword::is_heavy(code)) return sparse_bucket(code);
+        uint64_t begin = minimizer_codeword::heavy_begin(code);
         uint64_t size = ski.heavy_load_buckets.size() - begin;
         return {this, size == 1 ? ski.heavy_load_buckets.access(begin) : begin,
                 size, bucket_t::HEAVYLOAD};
@@ -135,25 +134,21 @@ struct sparse_and_skew_index  //
 
 private:
     bucket_iterator sparse_bucket(uint64_t code) const {
-        uint64_t status = code & 1;
+        uint64_t status = code & ((uint64_t(1) << minimizer_codeword::singleton_bits) - 1);
         if (status == bucket_t::SINGLETON) {  // minimizer occurs once
-            uint64_t offset = code >> 1;
+            uint64_t offset = code >> minimizer_codeword::singleton_bits;
             return {this, offset, 1, bucket_t::SINGLETON};
         }
 
-        status = code & 3;
-        if (status == bucket_t::MIDLOAD) {  // minimizer occurs more than once, but is not part of
-                                            // the skew index
-            constexpr uint64_t mask = (uint64_t(1) << constants::min_l) - 1;
-            code >>= 2;
-            uint64_t bucket_size = (code & mask) + 2;
-            uint64_t bucket_id = code >> constants::min_l;
-            assert(bucket_size < begin_buckets_of_size.size());
-            uint64_t begin = begin_buckets_of_size[bucket_size] + bucket_id * bucket_size;
-            return {this, begin, bucket_size, bucket_t::MIDLOAD};
-        }
-
-        throw std::logic_error("expected a sparse minimizer bucket");
+        assert((code & ((uint64_t(1) << minimizer_codeword::status_bits) - 1)) ==
+               bucket_t::MIDLOAD);
+        constexpr uint64_t mask = (uint64_t(1) << constants::min_l) - 1;
+        code >>= minimizer_codeword::status_bits;
+        uint64_t bucket_size = (code & mask) + 2;
+        uint64_t bucket_id = code >> constants::min_l;
+        assert(bucket_size < begin_buckets_of_size.size());
+        uint64_t begin = begin_buckets_of_size[bucket_size] + bucket_id * bucket_size;
+        return {this, begin, bucket_size, bucket_t::MIDLOAD};
     }
 
 public:

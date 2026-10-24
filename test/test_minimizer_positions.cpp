@@ -7,7 +7,8 @@
 #include "src/info.cpp"
 using namespace sshash;
 template <typename Offsets>
-void check(std::filesystem::path const& directory, std::vector<std::string> const& words, uint64_t k) {
+void check(std::filesystem::path const& directory, std::vector<std::string> const& words, uint64_t k,
+           uint64_t m, bool require_heavy_and_absent = false) {
     using Kmer = dna_uint_kmer_t<uint64_t>;
     dictionary<Kmer, Offsets> dict;
     dict.call_minimizer_positions(0, [](uint64_t) { throw std::runtime_error("empty dictionary emitted a position"); });
@@ -19,22 +20,30 @@ void check(std::filesystem::path const& directory, std::vector<std::string> cons
     }
     build_configuration c;
     c.k = k;
-    c.m = 1;
+    c.m = m;
     c.verbose = false;
     c.tmp_dirname = directory.string();
     dict.build(input.string(), c);
     std::map<uint64_t, std::set<uint64_t>> expected;
-    uint64_t base = 0;
+    uint64_t base = 0, kmer_id = 0;
     for (auto const& word : words) {
         for (uint64_t i = 0; i + k <= word.size(); ++i) {
             auto encoded = util::string_to_uint_kmer<Kmer>(word.data() + i, k);
-            auto mini = util::compute_minimizer(encoded, k, 1, dict.hasher());
+            auto mini = util::compute_minimizer(encoded, k, m, dict.hasher());
             expected[mini.minimizer].insert(base + i + mini.pos_in_kmer);
+            std::string accessed(k, ' ');
+            dict.access(kmer_id, accessed.data());
+            if (accessed != word.substr(i, k))
+                throw std::runtime_error("incorrect k-mer access");
+            ++kmer_id;
         }
         base += word.size();
     }
-    for (uint64_t mini = 0; mini < 4; ++mini) {
-        if (util::canonical_mmer<Kmer>(mini, 1) != mini) continue;
+    uint64_t heavy = 0, absent = 0;
+    for (uint64_t mini = 0; mini < (uint64_t(1) << (Kmer::bits_per_char * m)); ++mini) {
+        if (util::canonical_mmer<Kmer>(mini, m) != mini) continue;
+        heavy += expected[mini].size() > (uint64_t(1) << constants::min_l);
+        absent += expected[mini].empty();
         std::set<uint64_t> observed;
         dict.call_minimizer_positions(mini, [&](uint64_t offset) {
             if (!observed.insert(offset).second)
@@ -42,6 +51,8 @@ void check(std::filesystem::path const& directory, std::vector<std::string> cons
         });
         if (observed != expected[mini]) throw std::runtime_error("incorrect minimizer positions");
     }
+    if (require_heavy_and_absent && (heavy < 2 || absent == 0))
+        throw std::runtime_error("fixture must cover adjacent heavy buckets and absent minimizers");
 }
 int main() {
     auto dir = std::filesystem::temp_directory_path() /
@@ -57,10 +68,12 @@ int main() {
             auto rc = encoded; rc.reverse_complement_inplace(5);
             if (encoded < rc) words.push_back(word);
         }
-        check<decoded_offsets>(dir, {"AAACG"}, 3);
-        check<encoded_offsets>(dir, {"AAACG"}, 3);
-        check<decoded_offsets>(dir, words, 5);
-        check<encoded_offsets>(dir, words, 5);
+        check<decoded_offsets>(dir, {"AAACG"}, 3, 1);
+        check<encoded_offsets>(dir, {"AAACG"}, 3, 1);
+        // This subset has two heavy buckets (65 and 146 positions) and two absent minimizers.
+        words.resize(384);
+        check<decoded_offsets>(dir, words, 5, 2, true);
+        check<encoded_offsets>(dir, words, 5, 2, true);
         std::filesystem::remove_all(dir);
     } catch (std::exception const& e) {
         std::cerr << e.what() << '\n';
