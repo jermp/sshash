@@ -115,6 +115,23 @@ struct dictionary  //
     /* Accessor for internal offsets structure */
     Offsets const& strings_offsets() const { return m_spss.strings_offsets; }
 
+    /* Enumerate indexed positions of a canonical encoded m-mer, as absolute
+       character offsets. Includes heavy buckets and only occurrences selected
+       as minimizers. Empty dictionaries and absent keys emit nothing.
+       Callback return values are ignored. */
+    template <typename Callback>
+    void call_minimizer_positions(uint64_t minimizer, Callback&& callback) const {
+        if (!m_num_kmers) return;
+        auto positions = m_ssi.minimizer_candidates(minimizer);
+        for (uint64_t i = 0; i < positions.size(); ++i, ++positions) {
+            auto position = m_spss.strings_offsets.decode(*positions);
+            Kmer observed = util::read_kmer_at<Kmer>(strings(), m_m,
+                                                   Kmer::bits_per_char * position.absolute_offset);
+            if (util::canonical_mmer<Kmer>(uint64_t(observed), m_m) != minimizer) break;
+            callback(position.absolute_offset);
+        }
+    }
+
     iterator at_string_id(const uint64_t string_id) const {
         assert(string_id < num_strings());
         auto [begin, end] = string_offsets(string_id);

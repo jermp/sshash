@@ -99,6 +99,10 @@ if (SSHASH_BUILD_EXECUTABLES)
     add_executable(test_minimizer test/test_minimizer.cpp)
     target_link_libraries(test_minimizer PRIVATE sshash_static)
 
+    add_executable(test_minimizer_positions test/test_minimizer_positions.cpp)
+    target_link_libraries(test_minimizer_positions PRIVATE sshash_static)
+    add_test(NAME minimizer_positions COMMAND test_minimizer_positions)
+
     add_executable(check test/check.cpp)
     target_link_libraries(check PRIVATE sshash_static)
 
