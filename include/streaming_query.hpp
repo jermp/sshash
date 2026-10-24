@@ -65,10 +65,14 @@ struct streaming_query  //
             m_kmer.drop_char();
             m_kmer.set(m_k - 1, kmer_t::char_to_uint(kmer[m_k - 1]));
             assert(m_kmer == util::string_to_uint_kmer<kmer_t>(kmer, m_k));
-            m_kmer_rc.pad_char();
-            const unsigned char c = kmer[m_k - 1];
-            m_kmer_rc.set(0, kmer_t::char_to_uint(kmer_t::canonicalize_basepair_reverse_map[c]));
-            m_kmer_rc.take(m_k * kmer_t::bits_per_char);
+            if constexpr (kmer_t::has_reverse_complement) {
+                m_kmer_rc.pad_char();
+                const unsigned char c = kmer[m_k - 1];
+                m_kmer_rc.set(0, kmer_t::char_to_uint(kmer_t::canonicalize_basepair_reverse_map[c]));
+                m_kmer_rc.take(m_k * kmer_t::bits_per_char);
+            } else {
+                m_kmer_rc = m_kmer;
+            }
         } else {
             m_kmer = util::string_to_uint_kmer<kmer_t>(kmer, m_k);
             m_kmer_rc = m_kmer;
@@ -245,11 +249,11 @@ private:
     }
 
     void begin_extension() {
-        uint64_t kmer_offset = 2 * (m_res.kmer_id + m_res.string_id * (m_k - 1));
+        uint64_t kmer_offset = kmer_t::bits_per_char * (m_res.kmer_id + m_res.string_id * (m_k - 1));
         m_remaining_string_bases =
             (m_res.string_end - m_res.string_begin - m_k) - m_res.kmer_id_in_string;
         if (m_res.kmer_orientation == constants::backward_orientation) {
-            kmer_offset += 2 * m_k;
+            kmer_offset += kmer_t::bits_per_char * m_k;
             m_remaining_string_bases = m_res.kmer_id_in_string;
         }
         m_it.at(kmer_offset);

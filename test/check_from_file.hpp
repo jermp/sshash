@@ -57,7 +57,7 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             }
 
             /* transform 50% of the kmers into their reverse complements */
-            if ((num_kmers & 1) == 0) {
+            if (kmer_t::has_reverse_complement && (num_kmers & 1) == 0) {
                 uint_kmer.reverse_complement_inplace(k);
                 orientation = constants::backward_orientation;
             }
