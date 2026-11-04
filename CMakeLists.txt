@@ -104,7 +104,12 @@ if (SSHASH_BUILD_EXECUTABLES)
     add_test(NAME minimizer COMMAND test_minimizer)
 
     # Keep independently contributed regression targets in separate files.
-    file(GLOB SSHASH_TEST_REGISTRATIONS "${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/*.cmake")
+    set(SSHASH_TEST_GLOB_OPTIONS)
+    if(NOT CMAKE_VERSION VERSION_LESS "3.12")
+        list(APPEND SSHASH_TEST_GLOB_OPTIONS CONFIGURE_DEPENDS)
+    endif()
+    file(GLOB SSHASH_TEST_REGISTRATIONS ${SSHASH_TEST_GLOB_OPTIONS}
+         "${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/*.cmake")
     foreach(registration IN LISTS SSHASH_TEST_REGISTRATIONS)
         include("${registration}")
     endforeach()
