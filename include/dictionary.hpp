@@ -8,6 +8,8 @@
 
 namespace sshash {
 
+enum class lookup_mode { forward_only, both_strands };
+
 template <typename Kmer, typename Offsets>
 struct dictionary  //
 {
@@ -41,12 +43,22 @@ struct dictionary  //
         Lookup queries. In the default mode, a kmer and its reverse complement
         share one bucket probe. The result reports, via
         `lookup_result::kmer_orientation`, which of the two was found. Pass
-        `check_reverse_complement = false` to restrict the answer to kmers
+        `lookup_mode::forward_only` to restrict the answer to kmers
         occurring in forward orientation. With preserve_orientation enabled at
         build time, both strands may have distinct IDs; forward hits are preferred.
     */
-    lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
-    lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement = true) const;
+    lookup_result lookup(char const* string_kmer,
+                         lookup_mode mode = lookup_mode::both_strands) const {
+        return lookup(string_kmer, mode == lookup_mode::both_strands);
+    }
+    lookup_result lookup(Kmer uint_kmer,
+                         lookup_mode mode = lookup_mode::both_strands) const {
+        return lookup(uint_kmer, mode == lookup_mode::both_strands);
+    }
+
+    // Keep existing boolean calls source-compatible.
+    lookup_result lookup(char const* string_kmer, bool check_reverse_complement) const;
+    lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement) const;
 
     /* Return the number of kmers in string. Since strings do not have duplicates,
        the length of the string is always size + k - 1. */
