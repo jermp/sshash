@@ -1,0 +1,3 @@
+add_executable(test_encoded_boundaries test/test_encoded_boundaries.cpp)
+target_link_libraries(test_encoded_boundaries PRIVATE sshash_static)
+add_test(NAME encoded_boundaries COMMAND test_encoded_boundaries)
