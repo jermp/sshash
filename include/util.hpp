@@ -158,6 +158,7 @@ struct build_configuration {
 
         , lambda(constants::lambda)
 
+        , preserve_orientation(false)
         , weighted(false)
         , verbose(true)
 
@@ -173,6 +174,8 @@ struct build_configuration {
 
     double lambda;  // drive PTHash trade-off
 
+    // Keep reverse-complement k-mers as distinct input keys. Exact duplicates remain unsupported.
+    bool preserve_orientation;
     bool weighted;
     bool verbose;
 
@@ -194,7 +197,7 @@ struct build_configuration {
 namespace util {
 
 static inline void check_version_number(essentials::version_number const& vnum) {
-    if (vnum.x != constants::current_version_number::x) {
+    if (vnum.x != 6 && vnum.x != constants::current_version_number::x) {
         throw std::runtime_error("MAJOR index version mismatch: SSHash index needs rebuilding");
     }
 }

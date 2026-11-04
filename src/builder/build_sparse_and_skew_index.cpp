@@ -6,6 +6,9 @@ template <typename Kmer, typename Offsets>
 void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     dictionary<Kmer, Offsets>& d)  //
 {
+    d.m_ssi.strand_specific = build_config.preserve_orientation;
+    // Preserve the existing on-disk format for the default mode.
+    d.m_vnum.x = build_config.preserve_orientation ? 7 : 6;
     essentials::timer_type timer;
     timer.start();
 
@@ -433,11 +436,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     d.m_spss.strings, k, Kmer::bits_per_char * starting_pos_of_super_kmer);
                 for (uint64_t i = 0; i != mt.num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
-                    /* take the canonical kmer: a kmer and its reverse complement
-                       share a bucket, hence a skew-index partition */
+                    /* Both orientations share a minimizer bucket. Preserve their
+                       distinct keys only when orientation is requested. */
                     auto kmer_rc = kmer;
                     kmer_rc.reverse_complement_inplace(k);
-                    kmers.push_back(std::min(kmer, kmer_rc));
+                    kmers.push_back(d.m_ssi.strand_specific ? kmer : std::min(kmer, kmer_rc));
                     positions_in_bucket.push_back(pos_in_bucket);
                     it.next();
                 }

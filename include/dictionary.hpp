@@ -1,4 +1,5 @@
 #pragma once
+#include <type_traits>
 
 #include "util.hpp"
 #include "spectrum_preserving_string_set.hpp"
@@ -37,11 +38,12 @@ struct dictionary  //
     hasher_type const& hasher() const { return m_hasher; }
 
     /*
-        Lookup queries. A kmer and its reverse complement share a bucket, so a
-        lookup always costs a single probe and reports, via
+        Lookup queries. In the default mode, a kmer and its reverse complement
+        share one bucket probe. The result reports, via
         `lookup_result::kmer_orientation`, which of the two was found. Pass
         `check_reverse_complement = false` to restrict the answer to kmers
-        occurring in forward orientation.
+        occurring in forward orientation. With preserve_orientation enabled at
+        build time, both strands may have distinct IDs; forward hits are preferred.
     */
     lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
     lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement = true) const;
@@ -169,6 +171,8 @@ private:
         visitor.visit(t.m_hasher);
         visitor.visit(t.m_spss);
         visitor.visit(t.m_ssi);
+        if (t.m_vnum.x >= 7) visitor.visit(t.m_ssi.strand_specific);
+        else if constexpr (!std::is_const_v<std::remove_reference_t<T>>) t.m_ssi.strand_specific = false;
         visitor.visit(t.m_weights);
     }
 
@@ -185,7 +189,7 @@ private:
     weights m_weights;
 
     lookup_result lookup(Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info,
-                         typename spss_type::bucket_cache* cache = nullptr) const;
+                         typename spss_type::bucket_cache* cache = nullptr, bool forward_only = false) const;
 
     void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;

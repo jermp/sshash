@@ -116,7 +116,7 @@ struct sparse_and_skew_index  //
     {
         uint64_t code = codewords.lookup(mini_info.minimizer);
         if (!minimizer_codeword::is_heavy(code)) return sparse_bucket(code);
-        const Kmer uint_kmer_canon = std::min(uint_kmer, uint_kmer_rc);
+        const Kmer uint_kmer_canon = strand_specific ? uint_kmer : std::min(uint_kmer, uint_kmer_rc);
         return {this, ski.lookup(uint_kmer_canon, code), 1, bucket_t::HEAVYLOAD};
     }
 
@@ -168,6 +168,7 @@ public:
         visit_impl(visitor, *this);
     }
 
+    bool strand_specific = false;
     minimizers_control_map codewords;
     essentials::owning_span<uint32_t> begin_buckets_of_size;
     bits::compact_vector mid_load_buckets;

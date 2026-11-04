@@ -1,0 +1,6 @@
+add_executable(test_orientation_preserving test/test_orientation_preserving.cpp)
+target_link_libraries(test_orientation_preserving PRIVATE sshash_static)
+add_test(NAME orientation_preserving COMMAND test_orientation_preserving ${CMAKE_CURRENT_BINARY_DIR}/orientation-test-data)
+add_executable(test_orientation_compatibility test/test_orientation_compatibility.cpp)
+target_link_libraries(test_orientation_compatibility PRIVATE sshash_static)
+add_test(NAME orientation_compatibility COMMAND test_orientation_compatibility ${CMAKE_CURRENT_BINARY_DIR}/compatibility-test-data ${CMAKE_CURRENT_SOURCE_DIR}/test/data/orientation-v6)
