@@ -8,6 +8,7 @@ jobs:
   build:
     strategy:
       matrix:
+        build_type: [Release, Debug]
         compiler:
           - { name: gcc, version: 11}
           - { name: gcc, version: 12}
@@ -16,7 +17,7 @@ jobs:
           - { name: clang, version: 16}
           - { name: clang, version: 17}
           - { name: clang, version: 18}
-    name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }})
+    name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }}, ${{ matrix.build_type }})
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
@@ -41,5 +42,8 @@ jobs:
           submodules: recursive
       - name: Build
         run: |
-          cmake -B ./build
+          cmake -B ./build -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DSSHASH_USE_SANITIZERS=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }} \
+            -DCMAKE_CXX_FLAGS=-fsigned-char
           cmake --build ./build --parallel
+          ctest --test-dir ./build --output-on-failure
