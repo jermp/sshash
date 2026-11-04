@@ -103,9 +103,11 @@ if (SSHASH_BUILD_EXECUTABLES)
     target_link_libraries(test_minimizer PRIVATE sshash_static)
     add_test(NAME minimizer COMMAND test_minimizer)
 
-    add_executable(test_encoded_endpoints test/test_encoded_endpoints.cpp)
-    target_link_libraries(test_encoded_endpoints PRIVATE sshash_static)
-    add_test(NAME encoded_endpoints COMMAND test_encoded_endpoints)
+    # Keep independently contributed regression targets in separate files.
+    file(GLOB SSHASH_TEST_REGISTRATIONS "${CMAKE_CURRENT_SOURCE_DIR}/test/cmake/*.cmake")
+    foreach(registration IN LISTS SSHASH_TEST_REGISTRATIONS)
+        include("${registration}")
+    endforeach()
 
     add_executable(check test/check.cpp)
     target_link_libraries(check PRIVATE sshash_static)
