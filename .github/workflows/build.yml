@@ -34,7 +34,7 @@ jobs:
       - name: Install Clang
         if: ${{ matrix.compiler.name == 'clang' }}
         run: |
-          sudo apt-get install --assume-yes --no-install-recommends clang-${{ matrix.compiler.version }}
+          sudo apt-get install --assume-yes --no-install-recommends clang-${{ matrix.compiler.version }} libclang-rt-${{ matrix.compiler.version }}-dev
           echo "CC=/usr/bin/clang-${{ matrix.compiler.version }}" >> $GITHUB_ENV
           echo "CXX=/usr/bin/clang++-${{ matrix.compiler.version }}" >> $GITHUB_ENV
       - uses: actions/checkout@v6
