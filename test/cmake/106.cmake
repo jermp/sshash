@@ -1,0 +1,3 @@
+add_executable(test_merge_fan_in test/test_merge_fan_in.cpp)
+target_link_libraries(test_merge_fan_in PRIVATE sshash_static)
+add_test(NAME merge_fan_in COMMAND test_merge_fan_in)
