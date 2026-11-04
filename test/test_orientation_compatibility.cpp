@@ -71,6 +71,9 @@ int main(int argc, char** argv) {
     if (argc < 2) return 2;
     std::filesystem::create_directory(argv[1]);
     std::string old = argc > 2 ? argv[2] : "";
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+    if (!old.empty()) old += "/traditional";
+#endif
     check<dna_uint_kmer_t<uint64_t>, decoded_offsets>(argv[1], old, 31, "k31-decoded");
     check<dna_uint_kmer_t<uint64_t>, encoded_offsets>(argv[1], old, 31, "k31-encoded");
     check<dna_uint_kmer_t<__uint128_t>, decoded_offsets>(argv[1], old, 41, "k41-decoded");

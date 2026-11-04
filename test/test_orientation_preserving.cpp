@@ -16,7 +16,21 @@ void check_forward_heavy(std::filesystem::path const& directory, uint64_t k) {
         for (char& c : s) c = c == 'A' ? 'T' : c == 'T' ? 'A' : c == 'C' ? 'G' : 'C';
         return s;
     };
-    const std::string anchor = "TGACGATAAACCAACACGC";
+    // Choose a low-hash anchor using the active nucleotide encoding.
+    const std::string anchor = [] {
+        std::mt19937_64 generator(20261105);
+        hasher_type hash(constants::seed);
+        uint64_t best = constants::invalid_uint64;
+        std::string selected;
+        for (uint64_t trial = 0; trial < 4096; ++trial) {
+            std::string word;
+            for (uint64_t i = 0; i < 19; ++i) word += "ACGT"[generator() % 4];
+            auto value = util::string_to_uint_kmer<Kmer>(word.data(), word.size());
+            auto score = hash.hash(util::canonical_mmer<Kmer>(uint64_t(value), word.size()));
+            if (score < best) { best = score; selected = word; }
+        }
+        return selected;
+    }();
     std::mt19937_64 random(20261104);
     auto flank = [&] {
         std::string s;

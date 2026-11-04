@@ -1,1 +1,3 @@
 These synthetic v6 fixtures were generated with upstream commit `2ea1f8bbfa1e56bc072329176b68079ba5a707c1`, GCC 13.3.0, on x86-64 Linux. The input generator is reproduced in `test/test_orientation_compatibility.cpp`: 128 DNA words from `std::mt19937_64(20261104)`, with k=31 or k=41 and m=15. Each word is a separate FASTA record. Both decoded and encoded offset formats are included. No biological or user-submitted sequences are present.
+
+The `traditional/` fixtures use the same pinned upstream writer and generator, compiled with `SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING=ON`. The reader must use the encoding of its fixture; v6 does not record the nucleotide encoding.
