@@ -110,16 +110,24 @@ struct sparse_and_skew_index  //
         bits::compact_vector::iterator m_it;
     };
 
-    bucket_iterator lookup(const Kmer uint_kmer,                  //
+    bucket_iterator lookup(Kmer kmer, Kmer rc, minimizer_info mini) const {
+        return strand_specific ? lookup_impl<true>(kmer, rc, mini)
+                               : lookup_impl<false>(kmer, rc, mini);
+    }
+private:
+    template <typename, typename> friend struct dictionary;
+    template <bool Oriented>
+    bucket_iterator lookup_impl(const Kmer uint_kmer,                  //
                            const Kmer uint_kmer_rc,               //
                            const minimizer_info mini_info) const  //
     {
         uint64_t code = codewords.lookup(mini_info.minimizer);
         if (!minimizer_codeword::is_heavy(code)) return sparse_bucket(code);
-        const Kmer uint_kmer_canon = strand_specific ? uint_kmer : std::min(uint_kmer, uint_kmer_rc);
+        const Kmer uint_kmer_canon = Oriented ? uint_kmer : std::min(uint_kmer, uint_kmer_rc);
         return {this, ski.lookup(uint_kmer_canon, code), 1, bucket_t::HEAVYLOAD};
     }
 
+public:
     // Candidate positions for a minimizer, without a full-kmer discriminator.
     // Heavy buckets have no stored length: the caller must verify minimizers
     // and stop at the first mismatch. A missing key also needs verification.

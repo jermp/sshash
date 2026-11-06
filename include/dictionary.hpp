@@ -203,6 +203,13 @@ private:
     lookup_result lookup(Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info,
                          typename spss_type::bucket_cache* cache = nullptr, bool forward_only = false) const;
 
+    template <bool Oriented>
+    lookup_result lookup_mode_impl(decltype(Kmer::bits) bits, bool check_reverse_complement) const;
+    template <bool Oriented>
+    lookup_result lookup_bucket_impl(Kmer kmer, Kmer rc, minimizer_info mini,
+                                    typename spss_type::bucket_cache* cache,
+                                    bool forward_only) const;
+
     void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;
     void backward_neighbours(Kmer prefix, neighbourhood<Kmer>& res,
