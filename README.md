@@ -303,9 +303,9 @@ The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
 
 ### Preserving input orientation (C++ API)
 
-Applications that assign distinct IDs to a DNA k-mer and its reverse complement can set `build_configuration::preserve_orientation = true` before building a dictionary. Exact duplicate k-mers remain unsupported. `lookup(kmer, lookup_mode::forward_only)` then returns the ID of the stored forward k-mer, or a miss if only its reverse complement is present. With reverse-complement matching enabled, lookup prefers the forward occurrence when both are present.
+Applications that assign distinct IDs to a DNA k-mer and its reverse complement can set `build_configuration::preserve_orientation = true` before building a dictionary. Exact duplicate k-mers remain unsupported. `lookup(kmer, false)` then returns the ID of the stored forward k-mer, or a miss if only its reverse complement is present. With reverse-complement matching enabled, lookup prefers the forward occurrence when both are present.
 
-This option indexes heavy buckets with oriented keys and verifies each candidate against the stored sequence. It avoids scanning a heavy bucket to recover the other orientation. The default mode retains reverse-complement equivalence and writes the existing v6 format. Orientation-preserving dictionaries use v7 and require this reader; existing v6 dictionaries remain readable.
+This option indexes heavy buckets with oriented keys and verifies each candidate against the stored sequence. It avoids scanning a heavy bucket to recover the other orientation. The default mode retains reverse-complement equivalence. This reader accepts v6 and v7 dictionaries; all saves write v7, including when resaving a loaded v6 dictionary. Older readers reject v7 files.
 
 References
 ----------

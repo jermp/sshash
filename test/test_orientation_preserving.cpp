@@ -76,15 +76,11 @@ void check_forward_heavy(std::filesystem::path const& directory, uint64_t k) {
     dict.build(input.string(), config);
     auto verify = [&](dict_type const& index, std::string const& word) {
         for (bool with_rc : {false, true}) {
-            auto mode = with_rc ? lookup_mode::both_strands : lookup_mode::forward_only;
-            auto result = index.lookup(word.data(), mode);
-            auto legacy = index.lookup(word.data(), with_rc);
-            auto encoded = index.lookup(util::string_to_uint_kmer<Kmer>(word.data(), k), mode);
-            if (result.kmer_id != legacy.kmer_id ||
-                result.kmer_orientation != legacy.kmer_orientation ||
-                result.kmer_id != encoded.kmer_id ||
+            auto result = index.lookup(word.data(), with_rc);
+            auto encoded = index.lookup(util::string_to_uint_kmer<Kmer>(word.data(), k), with_rc);
+            if (result.kmer_id != encoded.kmer_id ||
                 result.kmer_orientation != encoded.kmer_orientation)
-                throw std::runtime_error("lookup policy overloads disagree");
+                throw std::runtime_error("string and encoded lookups disagree");
             if (with_rc) {
                 auto default_result = index.lookup(word.data());
                 if (result.kmer_id != default_result.kmer_id ||

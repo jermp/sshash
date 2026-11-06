@@ -41,8 +41,16 @@ void check(std::string dir, std::string legacy, uint64_t k, std::string tag) {
         }
     };
     verify(d);
+    auto check_version = [](const std::string& filename, uint8_t expected) {
+        std::ifstream in(filename, std::ios::binary);
+        essentials::generic_loader reader(in);
+        essentials::version_number version(0, 0, 0);
+        reader.visit(version);
+        if (!in || version.x != expected) throw std::runtime_error("wrong serialized version");
+    };
     auto path = dir + "/" + tag + ".sshash";
     essentials::save(d, path.c_str());
+    check_version(path, 7);
     D loaded, mapped;
     essentials::load(loaded, path.c_str());
     essentials::mmap(mapped, path.c_str());
@@ -50,17 +58,29 @@ void check(std::string dir, std::string legacy, uint64_t k, std::string tag) {
     verify(mapped);
     if (!legacy.empty()) {
         auto oldpath = legacy + "/" + tag + ".sshash";
+        check_version(oldpath, 6);
         essentials::load(loaded, oldpath.c_str());
         D oldmap;
         essentials::mmap(oldmap, oldpath.c_str());
         verify(loaded);
         verify(oldmap);
+        for (auto const* source : {&loaded, &oldmap}) {
+            auto upgraded = dir + "/" + tag + "-upgraded.sshash";
+            essentials::save(*source, upgraded.c_str());
+            check_version(upgraded, 7);
+            D reloaded, remapped;
+            essentials::load(reloaded, upgraded.c_str());
+            essentials::mmap(remapped, upgraded.c_str());
+            verify(reloaded);
+            verify(remapped);
+        }
 
         cfg.preserve_orientation = true;
         D oriented;
         oriented.build(input, cfg);
         auto np = dir + "/" + tag + "-oriented.sshash";
         essentials::save(oriented, np.c_str());
+        check_version(np, 7);
         essentials::load(loaded, np.c_str());
         verify(loaded);
         essentials::load(loaded, oldpath.c_str());
@@ -69,6 +89,12 @@ void check(std::string dir, std::string legacy, uint64_t k, std::string tag) {
 }
 int main(int argc, char** argv) {
     if (argc < 2) return 2;
+    for (uint8_t major : {uint8_t(5), uint8_t(8)}) {
+        bool rejected = false;
+        try { util::check_version_number(essentials::version_number(major, 0, 0)); }
+        catch (std::runtime_error const&) { rejected = true; }
+        if (!rejected) throw std::runtime_error("unsupported version accepted");
+    }
     std::filesystem::create_directory(argv[1]);
     std::string old = argc > 2 ? argv[2] : "";
 #ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING

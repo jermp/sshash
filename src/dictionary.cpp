@@ -21,7 +21,7 @@ lookup_result dictionary<Kmer, Offsets>::lookup(Kmer uint_kmer,
 
 template <typename Kmer, typename Offsets>
 template <bool Oriented>
-__attribute__((flatten)) lookup_result dictionary<Kmer, Offsets>::lookup_mode_impl(
+[[gnu::flatten]] lookup_result dictionary<Kmer, Offsets>::lookup_mode_impl(
     decltype(Kmer::bits) bits, bool check_reverse_complement) const {
     Kmer uint_kmer;
     uint_kmer.bits = bits;
@@ -194,7 +194,7 @@ neighbourhood<Kmer> dictionary<Kmer, Offsets>::string_neighbours(
 template <typename Kmer, typename Offsets>
 uint64_t dictionary<Kmer, Offsets>::num_bits() const {
     return 8 * (sizeof(m_vnum) + sizeof(m_num_kmers) + sizeof(m_num_strings) + sizeof(m_k) +
-                sizeof(m_m) + sizeof(m_hasher) + (m_vnum.x >= 7 ? sizeof(m_ssi.strand_specific) : 0)) +
+                sizeof(m_m) + sizeof(m_hasher) + sizeof(m_ssi.strand_specific)) +
            m_spss.num_bits() + m_ssi.num_bits() + m_weights.num_bits();
 }
 

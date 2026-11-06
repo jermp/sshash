@@ -7,8 +7,6 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     dictionary<Kmer, Offsets>& d)  //
 {
     d.m_ssi.strand_specific = build_config.preserve_orientation;
-    // Preserve the existing on-disk format for the default mode.
-    d.m_vnum.x = build_config.preserve_orientation ? 7 : 6;
     essentials::timer_type timer;
     timer.start();
 
