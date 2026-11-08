@@ -261,7 +261,7 @@ private:
             strings_offsets.offset_to_id(res, p, k);
         }
 
-        if (res.kmer_offset < res.string_end - k + 1) return true;
+        if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1) return true;
         return false;
     }
 };
