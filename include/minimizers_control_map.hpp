@@ -2,6 +2,26 @@
 
 namespace sshash {
 
+namespace minimizer_codeword {
+
+// Singleton codes end in one zero bit; mid/heavy codes have a two-bit status.
+constexpr uint64_t singleton_bits = 1;
+constexpr uint64_t status_bits = 2;
+constexpr uint64_t partition_bits = 3;
+constexpr uint64_t heavy_metadata_bits = status_bits + partition_bits;
+
+inline bool is_heavy(uint64_t code) {
+    return (code & ((uint64_t(1) << status_bits) - 1)) == bucket_t::HEAVYLOAD;
+}
+
+inline uint64_t heavy_partition(uint64_t code) {
+    return (code >> status_bits) & ((uint64_t(1) << partition_bits) - 1);
+}
+
+inline uint64_t heavy_begin(uint64_t code) { return code >> heavy_metadata_bits; }
+
+}  // namespace minimizer_codeword
+
 struct minimizers_control_map  //
 {
     template <typename ForwardIterator>
