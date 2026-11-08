@@ -14,9 +14,9 @@ jobs:
           - { name: gcc, version: 12}
           - { name: gcc, version: 13}
           - { name: gcc, version: 14}
-          - { name: clang, version: 16}
           - { name: clang, version: 17}
           - { name: clang, version: 18}
+          - { name: clang, version: 19}
     name: Build (${{ matrix.compiler.name }} ${{ matrix.compiler.version }}, ${{ matrix.build_type }})
     runs-on: ubuntu-latest
     steps:
@@ -34,7 +34,7 @@ jobs:
       - name: Install Clang
         if: ${{ matrix.compiler.name == 'clang' }}
         run: |
-          sudo apt-get install --assume-yes --no-install-recommends clang-${{ matrix.compiler.version }}
+          sudo apt-get install --assume-yes --no-install-recommends clang-${{ matrix.compiler.version }} libclang-rt-${{ matrix.compiler.version }}-dev
           echo "CC=/usr/bin/clang-${{ matrix.compiler.version }}" >> $GITHUB_ENV
           echo "CXX=/usr/bin/clang++-${{ matrix.compiler.version }}" >> $GITHUB_ENV
       - uses: actions/checkout@v6
