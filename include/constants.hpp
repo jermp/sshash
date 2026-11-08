@@ -27,7 +27,8 @@ constexpr uint8_t z = 0;
 
 /* Indexes built with preserve_orientation use this major version. Readers that
    only know the current version reject them instead of treating them as
-   canonical. Their layout is the current one plus a trailing orientation flag. */
+   canonical. Their layout is the current one with an orientation flag between
+   the minimizer index and the weights. */
 constexpr uint8_t oriented_version_major = 7;
 
 }  // namespace sshash::constants
