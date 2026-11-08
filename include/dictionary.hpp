@@ -171,16 +171,13 @@ private:
         visitor.visit(t.m_hasher);
         visitor.visit(t.m_spss);
         visitor.visit(t.m_ssi);
-        if (t.m_vnum.x >= 7) visitor.visit(t.m_ssi.strand_specific);
-        else if constexpr (!std::is_const_v<std::remove_reference_t<T>>) t.m_ssi.strand_specific = false;
-        visitor.visit(t.m_weights);
-        // Legacy data is now represented in the current format in memory.
-        // Subsequent saves, including after mmap, always write the current version.
-        if constexpr (!std::is_const_v<std::remove_reference_t<T>>) {
-            t.m_vnum = essentials::version_number(constants::current_version_number::x,
-                                                  constants::current_version_number::y,
-                                                  constants::current_version_number::z);
+        // Only oriented indexes carry the flag. Default indexes keep the v6 layout.
+        if (t.m_vnum.x == constants::oriented_version_major) {
+            visitor.visit(t.m_ssi.strand_specific);
+        } else if constexpr (!std::is_const_v<std::remove_reference_t<T>>) {
+            t.m_ssi.strand_specific = false;
         }
+        visitor.visit(t.m_weights);
     }
 
     essentials::version_number m_vnum;

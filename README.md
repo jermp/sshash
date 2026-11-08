@@ -305,7 +305,7 @@ The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
 
 Applications that assign distinct IDs to a DNA k-mer and its reverse complement can set `build_configuration::preserve_orientation = true` before building a dictionary. Exact duplicate k-mers remain unsupported. `lookup(kmer, false)` then returns the ID of the stored forward k-mer, or a miss if only its reverse complement is present. With reverse-complement matching enabled, lookup prefers the forward occurrence when both are present.
 
-This option indexes heavy buckets with oriented keys and verifies each candidate against the stored sequence. It avoids scanning a heavy bucket to recover the other orientation. The default mode retains reverse-complement equivalence. This reader accepts v6 and v7 dictionaries; all saves write v7, including when resaving a loaded v6 dictionary. Older readers reject v7 files.
+This option indexes heavy buckets with oriented keys and verifies each candidate against the stored sequence. It avoids scanning a heavy bucket to recover the other orientation. The default mode retains reverse-complement equivalence. Dictionaries built without this option keep the v6 format, so older readers still load them. Dictionaries built with it are saved as v7, which adds a one-byte orientation flag. Older readers reject v7 files with a version error.
 
 References
 ----------

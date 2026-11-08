@@ -7,6 +7,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     dictionary<Kmer, Offsets>& d)  //
 {
     d.m_ssi.strand_specific = build_config.preserve_orientation;
+    d.m_vnum = essentials::version_number(build_config.preserve_orientation
+                                              ? constants::oriented_version_major
+                                              : constants::current_version_number::x,
+                                          constants::current_version_number::y,
+                                          constants::current_version_number::z);
     essentials::timer_type timer;
     timer.start();
 

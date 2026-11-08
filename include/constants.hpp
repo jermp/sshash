@@ -20,9 +20,14 @@ constexpr int forward_orientation = 1;
 constexpr int backward_orientation = -1;
 
 namespace current_version_number {
-constexpr uint8_t x = 7;
+constexpr uint8_t x = 6;
 constexpr uint8_t y = 0;
 constexpr uint8_t z = 0;
 }  // namespace current_version_number
+
+/* Indexes built with preserve_orientation use this major version. Readers that
+   only know the current version reject them instead of treating them as
+   canonical. Their layout is the current one plus a trailing orientation flag. */
+constexpr uint8_t oriented_version_major = 7;
 
 }  // namespace sshash::constants

@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <iterator>
 #include <random>
 #include "src/builder/build.cpp"
 #include "src/dictionary.cpp"
@@ -48,9 +49,13 @@ void check(std::string dir, std::string legacy, uint64_t k, std::string tag) {
         reader.visit(version);
         if (!in || version.x != expected) throw std::runtime_error("wrong serialized version");
     };
+    auto read_bytes = [](const std::string& filename) {
+        std::ifstream in(filename, std::ios::binary);
+        return std::string(std::istreambuf_iterator<char>(in), {});
+    };
     auto path = dir + "/" + tag + ".sshash";
     essentials::save(d, path.c_str());
-    check_version(path, 7);
+    check_version(path, constants::current_version_number::x);
     D loaded, mapped;
     essentials::load(loaded, path.c_str());
     essentials::mmap(mapped, path.c_str());
@@ -67,7 +72,9 @@ void check(std::string dir, std::string legacy, uint64_t k, std::string tag) {
         for (auto const* source : {&loaded, &oldmap}) {
             auto upgraded = dir + "/" + tag + "-upgraded.sshash";
             essentials::save(*source, upgraded.c_str());
-            check_version(upgraded, 7);
+            check_version(upgraded, constants::current_version_number::x);
+            if (read_bytes(upgraded) != read_bytes(oldpath))
+                throw std::runtime_error("resaved v6 index differs from the original");
             D reloaded, remapped;
             essentials::load(reloaded, upgraded.c_str());
             essentials::mmap(remapped, upgraded.c_str());
@@ -80,9 +87,13 @@ void check(std::string dir, std::string legacy, uint64_t k, std::string tag) {
         oriented.build(input, cfg);
         auto np = dir + "/" + tag + "-oriented.sshash";
         essentials::save(oriented, np.c_str());
-        check_version(np, 7);
+        check_version(np, constants::oriented_version_major);
         essentials::load(loaded, np.c_str());
         verify(loaded);
+        auto resaved = dir + "/" + tag + "-oriented-resaved.sshash";
+        essentials::save(loaded, resaved.c_str());
+        if (read_bytes(resaved) != read_bytes(np))
+            throw std::runtime_error("resaved oriented index differs from the original");
         essentials::load(loaded, oldpath.c_str());
         verify(loaded);
     }

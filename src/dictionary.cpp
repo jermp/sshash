@@ -194,7 +194,9 @@ neighbourhood<Kmer> dictionary<Kmer, Offsets>::string_neighbours(
 template <typename Kmer, typename Offsets>
 uint64_t dictionary<Kmer, Offsets>::num_bits() const {
     return 8 * (sizeof(m_vnum) + sizeof(m_num_kmers) + sizeof(m_num_strings) + sizeof(m_k) +
-                sizeof(m_m) + sizeof(m_hasher) + sizeof(m_ssi.strand_specific)) +
+                sizeof(m_m) + sizeof(m_hasher) +
+                (m_vnum.x == constants::oriented_version_major ? sizeof(m_ssi.strand_specific)
+                                                               : 0)) +
            m_spss.num_bits() + m_ssi.num_bits() + m_weights.num_bits();
 }
 
