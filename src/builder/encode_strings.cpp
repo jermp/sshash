@@ -10,34 +10,53 @@ namespace sshash {
 
 namespace util {
 
-#if defined(__AVX2__)
-/*
-    This function takes 32 bytes and packs the two bits
-    in positions 1 and 2 (from right) of each byte into
-    a single 64-bit word.
-
-    This works with the map:
-    A -> 00; C -> 01; G -> 11; T -> 10.
-*/
-inline uint64_t pack2bits_shift1(__m256i v) {
-    // shift >> 1, then mask by 3 to isolate the relevant bits
-    __m256i shifted = _mm256_srli_epi16(v, 1);
-    __m256i values = _mm256_and_si256(shifted, _mm256_set1_epi8(3));
-
-    // collect bit-0 plane
-    __m256i bit0 = _mm256_slli_epi16(values, 7);
-    uint32_t mask0 = _mm256_movemask_epi8(bit0);
-
-    // collect bit-1 plane
-    __m256i bit1 = _mm256_slli_epi16(values, 6);
-    uint32_t mask1 = _mm256_movemask_epi8(bit1);
-
-    // interleave into the 64-bit result
-    uint64_t even = _pdep_u64(mask0, 0x5555555555555555ULL);  // 010101...
-    uint64_t odd = _pdep_u64(mask1, 0xAAAAAAAAAAAAAAAAULL);   // 101010...
-    return even | odd;
-}
+// Pack complete characters into the low bits of a 64-bit word.
+template <typename Kmer>
+inline uint64_t pack_word(char const* sequence) {
+    constexpr uint64_t bits_per_char = Kmer::bits_per_char;
+    static_assert(bits_per_char >= 2, "String encoding requires at least two bits per character");
+    constexpr uint64_t chars_per_word = 64 / bits_per_char;
+#if defined(__AVX2__) && defined(__BMI2__)
+    if constexpr (bits_per_char <= 8) {
+        constexpr uint64_t code_mask = ~(uint64_t(-1) << bits_per_char);
+        // A vector lets GCC insert mapped bytes directly into registers.
+        using byte_vector [[gnu::vector_size(32)]] = uint8_t;
+        byte_vector codes{};
+        for (uint64_t j = 0; j != chars_per_word; ++j) {
+            codes[j] = Kmer::char_to_uint(sequence[j]);
+        }
+        uint64_t word = 0;
+        constexpr uint64_t codes_per_group = sizeof(uint64_t);
+        constexpr uint64_t num_groups = (chars_per_word + codes_per_group - 1) / codes_per_group;
+        if constexpr (num_groups < bits_per_char) {
+            // Compare PEXT groups with bit-plane passes, then extract complete codes.
+            constexpr uint64_t byte_fields = (UINT64_MAX / UINT8_MAX) * code_mask;
+            using word_vector [[gnu::vector_size(32)]] = uint64_t;
+            const auto byte_groups = (word_vector)codes;
+            for (uint64_t j = 0; j < chars_per_word; j += codes_per_group) {
+                word |= _pext_u64(byte_groups[j / codes_per_group], byte_fields)
+                        << (j * bits_per_char);
+            }
+        } else {
+            // Select the first bit of each complete character field.
+            constexpr uint64_t positions = (uint64_t(-1) >> (64 % bits_per_char)) / code_mask;
+            using lanes [[gnu::vector_size(32)]] = uint16_t;
+            for (uint64_t bit = 0; bit != bits_per_char; ++bit) {
+                // Move this bit to each byte's high bit, then collect those bits.
+                const auto shifted = (lanes)codes << (7 - bit);
+                const auto plane = uint32_t(_mm256_movemask_epi8((__m256i)shifted));
+                word |= _pdep_u64(plane, positions << bit);
+            }
+        }
+        return word;
+    }
 #endif
+    uint64_t word = 0;
+    for (uint64_t j = 0; j != chars_per_word; ++j) {
+        word |= uint64_t(Kmer::char_to_uint(sequence[j])) << (j * bits_per_char);
+    }
+    return word;
+}
 
 }  // namespace util
 
@@ -160,16 +179,10 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
         }
 
         uint64_t i = 0;
-        if constexpr (Kmer::bits_per_char == 2) {
-#if !defined(SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING) and defined(__AVX2__)
-
-            /* process 32 bytes at a time */
-            for (; i + 32 <= n; i += 32) {
-                __m256i v = _mm256_loadu_si256(reinterpret_cast<__m256i const*>(&sequence[i]));
-                uint64_t word = util::pack2bits_shift1(v);
-                strings_builder.append_bits(word, 64);
-            }
-#endif
+        constexpr uint64_t chars_per_word = 64 / Kmer::bits_per_char;
+        constexpr uint64_t bits_per_word = chars_per_word * Kmer::bits_per_char;
+        for (; i + chars_per_word <= n; i += chars_per_word) {
+            strings_builder.append_bits(util::pack_word<Kmer>(sequence.data() + i), bits_per_word);
         }
         for (; i < n; ++i) {
             strings_builder.append_bits(Kmer::char_to_uint(sequence[i]), Kmer::bits_per_char);
