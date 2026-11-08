@@ -257,7 +257,7 @@ static Kmer read_kmer_at(bits::bit_vector const& bv, const uint64_t k, const uin
     for (int i = Kmer::uint_kmer_bits - 64; i >= 0; i -= 64) {
         if (pos + i < bv.num_bits()) kmer.append64(bv.get_word64(pos + i));
     }
-    kmer.take(Kmer::bits_per_char * k);
+    kmer.take_chars(k);
     return kmer;
 }
 
