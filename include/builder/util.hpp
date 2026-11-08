@@ -2,6 +2,9 @@
 
 #include <vector>
 #include <atomic>
+#include <numeric>
+
+#include <sys/resource.h>
 
 #include "file_merging_iterator.hpp"
 #include "parallel_sort.hpp"
@@ -141,6 +144,36 @@ private:
     }
 };
 
+/*
+    Every run being merged is an open file and a memory mapping: merge at most
+    half as many runs as the process may have of either, leaving the rest to the
+    process, and at least two.
+*/
+static inline uint64_t merge_fan_in(uint64_t max_open_files, uint64_t max_map_count) {
+    return std::max<uint64_t>(std::min(max_open_files, max_map_count) / 2, 2);
+}
+
+/*
+    Raise the soft limit on open files to the hard limit, then return the merge
+    fan-in for the limits in effect (vm.max_map_count is read where available).
+*/
+static inline uint64_t max_merge_fan_in() {
+    uint64_t max_open_files = uint64_t(-1);
+    rlimit limit;
+    if (getrlimit(RLIMIT_NOFILE, &limit) == 0) {
+        if (limit.rlim_cur < limit.rlim_max) {
+            rlimit raised = limit;
+            raised.rlim_cur = limit.rlim_max;
+            if (setrlimit(RLIMIT_NOFILE, &raised) == 0) limit = raised;
+        }
+        if (limit.rlim_cur != RLIM_INFINITY) max_open_files = limit.rlim_cur;
+    }
+    uint64_t max_map_count = uint64_t(-1);
+    std::ifstream in("/proc/sys/vm/max_map_count");
+    if (uint64_t value; in >> value) max_map_count = value;
+    return merge_fan_in(max_open_files, max_map_count);
+}
+
 struct minimizers_tuples {
     minimizers_tuples() {}
     minimizers_tuples(build_configuration const& build_config)
@@ -182,17 +215,16 @@ struct minimizers_tuples {
     }
 
     struct files_name_iterator {
-        files_name_iterator(minimizers_tuples const* ptr) : m_id(0), m_ptr(ptr) {}
+        files_name_iterator(minimizers_tuples const* ptr, uint64_t const* ids)
+            : m_ids(ids), m_ptr(ptr) {}
 
-        std::string operator*() { return m_ptr->get_tmp_output_filename(m_id); }
-        void operator++() { ++m_id; }
+        std::string operator*() { return m_ptr->get_tmp_output_filename(*m_ids); }
+        void operator++() { ++m_ids; }
 
     private:
-        uint64_t m_id;
+        uint64_t const* m_ids;
         minimizers_tuples const* m_ptr;
     };
-
-    files_name_iterator files_name_iterator_begin() { return files_name_iterator(this); }
 
     void merge() {
         if (m_num_files_to_merge == 0) return;
@@ -211,8 +243,41 @@ struct minimizers_tuples {
         }
 
         assert(m_num_files_to_merge > 1);
-        file_merging_iterator<minimizer_tuple> fm_iterator(files_name_iterator_begin(),
-                                                           m_num_files_to_merge);
+        std::vector<uint64_t> ids(m_num_files_to_merge);
+        std::iota(ids.begin(), ids.end(), 0);
+
+        /*
+            Merge at most `fan_in` runs at a time into longer runs until the rest
+            fit in one final merge. The new runs take fresh ids.
+        */
+        const uint64_t fan_in = max_merge_fan_in();
+        if (m_build_config.verbose) {
+            std::cout << "merging " << ids.size() << " runs, at most " << fan_in << " at a time"
+                      << std::endl;
+        }
+        while (ids.size() > fan_in) {
+            std::vector<uint64_t> merged_ids;
+            for (uint64_t i = 0; i < ids.size(); i += fan_in) {
+                const uint64_t n = std::min<uint64_t>(fan_in, ids.size() - i);
+                if (n == 1) {
+                    merged_ids.push_back(ids[i]);
+                    continue;
+                }
+                const uint64_t id = m_num_files_to_merge.fetch_add(1);
+                std::ofstream out(get_tmp_output_filename(id).c_str(), std::ofstream::binary);
+                if (!out.is_open()) throw std::runtime_error("cannot open file");
+                merge_runs(ids.data() + i, n, [&](minimizer_tuple const& mt) {
+                    out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
+                });
+                out.close();
+                merged_ids.push_back(id);
+            }
+            if (m_build_config.verbose) {
+                std::cout << "merged " << ids.size() << " runs into " << merged_ids.size()
+                          << " runs" << std::endl;
+            }
+            ids.swap(merged_ids);
+        }
 
         std::ofstream out(get_minimizers_filename().c_str());
         if (!out.is_open()) throw std::runtime_error("cannot open file");
@@ -225,25 +290,16 @@ struct minimizers_tuples {
         m_num_minimizer_positions = 0;
         uint64_t prev_minimizer = constants::invalid_uint64;
         uint64_t prev_pos_in_seq = constants::invalid_uint64;
-        while (fm_iterator.has_next()) {
-            minimizer_tuple mt = *fm_iterator;
+        merge_runs(ids.data(), ids.size(), [&](minimizer_tuple const& mt) {
             count_and_check_forward_one(mt, prev_minimizer, prev_pos_in_seq);
             out.write(reinterpret_cast<char const*>(&mt), sizeof(minimizer_tuple));
             if (m_build_config.verbose and m_num_minimizer_positions % 100'000'000 == 0) {
                 std::cout << "processed " << m_num_minimizer_positions << " minimizer tuples"
                           << std::endl;
             }
-            fm_iterator.next();
-        }
+        });
 
         out.close();
-        fm_iterator.close();
-
-        /* remove tmp files */
-        for (uint64_t i = 0; i != m_num_files_to_merge; ++i) {
-            auto tmp_output_filename = get_tmp_output_filename(i);
-            std::remove(tmp_output_filename.c_str());
-        }
     }
 
     uint64_t num_files_to_merge() const { return m_num_files_to_merge; }
@@ -290,6 +346,24 @@ private:
         uint64_t prev_pos_in_seq = constants::invalid_uint64;
         for (; begin != end; ++begin) {
             count_and_check_forward_one(*begin, prev_minimizer, prev_pos_in_seq);
+        }
+    }
+
+    /*
+        Merge the sorted runs with the given ids, passing each tuple in order
+        to `append`, then remove the runs.
+    */
+    template <typename Append>
+    void merge_runs(uint64_t const* ids, uint64_t num_runs, Append append) {
+        file_merging_iterator<minimizer_tuple> fm_iterator(files_name_iterator(this, ids),
+                                                           num_runs);
+        while (fm_iterator.has_next()) {
+            append(*fm_iterator);
+            fm_iterator.next();
+        }
+        fm_iterator.close();
+        for (uint64_t i = 0; i != num_runs; ++i) {
+            std::remove(get_tmp_output_filename(ids[i]).c_str());
         }
     }
 

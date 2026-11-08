@@ -70,7 +70,7 @@ private:
     std::vector<uint32_t> m_tree;
 
     uint64_t m_begin, m_size;
-    uint64_t m_min_idx, m_num_files_to_merge;
+    uint64_t m_min_idx = 0, m_num_files_to_merge = 0;
 
     void update() {
         if (m_iterators.size() <= scan_threshold) {  // compute min with a linear scan
