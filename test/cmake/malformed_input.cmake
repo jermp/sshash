@@ -1,0 +1,3 @@
+add_executable(test_malformed_input test/test_malformed_input.cpp)
+target_link_libraries(test_malformed_input PRIVATE sshash_static)
+add_test(NAME malformed_input COMMAND test_malformed_input)

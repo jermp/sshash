@@ -6,6 +6,17 @@
 
 namespace sshash {
 
+/* read the sequence of the next FASTA record, which may be wrapped over several lines */
+inline void read_fasta_record(std::istream& is, std::string& sequence) {
+    std::string line;
+    std::getline(is, line);  // header sequence
+    sequence.clear();
+    while (is.peek() != '>' and is.peek() != std::char_traits<char>::eof()) {
+        std::getline(is, line);  // DNA sequence
+        sequence += line;
+    }
+}
+
 template <typename Dict, input_file_t fmt>
 bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
 {
@@ -29,8 +40,7 @@ bool check_correctness_lookup_access(std::istream& is, Dict const& dict)  //
             std::getline(is, sequence);        // DNA sequence
         } else {
             static_assert(fmt == input_file_t::fasta);
-            std::getline(is, sequence);  // header sequence
-            std::getline(is, sequence);  // DNA sequence
+            read_fasta_record(is, sequence);
         }
 
         if (sequence.length() < k) continue;
@@ -187,8 +197,7 @@ bool check_correctness_navigational_kmer_query(std::istream& is, Dict const& dic
             std::getline(is, sequence);        // DNA sequence
         } else {
             static_assert(fmt == input_file_t::fasta);
-            std::getline(is, sequence);  // header sequence
-            std::getline(is, sequence);  // DNA sequence
+            read_fasta_record(is, sequence);
         }
         for (uint64_t i = 0; i + k <= sequence.length(); ++i) {
             assert(util::is_valid<kmer_t>(sequence.data() + i, k));
@@ -269,7 +278,9 @@ bool check_correctness_weights(std::istream& is, Dict const& dict) {
             }
         }
 
-        std::getline(is, line);  // skip DNA sequence
+        while (is.peek() != '>' and is.peek() != std::char_traits<char>::eof()) {
+            std::getline(is, line);  // skip DNA sequence
+        }
     }
 
     std::cout << "checked " << kmer_id << " weights" << std::endl;

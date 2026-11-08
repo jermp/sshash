@@ -81,8 +81,7 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
         } else {
             assert(fmt == input_file_t::fasta);
             if (build_config.weighted) {     // parse header
-                std::getline(is, sequence);  // header sequence
-                if (sequence.empty()) break;
+                if (!std::getline(is, sequence) or sequence.empty()) break;  // header sequence
 
                 /*
                     Heder format:
@@ -131,17 +130,63 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
                     }
                 }
             } else {
-                // skip header sequence
-                is.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+                if (!std::getline(is, sequence)) break;  // header sequence
+                if (sequence.empty() or sequence[0] != '>') {
+                    throw std::runtime_error(
+                        "expected a FASTA header starting with '>' before sequence " +
+                        std::to_string(strings_offsets_builder.size() + 1));
+                }
             }
         }
 
-        std::getline(is, sequence);  // DNA sequence
+        bool terminated = true;  // whether the last line read ended with a newline
+        if (fmt == input_file_t::cf_seg) {
+            std::getline(is, sequence);  // DNA sequence
+            if (is.eof()) {
+                if (!sequence.empty()) terminated = false;
+                else break;
+            }
+        } else {
+            /* the sequence of a FASTA record may be wrapped over several lines */
+            sequence.clear();
+            std::string line;
+            while (is.peek() != '>' and is.peek() != std::char_traits<char>::eof()) {
+                std::getline(is, line);
+                sequence += line;
+                if (is.eof()) {
+                    terminated = false;
+                    break;
+                }
+            }
+        }
 
-        if (is.eof()) break;
+        if (!terminated) {
+            throw std::runtime_error("sequence " +
+                                     std::to_string(strings_offsets_builder.size() + 1) +
+                                     " is not terminated by a newline");
+        }
+        if (sequence.empty()) {
+            throw std::runtime_error("record " +
+                                     std::to_string(strings_offsets_builder.size() + 1) +
+                                     " has a header but no sequence");
+        }
 
         const uint64_t n = sequence.length();
-        assert(n >= k);
+        /* A shorter sequence would underflow its number of k-mers (n - k + 1). */
+        if (n < k) {
+            throw std::runtime_error("sequence " +
+                                     std::to_string(strings_offsets_builder.size() + 1) +
+                                     " has length " + std::to_string(n) +
+                                     ", shorter than k = " + std::to_string(k));
+        }
+        for (uint64_t j = 0; j != n; ++j) {
+            if (!Kmer::is_valid(sequence[j])) {
+                throw std::runtime_error("sequence " +
+                                         std::to_string(strings_offsets_builder.size() + 1) +
+                                         " has character '" + sequence[j] + "' at position " +
+                                         std::to_string(j) + ", outside the alphabet");
+            }
+        }
         max_len = n > max_len ? n : max_len;
         assert(strings_builder.num_bits() % Kmer::bits_per_char == 0);
         strings_offsets_builder.push_back(strings_builder.num_bits() / Kmer::bits_per_char);
