@@ -1,4 +1,5 @@
 #pragma once
+#include <type_traits>
 
 #include "util.hpp"
 #include "spectrum_preserving_string_set.hpp"
@@ -37,11 +38,12 @@ struct dictionary  //
     hasher_type const& hasher() const { return m_hasher; }
 
     /*
-        Lookup queries. A kmer and its reverse complement share a bucket, so a
-        lookup always costs a single probe and reports, via
+        Lookup queries. In the default mode, a kmer and its reverse complement
+        share one bucket probe. The result reports, via
         `lookup_result::kmer_orientation`, which of the two was found. Pass
         `check_reverse_complement = false` to restrict the answer to kmers
-        occurring in forward orientation.
+        occurring in forward orientation. With preserve_orientation enabled at
+        build time, both strands may have distinct IDs; forward hits are preferred.
     */
     lookup_result lookup(char const* string_kmer, bool check_reverse_complement = true) const;
     lookup_result lookup(Kmer uint_kmer, bool check_reverse_complement = true) const;
@@ -115,6 +117,23 @@ struct dictionary  //
     /* Accessor for internal offsets structure */
     Offsets const& strings_offsets() const { return m_spss.strings_offsets; }
 
+    /* Enumerate indexed positions of a canonical encoded m-mer, as absolute
+       character offsets. Includes heavy buckets and only occurrences selected
+       as minimizers. Empty dictionaries and absent keys emit nothing.
+       Callback return values are ignored. */
+    template <typename Callback>
+    void call_minimizer_positions(uint64_t minimizer, Callback&& callback) const {
+        if (!m_num_kmers) return;
+        auto positions = m_ssi.minimizer_candidates(minimizer);
+        for (uint64_t i = 0; i < positions.size(); ++i, ++positions) {
+            auto position = m_spss.strings_offsets.decode(*positions);
+            Kmer observed = util::read_kmer_at<Kmer>(strings(), m_m,
+                                                   Kmer::bits_per_char * position.absolute_offset);
+            if (util::canonical_mmer<Kmer>(uint64_t(observed), m_m) != minimizer) break;
+            callback(position.absolute_offset);
+        }
+    }
+
     iterator at_string_id(const uint64_t string_id) const {
         assert(string_id < num_strings());
         auto [begin, end] = string_offsets(string_id);
@@ -152,6 +171,12 @@ private:
         visitor.visit(t.m_hasher);
         visitor.visit(t.m_spss);
         visitor.visit(t.m_ssi);
+        // Only oriented indexes carry the flag. Default indexes keep the v6 layout.
+        if (t.m_vnum.x == constants::oriented_version_major) {
+            visitor.visit(t.m_ssi.strand_specific);
+        } else if constexpr (!std::is_const_v<std::remove_reference_t<T>>) {
+            t.m_ssi.strand_specific = false;
+        }
         visitor.visit(t.m_weights);
     }
 
@@ -168,7 +193,14 @@ private:
     weights m_weights;
 
     lookup_result lookup(Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info,
-                         typename spss_type::bucket_cache* cache = nullptr) const;
+                         typename spss_type::bucket_cache* cache = nullptr, bool forward_only = false) const;
+
+    template <bool Oriented>
+    lookup_result lookup_mode_impl(decltype(Kmer::bits) bits, bool check_reverse_complement) const;
+    template <bool Oriented>
+    lookup_result lookup_bucket_impl(Kmer kmer, Kmer rc, minimizer_info mini,
+                                    typename spss_type::bucket_cache* cache,
+                                    bool forward_only) const;
 
     void forward_neighbours(Kmer suffix, neighbourhood<Kmer>& res,
                             bool check_reverse_complement) const;

@@ -6,6 +6,12 @@ template <typename Kmer, typename Offsets>
 void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     dictionary<Kmer, Offsets>& d)  //
 {
+    d.m_ssi.strand_specific = build_config.preserve_orientation;
+    d.m_vnum = essentials::version_number(build_config.preserve_orientation
+                                              ? constants::oriented_version_major
+                                              : constants::current_version_number::x,
+                                          constants::current_version_number::y,
+                                          constants::current_version_number::z);
     essentials::timer_type timer;
     timer.start();
 
@@ -111,7 +117,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                 For minimizers occurring once, store a (log(N)+1)-bit
                 code, as follows: |offset|0|, i.e., the LSB is 0.
             */
-            const uint64_t code = (*bucket.begin()).pos_in_seq << 1;  // LSB encodes status: 0
+            const uint64_t code =
+                (*bucket.begin()).pos_in_seq << minimizer_codeword::singleton_bits;
             assert(code < (uint64_t(1) << num_bits_for_control));
             control_codewords_builder.set(bucket_id, code);
         } else {
@@ -136,7 +143,7 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     } else if (max_bucket_size < (1ULL << constants::max_l)) {
         num_partitions = log2_max_bucket_size - constants::min_l;
     }
-    assert(num_partitions <= 8);  // so that we need 3 bits to encode a partition_id
+    assert(num_partitions <= (uint64_t(1) << minimizer_codeword::partition_bits));
 
     if (build_config.verbose) {
         std::cout << "num_partitions in skew index " << num_partitions << std::endl;
@@ -195,16 +202,17 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
 
             if (curr_bucket_size <= min_size) {
                 uint64_t p = (list_id << constants::min_l) | (curr_bucket_size - 2);
-                uint64_t code = (p << 2) | 1;  // first two LS bits encode status code: 01
+                uint64_t code = (p << minimizer_codeword::status_bits) | bucket_t::MIDLOAD;
                 assert(code < (uint64_t(1) << num_bits_for_control));
                 control_codewords_builder.set(bucket.begin_ptr()->minimizer, code);
                 for (auto mt : bucket) mid_load_buckets_builder.push_back(mt.pos_in_seq);
                 mid_load_buckets_size += bucket_size;
                 ++list_id;
             } else {
-                assert(partition_id < 8);
-                uint64_t p = (heavy_load_buckets_size << 3) | partition_id;
-                uint64_t code = (p << 2) | 3;  // first two LS bits encode status code: 11
+                assert(partition_id < (uint64_t(1) << minimizer_codeword::partition_bits));
+                uint64_t p =
+                    (heavy_load_buckets_size << minimizer_codeword::partition_bits) | partition_id;
+                uint64_t code = (p << minimizer_codeword::status_bits) | bucket_t::HEAVYLOAD;
                 assert(code < (uint64_t(1) << num_bits_for_control));
                 control_codewords_builder.set(bucket.begin_ptr()->minimizer, code);
                 for (auto mt : bucket) heavy_load_buckets_builder.push_back(mt.pos_in_seq);
@@ -431,11 +439,11 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     d.m_spss.strings, k, Kmer::bits_per_char * starting_pos_of_super_kmer);
                 for (uint64_t i = 0; i != mt.num_kmers_in_super_kmer; ++i) {
                     auto kmer = it.get();
-                    /* take the canonical kmer: a kmer and its reverse complement
-                       share a bucket, hence a skew-index partition */
+                    /* Both orientations share a minimizer bucket. Preserve their
+                       distinct keys only when orientation is requested. */
                     auto kmer_rc = kmer;
                     kmer_rc.reverse_complement_inplace(k);
-                    kmers.push_back(std::min(kmer, kmer_rc));
+                    kmers.push_back(d.m_ssi.strand_specific ? kmer : std::min(kmer, kmer_rc));
                     positions_in_bucket.push_back(pos_in_bucket);
                     it.next();
                 }
