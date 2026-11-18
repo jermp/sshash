@@ -1,3 +1,6 @@
 [submodule "external/pthash"]
 	path = external/pthash
 	url = https://github.com/jermp/pthash.git
+[submodule "external/phastr"]
+	path = external/phastr
+	url = https://github.com/jermp/phastr.git

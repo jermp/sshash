@@ -63,7 +63,7 @@ struct skew_index  //
         visit_impl(visitor, *this);
     }
 
-    essentials::owning_span<kmers_pthash_type<Kmer>> mphfs;
+    essentials::owning_span<kmers_mphf_type<Kmer>> mphfs;
     essentials::owning_span<bits::compact_vector> positions;
     bits::compact_vector heavy_load_buckets;
 

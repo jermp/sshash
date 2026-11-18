@@ -1,85 +1,64 @@
 #pragma once
 
 #include "external/pthash/include/pthash.hpp"
+#include "external/phastr/include/phastr/phastr.hpp"
 #include "external/cityhash/cityhash.hpp"
 #include "constants.hpp"
 
 namespace sshash {
 
-struct minimizers_city_hasher_128 {
-    typedef pthash::hash128 hash_type;
+/*
+    The minimal perfect hash functions of SSHash are PHastR functions (see
+    external/phastr): each key is hashed to a 64-bit signature by a hasher
+    that is constructed once from a seed, which it preprocesses, so that
+    queries pay only the per-key work.
 
-    static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
-        auto ret = cityhash::CityHash128WithSeed(reinterpret_cast<char const*>(&minimizer),  //
-                                                 sizeof(minimizer), {seed, ~seed});
-        return {ret.first, ret.second};
+    Minimizers are 64-bit integers, hashed with phastr::default_hasher (an
+    inlined SplitMix64-based mix). K-mers are hashed lane by lane with
+    independent mixes of the same family, combined with a xor: for the
+    default 128-bit k-mers, two independent mixes.
+*/
+
+using minimizers_mphf_type = phastr::function<phastr::default_hasher>;
+
+template <typename Kmer>
+struct kmers_phastr_hasher {
+    static constexpr size_t num_lanes = (sizeof(((Kmer*)nullptr)->bits) + 7) / 8;
+    uint64_t prepared[num_lanes];
+
+    kmers_phastr_hasher() : kmers_phastr_hasher(0) {}
+    explicit kmers_phastr_hasher(uint64_t seed) {
+        for (size_t i = 0; i != num_lanes; ++i) {
+            prepared[i] = phastr::splitmix64(seed + i * 0x9e3779b97f4a7c15ULL);
+        }
+    }
+
+    __attribute__((always_inline)) inline uint64_t operator()(Kmer const& x) const {
+        uint64_t lanes[num_lanes] = {};
+        memcpy(lanes, &(x.bits), sizeof(x.bits));
+        uint64_t h = phastr::splitmix64(lanes[0] + prepared[0]);
+        for (size_t i = 1; i != num_lanes; ++i) { h ^= phastr::splitmix64(lanes[i] + prepared[i]); }
+        return h;
+    }
+
+    template <typename Visitor>
+    void visit(Visitor& visitor) const {
+        visit_impl(visitor, *this);
+    }
+    template <typename Visitor>
+    void visit(Visitor& visitor) {
+        visit_impl(visitor, *this);
+    }
+
+private:
+    template <typename Visitor, typename T>
+    static void visit_impl(Visitor& visitor, T&& t) {
+        for (size_t i = 0; i != num_lanes; ++i) visitor.visit(t.prepared[i]);
     }
 };
 
-struct minimizers_xx_hasher_128 {
-    typedef pthash::hash128 hash_type;
-
-    static inline pthash::hash128 hash(uint64_t const minimizer, uint64_t seed) {
-        /*
-            Cannot use XXH128 directly because on some processors (e.g., AMD)
-            it just does not work in Release mode, e.g., when compiling *without*
-            sanitizers: -fsanitize=address -fno-omit-frame-pointer.
-            We therefore rely on XXH64 that produces 64-bit hashes but does not
-            seem to have any issue.
-        */
-        uint8_t const* begin = reinterpret_cast<uint8_t const*>(&minimizer);
-        uint8_t const* end = begin + sizeof(minimizer);
-        return {XXH64(begin, end - begin, seed), XXH64(begin, end - begin, ~seed)};
-    }
-};
-
-// using minimizers_base_hasher_type = minimizers_xx_hasher_128;
-using minimizers_base_hasher_type = minimizers_city_hasher_128;
-
-using minimizers_pthash_type =        //
-    pthash::partitioned_phf<          //
-        minimizers_base_hasher_type,  // base hasher
-        pthash::opt_bucketer,         // bucketer type
-        pthash::compact,              // encoder type
-        true                          // minimal output
-        >;                            //
-
 template <typename Kmer>
-struct kmers_xx_hasher_128 {
-    typedef pthash::hash128 hash_type;
-
-    static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
-        uint8_t const* begin = reinterpret_cast<uint8_t const*>(&(x.bits));
-        uint8_t const* end = begin + sizeof(x.bits);
-        return {XXH64(begin, end - begin, seed), XXH64(begin, end - begin, ~seed)};
-    }
-};
-
-template <typename Kmer>
-struct kmers_city_hasher_128 {
-    typedef pthash::hash128 hash_type;
-
-    static inline pthash::hash128 hash(Kmer const x, uint64_t seed) {
-        auto ret = cityhash::CityHash128WithSeed(reinterpret_cast<char const*>(&(x.bits)),  //
-                                                 sizeof(x.bits), {seed, ~seed});
-        return {ret.first, ret.second};
-    }
-};
-
-// template <typename Kmer>
-// using kmers_base_hasher_type = kmers_xx_hasher_128<Kmer>;
-
-template <typename Kmer>
-using kmers_base_hasher_type = kmers_city_hasher_128<Kmer>;
-
-template <typename Kmer>
-using kmers_pthash_type =              //
-    pthash::partitioned_phf<           //
-        kmers_base_hasher_type<Kmer>,  // base hasher
-        pthash::opt_bucketer,          // bucketer type
-        pthash::compact,               // encoder type
-        true                           // minimal output
-        >;                             //
+using kmers_mphf_type = phastr::function<kmers_phastr_hasher<Kmer>>;
 
 struct mixer_64 {
     mixer_64() { seed(0); }

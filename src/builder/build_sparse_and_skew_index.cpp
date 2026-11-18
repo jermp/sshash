@@ -286,19 +286,15 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     }
 
     {
-        std::vector<kmers_pthash_type<Kmer>> mphfs;
+        std::vector<kmers_mphf_type<Kmer>> mphfs;
         std::vector<bits::compact_vector> positions;
         mphfs.resize(num_partitions);
         positions.resize(num_partitions);
 
-        pthash::build_configuration mphf_build_config;
-        mphf_build_config.lambda =
-            build_config.lambda + 2.0; /* Use higher lambda here since we have less keys. */
-        mphf_build_config.alpha = 0.94;
+        phastr::build_configuration mphf_build_config;
         mphf_build_config.seed = util::get_seed_for_hash_function(build_config);
-        mphf_build_config.verbose = false;
         mphf_build_config.num_threads = build_config.num_threads;
-        mphf_build_config.avg_partition_size = constants::avg_partition_size;
+        mphf_build_config.tmp_dir = build_config.tmp_dirname;
 
         uint64_t partition_id = 0;
         uint64_t lower = min_size;
@@ -361,15 +357,8 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
                     /*******/
 
                     if (build_config.verbose) {
-                        const uint64_t avg_partition_size =
-                            pthash::compute_avg_partition_size(kmers.size(), mphf_build_config);
-                        const uint64_t num_partitions =
-                            pthash::compute_num_partitions(kmers.size(), avg_partition_size);
-                        assert(num_partitions > 0);
-                        std::cout << "    building MPHF with " << mphf_build_config.num_threads
-                                  << " threads and " << num_partitions
-                                  << " partitions (avg. partition size = " << avg_partition_size
-                                  << ")..." << std::endl;
+                        std::cout << "    building MPHF (PHastR) with "
+                                  << mphf_build_config.num_threads << " threads..." << std::endl;
                     }
 
                     auto& F = mphfs[partition_id];
