@@ -418,6 +418,10 @@ private:
                    candidate loci directly against the text, with no codeword
                    lookup nor offset decoding. */
             if (m_bucket_cache.size != 0) {
+                if (m_bucket_cache.size > 1) {
+                    m_dict->m_spss.prefetch_positions(m_bucket_cache.positions.data(),
+                                                      m_bucket_cache.size, m_curr_mini_info);
+                }
                 m_res = m_dict->m_spss.lookup_from_positions(  //
                     m_bucket_cache.positions.data(), m_bucket_cache.size, m_kmer, m_kmer_rc,
                     m_curr_mini_info);

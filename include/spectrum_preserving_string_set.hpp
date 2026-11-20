@@ -97,6 +97,25 @@ struct spectrum_preserving_string_set  //
         return lookup_from_positions(v, size, kmer, kmer_rc, mini_info);
     }
 
+    /* Prefetch the text around the candidate locus of each position of a
+       decoded locate set, so that under `lookup_from_positions` the loads
+       of a bucket overlap instead of serializing behind its early-exit
+       loop. The two candidate loci of one position lie within 2k - m
+       characters of each other (see `_lookup`), so one line each is the
+       common case. */
+    void prefetch_positions(typename Offsets::decoded_offset const* positions,  //
+                            const uint64_t size,                                //
+                            const minimizer_info mini_info) const               //
+    {
+        for (uint64_t i = 0; i != size; ++i) {
+            const uint64_t char_offset =
+                positions[i].absolute_offset >= mini_info.pos_in_kmer
+                    ? positions[i].absolute_offset - mini_info.pos_in_kmer
+                    : 0;
+            __builtin_prefetch(&strings.data()[(Kmer::bits_per_char * char_offset) >> 6]);
+        }
+    }
+
     /*
         The verification half of `lookup`: try the candidate loci of each
         position of the minimizer's locate set. The positions must be the
