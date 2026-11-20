@@ -27,7 +27,8 @@ struct streaming_query_report {
         , num_searches(0)
         , num_extensions(0)
         , num_skipped_singleton_lookups(0)
-        , num_bucket_cache_hits(0) {}
+        , num_bucket_cache_hits(0)
+        , num_mode_switches(0) {}
 
     uint64_t num_kmers;
     uint64_t num_positive_kmers;
@@ -41,6 +42,9 @@ struct streaming_query_report {
        verified from the cached locate set (see `streaming_query::seed`) */
     uint64_t num_skipped_singleton_lookups;
     uint64_t num_bucket_cache_hits;
+
+    /* SEEDING <-> EXTENDING transitions (see `streaming_query`) */
+    uint64_t num_mode_switches;
 };
 
 struct lookup_result {

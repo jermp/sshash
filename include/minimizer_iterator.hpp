@@ -48,19 +48,27 @@ struct minimizer_iterator {
         m_num_mins = 0;
     }
 
-    minimizer_info next(Kmer kmer) {
-        Kmer kmer_rc = kmer;
-        kmer_rc.reverse_complement_inplace(m_k);
-
+    /* Always inlined: on the incremental path, its body is one single-word
+       canonicalization, one hash and a handful of compares -- in particular,
+       the whole kmer is reverse-complemented only on the outlined re-scan and
+       tie-break paths below, never once per slide -- and its argument is a
+       type expensive to pass through an actual call. */
+    __attribute__((always_inline)) inline minimizer_info next(Kmer kmer) {
         if (m_min_pos_in_kmer == 0) {
             /* min leaves the window: re-scan to compute the new min */
+            Kmer kmer_rc = kmer;
+            kmer_rc.reverse_complement_inplace(m_k);
             m_position = m_min_position + 1;
             rescan(kmer, kmer_rc);
         } else {
             m_position += 1;
             Kmer window = kmer;
             window.drop_chars(m_k - m_m);
-            uint64_t value = util::canonical_mmer_at<Kmer>(window, kmer_rc, m_k, m_m, m_k - m_m);
+            window.take_chars(m_m);
+            /* The canonical m-mer of the new locus from the m-mer alone (see
+               the assert in `util::canonical_mmer_at`: this is the same
+               value), with no reverse complement of the whole kmer. */
+            uint64_t value = util::canonical_mmer<Kmer>(uint64_t(window), m_m);
             uint64_t hash = m_hasher.hash(value);
             if (hash < m_min_hash) {
                 m_min_hash = hash;
@@ -78,10 +86,14 @@ struct minimizer_iterator {
         }
 
         minimizer_info mini_info(m_min_value, m_min_position, m_min_pos_in_kmer);
-        if (m_num_mins > 1) break_tie(kmer, kmer_rc, mini_info);
+        if (m_num_mins > 1) {
+            Kmer kmer_rc = kmer;
+            kmer_rc.reverse_complement_inplace(m_k);
+            break_tie(kmer, kmer_rc, mini_info);
+        }
 
         assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
-               util::compute_minimizer<Kmer>(kmer, kmer_rc, m_k, m_m, m_hasher));
+               util::compute_minimizer<Kmer>(kmer, m_k, m_m, m_hasher));
 
         return mini_info;
     }
@@ -93,7 +105,10 @@ private:
     uint64_t m_num_mins;
     hasher_type m_hasher;
 
-    void rescan(Kmer kmer, Kmer const& kmer_rc) {
+    /* Outlined (as is `break_tie`): the incremental path of `next` is what
+       streaming queries run per base, and keeping the body of `next` small
+       lets it inline there. */
+    __attribute__((noinline)) void rescan(Kmer kmer, Kmer const& kmer_rc) {
         const uint64_t begin = m_position;
 
         /* first locus, peeled off the loop: see `util::compute_minimizer` */
@@ -135,7 +150,8 @@ private:
 
         Tied loci cannot precede the leftmost minimum, so the scan starts there.
     */
-    void break_tie(Kmer kmer, Kmer const& kmer_rc, minimizer_info& mini_info) const {
+    __attribute__((noinline)) void break_tie(Kmer kmer, Kmer const& kmer_rc,
+                                             minimizer_info& mini_info) const {
         assert(m_num_mins > 1);
 
         const uint64_t window_begin = m_min_position - m_min_pos_in_kmer;

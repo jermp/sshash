@@ -46,6 +46,7 @@ int query(int argc, char** argv) {
     query_stats.add("num_extensions", report.num_extensions);
     query_stats.add("num_skipped_singleton_lookups", report.num_skipped_singleton_lookups);
     query_stats.add("num_bucket_cache_hits", report.num_bucket_cache_hits);
+    query_stats.add("num_mode_switches", report.num_mode_switches);
     query_stats.add("elapsed_millisec", uint64_t(t.elapsed()));
 
     std::cout << "==== query report:\n";
@@ -65,6 +66,7 @@ int query(int argc, char** argv) {
     std::cout << "num_skipped_singleton_lookups = " << report.num_skipped_singleton_lookups
               << std::endl;
     std::cout << "num_bucket_cache_hits = " << report.num_bucket_cache_hits << std::endl;
+    std::cout << "num_mode_switches = " << report.num_mode_switches << std::endl;
     std::cout << "elapsed = " << t.elapsed() / 1000 << " sec / ";
     std::cout << t.elapsed() / 1000 / 60 << " min / ";
     std::cout << (t.elapsed() * 1e6) / report.num_kmers << " ns/kmer" << std::endl;
