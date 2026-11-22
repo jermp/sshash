@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include "include/streaming_query.hpp"
+#include "include/hugepages.hpp"
 
 using namespace sshash;
 
@@ -23,6 +24,10 @@ int query(int argc, char** argv) {
                "Read and decompress the query file with a background thread, overlapping input "
                "with the queries.",
                "--async-io", false, true);
+    parser.add("hugepages",
+               "Advise the kernel to back the index with huge pages (Linux only), removing most "
+               "TLB misses of large indexes.",
+               "--hugepages", false, true);
     parser.add("mmap", "Memory-map from file on disk rather than loading in RAM.", "--mmap", false,
                true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
@@ -35,9 +40,17 @@ int query(int argc, char** argv) {
     bool multiline = parser.get<bool>("multiline");
     bool batched = parser.get<bool>("batched");
     bool async_io = parser.get<bool>("async_io");
+    bool hugepages = parser.get<bool>("hugepages");
 
     dictionary_type dict;
     open_dictionary(dict, index_filename, mmap, verbose);
+
+    if (hugepages) {
+        const uint64_t advised = advise_hugepages(dict);
+        if (verbose) {
+            std::cout << "advised huge pages for " << advised << " bytes of index" << std::endl;
+        }
+    }
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::milliseconds> t;
