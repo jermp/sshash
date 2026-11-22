@@ -1,6 +1,10 @@
 #pragma once
 
 #include <cstring>
+#include <cstdlib>
+#if defined(__x86_64__)
+#include <x86intrin.h>
+#endif
 
 #include "include/dictionary.hpp"
 #include "include/minimizer_iterator.hpp"
@@ -96,7 +100,10 @@ struct streaming_query_batched  //
         m_slots.resize(num_slots);
         for (auto& s : m_slots) s.it = m_iterator_proto;
         m_probe.capture(dict->m_spss.strings_offsets);
+        m_timings = std::getenv("SSHASH_TIMINGS") != nullptr;
     }
+
+    ~streaming_query_batched() { print_timings(); }
 
     /* Sequences are independent of each other; nothing to reset. */
     void reset() {}
@@ -124,7 +131,13 @@ struct streaming_query_batched  //
 
     void flush() {
         if (m_views.empty()) return;
-        front_end();
+        if (m_timings) {
+            const uint64_t t0 = tsc();
+            front_end();
+            account(1, t0);
+        } else {
+            front_end();
+        }
         run();
         m_arena.clear();
         m_views.clear();
@@ -150,9 +163,11 @@ private:
     uint64_t m_pending_kmers;
 
     void enqueue_chunk(char const* chars, const uint64_t length) {
+        const uint64_t t0 = m_timings ? tsc() : 0;
         m_views.emplace_back(m_arena.size(), length);
         m_arena.append(chars, length);
         m_pending_kmers += length - m_k + 1;
+        if (m_timings) account(0, t0);
         if (m_pending_kmers >= flush_kmers) flush();
     }
 
@@ -261,6 +276,55 @@ private:
         }
     };
     endpoints_probe m_probe;
+
+    /* ---------------- timings (diagnostic) ----------------
+
+       With the environment variable SSHASH_TIMINGS set, every step of the
+       sweep loop is timed with the TSC and attributed to its state, and a
+       share table is printed when the query object is destroyed. Off by
+       default: a run with timings pays two TSC reads per step, which
+       distorts the shares by a few percent but leaves their order intact. */
+
+    static constexpr int num_timing_bins = 11;
+    static constexpr char const* timing_names[num_timing_bins] = {
+        "enqueue (arena copy)", "front end (validity + pack)", "scan (minimizer + memo)",
+        "extend (word LCP)",    "walk: start (MPHF group)",    "walk: codeword",
+        "walk: bucket decode",  "walk: verify",                "walk: endpoints hint",
+        "walk: locate",         "sweep overhead"};
+    bool m_timings = false;
+    uint64_t m_cycles[num_timing_bins] = {};
+    uint64_t m_steps[num_timing_bins] = {};
+
+    static uint64_t tsc() {
+#if defined(__x86_64__)
+        return __rdtsc();
+#else
+        return 0;
+#endif
+    }
+
+    void account(const int bin, const uint64_t t0) {
+        m_cycles[bin] += tsc() - t0;
+        m_steps[bin] += 1;
+    }
+
+    void print_timings() const {
+        uint64_t cycles[num_timing_bins];
+        for (int b = 0; b != num_timing_bins; ++b) cycles[b] = m_cycles[b];
+        /* the scheduler overhead is the run() time not attributed to steps */
+        uint64_t inside_run = 0;
+        for (int b = 2; b <= 9; ++b) inside_run += cycles[b];
+        cycles[10] = cycles[10] > inside_run ? cycles[10] - inside_run : 0;
+        uint64_t total = 0;
+        for (int b = 0; b != num_timing_bins; ++b) total += cycles[b];
+        if (total == 0) return;
+        std::cout << "==== streaming_query_batched timings (cycles, shares):\n";
+        for (int b = 0; b != num_timing_bins; ++b) {
+            std::cout << "  " << timing_names[b] << " = " << cycles[b] << " ("
+                      << (100.0 * cycles[b]) / total << "%), steps = " << m_steps[b] << '\n';
+        }
+        std::cout << "  total accounted cycles = " << total << std::endl;
+    }
 
     /* ---------------- the state machine ---------------- */
 
@@ -388,20 +452,25 @@ private:
             if (take_piece(s)) num_active += 1;
         }
 
+        const uint64_t t_run = m_timings ? tsc() : 0;
         while (num_active != 0) {
             bool advanced = false;
             for (auto& s : m_slots) {
+                const uint64_t t0 = m_timings ? tsc() : 0;
+                int bin;
                 switch (s.st) {
                     case state::idle:
                     case state::walk_wait: continue;
-                    case state::scanning: step_scan(s); break;
-                    case state::extending: step_extend(s); break;
-                    case state::walk_code: step_walk_code(s); break;
-                    case state::walk_bucket: step_walk_bucket(s); break;
-                    case state::walk_verify: step_walk_verify(s); break;
-                    case state::walk_hint: step_walk_hint(s); break;
-                    case state::walk_locate: step_walk_locate(s); break;
+                    case state::scanning: step_scan(s); bin = 2; break;
+                    case state::extending: step_extend(s); bin = 3; break;
+                    case state::walk_code: step_walk_code(s); bin = 5; break;
+                    case state::walk_bucket: step_walk_bucket(s); bin = 6; break;
+                    case state::walk_verify: step_walk_verify(s); bin = 7; break;
+                    case state::walk_hint: step_walk_hint(s); bin = 8; break;
+                    case state::walk_locate: step_walk_locate(s); bin = 9; break;
+                    default: bin = 10; break;
                 }
+                if (m_timings) account(bin, t0);
                 advanced = true;
                 if (s.st == state::idle) {
                     if (!take_piece(s)) num_active -= 1;
@@ -410,10 +479,19 @@ private:
             /* start a group of walks: when enough are waiting, or when no
                slot can advance without them */
             if (m_walk_queue.size() >= walk_group_size or (!advanced and !m_walk_queue.empty())) {
-                start_walks();
+                if (m_timings) {
+                    const uint64_t t0 = tsc();
+                    start_walks();
+                    account(4, t0);
+                } else {
+                    start_walks();
+                }
             }
         }
         assert(m_walk_queue.empty());
+        /* bin 10 accumulates the raw run() time; print_timings subtracts
+           the attributed bins from it to report the scheduler overhead */
+        if (m_timings) m_cycles[10] += tsc() - t_run;
     }
 
     bool take_piece(slot_t& s) {
