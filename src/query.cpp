@@ -3,7 +3,6 @@
 #include "include/dictionary.hpp"
 #include "include/util.hpp"
 #include "include/streaming_query.hpp"
-#include "include/streaming_query_batched.hpp"
 #include "include/async_istream.hpp"
 
 namespace sshash {
@@ -23,13 +22,9 @@ streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dic
         if (buffer.size() == 0) continue;
         const uint64_t num_kmers = buffer.size() - k + 1;
         report.num_kmers += num_kmers;
-        if constexpr (Query::is_batched) {
-            query.enqueue_sequence(buffer.data(), buffer.size());
-        } else {
-            for (uint64_t i = 0; i != num_kmers; ++i) {
-                char const* kmer = buffer.data() + i;
-                query.lookup(kmer);
-            }
+        for (uint64_t i = 0; i != num_kmers; ++i) {
+            char const* kmer = buffer.data() + i;
+            query.lookup(kmer);
         }
         if (empty_line_was_read) { /* re-start the kmers' buffer */
             buffer.clear();
@@ -42,7 +37,6 @@ streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dic
             }
         }
     }
-    if constexpr (Query::is_batched) query.flush();
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
     report.num_skipped_singleton_lookups = query.num_skipped_singleton_lookups();
@@ -69,16 +63,11 @@ streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::is
         if (line.size() < k) continue;
         const uint64_t num_kmers = line.size() - k + 1;
         report.num_kmers += num_kmers;
-        if constexpr (Query::is_batched) {
-            query.enqueue_sequence(line.data(), line.size());
-        } else {
-            for (uint64_t i = 0; i != num_kmers; ++i) {
-                char const* kmer = line.data() + i;
-                query.lookup(kmer);
-            }
+        for (uint64_t i = 0; i != num_kmers; ++i) {
+            char const* kmer = line.data() + i;
+            query.lookup(kmer);
         }
     }
-    if constexpr (Query::is_batched) query.flush();
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
     report.num_skipped_singleton_lookups = query.num_skipped_singleton_lookups();
@@ -105,19 +94,14 @@ streaming_query_report streaming_query_from_fastq_file(Dict const* dict, std::is
         if (line.size() >= k) {
             const uint64_t num_kmers = line.size() - k + 1;
             report.num_kmers += num_kmers;
-            if constexpr (Query::is_batched) {
-                query.enqueue_sequence(line.data(), line.size());
-            } else {
-                for (uint64_t i = 0; i != num_kmers; ++i) {
-                    char const* kmer = line.data() + i;
-                    query.lookup(kmer);
-                }
+            for (uint64_t i = 0; i != num_kmers; ++i) {
+                char const* kmer = line.data() + i;
+                query.lookup(kmer);
             }
         }
         std::getline(is, line);  // skip '+'
         std::getline(is, line);  // skip score
     }
-    if constexpr (Query::is_batched) query.flush();
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
     report.num_skipped_singleton_lookups = query.num_skipped_singleton_lookups();
@@ -194,14 +178,9 @@ streaming_query_from_file_impl(dictionary_type const* dict, std::string const& f
 template <typename Kmer, typename Offsets>
 streaming_query_report  //
 dictionary<Kmer, Offsets>::streaming_query_from_file(std::string const& filename, bool multiline,
-                                                     bool batched, bool async_io) const  //
+                                                     bool async_io) const  //
 {
     using dictionary_type = dictionary<Kmer, Offsets>;
-    if (batched) {
-        return streaming_query_from_file_impl<dictionary_type,
-                                              streaming_query_batched<dictionary_type>>(
-            this, filename, multiline, async_io);
-    }
     return streaming_query_from_file_impl<dictionary_type, streaming_query<dictionary_type>>(
         this, filename, multiline, async_io);
 }

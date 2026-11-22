@@ -11,8 +11,6 @@ struct streaming_query  //
 {
     using kmer_t = typename Dict::kmer_type;
 
-    static constexpr bool is_batched = false;
-
     streaming_query(Dict const* dict)
 
         : m_dict(dict)
