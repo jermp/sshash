@@ -7,83 +7,76 @@
 namespace sshash {
 
 /*
-    Mini-batched streaming queries: the routing walks of a block of
-    sequences, overlapped.
+    Mini-batched streaming queries: word-parallel extension, lazy minimizers,
+    and the routing walks of a block of sequences overlapped.
 
-    One-at-a-time streaming resolves a sequence as an alternation of cheap
-    extensions and expensive seeds, and every seed -- a chain of dependent
-    cache misses through the minimizers MPHF, the control codewords and the
-    text -- must finish before the next kmer is even looked at, so on large
-    indexes the query is bound by serial memory latency. This class keeps
-    the walk-sparing structure (extension across minimizer changes, the
-    same-occurrence memo, cached locate sets) but collects the walks of many
-    sequences and resolves them together, stage by stage, so their misses
-    overlap.
+    One-at-a-time streaming pays three per-kmer costs: the front end (one
+    m-mer hash per base to maintain the minimizer, plus the kmer and its
+    reverse complement), the extension compare, and -- at every seed -- a
+    chain of dependent cache misses through the minimizers MPHF, the control
+    codewords and the text, which must finish before the next kmer is even
+    looked at. This class attacks all three:
 
-    Sequences are enqueued (`enqueue_sequence`) into an internal arena and
-    processed in blocks of about `flush_kmers` kmers (`flush`; automatic
-    when the arena fills). Per block:
+    - sequences are enqueued into an arena and processed in blocks of about
+      `flush_kmers` kmers; a block is cut at invalid characters into
+      segments (kmers spanning an invalid character are counted invalid),
+      each segment is 2-bit packed once, and segments are covered by chains,
+      one per segment plus one every `chain_length` kmers;
 
-    - Front end: each sequence is cut at invalid characters (kmers spanning
-      one are counted invalid, as in `streaming_query`); the kmers of the
-      valid segments, their reverse complements and their minimizers are
-      computed incrementally into flat arrays, and consecutive kmers sharing
-      a minimizer occurrence are grouped.
+    - a chain that holds a match extends it with a word-parallel LCP of the
+      packed query against the packed text (XOR and count-trailing-zeros,
+      64 / bits_per_char characters per compare; for backward matches the
+      text word is reverse-complemented first, one crc64), crossing
+      minimizer changes freely: a run of consecutive positive kmers costs
+      O(run / word size), with no hashing and no per-kmer state at all;
 
-    - The block is covered by chains: one per segment, plus one every
-      `chain_length` kmers inside long segments. A chain owns a range of
-      consecutive kmers and advances through it like a streaming query:
-      successful extensions (one character compare against a word-wide
-      buffer of upcoming text, orientation-independent) cross group
-      boundaries freely and cost no walk; a kmer that cannot be resolved
-      from the chain's current state stops the chain with a walk request.
+    - where a match stops, the chain scans forward with an incremental
+      minimizer iterator (one hash per base, only here) and requests the
+      walk of the minimizer occurrence it cannot resolve -- several upcoming
+      occurrences at once in non-matching stretches (1, 4, 16), since those
+      have no extension to spare walks;
 
-    - Passes: the pending requests of all stopped chains are resolved
-      together in stages -- the minimizers MPHF over all of them through
-      phastr's `lookup_batch` (which prefetches the seeds of every bucket
-      before reading any), a prefetch pass then a read pass over the
-      control codewords, a prefetch pass over singleton text loci and
-      mid-load locate sets, then the verifications -- and the chains run
-      again. Chains that stop in a non-matching region ask for the walks of
-      several upcoming minimizer occurrences at once (1, 4, 16: negative
-      stretches have no extension to spare walks, so speculation only
-      overlaps walks that would happen anyway, while a re-anchored chain
-      falls back to single requests). The number of pending chains shrinks
-      geometrically with the passes.
+    - the pending requests of all chains are resolved together, stage by
+      stage (the minimizers MPHF through phastr's `lookup_batch`, which
+      prefetches the seeds of every bucket before reading any; a prefetch
+      pass then a read pass over the control codewords; prefetches of
+      singleton text loci and mid-load locate sets; decoding of the locate
+      sets with the text around every candidate locus prefetched; then the
+      verifications), so their misses overlap, and the chains run again:
+      the number of pending chains shrinks geometrically with the passes;
 
-    - A resolved walk leaves the chain a memo -- whether the minimizer is
-      present, and the decoded locate set of its bucket when it fits the
-      cache -- against which the kmers of the same minimizer occurrence
-      that extension does not cover are verified directly, with no further
-      walk: sequencing-error windows cost one walk per minimizer
-      occurrence, not per kmer.
+    - a resolved walk covers its whole minimizer occurrence: kmers of the
+      occurrence that extension does not cover are verified directly
+      against the memo (absence, or the cached locate set of the bucket),
+      with no walk of their own, so an error window costs one walk per
+      minimizer occurrence, not per kmer.
 
     Results are identical to `dictionary::lookup` on every kmer (debug
-    assert). Counters, for report compatibility: a positive kmer resolved
-    by an extension step counts as an "extension", every other positive as
-    a "search"; `num_bucket_cache_hits` counts kmers verified against a
-    cached locate set.
+    assert). Counters, for report compatibility: kmers resolved by
+    extension count as "extensions", every other positive as a "search";
+    `num_bucket_cache_hits` counts kmers verified against a cached locate
+    set.
 */
 template <typename Dict>
 struct streaming_query_batched  //
 {
     using kmer_t = typename Dict::kmer_type;
+    using bucket_cache = typename Dict::spss_type::bucket_cache;
 
     static constexpr bool is_batched = true;
     static constexpr uint64_t flush_kmers = 1 << 15;
     static constexpr uint64_t chain_length = 1024;
     static constexpr uint64_t mphf_batch_size = 16;
     static constexpr uint32_t max_speculation = 16;
-    static constexpr uint64_t char_mask = (uint64_t(1) << kmer_t::bits_per_char) - 1;
+    static constexpr uint64_t bits_per_char = kmer_t::bits_per_char;
+    static constexpr uint64_t chars_per_word = 64 / bits_per_char;
 
     streaming_query_batched(Dict const* dict)
 
         : m_dict(dict)
         , m_k(dict->m_k)
         , m_m(dict->m_m)
-
-        , m_minimizer_it(dict->m_k, dict->m_m, dict->m_hasher)
-        , m_window(0)
+        , m_iterator_proto(dict->m_k, dict->m_m, dict->m_hasher)
         , m_pending_kmers(0)
 
         , m_num_searches(0)
@@ -119,13 +112,6 @@ struct streaming_query_batched  //
         flush();
     }
 
-    void enqueue_piece(char const* chars, const uint64_t length) {
-        m_views.emplace_back(m_arena.size(), length);
-        m_arena.append(chars, length);
-        m_pending_kmers += length - m_k + 1;
-        if (m_pending_kmers >= flush_kmers) flush();
-    }
-
     void flush() {
         if (m_views.empty()) return;
         front_end();
@@ -146,98 +132,140 @@ struct streaming_query_batched  //
 private:
     Dict const* m_dict;
     uint64_t m_k, m_m;
-
-    minimizer_iterator<kmer_t> m_minimizer_it;
-    uint64_t m_window;  // monotone window index: `set_position` at each
-                        // segment keeps `pos_in_seq` values distinct
+    minimizer_iterator<kmer_t> m_iterator_proto;
 
     /* enqueued input */
     std::string m_arena;
     std::vector<std::pair<uint64_t, uint64_t>> m_views;  // (offset, length)
     uint64_t m_pending_kmers;
 
-    /* The current block, slot = one kmer. Only the kmers themselves are
-       kept per slot (the block must stay cache-resident): the reverse
-       complement is recomputed at the rare verification sites, and the
-       minimizer of a slot is reconstructed from its group, `pos_in_kmer`
-       decreasing by one per slide within an occurrence. */
-    std::vector<kmer_t> m_kmers;
-    std::vector<uint32_t> m_group_of;          // slot -> group
-    std::vector<uint32_t> m_group_head;        // group -> first slot
-    std::vector<uint64_t> m_group_minimizer;   // group -> minimizer
-    std::vector<uint32_t> m_group_head_pik;    // group -> pos_in_kmer at head
-
-    minimizer_info slot_mini_info(const uint64_t slot) const {
-        const uint32_t g = m_group_of[slot];
-        assert(slot >= m_group_head[g]);
-        assert(m_group_head_pik[g] >= slot - m_group_head[g]);
-        return {m_group_minimizer[g], m_group_head_pik[g] - (slot - m_group_head[g])};
+    void enqueue_piece(char const* chars, const uint64_t length) {
+        m_views.emplace_back(m_arena.size(), length);
+        m_arena.append(chars, length);
+        m_pending_kmers += length - m_k + 1;
+        if (m_pending_kmers >= flush_kmers) flush();
     }
 
-    kmer_t slot_kmer_rc(const uint64_t slot) const {
-        kmer_t rc = m_kmers[slot];
+    /* ---------------- block data ---------------- */
+
+    /* The packed text of the block's valid segments: each segment starts at
+       a word boundary and is followed by padding words, so any 64-bit
+       window of it can be read. */
+    std::vector<uint64_t> m_packed;
+
+    struct segment {
+        uint64_t slot_begin, slot_end;  // the kmers of the block it holds
+        uint64_t packed_word_begin;     // its packed characters
+        char const* chars;              // its raw characters (debug asserts)
+    };
+    std::vector<segment> m_segments;
+
+    uint64_t packed_word(const uint64_t bit) const {
+        const uint64_t block = bit >> 6;
+        const uint64_t shift = bit & 63;
+        uint64_t word = m_packed[block] >> shift;
+        if (shift != 0) word |= m_packed[block + 1] << (64 - shift);
+        return word;
+    }
+
+    /* The 64-bit window of packed query characters starting at character
+       `char_offset` of the segment. */
+    uint64_t query_word(segment const& seg, const uint64_t char_offset) const {
+        return packed_word(64 * seg.packed_word_begin + bits_per_char * char_offset);
+    }
+
+    /* The kmer at slot `slot` of the segment, from the packed characters. */
+    kmer_t slot_kmer(segment const& seg, const uint64_t slot) const {
+        static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+        const uint64_t bit = 64 * seg.packed_word_begin +  //
+                             bits_per_char * (slot - seg.slot_begin);
+        kmer_t kmer = 0;
+        for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
+            kmer.append64(packed_word(bit + i));
+        }
+        kmer.take(bits_per_char * m_k);
+        assert(kmer == util::string_to_uint_kmer<kmer_t>(seg.chars + (slot - seg.slot_begin), m_k));
+        return kmer;
+    }
+
+    kmer_t slot_kmer_rc(segment const& seg, const uint64_t slot) const {
+        kmer_t rc = slot_kmer(seg, slot);
         rc.reverse_complement_inplace(m_k);
         return rc;
     }
 
-    struct segment {
-        uint64_t slot_begin, slot_end;
-        char const* chars;
-    };
-    std::vector<segment> m_segments;
+    /* ---------------- chains ---------------- */
 
-    using bucket_cache = typename Dict::spss_type::bucket_cache;
-
-    /* The verified-ahead state of a run extension: a word of upcoming text
-       characters (complemented, in descending text order, for backward
-       matches, so the compare is orientation-independent), and the
-       character offset `cursor` of its next refill. */
-    struct extension {
-        bool anchored = false;
-        bool backward = false;
-        uint64_t buf = 0;
-        uint64_t avail = 0;
-        uint64_t cursor = 0;
-        uint64_t remaining = 0;  // extension steps left in the string
+    /* The memo of a resolved minimizer occurrence: whether the minimizer is
+       present, the result of the kmer the walk resolved, and the decoded
+       locate set of the bucket when it fits the cache. It answers every
+       kmer of [head_slot, extent) that extension does not cover. */
+    struct occurrence {
+        uint32_t head_slot, extent;
+        uint32_t head_pik;  // pos_in_kmer at head_slot; it decreases by one
+                            // per slide within the occurrence
+        uint64_t minimizer;
+        bool found;
+        lookup_result head_res;
+        bucket_cache cache;
     };
 
     struct chain {
         uint64_t cursor, end;
         uint32_t segment;
+        /* match state */
+        bool anchored;
+        bool backward;
+        uint64_t t_cursor;     // char offset in the text of the next refill
+        uint64_t t_remaining;  // extension steps left in the string
+        lookup_result cur;
+        /* scan state: the incremental minimizer iterator has consumed the
+           slots [_, scan_pos), and `frontier` is the occurrence identity
+           (minimizer, pos_in_seq) of slot scan_pos - 1 */
+        bool scan_valid;
+        uint64_t scan_pos;
+        minimizer_info frontier;
+        /* the head the last scan found but did not submit */
+        bool stash_valid;
+        uint64_t stash_slot;
+        uint32_t stash_pik;
+        uint64_t stash_minimizer;
+        /* speculation */
         uint32_t spec;
         bool anchored_since_submit;
-        extension ext;
-        lookup_result cur;  // last positive result, advanced by extensions
-        /* memo of the last consumed walk */
+        /* the memo and the prepaid requests of the current pass */
         bool memo_valid;
-        uint32_t memo_group;
-        bool memo_found;
-        uint64_t memo_head_slot;
-        lookup_result memo_head_res;
-        bucket_cache memo_cache;
-        /* prepaid requests of the current pass */
-        uint32_t req_begin, req_count;
+        occurrence memo;
+        uint32_t req_next, req_end;  // indices into the pass's request buffer
     };
     std::vector<chain> m_chains;
-    std::vector<uint32_t> m_pending[2];  // chain ids, current and next pass
+    std::vector<minimizer_iterator<kmer_t>> m_chain_its;  // parallel to m_chains
+    std::vector<uint32_t> m_pending[2];                   // chain ids, this and next pass
 
     struct request_buffer {
-        std::vector<uint32_t> slot;  // the kmer the walk resolves
-        std::vector<uint32_t> group;
+        std::vector<uint32_t> chain;
+        std::vector<uint32_t> slot;    // the occurrence's head: the kmer the walk resolves
+        std::vector<uint32_t> extent;  // one past the last slot of the occurrence
+        std::vector<uint32_t> pik;     // pos_in_kmer at the head
+        std::vector<uint64_t> minimizer;
         std::vector<uint8_t> found;
         std::vector<lookup_result> res;
         std::vector<bucket_cache> cache;
         void clear() {
+            chain.clear();
             slot.clear();
-            group.clear();
+            extent.clear();
+            pik.clear();
+            minimizer.clear();
             found.clear();
             res.clear();
             cache.clear();
         }
         uint64_t size() const { return slot.size(); }
     };
-    request_buffer m_req[2];  // current and next pass
-    std::vector<uint64_t> m_minimizers, m_ids, m_codes;  // resolve scratch
+    request_buffer m_req[2];                   // this and next pass
+    std::vector<uint64_t> m_ids, m_codes;      // resolve scratch
+    std::vector<uint32_t> m_decoded;           // request -> decoded bucket size
 
     /* performance counts */
     uint64_t m_num_searches;
@@ -247,16 +275,13 @@ private:
     uint64_t m_num_skipped_singleton_lookups;
     uint64_t m_num_bucket_cache_hits;
 
-    /* ---------------- front end ---------------- */
+    /* ---------------- front end: pack and cover ---------------- */
 
     void front_end() {
-        m_kmers.clear();
-        m_group_of.clear();
-        m_group_head.clear();
-        m_group_minimizer.clear();
-        m_group_head_pik.clear();
+        m_packed.clear();
         m_segments.clear();
         m_chains.clear();
+        m_chain_its.clear();
 
         for (auto [offset, length] : m_views) {
             char const* chars = m_arena.data() + offset;
@@ -279,47 +304,41 @@ private:
 
     void fill_segment(char const* chars, const uint64_t length) {
         const uint64_t num_kmers = length - m_k + 1;
-        const uint64_t slot_begin = m_kmers.size();
-        m_segments.push_back({slot_begin, slot_begin + num_kmers, chars});
+        const uint64_t slot_begin =
+            m_segments.empty() ? 0 : m_segments.back().slot_end;
+        m_segments.push_back({slot_begin, slot_begin + num_kmers, m_packed.size(), chars});
         const uint32_t segment_id = m_segments.size() - 1;
 
-        m_minimizer_it.set_position(m_window);
-        kmer_t kmer = util::string_to_uint_kmer<kmer_t>(chars, m_k);
-
-        minimizer_info prev_info;
-        for (uint64_t i = 0; i != num_kmers; ++i) {
-            if (i != 0) {
-                const unsigned char c = chars[i + m_k - 1];
-                kmer.drop_char();
-                kmer.set(m_k - 1, kmer_t::char_to_uint(c));
+        /* pack the characters, 64 / bits_per_char per word */
+        uint64_t word = 0;
+        uint64_t fill = 0;
+        for (uint64_t i = 0; i != length; ++i) {
+            word |= kmer_t::char_to_uint(chars[i]) << (bits_per_char * fill);
+            if (++fill == chars_per_word) {
+                m_packed.push_back(word);
+                word = 0;
+                fill = 0;
             }
-            assert(kmer == util::string_to_uint_kmer<kmer_t>(chars + i, m_k));
-            auto info = m_minimizer_it.next(kmer);
-            m_window += 1;
-            const uint64_t slot = slot_begin + i;
-            if (i == 0 or info.minimizer != prev_info.minimizer or
-                info.pos_in_seq != prev_info.pos_in_seq) {
-                m_group_head.push_back(slot);
-                m_group_minimizer.push_back(info.minimizer);
-                m_group_head_pik.push_back(info.pos_in_kmer);
-            }
-            prev_info = info;
-            m_kmers.push_back(kmer);
-            m_group_of.push_back(m_group_head.size() - 1);
-            assert(slot_mini_info(slot).minimizer == info.minimizer);
-            assert(slot_mini_info(slot).pos_in_kmer == info.pos_in_kmer);
         }
+        if (fill != 0) m_packed.push_back(word);
+        /* padding, so any 64-bit window up to the last character is safe,
+           whatever the kmer width */
+        for (int i = 0; i != 1 + int(kmer_t::uint_kmer_bits / 64); ++i) m_packed.push_back(0);
 
         for (uint64_t begin = slot_begin; begin < slot_begin + num_kmers; begin += chain_length) {
             chain c;
             c.cursor = begin;
             c.end = std::min(begin + chain_length, slot_begin + num_kmers);
             c.segment = segment_id;
+            c.anchored = false;
+            c.scan_valid = false;
+            c.stash_valid = false;
             c.spec = 1;
             c.anchored_since_submit = false;
             c.memo_valid = false;
-            c.req_begin = c.req_count = 0;
+            c.req_next = c.req_end = 0;
             m_chains.push_back(c);
+            m_chain_its.push_back(m_iterator_proto);
         }
     }
 
@@ -332,42 +351,105 @@ private:
         m_pending[0].clear();
         m_pending[1].clear();
 
-        /* every chain submits its first walk */
-        for (uint32_t c = 0; c != m_chains.size(); ++c) {
-            submit(m_chains[c], m_group_of[m_chains[c].cursor], c, parity);
-        }
+        for (uint32_t c = 0; c != m_chains.size(); ++c) scan_and_submit(c, parity);
 
         while (!m_pending[parity].empty()) {
             resolve_requests(m_req[parity]);
             const uint32_t next = parity ^ 1;
             m_req[next].clear();
             m_pending[next].clear();
-            for (uint32_t c : m_pending[parity]) {
-                run_chain(m_chains[c], c, parity);
-            }
+            for (uint32_t c : m_pending[parity]) run_chain(c, parity);
             parity = next;
         }
     }
 
-    void submit(chain& c, const uint32_t group, const uint32_t chain_id, const uint32_t parity) {
+    /* One step of the scan: hash the minimizer of slot `scan_pos` with the
+       chain's incremental iterator. Returns its minimizer info. */
+    minimizer_info scan_step(chain& c, minimizer_iterator<kmer_t>& it, segment const& seg) {
+        assert(c.scan_valid and c.scan_pos < c.end);
+        auto info = it.next(slot_kmer(seg, c.scan_pos));
+        c.scan_pos += 1;
+        return info;
+    }
+
+    /* The chain cannot resolve the kmer at its cursor: scan forward for up
+       to `spec` minimizer occurrences and request their walks. */
+    void scan_and_submit(const uint32_t chain_id, const uint32_t parity) {
+        chain& c = m_chains[chain_id];
+        auto& it = m_chain_its[chain_id];
+        auto const& seg = m_segments[c.segment];
+        assert(c.cursor < c.end);
+
         c.spec = c.anchored_since_submit ? 1 : std::min<uint32_t>(c.spec * 4, max_speculation);
         c.anchored_since_submit = false;
 
         auto& buf = m_req[parity];
-        const uint32_t last_group = m_group_of[c.end - 1];
-        const uint32_t count = std::min<uint32_t>(c.spec, last_group - group + 1);
-        c.req_begin = buf.size();
-        c.req_count = count;
-        for (uint32_t t = 0; t != count; ++t) {
-            const uint32_t g = group + t;
-            const uint32_t head = t == 0 ? c.cursor : m_group_head[g];
-            assert(m_group_of[head] == g);
-            buf.slot.push_back(head);
-            buf.group.push_back(g);
+        c.req_next = buf.size();
+
+        uint64_t head_slot;
+        uint32_t head_pik;
+        uint64_t head_minimizer;
+
+        if (c.stash_valid and c.scan_valid and c.stash_slot == c.cursor) {
+            /* the last scan already found the occurrence at the cursor */
+            head_slot = c.stash_slot;
+            head_pik = c.stash_pik;
+            head_minimizer = c.stash_minimizer;
+        } else {
+            /* (re)start scanning at the cursor */
+            it.set_position(c.cursor);
+            c.scan_pos = c.cursor;
+            c.scan_valid = true;
+            auto info = scan_step(c, it, seg);
+            c.frontier = info;
+            head_slot = c.cursor;
+            head_pik = info.pos_in_kmer;
+            head_minimizer = info.minimizer;
         }
+        c.stash_valid = false;
+
+        uint32_t count = 0;
+        while (true) {
+            /* scan to the end of the current occurrence */
+            uint64_t extent = c.end;
+            bool found_next = false;
+            minimizer_info next_info;
+            while (c.scan_pos != c.end) {
+                auto info = scan_step(c, it, seg);
+                if (info.minimizer != c.frontier.minimizer or
+                    info.pos_in_seq != c.frontier.pos_in_seq) {
+                    extent = c.scan_pos - 1;
+                    found_next = true;
+                    next_info = info;
+                    break;
+                }
+                c.frontier = info;
+            }
+            buf.chain.push_back(chain_id);
+            buf.slot.push_back(head_slot);
+            buf.extent.push_back(extent);
+            buf.pik.push_back(head_pik);
+            buf.minimizer.push_back(head_minimizer);
+            count += 1;
+            if (!found_next) break;  // the chain's range is fully scanned
+            c.frontier = next_info;
+            if (count == c.spec) {
+                /* stash the head we found but do not submit */
+                c.stash_valid = true;
+                c.stash_slot = c.scan_pos - 1;
+                c.stash_pik = next_info.pos_in_kmer;
+                c.stash_minimizer = next_info.minimizer;
+                break;
+            }
+            head_slot = c.scan_pos - 1;
+            head_pik = next_info.pos_in_kmer;
+            head_minimizer = next_info.minimizer;
+        }
+
         buf.found.resize(buf.size());
         buf.res.resize(buf.size());
         buf.cache.resize(buf.size());
+        c.req_end = buf.size();
         m_pending[parity].push_back(chain_id);
     }
 
@@ -377,19 +459,18 @@ private:
         const uint64_t n = buf.size();
         if (n == 0) return;
 
-        /* stage 1: the minimizers MPHF, batched */
-        m_minimizers.resize(n);
+        /* stage 1: the minimizers MPHF, batched: it hashes all the keys and
+           prefetches the seeds of their buckets before reading any */
         m_ids.resize(n);
         m_codes.resize(n);
-        for (uint64_t r = 0; r != n; ++r) m_minimizers[r] = m_group_minimizer[buf.group[r]];
         auto const& mphf = m_dict->m_ssi.codewords.mphf;
         uint64_t r = 0;
         for (; r + mphf_batch_size <= n; r += mphf_batch_size) {
-            mphf.template lookup_batch<mphf_batch_size>(&m_minimizers[r], &m_ids[r]);
+            mphf.template lookup_batch<mphf_batch_size>(&buf.minimizer[r], &m_ids[r]);
         }
-        for (; r != n; ++r) m_ids[r] = mphf(m_minimizers[r]);
+        for (; r != n; ++r) m_ids[r] = mphf(buf.minimizer[r]);
 
-        /* stage 2: the control codewords: prefetch all lines, then read */
+        /* stage 2: the control codewords: prefetch every line, then read */
         auto const& codewords = m_dict->m_ssi.codewords.control_codewords;
         {
             auto const* bytes = reinterpret_cast<char const*>(codewords.data().data());
@@ -411,10 +492,10 @@ private:
             const uint64_t code = m_codes[i];
             if ((code & 1) == bucket_t::SINGLETON) {
                 const uint64_t minimizer_offset = code >> 1;
-                const uint64_t pos_in_kmer = slot_mini_info(buf.slot[i]).pos_in_kmer;
+                const uint64_t pos_in_kmer = buf.pik[i];
                 const uint64_t char_offset =
                     minimizer_offset >= pos_in_kmer ? minimizer_offset - pos_in_kmer : 0;
-                __builtin_prefetch(&strings.data()[(kmer_t::bits_per_char * char_offset) >> 6]);
+                __builtin_prefetch(&strings.data()[(bits_per_char * char_offset) >> 6]);
             } else if ((code & 3) == bucket_t::MIDLOAD) {
                 constexpr uint64_t mask = (uint64_t(1) << constants::min_l) - 1;
                 const uint64_t c = code >> 2;
@@ -426,19 +507,64 @@ private:
             }
         }
 
-        /* stage 4: verification */
+        /* stage 4: decode the locate sets of the cacheable buckets and
+           prefetch the text around every candidate locus, so the text
+           accesses of the pass overlap before any verification reads them */
+        m_decoded.resize(n);
         for (uint64_t i = 0; i != n; ++i) {
+            m_decoded[i] = 0;
+            const uint64_t code = m_codes[i];
+            buf.cache[i].size = 0;
+            if ((code & 3) == bucket_t::HEAVYLOAD and (code & 1) != bucket_t::SINGLETON) continue;
+            auto it = make_bucket_iterator(code);
+            const uint64_t size = it.size();
+            if (size > bucket_cache::max_cached_size) continue;
+            auto& positions = buf.cache[i].positions;
+            for (uint64_t t = 0; t != size; ++t, ++it) {
+                positions[t] = m_dict->m_spss.strings_offsets.decode(*it);
+            }
+            m_decoded[i] = size;
+            const uint64_t pos_in_kmer = buf.pik[i];
+            __builtin_prefetch(
+                &strings.data()[(bits_per_char * positions[0].absolute_offset) >> 6]);
+            for (uint64_t t = 0; t != size; ++t) {
+                const uint64_t char_offset = positions[t].absolute_offset >= pos_in_kmer
+                                                 ? positions[t].absolute_offset - pos_in_kmer
+                                                 : 0;
+                __builtin_prefetch(&strings.data()[(bits_per_char * char_offset) >> 6]);
+            }
+        }
+
+        /* stage 5: verification */
+        for (uint64_t i = 0; i != n; ++i) {
+            auto const& seg = m_segments[m_chains[buf.chain[i]].segment];
             const uint64_t slot = buf.slot[i];
             const uint64_t code = m_codes[i];
+            const minimizer_info info(buf.minimizer[i], buf.pik[i]);
             lookup_result res;
-            buf.cache[i].size = 0;
             if ((code & 3) == bucket_t::HEAVYLOAD and (code & 1) != bucket_t::SINGLETON) {
                 /* skew-index bucket: the walk is kmer-specific; rare */
-                res = m_dict->lookup(m_kmers[slot], slot_kmer_rc(slot), slot_mini_info(slot));
+                res = m_dict->lookup(slot_kmer(seg, slot), slot_kmer_rc(seg, slot), info);
+            } else if (const uint64_t size = m_decoded[i]; size != 0) {
+                /* the decoded locate set is at hand: check the minimizer at
+                   its anchor, then verify, as spss::lookup does */
+                auto const& positions = buf.cache[i].positions;
+                if (uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
+                        strings, m_m, bits_per_char * positions[0].absolute_offset));
+                    read_mmer != info.minimizer and
+                    util::canonical_mmer<kmer_t>(read_mmer, m_m) != info.minimizer) {
+                    res = lookup_result(false);
+                } else {
+                    buf.cache[i].size = size;
+                    res = m_dict->m_spss.lookup_from_positions(
+                        positions.data(), size, slot_kmer(seg, slot), slot_kmer_rc(seg, slot),
+                        info);
+                }
             } else {
+                /* bucket larger than the cache */
                 auto it = make_bucket_iterator(code);
-                res = m_dict->m_spss.lookup(it, m_kmers[slot], slot_kmer_rc(slot),
-                                            slot_mini_info(slot), &buf.cache[i]);
+                res = m_dict->m_spss.lookup(it, slot_kmer(seg, slot), slot_kmer_rc(seg, slot),
+                                            info, &buf.cache[i]);
             }
             buf.found[i] = res.minimizer_found;
             buf.res[i] = res;
@@ -463,129 +589,159 @@ private:
 
     /* Advance the chain until its range is exhausted or it stops with a new
        walk submission. */
-    void run_chain(chain& c, const uint32_t chain_id, const uint32_t parity) {
+    void run_chain(const uint32_t chain_id, const uint32_t parity) {
+        chain& c = m_chains[chain_id];
         auto const& seg = m_segments[c.segment];
         auto const& buf = m_req[parity];
 
         while (c.cursor != c.end) {
-            const uint64_t j = c.cursor;
-
-            /* 1. extension: crosses minimizer changes, costs no walk */
-            if (c.ext.anchored and c.ext.remaining != 0) {
-                if (c.ext.avail == 0) fill_extension_buffer(c.ext);
-                const uint64_t code_j =
-                    kmer_t::char_to_uint(seg.chars[(j - seg.slot_begin) + m_k - 1]);
-                if ((c.ext.buf & char_mask) == code_j) {
-                    c.ext.buf >>= kmer_t::bits_per_char;
-                    c.ext.avail -= 1;
-                    c.ext.remaining -= 1;
-                    c.cur.kmer_id += c.cur.kmer_orientation;
-                    c.cur.kmer_id_in_string += c.cur.kmer_orientation;
-                    m_num_extensions += 1;
-                    assert(equal_lookup_result(
-                        m_dict->lookup(seg.chars + (j - seg.slot_begin)), c.cur));
-                    c.cursor += 1;
-                    continue;
-                }
+            /* 1. word-parallel extension: crosses minimizer changes, costs
+                  no walk and no hashing */
+            if (c.anchored) {
+                lcp_sprint(c, seg);
+                if (c.cursor == c.end) return;
+                c.anchored = false;
             }
 
-            const uint32_t g = m_group_of[j];
+            const uint64_t j = c.cursor;
 
-            /* 2. make the walk of group g the chain's memo */
-            if (!(c.memo_valid and c.memo_group == g)) {
-                if (c.req_count != 0 and g >= buf.group[c.req_begin] and
-                    g < buf.group[c.req_begin] + c.req_count) {
-                    const uint32_t i = c.req_begin + (g - buf.group[c.req_begin]);
-                    assert(buf.group[i] == g);
+            /* 2. find the resolved occurrence covering the cursor */
+            if (!(c.memo_valid and j >= c.memo.head_slot and j < c.memo.extent)) {
+                while (c.req_next != c.req_end and buf.extent[c.req_next] <= j) c.req_next += 1;
+                if (c.req_next != c.req_end and buf.slot[c.req_next] <= j) {
+                    const uint32_t i = c.req_next;
                     c.memo_valid = true;
-                    c.memo_group = g;
-                    c.memo_found = buf.found[i];
-                    c.memo_head_slot = buf.slot[i];
-                    c.memo_head_res = buf.res[i];
-                    c.memo_cache = buf.cache[i];
+                    c.memo.head_slot = buf.slot[i];
+                    c.memo.extent = buf.extent[i];
+                    c.memo.head_pik = buf.pik[i];
+                    c.memo.minimizer = buf.minimizer[i];
+                    c.memo.found = buf.found[i];
+                    c.memo.head_res = buf.res[i];
+                    c.memo.cache = buf.cache[i];
+                    c.req_next += 1;
                 } else {
-                    submit(c, g, chain_id, parity ^ 1);
+                    scan_and_submit(chain_id, parity ^ 1);
                     return;
                 }
             }
 
             /* 3. resolve the kmer from the memo */
             lookup_result res;
-            if (j == c.memo_head_slot) {
-                res = c.memo_head_res;
-            } else if (!c.memo_found) {
+            if (j == c.memo.head_slot) {
+                res = c.memo.head_res;
+            } else if (!c.memo.found) {
                 /* absent minimizer: definitive (never set for HEAVYLOAD) */
                 res = lookup_result(false);
-            } else if (c.memo_cache.size != 0) {
-                m_num_bucket_cache_hits += 1;
-                res = m_dict->m_spss.lookup_from_positions(
-                    c.memo_cache.positions.data(), c.memo_cache.size, m_kmers[j], slot_kmer_rc(j),
-                    slot_mini_info(j));
             } else {
-                /* heavy or over-large bucket: per-kmer walk; rare */
-                res = m_dict->lookup(m_kmers[j], slot_kmer_rc(j), slot_mini_info(j));
+                const minimizer_info info(c.memo.minimizer,
+                                          c.memo.head_pik - (j - c.memo.head_slot));
+                if (c.memo.cache.size != 0) {
+                    m_num_bucket_cache_hits += 1;
+                    res = m_dict->m_spss.lookup_from_positions(c.memo.cache.positions.data(),
+                                                               c.memo.cache.size,
+                                                               slot_kmer(seg, j),
+                                                               slot_kmer_rc(seg, j), info);
+                } else {
+                    /* heavy or over-large bucket: per-kmer walk; rare */
+                    res = m_dict->lookup(slot_kmer(seg, j), slot_kmer_rc(seg, j), info);
+                }
             }
 
             if (res.kmer_id != constants::invalid_uint64) {
                 m_num_searches += 1;
                 c.cur = res;
-                anchor(c.ext, res);
+                anchor(c, res);
                 c.anchored_since_submit = true;
             } else {
                 m_num_negative += 1;
-                c.ext.anchored = false;
             }
             assert(equal_lookup_result(m_dict->lookup(seg.chars + (j - seg.slot_begin)), res));
             c.cursor += 1;
         }
     }
 
-    void anchor(extension& ext, lookup_result const& res) const {
+    void anchor(chain& c, lookup_result const& res) const {
         assert(res.kmer_id != constants::invalid_uint64);
         const uint64_t kmer_offset = res.kmer_id + res.string_id * (m_k - 1);
-        ext.anchored = true;
-        ext.buf = 0;
-        ext.avail = 0;
+        c.anchored = true;
         if (res.kmer_orientation == constants::backward_orientation) {
-            ext.backward = true;
-            ext.remaining = res.kmer_id_in_string;
-            ext.cursor = kmer_offset;
+            c.backward = true;
+            c.t_remaining = res.kmer_id_in_string;
+            c.t_cursor = kmer_offset;
         } else {
-            ext.backward = false;
-            ext.remaining = (res.string_end - res.string_begin - m_k) - res.kmer_id_in_string;
-            ext.cursor = kmer_offset + m_k;
+            c.backward = false;
+            c.t_remaining = (res.string_end - res.string_begin - m_k) - res.kmer_id_in_string;
+            c.t_cursor = kmer_offset + m_k;
         }
     }
 
-    void fill_extension_buffer(extension& ext) const {
-        assert(ext.anchored and ext.remaining != 0);
-        constexpr uint64_t bits_per_char = kmer_t::bits_per_char;
-        constexpr uint64_t chars_per_word = 64 / bits_per_char;
+    /* Extend the chain's match as far as the text agrees with the query,
+       one word -- 64 / bits_per_char characters -- per compare. */
+    void lcp_sprint(chain& c, segment const& seg) {
+        assert(c.anchored);
         auto const& strings = m_dict->m_spss.strings;
-        ext.avail = std::min<uint64_t>(chars_per_word, ext.remaining);
-        if (!ext.backward) {
-            assert(bits_per_char * ext.cursor < strings.num_bits());
-            ext.buf = strings.get_word64(bits_per_char * ext.cursor);
-            ext.cursor += ext.avail;
-        } else {
-            if constexpr (kmer_t::has_reverse_complement) {
-                static_assert(bits_per_char == 2);
-                /* one word ending at the cursor, reverse-complemented: code i
-                   of `buf` is the complement of the character at offset
-                   cursor - 1 - i, the character the i-th backward extension
-                   from here appends to the query */
-                uint64_t word;
-                if (ext.cursor >= chars_per_word) {
-                    word = strings.get_word64(bits_per_char * (ext.cursor - chars_per_word));
-                } else {
-                    word = strings.get_word64(0)
-                           << (bits_per_char * (chars_per_word - ext.cursor));
-                }
-                ext.buf = kmer_t::crc64(word);
-                ext.cursor -= ext.avail;
+        const uint64_t limit = std::min(c.end - c.cursor, c.t_remaining);
+        const uint64_t q_char = (c.cursor - seg.slot_begin) + m_k - 1;
+        uint64_t total = 0;
+        while (total != limit) {
+            const uint64_t qw = query_word(seg, q_char + total);
+            uint64_t tw;
+            if (!c.backward) {
+                assert(bits_per_char * (c.t_cursor + total) < strings.num_bits());
+                tw = strings.get_word64(bits_per_char * (c.t_cursor + total));
             } else {
-                assert(false);  // unreachable: no orientations without complements
+                if constexpr (kmer_t::has_reverse_complement) {
+                    static_assert(bits_per_char == 2);
+                    /* the word of text ending at the cursor, reverse
+                       complemented: its code i is the complement of the
+                       character at offset cursor - 1 - i, the character the
+                       i-th backward extension from here appends */
+                    const uint64_t end = c.t_cursor - total;
+                    uint64_t word;
+                    if (end >= chars_per_word) {
+                        word = strings.get_word64(bits_per_char * (end - chars_per_word));
+                    } else {
+                        word = strings.get_word64(0) << (bits_per_char * (chars_per_word - end));
+                    }
+                    tw = kmer_t::crc64(word);
+                } else {
+                    assert(false);  // unreachable: no orientations without complements
+                    tw = 0;
+                }
             }
+            const uint64_t n = std::min(chars_per_word, limit - total);
+            const uint64_t mask =
+                n == chars_per_word ? ~uint64_t(0) : (uint64_t(1) << (bits_per_char * n)) - 1;
+            const uint64_t diff = (qw ^ tw) & mask;
+            if (diff != 0) {
+                total += __builtin_ctzll(diff) / bits_per_char;
+                break;
+            }
+            total += n;
+        }
+
+#ifndef NDEBUG
+        /* re-verify every extended kmer one by one */
+        {
+            auto cur = c.cur;
+            for (uint64_t t = 0; t != total; ++t) {
+                cur.kmer_id += cur.kmer_orientation;
+                cur.kmer_id_in_string += cur.kmer_orientation;
+                assert(equal_lookup_result(
+                    m_dict->lookup(seg.chars + (c.cursor - seg.slot_begin) + t), cur));
+            }
+        }
+#endif
+
+        m_num_extensions += total;
+        c.cur.kmer_id += c.cur.kmer_orientation * int64_t(total);
+        c.cur.kmer_id_in_string += c.cur.kmer_orientation * int64_t(total);
+        c.cursor += total;
+        c.t_remaining -= total;
+        if (!c.backward) {
+            c.t_cursor += total;
+        } else {
+            c.t_cursor -= total;
         }
     }
 };

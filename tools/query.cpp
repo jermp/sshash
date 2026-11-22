@@ -19,6 +19,10 @@ int query(int argc, char** argv) {
                "minimizer per batch, with the walks of a batch overlapped) rather than one kmer "
                "at a time.",
                "--batched", false, true);
+    parser.add("async_io",
+               "Read and decompress the query file with a background thread, overlapping input "
+               "with the queries.",
+               "--async-io", false, true);
     parser.add("mmap", "Memory-map from file on disk rather than loading in RAM.", "--mmap", false,
                true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
@@ -30,6 +34,7 @@ int query(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     bool multiline = parser.get<bool>("multiline");
     bool batched = parser.get<bool>("batched");
+    bool async_io = parser.get<bool>("async_io");
 
     dictionary_type dict;
     open_dictionary(dict, index_filename, mmap, verbose);
@@ -37,7 +42,7 @@ int query(int argc, char** argv) {
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::milliseconds> t;
     t.start();
-    auto report = dict.streaming_query_from_file(query_filename, multiline, batched);
+    auto report = dict.streaming_query_from_file(query_filename, multiline, batched, async_io);
     t.stop();
     essentials::logger("DONE");
 

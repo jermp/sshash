@@ -4,6 +4,7 @@
 #include "include/util.hpp"
 #include "include/streaming_query.hpp"
 #include "include/streaming_query_batched.hpp"
+#include "include/async_istream.hpp"
 
 namespace sshash {
 
@@ -140,32 +141,50 @@ streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::is
 template <typename dictionary_type, typename query_type>
 streaming_query_report  //
 streaming_query_from_file_impl(dictionary_type const* dict, std::string const& filename,
-                               bool multiline)  //
+                               bool multiline, bool async_io)  //
 {
     std::ifstream is(filename.c_str());
     if (!is.good()) throw std::runtime_error("error in opening the file '" + filename + "'");
     streaming_query_report report;
 
-    if (util::ends_with(filename, ".fa.gz") or util::ends_with(filename, ".fasta.gz")) {
-        zip_istream zis(is);
-        report = streaming_query_from_fasta_file<dictionary_type, query_type>(dict, zis, multiline);
-    } else if (util::ends_with(filename, ".fq.gz") or util::ends_with(filename, ".fastq.gz")) {
-        if (multiline) {
-            std::cout << "==> Warning: option 'multiline' is only valid for FASTA files, not FASTQ."
-                      << std::endl;
-        }
-        zip_istream zis(is);
-        report = streaming_query_from_fastq_file<dictionary_type, query_type>(dict, zis);
-    } else if (util::ends_with(filename, ".fa") or util::ends_with(filename, ".fasta")) {
-        report = streaming_query_from_fasta_file<dictionary_type, query_type>(dict, is, multiline);
-    } else if (util::ends_with(filename, ".fq") or util::ends_with(filename, ".fastq")) {
-        if (multiline) {
-            std::cout << "==> Warning: option 'multiline' is only valid for FASTA files, not FASTQ."
-                      << std::endl;
-        }
-        report = streaming_query_from_fastq_file<dictionary_type, query_type>(dict, is);
-    } else {
+    const bool fasta = util::ends_with(filename, ".fa.gz") or
+                       util::ends_with(filename, ".fasta.gz") or
+                       util::ends_with(filename, ".fa") or util::ends_with(filename, ".fasta");
+    const bool fastq = util::ends_with(filename, ".fq.gz") or
+                       util::ends_with(filename, ".fastq.gz") or
+                       util::ends_with(filename, ".fq") or util::ends_with(filename, ".fastq");
+    if (!fasta and !fastq) {
         std::cerr << "unsupported query file format" << std::endl;
+        return report;
+    }
+    if (fastq and multiline) {
+        std::cout << "==> Warning: option 'multiline' is only valid for FASTA files, not FASTQ."
+                  << std::endl;
+    }
+
+    /* `run` gets the stream to parse: the file itself, decompressed when the
+       file is gzipped, and -- with `async_io` -- read (and so decompressed)
+       ahead by a producer thread, overlapping input with the queries. */
+    auto run = [&](std::istream& stream) {
+        if (fasta) {
+            return streaming_query_from_fasta_file<dictionary_type, query_type>(dict, stream,
+                                                                                multiline);
+        }
+        return streaming_query_from_fastq_file<dictionary_type, query_type>(dict, stream);
+    };
+    auto run_maybe_async = [&](std::istream& stream) {
+        if (async_io) {
+            async_istream ais(stream);
+            return run(ais);
+        }
+        return run(stream);
+    };
+
+    if (util::ends_with(filename, ".gz")) {
+        zip_istream zis(is);
+        report = run_maybe_async(zis);
+    } else {
+        report = run_maybe_async(is);
     }
 
     is.close();
@@ -175,16 +194,16 @@ streaming_query_from_file_impl(dictionary_type const* dict, std::string const& f
 template <typename Kmer, typename Offsets>
 streaming_query_report  //
 dictionary<Kmer, Offsets>::streaming_query_from_file(std::string const& filename, bool multiline,
-                                                     bool batched) const  //
+                                                     bool batched, bool async_io) const  //
 {
     using dictionary_type = dictionary<Kmer, Offsets>;
     if (batched) {
         return streaming_query_from_file_impl<dictionary_type,
                                               streaming_query_batched<dictionary_type>>(
-            this, filename, multiline);
+            this, filename, multiline, async_io);
     }
     return streaming_query_from_file_impl<dictionary_type, streaming_query<dictionary_type>>(
-        this, filename, multiline);
+        this, filename, multiline, async_io);
 }
 
 }  // namespace sshash

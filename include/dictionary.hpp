@@ -88,7 +88,7 @@ struct dictionary  //
 
     streaming_query_report  //
     streaming_query_from_file(std::string const& filename, bool multiline,
-                              bool batched = false) const;
+                              bool batched = false, bool async_io = false) const;
 
     struct iterator {
         iterator(dictionary const* ptr, const uint64_t begin_kmer_id, const uint64_t end_kmer_id) {
