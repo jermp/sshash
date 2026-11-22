@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstring>
+
 #include "include/dictionary.hpp"
 #include "include/minimizer_iterator.hpp"
 #include "include/util.hpp"
@@ -93,6 +95,7 @@ struct streaming_query_batched  //
     {
         m_slots.resize(num_slots);
         for (auto& s : m_slots) s.it = m_iterator_proto;
+        m_probe.capture(dict->m_spss.strings_offsets);
     }
 
     /* Sequences are independent of each other; nothing to reset. */
@@ -208,6 +211,57 @@ private:
         return rc;
     }
 
+    /*
+        Addresses inside the string-endpoints sequence, captured through its
+        own public `visit` traversal, so that the dependent reads of
+        `offset_to_id` -- the hint, then the entry lines of the search --
+        can be prefetched one sweep before they are read. These are pure
+        prefetch hints: if the traversal shape ever changes and the capture
+        comes back incomplete, the engine runs identically without them.
+    */
+    struct endpoints_probe {
+        bool valid = false;
+        char const* hints_bytes = nullptr;
+        uint64_t hints_width = 0;
+        uint64_t hints_size = 0;
+        uint64_t const* high_words = nullptr;
+        uint8_t const* low_bytes = nullptr;
+
+        template <typename T, typename V, typename = void>
+        struct has_visit : std::false_type {};
+        template <typename T, typename V>
+        struct has_visit<T, V,
+                         std::void_t<decltype(std::declval<T const&>().visit(std::declval<V&>()))>>
+            : std::true_type {};
+
+        template <typename T>
+        void visit(T const& t) {
+            if constexpr (std::is_same_v<T, bits::compact_vector>) {
+                if (hints_bytes == nullptr) {
+                    hints_bytes = reinterpret_cast<char const*>(t.data().data());
+                    hints_width = t.width();
+                    hints_size = t.size();
+                }
+            } else if constexpr (std::is_same_v<T, bits::bit_vector>) {
+                if (high_words == nullptr) high_words = t.data().data();
+            } else if constexpr (std::is_same_v<T, essentials::owning_span<uint8_t>>) {
+                if (low_bytes == nullptr) low_bytes = t.data();
+            } else if constexpr (std::is_arithmetic_v<T> or std::is_enum_v<T>) {
+                /* nothing */
+            } else if constexpr (has_visit<T, endpoints_probe>::value) {
+                t.visit(*this);
+            }
+        }
+
+        template <typename Offsets>
+        void capture(Offsets const& offsets) {
+            offsets.visit(*this);
+            valid = hints_bytes != nullptr and high_words != nullptr and
+                    low_bytes != nullptr and hints_width > 0 and hints_width < 57;
+        }
+    };
+    endpoints_probe m_probe;
+
     /* ---------------- the state machine ---------------- */
 
     enum class state : uint8_t {
@@ -218,6 +272,8 @@ private:
         walk_code,    // read the control codeword (line prefetched)
         walk_bucket,  // decode the locate set (line prefetched)
         walk_verify,  // compare the candidate loci (text prefetched)
+        walk_hint,    // read the endpoints hint (line prefetched) and
+                      // prefetch the entry lines of the endpoints search
         walk_locate,  // resolve the matched locus to its string
     };
 
@@ -343,6 +399,7 @@ private:
                     case state::walk_code: step_walk_code(s); break;
                     case state::walk_bucket: step_walk_bucket(s); break;
                     case state::walk_verify: step_walk_verify(s); break;
+                    case state::walk_hint: step_walk_hint(s); break;
                     case state::walk_locate: step_walk_locate(s); break;
                 }
                 advanced = true;
@@ -699,16 +756,38 @@ private:
                 if (read_kmer != kmer and read_kmer != kmer_rc) continue;
                 s.match_offset = offset;
                 s.match_backward = read_kmer == kmer_rc;
-                s.st = state::walk_locate;
-                /* no useful prefetch is computable for the endpoints
-                   search; the locates of concurrent walks at least run in
-                   adjacent steps */
+                if (m_probe.valid and (offset >> 8) != 0) {
+                    const uint64_t h_x = offset >> 8;
+                    __builtin_prefetch(m_probe.hints_bytes +
+                                       (((h_x - 1) * m_probe.hints_width) >> 3));
+                    s.st = state::walk_hint;
+                } else {
+                    s.st = state::walk_locate;
+                }
                 return;
             }
         }
         /* the minimizer is present but the kmer is not */
         s.memo_head_res = lookup_result();
         emit_negative(s, lookup_result());
+    }
+
+    /* WALK, stage 3b: read the endpoints hint (its line was prefetched)
+       and prefetch the lines where the endpoints search will start. */
+    void step_walk_hint(slot_t& s) {
+        const uint64_t h_x = s.match_offset >> 8;
+        assert(m_probe.valid and h_x != 0);
+        if (h_x - 1 < m_probe.hints_size) {
+            const uint64_t bit = (h_x - 1) * m_probe.hints_width;
+            uint64_t word;
+            std::memcpy(&word, m_probe.hints_bytes + (bit >> 3), sizeof(word));
+            const uint64_t p = (word >> (bit & 7)) &
+                               ((uint64_t(1) << m_probe.hints_width) - 1);
+            const uint64_t begin = p - h_x + 1;
+            __builtin_prefetch(m_probe.low_bytes + begin);
+            __builtin_prefetch(m_probe.high_words + (p >> 6));
+        }
+        s.st = state::walk_locate;
     }
 
     /* WALK, stage 4: resolve the matched locus to its string. */
