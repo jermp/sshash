@@ -291,7 +291,7 @@ private:
         "extend (word LCP)",    "walk: start (MPHF group)",    "walk: codeword other",
         "walk: bucket decode",  "walk: verify",                "walk: endpoints hint",
         "walk: locate",         "sweep overhead",              "scan: iterator sync + hash",
-        "scan: memo resolve",   "walk: codeword access",       "scan: heavy member walk"};
+        "scan: memo resolve",   "walk: codeword access",       "heavy walk stages"};
     bool m_timings = false;
     uint64_t m_cycles[num_timing_bins] = {};
     uint64_t m_steps[num_timing_bins] = {};
@@ -347,6 +347,11 @@ private:
         walk_hint,    // read the endpoints hint (line prefetched) and
                       // prefetch the entry lines of the endpoints search
         walk_locate,  // resolve the matched locus to its string
+        heavy_wait,   // a skew-bucket (kmer-specific) walk is filed
+        heavy_pf,     // prefetch the kmer's line of the partition positions
+        heavy_pos,    // read the position in the bucket (line prefetched)
+        heavy_off,    // read the kmer's offset (line prefetched) and
+                      // prefetch the candidate text
     };
 
     struct slot_t {
@@ -385,15 +390,26 @@ private:
         uint64_t big_size = 0;
 
         /* the walk in progress */
-        uint64_t walk_id = 0;    // minimizers MPHF value
+        uint64_t walk_id = 0;    // minimizers MPHF value, then reused along
+                                 // the heavy stages for the kmers MPHF value
+                                 // and the heavy-load bucket index
         uint64_t walk_code = 0;  // control codeword
         uint64_t walk_size = 0;  // its bucket size
+        bool walk_heavy = false;
         uint64_t match_offset = 0;
         bool match_backward = false;
+        /* skew-bucket occurrences: the memo keeps the bucket's partition
+           and begin, and each kmer files its own (kmer-specific) walk */
+        bool memo_heavy = false;
+        uint8_t heavy_partition = 0;
+        uint64_t heavy_begin = 0;
+        kmer_t heavy_key = 0;  // the canonical kmer of the filed walk
     };
     std::vector<slot_t> m_slots;
-    std::vector<uint32_t> m_walk_queue;  // slots in walk_wait
+    std::vector<uint32_t> m_walk_queue;   // slots in walk_wait
+    std::vector<uint32_t> m_heavy_queue;  // slots in heavy_wait
     std::vector<uint64_t> m_group_keys, m_group_ids;  // walk group scratch
+    std::array<std::vector<uint32_t>, 8> m_heavy_parts;  // heavy group scratch
 
     /* performance counts */
     uint64_t m_num_searches;
@@ -462,6 +478,7 @@ private:
 
     void run() {
         m_walk_queue.clear();
+        m_heavy_queue.clear();
         uint64_t num_active = 0;
         for (auto& s : m_slots) {
             s.st = state::idle;
@@ -476,7 +493,8 @@ private:
                 int bin;
                 switch (s.st) {
                     case state::idle:
-                    case state::walk_wait: continue;
+                    case state::walk_wait:
+                    case state::heavy_wait: continue;
                     case state::scanning: step_scan(s); bin = 2; break;
                     case state::extending: step_extend(s); bin = 3; break;
                     case state::walk_pf: step_walk_pf(s); bin = 5; break;
@@ -485,6 +503,9 @@ private:
                     case state::walk_verify: step_walk_verify(s); bin = 7; break;
                     case state::walk_hint: step_walk_hint(s); bin = 8; break;
                     case state::walk_locate: step_walk_locate(s); bin = 9; break;
+                    case state::heavy_pf: step_heavy_pf(s); bin = 14; break;
+                    case state::heavy_pos: step_heavy_pos(s); bin = 14; break;
+                    case state::heavy_off: step_heavy_off(s); bin = 14; break;
                     default: bin = 10; break;
                 }
                 if (m_timings) account(bin, t0);
@@ -504,8 +525,19 @@ private:
                     start_walks();
                 }
             }
+            if (m_heavy_queue.size() >= walk_group_size or
+                (!advanced and !m_heavy_queue.empty())) {
+                if (m_timings) {
+                    const uint64_t t0 = tsc();
+                    start_heavies();
+                    account(14, t0);
+                } else {
+                    start_heavies();
+                }
+            }
         }
         assert(m_walk_queue.empty());
+        assert(m_heavy_queue.empty());
         /* bin 10 accumulates the raw run() time; print_timings subtracts
            the attributed bins from it to report the scheduler overhead */
         if (m_timings) m_cycles[10] += tsc() - t_run;
@@ -612,6 +644,8 @@ private:
                 s.memo_minimizer = s.info.minimizer;
                 s.memo_pos_in_seq = s.info.pos_in_seq;
                 s.memo_head = s.cursor;
+                s.memo_heavy = false;
+                s.walk_heavy = false;
                 s.st = state::walk_wait;
                 m_walk_queue.push_back(&s - m_slots.data());
                 return;
@@ -632,12 +666,14 @@ private:
                 res = m_dict->m_spss.lookup_from_positions(s.big_positions.data(), s.big_size,
                                                            slot_kmer(seg, s.cursor),
                                                            slot_kmer_rc(seg, s.cursor), s.info);
+            } else if (s.memo_heavy) {
+                /* skew bucket: this kmer files its own walk */
+                file_heavy(s);
+                return;
             } else {
-                /* heavy bucket: the walk is kmer-specific */
-                const uint64_t t2 = m_timings ? tsc() : 0;
+                /* unreachable in practice: resolve serially for safety */
                 res = m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor),
                                      s.info);
-                if (m_timings) account(14, t2);
             }
             if (m_timings) account(12, t1);
             if (res.kmer_id != constants::invalid_uint64) {
@@ -772,6 +808,7 @@ private:
         s.walk_code = code;
         s.cache.size = 0;
         s.big_size = 0;
+        s.walk_heavy = false;
 
         if ((code & 1) == bucket_t::SINGLETON) {
             /* the locate set is the codeword itself: decode it now and
@@ -805,17 +842,100 @@ private:
             s.st = state::walk_bucket;
             return;
         }
-        /* HEAVYLOAD: the walk is kmer-specific; rare */
+        /* HEAVYLOAD: the walk is kmer-specific, so the bucket's memo keeps
+           its partition and begin, and every kmer of the occurrence --
+           starting with this one -- files its own walk through the heavy
+           stages. The minimizer's presence cannot be decided for these
+           buckets, so the memo never concludes absence. */
+        const uint64_t c = code >> 2;
+        s.memo_found = true;
+        s.memo_heavy = true;
+        s.heavy_partition = c & 7;
+        s.heavy_begin = c >> 3;
+        file_heavy(s);
+    }
+
+    void file_heavy(slot_t& s) {
         auto const& seg = seg_of(s);
-        lookup_result res =
-            m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor), s.info);
-        s.memo_found = res.minimizer_found;
-        s.memo_head_res = res;
-        if (res.kmer_id != constants::invalid_uint64) {
-            emit_positive(s, res);
+        const kmer_t kmer = slot_kmer(seg, s.cursor);
+        if constexpr (kmer_t::has_reverse_complement) {
+            s.heavy_key = std::min(kmer, slot_kmer_rc(seg, s.cursor));
         } else {
-            emit_negative(s, res);
+            s.heavy_key = kmer;
         }
+        s.st = state::heavy_wait;
+        m_heavy_queue.push_back(&s - m_slots.data());
+    }
+
+    /* Start the filed skew-bucket walks: group them by partition and
+       resolve each group through the kmers MPHF's batched lookup, which
+       prefetches the seeds of every key before reading any. */
+    void start_heavies() {
+        auto const& ski = m_dict->m_ssi.ski;
+        for (auto& part : m_heavy_parts) part.clear();
+        for (uint32_t id : m_heavy_queue) {
+            m_heavy_parts[m_slots[id].heavy_partition].push_back(id);
+        }
+        m_heavy_queue.clear();
+
+        std::array<kmer_t, walk_group_size> keys;
+        std::array<uint64_t, walk_group_size> ids;
+        for (uint64_t p = 0; p != m_heavy_parts.size(); ++p) {
+            auto const& part = m_heavy_parts[p];
+            if (part.empty()) continue;
+            auto const& mphf = ski.mphfs[p];
+            for (uint64_t begin = 0; begin < part.size(); begin += walk_group_size) {
+                const uint64_t n = std::min<uint64_t>(walk_group_size, part.size() - begin);
+                for (uint64_t i = 0; i != walk_group_size; ++i) {
+                    /* pad short groups by repeating the first key */
+                    keys[i] = m_slots[part[begin + (i < n ? i : 0)]].heavy_key;
+                }
+                mphf.template lookup_batch<walk_group_size>(keys.data(), ids.data());
+                for (uint64_t i = 0; i != n; ++i) {
+                    auto& s = m_slots[part[begin + i]];
+                    s.walk_id = ids[i];
+                    s.st = state::heavy_pf;
+                }
+            }
+        }
+    }
+
+    /* HEAVY, stage 1: prefetch the kmer's line of the partition positions
+       (one prefetch per step, never a burst). */
+    void step_heavy_pf(slot_t& s) {
+        auto const& positions = m_dict->m_ssi.ski.positions[s.heavy_partition];
+        auto const* bytes = reinterpret_cast<char const*>(positions.data().data());
+        __builtin_prefetch(bytes + ((s.walk_id * positions.width()) >> 3));
+        s.st = state::heavy_pos;
+    }
+
+    /* HEAVY, stage 2: read the position in the bucket (line prefetched)
+       and prefetch the heavy-load bucket entry. */
+    void step_heavy_pos(slot_t& s) {
+        auto const& ski = m_dict->m_ssi.ski;
+        const uint64_t pos_in_bucket = ski.positions[s.heavy_partition].access(s.walk_id);
+        s.walk_id = s.heavy_begin + pos_in_bucket;
+        auto const& hlb = ski.heavy_load_buckets;
+        auto const* bytes = reinterpret_cast<char const*>(hlb.data().data());
+        __builtin_prefetch(bytes + ((s.walk_id * hlb.width()) >> 3));
+        s.st = state::heavy_off;
+    }
+
+    /* HEAVY, stage 3: read the kmer's offset (line prefetched), decode it,
+       and prefetch the candidate text; verification and location then run
+       through the regular walk stages. */
+    void step_heavy_off(slot_t& s) {
+        auto const& strings = m_dict->m_spss.strings;
+        const uint64_t offset = m_dict->m_ssi.ski.heavy_load_buckets.access(s.walk_id);
+        s.cache.positions[0] = m_dict->m_spss.strings_offsets.decode(offset);
+        const uint64_t abs = s.cache.positions[0].absolute_offset;
+        const uint64_t pos_in_kmer = s.info.pos_in_kmer;
+        const uint64_t char_offset = abs >= pos_in_kmer ? abs - pos_in_kmer : 0;
+        __builtin_prefetch(&strings.data()[(bits_per_char * char_offset) >> 6]);
+        __builtin_prefetch(&strings.data()[(bits_per_char * abs) >> 6]);
+        s.walk_size = 1;
+        s.walk_heavy = true;
+        s.st = state::walk_verify;
     }
 
     /* WALK, stage 2 (mid-load buckets): decode the locate set (its line was
@@ -853,17 +973,26 @@ private:
         const uint64_t size = s.walk_size;
         auto const* positions = walk_positions(s);
 
-        /* presence check, as spss::lookup does */
+        /* presence check, as spss::lookup does; for a skew bucket the
+           located position being wrong proves nothing about the minimizer,
+           so absence is never concluded there */
         if (uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
                 strings, m_m, bits_per_char * positions[0].absolute_offset));
             read_mmer != s.info.minimizer and
             util::canonical_mmer<kmer_t>(read_mmer, m_m) != s.info.minimizer) {
-            s.memo_found = false;
-            emit_negative(s, lookup_result(false));
+            if (s.walk_heavy) {
+                emit_negative(s, lookup_result());
+            } else {
+                s.memo_found = false;
+                emit_negative(s, lookup_result(false));
+            }
             return;
         }
         s.memo_found = true;
-        if (size <= bucket_cache::max_cached_size) {
+        if (s.walk_heavy) {
+            /* the located kmer is cached nowhere: each kmer of the
+               occurrence resolves through its own heavy walk */
+        } else if (size <= bucket_cache::max_cached_size) {
             s.cache.size = size;
         } else {
             s.big_size = size;
