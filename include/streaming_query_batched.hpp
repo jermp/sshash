@@ -285,13 +285,13 @@ private:
        default: a run with timings pays two TSC reads per step, which
        distorts the shares by a few percent but leaves their order intact. */
 
-    static constexpr int num_timing_bins = 14;
+    static constexpr int num_timing_bins = 15;
     static constexpr char const* timing_names[num_timing_bins] = {
         "enqueue (arena copy)", "front end (validity + pack)", "scan: other",
         "extend (word LCP)",    "walk: start (MPHF group)",    "walk: codeword other",
         "walk: bucket decode",  "walk: verify",                "walk: endpoints hint",
         "walk: locate",         "sweep overhead",              "scan: iterator sync + hash",
-        "scan: memo resolve",   "walk: codeword access"};
+        "scan: memo resolve",   "walk: codeword access",       "scan: heavy member walk"};
     bool m_timings = false;
     uint64_t m_cycles[num_timing_bins] = {};
     uint64_t m_steps[num_timing_bins] = {};
@@ -314,11 +314,12 @@ private:
         for (int b = 0; b != num_timing_bins; ++b) cycles[b] = m_cycles[b];
         /* the sub-bins are nested inside their parents: subtract them */
         cycles[2] = cycles[2] > cycles[11] + cycles[12] ? cycles[2] - cycles[11] - cycles[12] : 0;
+        cycles[12] = cycles[12] > cycles[14] ? cycles[12] - cycles[14] : 0;
         cycles[5] = cycles[5] > cycles[13] ? cycles[5] - cycles[13] : 0;
         /* the scheduler overhead is the run() time not attributed to steps */
         uint64_t inside_run = 0;
         for (int b = 2; b <= 9; ++b) inside_run += cycles[b];
-        inside_run += cycles[11] + cycles[12] + cycles[13];
+        inside_run += cycles[11] + cycles[12] + cycles[13] + cycles[14];
         cycles[10] = cycles[10] > inside_run ? cycles[10] - inside_run : 0;
         uint64_t total = 0;
         for (int b = 0; b != num_timing_bins; ++b) total += cycles[b];
@@ -632,9 +633,11 @@ private:
                                                            slot_kmer(seg, s.cursor),
                                                            slot_kmer_rc(seg, s.cursor), s.info);
             } else {
-                /* heavy bucket: the walk is kmer-specific; rare */
+                /* heavy bucket: the walk is kmer-specific */
+                const uint64_t t2 = m_timings ? tsc() : 0;
                 res = m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor),
                                      s.info);
+                if (m_timings) account(14, t2);
             }
             if (m_timings) account(12, t1);
             if (res.kmer_id != constants::invalid_uint64) {
