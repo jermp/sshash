@@ -23,7 +23,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dic
         const uint64_t num_kmers = buffer.size() - k + 1;
         report.num_kmers += num_kmers;
         if constexpr (Query::is_batched) {
-            query.lookup_sequence(buffer.data(), buffer.size());
+            query.enqueue_sequence(buffer.data(), buffer.size());
         } else {
             for (uint64_t i = 0; i != num_kmers; ++i) {
                 char const* kmer = buffer.data() + i;
@@ -41,6 +41,7 @@ streaming_query_report streaming_query_from_fasta_file_multiline(Dict const* dic
             }
         }
     }
+    if constexpr (Query::is_batched) query.flush();
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
     report.num_skipped_singleton_lookups = query.num_skipped_singleton_lookups();
@@ -68,7 +69,7 @@ streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::is
         const uint64_t num_kmers = line.size() - k + 1;
         report.num_kmers += num_kmers;
         if constexpr (Query::is_batched) {
-            query.lookup_sequence(line.data(), line.size());
+            query.enqueue_sequence(line.data(), line.size());
         } else {
             for (uint64_t i = 0; i != num_kmers; ++i) {
                 char const* kmer = line.data() + i;
@@ -76,6 +77,7 @@ streaming_query_report streaming_query_from_fasta_file(Dict const* dict, std::is
             }
         }
     }
+    if constexpr (Query::is_batched) query.flush();
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
     report.num_skipped_singleton_lookups = query.num_skipped_singleton_lookups();
@@ -103,7 +105,7 @@ streaming_query_report streaming_query_from_fastq_file(Dict const* dict, std::is
             const uint64_t num_kmers = line.size() - k + 1;
             report.num_kmers += num_kmers;
             if constexpr (Query::is_batched) {
-                query.lookup_sequence(line.data(), line.size());
+                query.enqueue_sequence(line.data(), line.size());
             } else {
                 for (uint64_t i = 0; i != num_kmers; ++i) {
                     char const* kmer = line.data() + i;
@@ -114,6 +116,7 @@ streaming_query_report streaming_query_from_fastq_file(Dict const* dict, std::is
         std::getline(is, line);  // skip '+'
         std::getline(is, line);  // skip score
     }
+    if constexpr (Query::is_batched) query.flush();
     report.num_searches = query.num_searches();
     report.num_extensions = query.num_extensions();
     report.num_skipped_singleton_lookups = query.num_skipped_singleton_lookups();
