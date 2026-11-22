@@ -338,6 +338,8 @@ private:
         scanning,     // maintaining the minimizer, resolving from the memo
         extending,    // holding a match, word-parallel LCP
         walk_wait,    // a walk request is filed, waiting for a group
+        walk_pf,      // prefetch the control codeword line (one per step,
+                      // so prefetches never burst against full fill buffers)
         walk_code,    // read the control codeword (line prefetched)
         walk_bucket,  // decode the locate set (line prefetched)
         walk_verify,  // compare the candidate loci (text prefetched)
@@ -372,6 +374,14 @@ private:
         bool memo_found = false;
         lookup_result memo_head_res;
         bucket_cache cache;
+        /* mid-load buckets larger than the cache: decoded in full here, so
+           their kmers verify against positions instead of walking */
+        static constexpr uint64_t max_bucket_size = (uint64_t(1) << constants::min_l) + 1;
+        std::array<
+            typename std::decay_t<decltype(std::declval<bucket_cache>().positions)>::value_type,
+            max_bucket_size>
+            big_positions;
+        uint64_t big_size = 0;
 
         /* the walk in progress */
         uint64_t walk_id = 0;    // minimizers MPHF value
@@ -468,6 +478,7 @@ private:
                     case state::walk_wait: continue;
                     case state::scanning: step_scan(s); bin = 2; break;
                     case state::extending: step_extend(s); bin = 3; break;
+                    case state::walk_pf: step_walk_pf(s); bin = 5; break;
                     case state::walk_code: step_walk_code(s); bin = 5; break;
                     case state::walk_bucket: step_walk_bucket(s); bin = 6; break;
                     case state::walk_verify: step_walk_verify(s); bin = 7; break;
@@ -518,9 +529,6 @@ private:
        codeword line prefetched and proceeds stage by stage. */
     void start_walks() {
         auto const& mphf = m_dict->m_ssi.codewords.mphf;
-        auto const& codewords = m_dict->m_ssi.codewords.control_codewords;
-        auto const* codeword_bytes = reinterpret_cast<char const*>(codewords.data().data());
-        const uint64_t codeword_width = codewords.width();
 
         while (!m_walk_queue.empty()) {
             const uint64_t n = std::min<uint64_t>(walk_group_size, m_walk_queue.size());
@@ -536,8 +544,7 @@ private:
             for (uint64_t i = 0; i != n; ++i) {
                 auto& s = m_slots[m_walk_queue[first + i]];
                 s.walk_id = m_group_ids[i];
-                __builtin_prefetch(codeword_bytes + ((s.walk_id * codeword_width) >> 3));
-                s.st = state::walk_code;
+                s.st = state::walk_pf;
             }
             m_walk_queue.resize(first);
             if (m_walk_queue.size() < walk_group_size) break;
@@ -619,8 +626,13 @@ private:
                 res = m_dict->m_spss.lookup_from_positions(s.cache.positions.data(), s.cache.size,
                                                            slot_kmer(seg, s.cursor),
                                                            slot_kmer_rc(seg, s.cursor), s.info);
+            } else if (s.big_size != 0) {
+                m_num_bucket_cache_hits += 1;
+                res = m_dict->m_spss.lookup_from_positions(s.big_positions.data(), s.big_size,
+                                                           slot_kmer(seg, s.cursor),
+                                                           slot_kmer_rc(seg, s.cursor), s.info);
             } else {
-                /* heavy or over-large bucket: per-kmer walk; rare */
+                /* heavy bucket: the walk is kmer-specific; rare */
                 res = m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor),
                                      s.info);
             }
@@ -736,8 +748,18 @@ private:
         prefetch_text(s);
     }
 
+    /* WALK, stage 0: prefetch the control codeword line. One prefetch per
+       slot step: issued in a burst at group start they contend with the
+       MPHF's own reads for line-fill buffers and get dropped. */
+    void step_walk_pf(slot_t& s) {
+        auto const& codewords = m_dict->m_ssi.codewords.control_codewords;
+        auto const* bytes = reinterpret_cast<char const*>(codewords.data().data());
+        __builtin_prefetch(bytes + ((s.walk_id * codewords.width()) >> 3));
+        s.st = state::walk_code;
+    }
+
     /* WALK, stage 1: read the control codeword (its line was prefetched
-       when the group started) and prefetch what the bucket kind needs. */
+       by the previous step) and prefetch what the bucket kind needs. */
     void step_walk_code(slot_t& s) {
         auto const& ssi = m_dict->m_ssi;
         auto const& strings = m_dict->m_spss.strings;
@@ -746,6 +768,7 @@ private:
         if (m_timings) account(13, t0);
         s.walk_code = code;
         s.cache.size = 0;
+        s.big_size = 0;
 
         if ((code & 1) == bucket_t::SINGLETON) {
             /* the locate set is the codeword itself: decode it now and
@@ -761,31 +784,28 @@ private:
             return;
         }
         if ((code & 3) == bucket_t::MIDLOAD) {
+            /* every mid-load bucket fits the slot's big_positions array:
+               decode it through the pipeline, whatever its size */
             constexpr uint64_t mask = (uint64_t(1) << constants::min_l) - 1;
             const uint64_t c = code >> 2;
             const uint64_t bucket_size = (c & mask) + 2;
-            if (bucket_size <= bucket_cache::max_cached_size) {
-                const uint64_t bucket_id = c >> constants::min_l;
-                const uint64_t bucket_begin =
-                    ssi.begin_buckets_of_size[bucket_size] + bucket_id * bucket_size;
-                auto const& mid_load = ssi.mid_load_buckets;
-                auto const* bytes = reinterpret_cast<char const*>(mid_load.data().data());
-                __builtin_prefetch(bytes + ((bucket_begin * mid_load.width()) >> 3));
-                s.st = state::walk_bucket;
-                return;
+            const uint64_t bucket_id = c >> constants::min_l;
+            const uint64_t bucket_begin =
+                ssi.begin_buckets_of_size[bucket_size] + bucket_id * bucket_size;
+            auto const& mid_load = ssi.mid_load_buckets;
+            auto const* bytes = reinterpret_cast<char const*>(mid_load.data().data());
+            const uint64_t first_bit = bucket_begin * mid_load.width();
+            const uint64_t last_bit = (bucket_begin + bucket_size) * mid_load.width();
+            for (uint64_t byte = first_bit >> 3; byte <= (last_bit >> 3); byte += 64) {
+                __builtin_prefetch(bytes + byte);
             }
-            /* over-large bucket: resolve in one piece; rare */
+            s.st = state::walk_bucket;
+            return;
         }
-        /* HEAVYLOAD (kmer-specific walk) or over-large bucket: rare */
+        /* HEAVYLOAD: the walk is kmer-specific; rare */
         auto const& seg = seg_of(s);
-        lookup_result res;
-        if ((code & 3) == bucket_t::HEAVYLOAD and (code & 1) != bucket_t::SINGLETON) {
-            res = m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor), s.info);
-        } else {
-            auto it = make_bucket_iterator(code);
-            res = m_dict->m_spss.lookup(it, slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor),
-                                        s.info, nullptr);
-        }
+        lookup_result res =
+            m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor), s.info);
         s.memo_found = res.minimizer_found;
         s.memo_head_res = res;
         if (res.kmer_id != constants::invalid_uint64) {
@@ -801,18 +821,25 @@ private:
         auto const& strings = m_dict->m_spss.strings;
         auto it = make_bucket_iterator(s.walk_code);
         const uint64_t size = it.size();
-        assert(size >= 2 and size <= bucket_cache::max_cached_size);
+        assert(size >= 2 and size <= slot_t::max_bucket_size);
+        const bool small = size <= bucket_cache::max_cached_size;
+        auto* positions = small ? s.cache.positions.data() : s.big_positions.data();
         const uint64_t pos_in_kmer = s.info.pos_in_kmer;
         for (uint64_t t = 0; t != size; ++t, ++it) {
-            s.cache.positions[t] = m_dict->m_spss.strings_offsets.decode(*it);
-            const uint64_t offset = s.cache.positions[t].absolute_offset;
+            positions[t] = m_dict->m_spss.strings_offsets.decode(*it);
+            const uint64_t offset = positions[t].absolute_offset;
             const uint64_t char_offset = offset >= pos_in_kmer ? offset - pos_in_kmer : 0;
             __builtin_prefetch(&strings.data()[(bits_per_char * char_offset) >> 6]);
         }
-        __builtin_prefetch(
-            &strings.data()[(bits_per_char * s.cache.positions[0].absolute_offset) >> 6]);
+        __builtin_prefetch(&strings.data()[(bits_per_char * positions[0].absolute_offset) >> 6]);
         s.walk_size = size;
         s.st = state::walk_verify;
+    }
+
+    /* the decoded locate set of the walk in progress */
+    auto const* walk_positions(slot_t const& s) const {
+        return s.walk_size <= bucket_cache::max_cached_size ? s.cache.positions.data()
+                                                            : s.big_positions.data();
     }
 
     /* WALK, stage 3: the minimizer presence check and the candidate
@@ -821,7 +848,7 @@ private:
         auto const& seg = seg_of(s);
         auto const& strings = m_dict->m_spss.strings;
         const uint64_t size = s.walk_size;
-        auto const& positions = s.cache.positions;
+        auto const* positions = walk_positions(s);
 
         /* presence check, as spss::lookup does */
         if (uint64_t read_mmer = uint64_t(util::read_kmer_at<kmer_t>(
@@ -833,7 +860,11 @@ private:
             return;
         }
         s.memo_found = true;
-        s.cache.size = size;
+        if (size <= bucket_cache::max_cached_size) {
+            s.cache.size = size;
+        } else {
+            s.big_size = size;
+        }
 
         const kmer_t kmer = slot_kmer(seg, s.cursor);
         const kmer_t kmer_rc = slot_kmer_rc(seg, s.cursor);
@@ -892,9 +923,9 @@ private:
         if (res.kmer_offset >= res.string_end - m_k + 1) {
             /* the matched locus spans a string boundary: rare; redo the
                verification in full, which tries the later candidates */
-            res = m_dict->m_spss.lookup_from_positions(
-                s.cache.positions.data(), s.walk_size, slot_kmer(seg, s.cursor),
-                slot_kmer_rc(seg, s.cursor), s.info);
+            res = m_dict->m_spss.lookup_from_positions(walk_positions(s), s.walk_size,
+                                                        slot_kmer(seg, s.cursor),
+                                                        slot_kmer_rc(seg, s.cursor), s.info);
         }
         s.memo_head_res = res;
         if (res.kmer_id != constants::invalid_uint64) {
