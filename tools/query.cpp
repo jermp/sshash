@@ -15,6 +15,10 @@ int query(int argc, char** argv) {
                "Use this option if more the one DNA line must be parsed after each header."
                " Only valid for FASTA files (not FASTQ).",
                "--multiline", false, true);
+    parser.add("batched",
+               "Resolve the kmers of each sequence in small batches of in-flight reads rather "
+               "than one kmer at a time.",
+               "--batched", false, true);
     parser.add("async_io",
                "Read and decompress the query file with a background thread, overlapping input "
                "with the queries.",
@@ -34,6 +38,7 @@ int query(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     bool multiline = parser.get<bool>("multiline");
     bool async_io = parser.get<bool>("async_io");
+    bool batched = parser.get<bool>("batched");
     bool hugepages = parser.get<bool>("hugepages");
 
     dictionary_type dict;
@@ -49,7 +54,7 @@ int query(int argc, char** argv) {
     essentials::logger("performing queries from file '" + query_filename + "'...");
     essentials::timer<std::chrono::high_resolution_clock, std::chrono::milliseconds> t;
     t.start();
-    auto report = dict.streaming_query_from_file(query_filename, multiline, async_io);
+    auto report = dict.streaming_query_from_file(query_filename, multiline, batched, async_io);
     t.stop();
     essentials::logger("DONE");
 
