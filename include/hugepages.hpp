@@ -57,10 +57,13 @@ struct hugepage_advisor  //
         }
     }
 
-    uint64_t advised_bytes() const { return m_advised_bytes; }
+    uint64_t advised_bytes() const { return m_collapsed_bytes + m_lazy_bytes; }
+    uint64_t collapsed_bytes() const { return m_collapsed_bytes; }
+    uint64_t lazy_bytes() const { return m_lazy_bytes; }
 
 private:
-    uint64_t m_advised_bytes = 0;
+    uint64_t m_collapsed_bytes = 0;  // synchronously collapsed (MADV_COLLAPSE)
+    uint64_t m_lazy_bytes = 0;       // advised only (khugepaged, eventually)
 
     void advise(void const* ptr, const uint64_t bytes) {
 #ifdef __linux__
@@ -72,11 +75,11 @@ private:
         void* p = reinterpret_cast<void*>(begin);
 #ifdef MADV_COLLAPSE
         if (madvise(p, end - begin, MADV_COLLAPSE) == 0) {
-            m_advised_bytes += end - begin;
+            m_collapsed_bytes += end - begin;
             return;
         }
 #endif
-        if (madvise(p, end - begin, MADV_HUGEPAGE) == 0) m_advised_bytes += end - begin;
+        if (madvise(p, end - begin, MADV_HUGEPAGE) == 0) m_lazy_bytes += end - begin;
 #else
         (void)ptr;
         (void)bytes;
@@ -87,10 +90,10 @@ private:
 /* Advise huge pages for every large buffer reachable from `t`. Returns the
    number of bytes advised. */
 template <typename T>
-uint64_t advise_hugepages(T const& t) {
+hugepage_advisor advise_hugepages(T const& t) {
     hugepage_advisor advisor;
     t.visit(advisor);
-    return advisor.advised_bytes();
+    return advisor;
 }
 
 }  // namespace sshash

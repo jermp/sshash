@@ -285,12 +285,13 @@ private:
        default: a run with timings pays two TSC reads per step, which
        distorts the shares by a few percent but leaves their order intact. */
 
-    static constexpr int num_timing_bins = 11;
+    static constexpr int num_timing_bins = 14;
     static constexpr char const* timing_names[num_timing_bins] = {
-        "enqueue (arena copy)", "front end (validity + pack)", "scan (minimizer + memo)",
-        "extend (word LCP)",    "walk: start (MPHF group)",    "walk: codeword",
+        "enqueue (arena copy)", "front end (validity + pack)", "scan: other",
+        "extend (word LCP)",    "walk: start (MPHF group)",    "walk: codeword other",
         "walk: bucket decode",  "walk: verify",                "walk: endpoints hint",
-        "walk: locate",         "sweep overhead"};
+        "walk: locate",         "sweep overhead",              "scan: iterator sync + hash",
+        "scan: memo resolve",   "walk: codeword access"};
     bool m_timings = false;
     uint64_t m_cycles[num_timing_bins] = {};
     uint64_t m_steps[num_timing_bins] = {};
@@ -311,9 +312,13 @@ private:
     void print_timings() const {
         uint64_t cycles[num_timing_bins];
         for (int b = 0; b != num_timing_bins; ++b) cycles[b] = m_cycles[b];
+        /* the sub-bins are nested inside their parents: subtract them */
+        cycles[2] = cycles[2] > cycles[11] + cycles[12] ? cycles[2] - cycles[11] - cycles[12] : 0;
+        cycles[5] = cycles[5] > cycles[13] ? cycles[5] - cycles[13] : 0;
         /* the scheduler overhead is the run() time not attributed to steps */
         uint64_t inside_run = 0;
         for (int b = 2; b <= 9; ++b) inside_run += cycles[b];
+        inside_run += cycles[11] + cycles[12] + cycles[13];
         cycles[10] = cycles[10] > inside_run ? cycles[10] - inside_run : 0;
         uint64_t total = 0;
         for (int b = 0; b != num_timing_bins; ++b) total += cycles[b];
@@ -575,16 +580,20 @@ private:
                 return;
             }
             /* sync the iterator with the cursor */
-            if (s.scan_valid and s.scan_pos == s.cursor + 1) {
-                /* s.info is current */
-            } else if (s.scan_valid and s.scan_pos == s.cursor) {
-                s.info = s.it.next(slot_kmer(seg, s.cursor));
-                s.scan_pos += 1;
-            } else {
-                s.it.set_position(s.cursor);
-                s.info = s.it.next(slot_kmer(seg, s.cursor));
-                s.scan_pos = s.cursor + 1;
-                s.scan_valid = true;
+            {
+                const uint64_t t0 = m_timings ? tsc() : 0;
+                if (s.scan_valid and s.scan_pos == s.cursor + 1) {
+                    /* s.info is current */
+                } else if (s.scan_valid and s.scan_pos == s.cursor) {
+                    s.info = s.it.next(slot_kmer(seg, s.cursor));
+                    s.scan_pos += 1;
+                } else {
+                    s.it.set_position(s.cursor);
+                    s.info = s.it.next(slot_kmer(seg, s.cursor));
+                    s.scan_pos = s.cursor + 1;
+                    s.scan_valid = true;
+                }
+                if (m_timings) account(11, t0);
             }
 
             if (!(s.memo_valid and s.info.minimizer == s.memo_minimizer and
@@ -601,6 +610,7 @@ private:
             }
 
             /* resolve from the memo */
+            const uint64_t t1 = m_timings ? tsc() : 0;
             lookup_result res;
             if (!s.memo_found) {
                 res = lookup_result(false);
@@ -614,6 +624,7 @@ private:
                 res = m_dict->lookup(slot_kmer(seg, s.cursor), slot_kmer_rc(seg, s.cursor),
                                      s.info);
             }
+            if (m_timings) account(12, t1);
             if (res.kmer_id != constants::invalid_uint64) {
                 emit_positive(s, res);
                 return;
@@ -730,7 +741,9 @@ private:
     void step_walk_code(slot_t& s) {
         auto const& ssi = m_dict->m_ssi;
         auto const& strings = m_dict->m_spss.strings;
+        const uint64_t t0 = m_timings ? tsc() : 0;
         const uint64_t code = ssi.codewords.control_codewords.access(s.walk_id);
+        if (m_timings) account(13, t0);
         s.walk_code = code;
         s.cache.size = 0;
 

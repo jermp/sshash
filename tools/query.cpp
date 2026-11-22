@@ -45,10 +45,10 @@ int query(int argc, char** argv) {
     open_dictionary(dict, index_filename, mmap, verbose);
 
     if (hugepages) {
-        const uint64_t advised = advise_hugepages(dict);
-        if (verbose) {
-            std::cout << "advised huge pages for " << advised << " bytes of index" << std::endl;
-        }
+        const auto advisor = advise_hugepages(dict);
+        std::cout << "huge pages: " << advisor.collapsed_bytes()
+                  << " bytes collapsed synchronously, " << advisor.lazy_bytes()
+                  << " bytes advised for background collapse" << std::endl;
     }
 
     essentials::logger("performing queries from file '" + query_filename + "'...");
