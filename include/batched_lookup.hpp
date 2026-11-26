@@ -54,9 +54,18 @@ struct lookup_query_batched  //
     lookup_query_batched(Dict const* dict)
         : m_dict(dict), m_k(dict->m_k), m_m(dict->m_m)  //
     {
-        m_slots.resize(num_slots);
+        uint64_t slots = num_slots;
+        /* The number of in-flight lookups trades prefetch distance against
+           cache footprint; the default suits the machines measured so far,
+           and the environment variable allows sweeping it without a build. */
+        if (char const* e = std::getenv("SSHASH_LOOKUP_SLOTS")) {
+            const uint64_t v = std::strtoull(e, nullptr, 10);
+            if (v >= group_size and v <= 4096) slots = v;
+        }
+        m_slots.resize(slots);
         m_probe.capture(dict->m_spss.strings_offsets);
         m_timings = std::getenv("SSHASH_TIMINGS") != nullptr;
+        m_no_avx512 = std::getenv("SSHASH_NO_AVX512") != nullptr;
     }
 
     /* Resolve kmers[0..n) into out[0..n). */
@@ -132,6 +141,7 @@ private:
         "walk: endpoints hint",    "walk: locate",             "heavy walk stages",
         "sweep overhead"};
     bool m_timings = false;
+    bool m_no_avx512 = false;
     uint64_t m_cycles[num_timing_bins] = {};
     uint64_t m_steps[num_timing_bins] = {};
 
@@ -287,14 +297,127 @@ private:
     }
 
     minimizer_info minimizer(kmer_t const& kmer, kmer_t const& kmer_rc) const {
-#if defined(__AVX2__)
         if constexpr (kmer_t::has_reverse_complement and bits_per_char == 2 and
                       std::is_same_v<hasher_type, mixer_64>) {
-            return minimizer_avx2(kmer, kmer_rc);
-        }
+#if defined(__AVX512F__) && defined(__AVX512DQ__)
+            if (!m_no_avx512) return minimizer_avx512(kmer, kmer_rc);
 #endif
+#if defined(__AVX2__)
+            return minimizer_avx2(kmer, kmer_rc);
+#endif
+        }
         return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
     }
+
+#if defined(__AVX512F__) && defined(__AVX512DQ__)
+    /*
+        As minimizer_avx2 below, but eight loci per iteration, with the
+        native 64-bit multiply and unsigned compares into mask registers;
+        loci beyond the window in the last iteration are excluded by the
+        lane mask instead of a scalar tail.
+    */
+    minimizer_info minimizer_avx512(kmer_t const& kmer, kmer_t const& kmer_rc) const {
+        static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+        const uint64_t w = m_k - m_m + 1;
+        constexpr uint64_t num_words = kmer_t::uint_kmer_bits / 64;
+        alignas(8) uint64_t words[num_words + 2];
+        alignas(8) uint64_t words_rc[num_words + 2];
+        std::memcpy(words, &kmer.bits, sizeof(kmer.bits));
+        std::memcpy(words_rc, &kmer_rc.bits, sizeof(kmer_rc.bits));
+        words[num_words] = words[num_words + 1] = 0;
+        words_rc[num_words] = words_rc[num_words + 1] = 0;
+
+        const uint64_t mb = m_m * bits_per_char;
+        const uint64_t mask64 = (uint64_t(1) << mb) - 1;
+        const __m512i mask = _mm512_set1_epi64(mask64);
+        const __m512i mulc = _mm512_set1_epi64(0x517cc1b727220a95ULL);
+        const uint64_t magic64 = m_dict->m_hasher.hash(0);
+        const __m512i magic = _mm512_set1_epi64(magic64);
+        const __m512i c63 = _mm512_set1_epi64(63);
+        const __m512i c64 = _mm512_set1_epi64(64);
+        const __m512i bitr_base = _mm512_set1_epi64(int64_t(2 * (m_k - m_m)));
+
+        __m512i bit = _mm512_setr_epi64(0, 2, 4, 6, 8, 10, 12, 14);
+        __m512i posv = _mm512_setr_epi64(0, 1, 2, 3, 4, 5, 6, 7);
+        __m512i min_hash = _mm512_set1_epi64(-1);  // unsigned max
+        __m512i min_value = _mm512_setzero_si512();
+        __m512i min_pos = _mm512_setzero_si512();
+        __mmask8 tie = 0;
+
+        /* extract eight m-mers at bit positions `at` from `src`; lanes whose
+           position falls outside the kmer yield garbage and are masked out
+           of the minimum below */
+        auto extract = [&](uint64_t const* src, const __m512i at) {
+            if constexpr (num_words == 1) {
+                return _mm512_and_si512(
+                    _mm512_srlv_epi64(_mm512_set1_epi64(int64_t(src[0])), at), mask);
+            } else {
+                const __mmask8 in_hi = _mm512_cmpgt_epi64_mask(at, c63);
+                const __m512i w0 =
+                    _mm512_mask_blend_epi64(in_hi, _mm512_set1_epi64(int64_t(src[0])),
+                                            _mm512_set1_epi64(int64_t(src[1])));
+                const __m512i w1 =
+                    _mm512_mask_blend_epi64(in_hi, _mm512_set1_epi64(int64_t(src[1])),
+                                            _mm512_set1_epi64(int64_t(src[2])));
+                const __m512i sh = _mm512_and_si512(at, c63);
+                return _mm512_and_si512(
+                    _mm512_or_si512(_mm512_srlv_epi64(w0, sh),
+                                    _mm512_sllv_epi64(w1, _mm512_sub_epi64(c64, sh))),
+                    mask);
+            }
+        };
+
+        for (uint64_t i = 0; i < w; i += 8) {
+            const __mmask8 valid =
+                w - i >= 8 ? __mmask8(0xff) : __mmask8((uint32_t(1) << (w - i)) - 1);
+            const __m512i mmer = extract(words, bit);
+            const __m512i r = extract(words_rc, _mm512_sub_epi64(bitr_base, bit));
+            const __mmask8 rc_lt = _mm512_cmplt_epu64_mask(r, mmer);
+            const __m512i value = _mm512_mask_blend_epi64(rc_lt, mmer, r);
+            const __m512i hash = _mm512_xor_si512(_mm512_mullo_epi64(value, mulc), magic);
+            tie |= _mm512_mask_cmpeq_epi64_mask(valid, hash, min_hash);
+            const __mmask8 lt = _mm512_mask_cmplt_epu64_mask(valid, hash, min_hash);
+            min_hash = _mm512_mask_blend_epi64(lt, min_hash, hash);
+            min_value = _mm512_mask_blend_epi64(lt, min_value, value);
+            min_pos = _mm512_mask_blend_epi64(lt, min_pos, posv);
+            bit = _mm512_add_epi64(bit, _mm512_set1_epi64(16));
+            posv = _mm512_add_epi64(posv, _mm512_set1_epi64(8));
+        }
+
+        if (tie != 0) {
+            return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+        }
+
+        alignas(64) uint64_t hs[8], vs[8], ps[8];
+        _mm512_store_si512(reinterpret_cast<__m512i*>(hs), min_hash);
+        _mm512_store_si512(reinterpret_cast<__m512i*>(vs), min_value);
+        _mm512_store_si512(reinterpret_cast<__m512i*>(ps), min_pos);
+
+        uint64_t best_hash = hs[0], best_value = vs[0], best_pos = ps[0];
+        uint64_t num_mins = 1;
+        for (int l = 1; l != 8; ++l) {
+            if (hs[l] < best_hash) {
+                best_hash = hs[l];
+                best_value = vs[l];
+                best_pos = ps[l];
+                num_mins = 1;
+            } else if (hs[l] == best_hash) {
+                num_mins += 1;
+            }
+        }
+        if (num_mins > 1) {
+            return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+        }
+        minimizer_info info(best_value, best_pos);
+        assert([&] {
+            auto expected =
+                util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+            return minimizer_info(info.minimizer, info.pos_in_kmer) ==
+                   minimizer_info(expected.minimizer, expected.pos_in_kmer);
+        }());
+        return info;
+    }
+#endif
 
 #if defined(__AVX2__)
     /*
