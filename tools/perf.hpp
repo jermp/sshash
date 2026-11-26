@@ -1,5 +1,7 @@
 #pragma once
 
+#include "include/batched_lookup.hpp"
+
 namespace sshash {
 
 namespace perf {
@@ -62,6 +64,24 @@ void perf_test_lookup_access(Dict const& dict, essentials::json_lines& perf_stat
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
         std::cout << "positive lookup (avg_nanosec_per_kmer) = " << nanosec_per_lookup << std::endl;
         perf_stats.add("positive lookup (avg_nanosec_per_kmer)", nanosec_per_lookup);
+
+        /* the same queries, resolved by the batched engine */
+        std::vector<char const*> pointers;
+        pointers.reserve(lookup_queries.size());
+        for (auto const& string : lookup_queries) pointers.push_back(string.c_str());
+        std::vector<lookup_result> results(lookup_queries.size());
+        lookup_query_batched<Dict> batched(&dict);
+        perf::timer_type tb;
+        tb.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            batched.lookup_batch(pointers.data(), pointers.size(), results.data());
+            essentials::do_not_optimize_away(results[r].kmer_id);
+        }
+        tb.stop();
+        double nanosec_per_batched = tb.elapsed() / (runs * lookup_queries.size());
+        std::cout << "positive lookup, batched (avg_nanosec_per_kmer) = " << nanosec_per_batched
+                  << std::endl;
+        perf_stats.add("positive lookup, batched (avg_nanosec_per_kmer)", nanosec_per_batched);
     }
 
     {
@@ -84,6 +104,24 @@ void perf_test_lookup_access(Dict const& dict, essentials::json_lines& perf_stat
         double nanosec_per_lookup = t.elapsed() / (runs * lookup_queries.size());
         std::cout << "negative lookup (avg_nanosec_per_kmer) " << nanosec_per_lookup << std::endl;
         perf_stats.add("negative lookup (avg_nanosec_per_kmer)", nanosec_per_lookup);
+
+        /* the same queries, resolved by the batched engine */
+        std::vector<char const*> pointers;
+        pointers.reserve(lookup_queries.size());
+        for (auto const& string : lookup_queries) pointers.push_back(string.c_str());
+        std::vector<lookup_result> results(lookup_queries.size());
+        lookup_query_batched<Dict> batched(&dict);
+        perf::timer_type tb;
+        tb.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            batched.lookup_batch(pointers.data(), pointers.size(), results.data());
+            essentials::do_not_optimize_away(results[r].kmer_id);
+        }
+        tb.stop();
+        double nanosec_per_batched = tb.elapsed() / (runs * lookup_queries.size());
+        std::cout << "negative lookup, batched (avg_nanosec_per_kmer) = " << nanosec_per_batched
+                  << std::endl;
+        perf_stats.add("negative lookup, batched (avg_nanosec_per_kmer)", nanosec_per_batched);
     }
 
     {
