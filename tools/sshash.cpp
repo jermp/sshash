@@ -39,6 +39,10 @@ int check(int argc, char** argv) {
 int bench(int argc, char** argv) {
     cmd_line_parser::parser parser(argc, argv);
     parser.add("index_filename", "Must be a file generated with the tool 'build'.", "-i", true);
+    parser.add("hugepages",
+               "Advise the kernel to back the index with huge pages (Linux only), removing most "
+               "TLB misses of large indexes.",
+               "--hugepages", false, true);
     parser.add("mmap", "Memory-map from file on disk rather than loading in RAM.", "--mmap", false,
                true);
     parser.add("verbose", "Verbose output.", "--verbose", false, true);
@@ -48,6 +52,13 @@ int bench(int argc, char** argv) {
     bool verbose = parser.get<bool>("verbose");
     dictionary_type dict;
     open_dictionary(dict, index_filename, mmap, verbose);
+
+    if (parser.get<bool>("hugepages")) {
+        const auto advisor = advise_hugepages(dict);
+        std::cout << "huge pages: " << advisor.collapsed_bytes()
+                  << " bytes collapsed synchronously, " << advisor.lazy_bytes()
+                  << " bytes advised for background collapse" << std::endl;
+    }
 
     essentials::json_lines perf_stats;
     perf_stats.add("index_filename", index_filename.c_str());
