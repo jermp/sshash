@@ -1,6 +1,10 @@
 #pragma once
 
+#include <cstdlib>
 #include <cstring>
+#if defined(__x86_64__)
+#include <x86intrin.h>
+#endif
 
 #include "include/dictionary.hpp"
 #include "include/endpoints_probe.hpp"
@@ -52,6 +56,7 @@ struct lookup_query_batched  //
     {
         m_slots.resize(num_slots);
         m_probe.capture(dict->m_spss.strings_offsets);
+        m_timings = std::getenv("SSHASH_TIMINGS") != nullptr;
     }
 
     /* Resolve kmers[0..n) into out[0..n). */
@@ -70,7 +75,42 @@ struct lookup_query_batched  //
             char const* const* queries;
             uint64_t k;
             kmer_t get(uint64_t i) const {
-                return util::string_to_uint_kmer<kmer_t>(queries[i], k);
+                char const* str = queries[i];
+#if defined(__BMI2__)
+                /*
+                    Pack eight characters per step: for both nucleotide
+                    encodings the code of a character is a function of bits
+                    1-3 of that same byte, so the whole word can be shifted
+                    and the two code bits of every byte extracted in one
+                    pext. The tail of k % 8 characters stays scalar, so no
+                    byte beyond str[k-1] is ever read.
+                */
+                if constexpr (kmer_t::bits_per_char == 2 and kmer_t::has_reverse_complement) {
+                    static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+                    constexpr uint64_t num_words = kmer_t::uint_kmer_bits / 64;
+                    uint64_t words[num_words] = {};
+                    const uint64_t num_chunks = k / 8;
+                    for (uint64_t j = 0; j != num_chunks; ++j) {
+                        uint64_t v;
+                        std::memcpy(&v, str + 8 * j, 8);
+#ifdef SSHASH_USE_TRADITIONAL_NUCLEOTIDE_ENCODING
+                        const uint64_t y = (v >> 1) ^ (v >> 2);
+#else
+                        const uint64_t y = v >> 1;
+#endif
+                        const uint64_t codes = _pext_u64(y, 0x0303030303030303ULL);
+                        words[(16 * j) >> 6] |= codes << ((16 * j) & 63);
+                    }
+                    for (uint64_t i = 8 * num_chunks; i != k; ++i) {
+                        words[(2 * i) >> 6] |= kmer_t::char_to_uint(str[i]) << ((2 * i) & 63);
+                    }
+                    kmer_t x = 0;
+                    std::memcpy(&x.bits, words, sizeof(x.bits));
+                    assert(x == util::string_to_uint_kmer<kmer_t>(str, k));
+                    return x;
+                }
+#endif
+                return util::string_to_uint_kmer<kmer_t>(str, k);
             }
         };
         run(source{queries, m_k}, n, out);
@@ -80,6 +120,53 @@ private:
     Dict const* m_dict;
     uint64_t m_k, m_m;
     endpoints_probe m_probe;
+
+    /* ---------------- timings (diagnostic) ----------------
+       With SSHASH_TIMINGS set, every step is timed with the TSC and
+       attributed to its stage; a share table prints at destruction. The
+       sweep-overhead bin also absorbs the cost of the TSC reads. */
+    static constexpr int num_timing_bins = 10;
+    static constexpr char const* timing_names[num_timing_bins] = {
+        "load (kmer + minimizer)", "walk: start (MPHF group)", "walk: codeword prefetch",
+        "walk: codeword",          "walk: bucket decode",      "walk: verify",
+        "walk: endpoints hint",    "walk: locate",             "heavy walk stages",
+        "sweep overhead"};
+    bool m_timings = false;
+    uint64_t m_cycles[num_timing_bins] = {};
+    uint64_t m_steps[num_timing_bins] = {};
+
+    static uint64_t tsc() {
+#if defined(__x86_64__)
+        return __rdtsc();
+#else
+        return 0;
+#endif
+    }
+    void account(const int bin, const uint64_t t0) {
+        m_cycles[bin] += tsc() - t0;
+        m_steps[bin] += 1;
+    }
+    void print_timings() const {
+        uint64_t cycles[num_timing_bins];
+        for (int b = 0; b != num_timing_bins; ++b) cycles[b] = m_cycles[b];
+        uint64_t inside = 0;
+        for (int b = 0; b != 9; ++b) inside += cycles[b];
+        cycles[9] = cycles[9] > inside ? cycles[9] - inside : 0;
+        uint64_t total = 0;
+        for (int b = 0; b != num_timing_bins; ++b) total += cycles[b];
+        if (total == 0) return;
+        std::cout << "==== lookup_query_batched timings (cycles, shares):\n";
+        for (int b = 0; b != num_timing_bins; ++b) {
+            std::cout << "  " << timing_names[b] << " = " << cycles[b] << " ("
+                      << (100.0 * cycles[b]) / total << "%), steps = " << m_steps[b] << '\n';
+        }
+        std::cout << "  total accounted cycles = " << total << std::endl;
+    }
+
+public:
+    ~lookup_query_batched() { print_timings(); }
+
+private:
 
     enum class state : uint8_t {
         idle,
@@ -139,39 +226,51 @@ private:
             }
         }
 
+        const uint64_t t_run = m_timings ? tsc() : 0;
         while (active != 0) {
             bool advanced = false;
             for (auto& s : m_slots) {
+                const uint64_t t0 = m_timings ? tsc() : 0;
+                int bin;
                 switch (s.st) {
                     case state::idle:
                     case state::mphf_wait:
                     case state::heavy_wait: continue;
-                    case state::walk_pf: step_walk_pf(s); break;
-                    case state::walk_code: step_walk_code(s); break;
-                    case state::walk_bucket: step_walk_bucket(s); break;
-                    case state::walk_verify: step_walk_verify(s); break;
-                    case state::walk_hint: step_walk_hint(s); break;
-                    case state::walk_locate: step_walk_locate(s); break;
-                    case state::heavy_pf: step_heavy_pf(s); break;
-                    case state::heavy_pos: step_heavy_pos(s); break;
-                    case state::heavy_off: step_heavy_off(s); break;
+                    case state::walk_pf: step_walk_pf(s); bin = 2; break;
+                    case state::walk_code: step_walk_code(s); bin = 3; break;
+                    case state::walk_bucket: step_walk_bucket(s); bin = 4; break;
+                    case state::walk_verify: step_walk_verify(s); bin = 5; break;
+                    case state::walk_hint: step_walk_hint(s); bin = 6; break;
+                    case state::walk_locate: step_walk_locate(s); bin = 7; break;
+                    case state::heavy_pf: step_heavy_pf(s); bin = 8; break;
+                    case state::heavy_pos: step_heavy_pos(s); bin = 8; break;
+                    case state::heavy_off: step_heavy_off(s); bin = 8; break;
+                    default: bin = 9; break;
                 }
+                if (m_timings) account(bin, t0);
                 advanced = true;
                 if (s.st == state::idle) {
                     if (next != n) {
+                        const uint64_t t1 = m_timings ? tsc() : 0;
                         load(s, source, next++);
+                        if (m_timings) account(0, t1);
                     } else {
                         active -= 1;
                     }
                 }
             }
             if (m_mphf_queue.size() >= group_size or (!advanced and !m_mphf_queue.empty())) {
+                const uint64_t t0 = m_timings ? tsc() : 0;
                 start_walks();
+                if (m_timings) account(1, t0);
             }
             if (m_heavy_queue.size() >= group_size or (!advanced and !m_heavy_queue.empty())) {
+                const uint64_t t0 = m_timings ? tsc() : 0;
                 start_heavies();
+                if (m_timings) account(8, t0);
             }
         }
+        if (m_timings) m_cycles[9] += tsc() - t_run;
         assert(m_mphf_queue.empty());
         assert(m_heavy_queue.empty());
     }
@@ -182,10 +281,177 @@ private:
         s.kmer = source.get(i);
         s.kmer_rc = s.kmer;
         s.kmer_rc.reverse_complement_inplace(m_k);
-        s.info = util::compute_minimizer<kmer_t>(s.kmer, s.kmer_rc, m_k, m_m, m_dict->m_hasher);
+        s.info = minimizer(s.kmer, s.kmer_rc);
         s.st = state::mphf_wait;
         m_mphf_queue.push_back(&s - m_slots.data());
     }
+
+    minimizer_info minimizer(kmer_t const& kmer, kmer_t const& kmer_rc) const {
+#if defined(__AVX2__)
+        if constexpr (kmer_t::has_reverse_complement and bits_per_char == 2 and
+                      std::is_same_v<hasher_type, mixer_64>) {
+            return minimizer_avx2(kmer, kmer_rc);
+        }
+#endif
+        return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+    }
+
+#if defined(__AVX2__)
+    /*
+        The minimizer of one isolated kmer, four loci per iteration: the
+        m-mers of loci i..i+3 are extracted with variable shifts from the
+        kmer's packed words, reverse-complemented in-vector (the crc64 of
+        kmer.hpp: complement, byte swap, two nibble swaps, final shift),
+        canonicalized by unsigned minimum, hashed with the mixer, and folded
+        into a per-lane running minimum; a scalar pass reduces the four
+        lanes and the tail loci. Any hash equality along the way raises a
+        (conservative) tie flag, on which the computation falls back to the
+        generic `compute_minimizer`, whose tie-breaking is the single
+        source of truth; true ties occur on ~1e-4 of the windows.
+    */
+    minimizer_info minimizer_avx2(kmer_t const& kmer, kmer_t const& kmer_rc) const {
+        static_assert(kmer_t::uint_kmer_bits % 64 == 0);
+        const uint64_t w = m_k - m_m + 1;
+        if (w < 8) {
+            return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+        }
+        constexpr uint64_t num_words = kmer_t::uint_kmer_bits / 64;
+        alignas(32) uint64_t words[num_words + 2];
+        std::memcpy(words, &kmer.bits, sizeof(kmer.bits));
+        words[num_words] = 0;
+        words[num_words + 1] = 0;
+
+        const uint64_t mb = m_m * bits_per_char;
+        const uint64_t mask64 = (uint64_t(1) << mb) - 1;
+        const __m256i mask = _mm256_set1_epi64x(mask64);
+        const __m256i mulc = _mm256_set1_epi64x(0x517cc1b727220a95ULL);
+        const uint64_t magic64 = m_dict->m_hasher.hash(0);
+        const __m256i magic = _mm256_set1_epi64x(magic64);
+        const __m256i sign = _mm256_set1_epi64x(int64_t(uint64_t(1) << 63));
+        const __m256i c64 = _mm256_set1_epi64x(64);
+
+        /* the m-mer of locus i read on the reverse strand is the m-mer of
+           kmer_rc at the mirror locus k - m - i, i.e. at bit 2*(k - m) - 2*i */
+        alignas(32) uint64_t words_rc[num_words + 2];
+        std::memcpy(words_rc, &kmer_rc.bits, sizeof(kmer_rc.bits));
+        words_rc[num_words] = 0;
+        words_rc[num_words + 1] = 0;
+        const __m256i bitr_base = _mm256_set1_epi64x(int64_t(2 * (m_k - m_m)));
+
+        __m256i min_hash = _mm256_set1_epi64x(-1);  // unsigned max
+        __m256i min_value = _mm256_setzero_si256();
+        __m256i min_pos = _mm256_setzero_si256();
+        __m256i tie = _mm256_setzero_si256();
+
+        auto mullo64 = [](__m256i a, __m256i b) {
+            const __m256i lo = _mm256_mul_epu32(a, b);
+            const __m256i ah = _mm256_srli_epi64(a, 32);
+            const __m256i bh = _mm256_srli_epi64(b, 32);
+            const __m256i cross =
+                _mm256_add_epi64(_mm256_mul_epu32(ah, b), _mm256_mul_epu32(a, bh));
+            return _mm256_add_epi64(lo, _mm256_slli_epi64(cross, 32));
+        };
+
+        uint64_t i = 0;
+        for (; i + 4 <= w; i += 4) {
+            const __m256i bit = _mm256_setr_epi64x(int64_t(2 * i), int64_t(2 * (i + 1)),
+                                                   int64_t(2 * (i + 2)), int64_t(2 * (i + 3)));
+
+            /* extract four m-mers at bit positions `at` from `src` */
+            auto extract = [&](uint64_t const* src, const __m256i at) {
+                if constexpr (num_words == 1) {
+                    return _mm256_and_si256(
+                        _mm256_srlv_epi64(_mm256_set1_epi64x(int64_t(src[0])), at), mask);
+                } else {
+                    /* per-lane word pair, stitched with variable shifts; shift
+                       counts >= 64 yield zero, which handles the boundaries */
+                    const __m256i in_hi = _mm256_cmpgt_epi64(at, _mm256_set1_epi64x(63));
+                    const __m256i w0 =
+                        _mm256_blendv_epi8(_mm256_set1_epi64x(int64_t(src[0])),
+                                           _mm256_set1_epi64x(int64_t(src[1])), in_hi);
+                    const __m256i w1 =
+                        _mm256_blendv_epi8(_mm256_set1_epi64x(int64_t(src[1])),
+                                           _mm256_set1_epi64x(int64_t(src[2])), in_hi);
+                    const __m256i sh = _mm256_and_si256(at, _mm256_set1_epi64x(63));
+                    return _mm256_and_si256(
+                        _mm256_or_si256(_mm256_srlv_epi64(w0, sh),
+                                        _mm256_sllv_epi64(w1, _mm256_sub_epi64(c64, sh))),
+                        mask);
+                }
+            };
+
+            const __m256i mmer = extract(words, bit);
+            const __m256i r = extract(words_rc, _mm256_sub_epi64(bitr_base, bit));
+
+            /* canonical = unsigned min(mmer, rc) */
+            const __m256i rc_lt =
+                _mm256_cmpgt_epi64(_mm256_xor_si256(mmer, sign), _mm256_xor_si256(r, sign));
+            const __m256i value = _mm256_blendv_epi8(mmer, r, rc_lt);
+            const __m256i hash = _mm256_xor_si256(mullo64(value, mulc), magic);
+
+            /* per-lane running minimum, with equality detection */
+            tie = _mm256_or_si256(tie, _mm256_cmpeq_epi64(hash, min_hash));
+            const __m256i lt = _mm256_cmpgt_epi64(_mm256_xor_si256(min_hash, sign),
+                                                  _mm256_xor_si256(hash, sign));
+            min_hash = _mm256_blendv_epi8(min_hash, hash, lt);
+            min_value = _mm256_blendv_epi8(min_value, value, lt);
+            const __m256i pos = _mm256_setr_epi64x(int64_t(i), int64_t(i + 1), int64_t(i + 2),
+                                                   int64_t(i + 3));
+            min_pos = _mm256_blendv_epi8(min_pos, pos, lt);
+        }
+
+        if (_mm256_movemask_epi8(tie) != 0) {
+            return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+        }
+
+        alignas(32) uint64_t hs[4], vs[4], ps[4];
+        _mm256_store_si256(reinterpret_cast<__m256i*>(hs), min_hash);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(vs), min_value);
+        _mm256_store_si256(reinterpret_cast<__m256i*>(ps), min_pos);
+
+        /* the tail loci, scalar, and the final reduction */
+        uint64_t best_hash = hs[0], best_value = vs[0], best_pos = ps[0];
+        uint64_t num_mins = 1;
+        for (int l = 1; l != 4; ++l) {
+            if (hs[l] < best_hash) {
+                best_hash = hs[l];
+                best_value = vs[l];
+                best_pos = ps[l];
+                num_mins = 1;
+            } else if (hs[l] == best_hash) {
+                num_mins += 1;
+            }
+        }
+        for (; i != w; ++i) {
+            const uint64_t bit = 2 * i;
+            uint64_t mmer = words[bit >> 6] >> (bit & 63);
+            if ((bit & 63) != 0) mmer |= words[(bit >> 6) + 1] << (64 - (bit & 63));
+            mmer &= mask64;
+            const uint64_t value =
+                std::min(mmer, kmer_t::reverse_complement_mmer(mmer, m_m));
+            const uint64_t hash = (value * 0x517cc1b727220a95ULL) ^ magic64;
+            if (hash < best_hash) {
+                best_hash = hash;
+                best_value = value;
+                best_pos = i;
+                num_mins = 1;
+            } else if (hash == best_hash) {
+                num_mins += 1;
+            }
+        }
+        if (num_mins > 1) {
+            return util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+        }
+        minimizer_info info(best_value, best_pos);
+        assert([&] {
+            auto expected =
+                util::compute_minimizer<kmer_t>(kmer, kmer_rc, m_k, m_m, m_dict->m_hasher);
+            return minimizer_info(info.minimizer, info.pos_in_kmer) ==
+                   minimizer_info(expected.minimizer, expected.pos_in_kmer);
+        }());
+        return info;
+    }
+#endif
 
     void emit(slot_t& s, lookup_result const& res) {
         assert(equal_lookup_result(m_dict->lookup(s.kmer), res));
