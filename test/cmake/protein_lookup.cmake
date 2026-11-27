@@ -1,0 +1,3 @@
+add_executable(test_protein_lookup test/test_protein_lookup.cpp)
+target_link_libraries(test_protein_lookup PRIVATE sshash_static)
+add_test(NAME protein_lookup COMMAND test_protein_lookup)
