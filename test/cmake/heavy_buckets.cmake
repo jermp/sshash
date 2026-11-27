@@ -1,0 +1,3 @@
+add_executable(test_heavy_buckets test/test_heavy_buckets.cpp)
+target_link_libraries(test_heavy_buckets PRIVATE sshash_static)
+add_test(NAME heavy_buckets COMMAND test_heavy_buckets)

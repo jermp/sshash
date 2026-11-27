@@ -55,8 +55,13 @@ void dictionary_builder<Kmer, Offsets>::build_sparse_and_skew_index(
     // list_id is bounded by the maximum number of buckets sharing the same size
     const uint64_t bits_for_list_id =
         std::ceil(std::log2(buckets_stats.max_sparse_buckets_per_size() + 1));
+    // Heavy-bucket codes also contain a three-bit partition and a two-bit status.
+    const uint64_t bits_for_skew_code = num_minimizer_positions_of_buckets_in_skew_index
+        ? 5 + bits::util::ceil_log2_uint64(num_minimizer_positions_of_buckets_in_skew_index)
+        : 0;
     const uint64_t num_bits_for_control =
-        std::max(num_bits_per_offset + 1, 2 + constants::min_l + bits_for_list_id);
+        std::max({num_bits_per_offset + 1, 2 + constants::min_l + bits_for_list_id,
+                  bits_for_skew_code});
 
     if (build_config.verbose) {
         std::cout << "num_bits_per_offset = " << num_bits_per_offset << std::endl;
