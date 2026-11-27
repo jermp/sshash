@@ -177,6 +177,9 @@ int main() {
         for (uint64_t m : {2, 3, 13, 31}) { test_iterator<wide_kmer_t>(k, m, 20000, gen); }
     }
 
+    test_iterator<aa_uint_kmer_t<uint64_t>>(5, 1, 20000, gen);
+    test_iterator<aa_uint_kmer_t<__uint128_t>>(21, 3, 20000, gen);
+
     std::cout << "checked " << num_checked << " kmers" << std::endl;
     if (num_failed != 0) {
         std::cerr << num_failed << " CHECKS FAILED" << std::endl;

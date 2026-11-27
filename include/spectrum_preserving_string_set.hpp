@@ -249,10 +249,14 @@ private:
 
         auto read_kmer =
             util::read_kmer_at<Kmer>(strings, k, Kmer::bits_per_char * res.kmer_offset);
-        if (read_kmer != kmer and read_kmer != kmer_rc) return false;
-
-        res.kmer_orientation =
-            read_kmer == kmer_rc ? constants::backward_orientation : constants::forward_orientation;
+        if constexpr (Kmer::has_reverse_complement) {
+            if (read_kmer != kmer and read_kmer != kmer_rc) return false;
+            res.kmer_orientation = read_kmer == kmer_rc ? constants::backward_orientation
+                                                        : constants::forward_orientation;
+        } else {
+            if (read_kmer != kmer) return false;
+            res.kmer_orientation = constants::forward_orientation;
+        }
 
         if (res.kmer_offset >= res.string_begin and res.kmer_offset < res.string_end - k + 1) {
             res.kmer_id = res.kmer_offset - res.string_id * (k - 1);     // absolute kmer id
