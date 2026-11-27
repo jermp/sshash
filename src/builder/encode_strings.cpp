@@ -219,9 +219,9 @@ void dictionary_builder<Kmer, Offsets>::encode_strings(std::istream& is,
     }
 
     num_bits nb;
-    nb.per_absolute_offset = std::ceil(std::log2(strings_offsets_builder.back()));
-    nb.per_relative_offset = std::ceil(std::log2(max_len - m + 1));
-    nb.per_string_id = std::ceil(std::log2(num_sequences));
+    nb.per_absolute_offset = bits::util::ceil_log2_uint64(strings_offsets_builder.back());
+    nb.per_relative_offset = bits::util::ceil_log2_uint64(max_len - m + 1);
+    nb.per_string_id = bits::util::ceil_log2_uint64(num_sequences);
 
     if (build_config.verbose) {
         std::cout << "max string length = " << max_len << std::endl;
