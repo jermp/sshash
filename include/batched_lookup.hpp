@@ -450,7 +450,7 @@ private:
         res.kmer_orientation =
             s.match_backward ? constants::backward_orientation : constants::forward_orientation;
         m_dict->m_spss.strings_offsets.offset_to_id(res, walk_positions(s)[0], m_k);
-        if (res.kmer_offset >= res.string_end - m_k + 1) {
+        if (res.kmer_offset < res.string_begin or res.kmer_offset >= res.string_end - m_k + 1) {
             /* the matched locus spans a string boundary: rare; redo the
                verification in full, which tries the later candidates */
             res = m_dict->m_spss.lookup_from_positions(walk_positions(s), s.walk_size, s.kmer,
