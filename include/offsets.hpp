@@ -175,7 +175,8 @@ struct encoded_offsets
 
         void build(encoded_offsets& e) {
             assert(std::is_sorted(m_v.begin(), m_v.end()));
-            e.m_seq.build(m_v.begin(), m_v.size(), m_nb.per_absolute_offset);
+            // Include the final endpoint, even when it is a power of two.
+            e.m_seq.build(m_v.begin(), m_v.size(), bits::util::msbll(m_v.back()) + 1);
             e.m_num_bits_per_relative_offset = m_nb.per_relative_offset;
             std::vector<uint64_t>().swap(m_v);
         }

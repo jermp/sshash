@@ -1,0 +1,3 @@
+add_executable(test_encoded_endpoints test/test_encoded_endpoints.cpp)
+target_link_libraries(test_encoded_endpoints PRIVATE sshash_static)
+add_test(NAME encoded_endpoints COMMAND test_encoded_endpoints)
