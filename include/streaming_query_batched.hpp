@@ -216,7 +216,7 @@ private:
         for (int i = kmer_t::uint_kmer_bits - 64; i >= 0; i -= 64) {
             kmer.append64(packed_word(bit + i));
         }
-        kmer.take(bits_per_char * m_k);
+        kmer.take_chars(m_k);
         assert(kmer == util::string_to_uint_kmer<kmer_t>(seg.chars + (slot - seg.slot_begin), m_k));
         return kmer;
     }
