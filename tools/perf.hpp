@@ -1,6 +1,7 @@
 #pragma once
 
 #include "include/batched_lookup.hpp"
+#include "include/sorted_lookup.hpp"
 
 namespace sshash {
 
@@ -82,6 +83,20 @@ void perf_test_lookup_access(Dict const& dict, essentials::json_lines& perf_stat
         std::cout << "positive lookup, batched (avg_nanosec_per_kmer) = " << nanosec_per_batched
                   << std::endl;
         perf_stats.add("positive lookup, batched (avg_nanosec_per_kmer)", nanosec_per_batched);
+
+        /* the same queries, resolved by the sort-and-sweep engine */
+        lookup_query_sorted<Dict> sorted(&dict);
+        perf::timer_type ts;
+        ts.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            sorted.lookup_batch(pointers.data(), pointers.size(), results.data());
+            essentials::do_not_optimize_away(results[r].kmer_id);
+        }
+        ts.stop();
+        double nanosec_per_sorted = ts.elapsed() / (runs * lookup_queries.size());
+        std::cout << "positive lookup, sorted (avg_nanosec_per_kmer) = " << nanosec_per_sorted
+                  << std::endl;
+        perf_stats.add("positive lookup, sorted (avg_nanosec_per_kmer)", nanosec_per_sorted);
     }
 
     {
@@ -122,6 +137,20 @@ void perf_test_lookup_access(Dict const& dict, essentials::json_lines& perf_stat
         std::cout << "negative lookup, batched (avg_nanosec_per_kmer) = " << nanosec_per_batched
                   << std::endl;
         perf_stats.add("negative lookup, batched (avg_nanosec_per_kmer)", nanosec_per_batched);
+
+        /* the same queries, resolved by the sort-and-sweep engine */
+        lookup_query_sorted<Dict> sorted(&dict);
+        perf::timer_type ts;
+        ts.start();
+        for (uint64_t r = 0; r != runs; ++r) {
+            sorted.lookup_batch(pointers.data(), pointers.size(), results.data());
+            essentials::do_not_optimize_away(results[r].kmer_id);
+        }
+        ts.stop();
+        double nanosec_per_sorted = ts.elapsed() / (runs * lookup_queries.size());
+        std::cout << "negative lookup, sorted (avg_nanosec_per_kmer) = " << nanosec_per_sorted
+                  << std::endl;
+        perf_stats.add("negative lookup, sorted (avg_nanosec_per_kmer)", nanosec_per_sorted);
     }
 
     {

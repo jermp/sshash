@@ -2,6 +2,7 @@
 
 #include "common.hpp"
 #include "perf.hpp"
+#include "crossover.hpp"
 
 #include "test/check.hpp"
 #include "test/check_from_file.hpp"
@@ -89,6 +90,7 @@ int help(char* arg0) {
               << "  query     query a dictionary \n"
               << "  check     check correctness of a dictionary \n"
               << "  bench     run performance tests for a dictionary \n"
+              << "  crossover compare the batched and the sorted lookup engines across batch sizes \n"
               << "  permute   permute a weighted input file \n"
               << std::endl;
 
@@ -107,6 +109,8 @@ int main(int argc, char** argv) {
         return check(argc - 1, argv + 1);
     } else if (tool == "bench") {
         return bench(argc - 1, argv + 1);
+    } else if (tool == "crossover") {
+        return crossover(argc - 1, argv + 1);
     } else if (tool == "permute") {
         return permute(argc - 1, argv + 1);
     }
