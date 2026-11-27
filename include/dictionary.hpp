@@ -89,9 +89,6 @@ struct dictionary  //
     template <typename>
     friend struct lookup_query_batched;
 
-    template <typename>
-    friend struct lookup_query_sorted;
-
     streaming_query_report  //
     streaming_query_from_file(std::string const& filename, bool multiline,
                               bool batched = false, bool async_io = false) const;
