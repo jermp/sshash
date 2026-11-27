@@ -49,10 +49,20 @@ struct uint_kmer_t {
     void drop_char() { drop(bits_per_char); }
     void drop_chars(uint16_t k) { drop(k * bits_per_char); }
 
-    void take(uint16_t b) { bits &= ~(~Kmer(0) << b); }
+    // Retain the low b bits; b must be smaller than the storage width.
+    void take(uint16_t b) {
+        assert(b < uint_kmer_bits);
+        bits &= ~(~Kmer(0) << b);
+    }
     void take64() { bits &= Kmer(uint64_t(-1)); }
     void take_char() { take(bits_per_char); }
-    void take_chars(uint16_t k) { take(k * bits_per_char); }
+    void take_chars(uint16_t k) {
+        assert(k <= max_k);
+        if constexpr (uint_kmer_bits % bits_per_char == 0) {
+            if (k == max_k) return;
+        }
+        take(k * bits_per_char);
+    }
 
     uint64_t pop64() {
         uint64_t res(*this);
@@ -138,6 +148,12 @@ struct dna_uint_kmer_t : alpha_kmer_t<Kmer, 2, nucleotides> {
     // Use odd lengths for DNA to avoid dealing with self-complements
     static constexpr uint16_t max_k = base::max_k - !(base::max_k % 2);
     static constexpr uint16_t max_m = base::max_m - !(base::max_m % 2);
+
+    void take_chars(uint16_t k) {
+        assert(k <= max_k);
+        base::take(k * bits_per_char);
+    }
+
     /*
         This works with the map:
         A -> 00; C -> 01; G -> 11; T -> 10.
