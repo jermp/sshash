@@ -241,6 +241,15 @@ For reference, the index built on the original collection:
 
 already achieves a 12.4X better space than the empirical entropy.
 
+### Minimizer positions
+
+The C++ API `dictionary::call_minimizer_positions(minimizer, callback)` takes a
+canonical encoded m-mer and calls the callback with each indexed absolute
+character offset, including all positions in heavy buckets. This supports
+candidate generation from the existing index. It does not enumerate occurrences
+that were not selected as minimizers. Empty dictionaries and absent minimizers
+produce no callbacks.
+
 Input Files
 -----------
 
