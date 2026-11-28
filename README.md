@@ -45,7 +45,7 @@ If a string identifier is specified for a navigational query (rather than a k-me
 
 If you are interested in a **membership-only** version of SSHash, have a look at [SSHash-Lite](https://github.com/jermp/sshash-lite). It also works for input files with duplicate k-mers (e.g., [matchtigs](https://github.com/algbio/matchtigs) [5]). For a query sequence S and a given coverage threshold E in [0,1], the sequence is considered to be present in the dictionary if at least E*(|S|-k+1) of the k-mers of S are positive.
 
-**NOTE**: It is assumed that two k-mers being the *reverse complement* of each other are the same.
+**NOTE**: By default, two k-mers that are reverse complements of each other are treated as the same. The C++ API also provides an optional orientation-preserving mode, described below.
 
 #### Table of contents
 * [Compiling the Code](#compiling-the-code)
@@ -208,8 +208,8 @@ if your queries are to be read from a (multi-line) FASTA file.
 
 A k-mer and its reverse complement always share a bucket, so a lookup costs a
 single bucket probe and reports, in `kmer_orientation`, which of the two was
-found. This is the only indexing modality: there is no `--canonical` flag to
-choose, and no space-versus-speed trade-off to make.
+found. This is the default indexing modality. The C++ orientation-preserving option
+can keep the two orientations as distinct keys.
 
 The query above should originate the following report (reported here for reference):
 
@@ -240,6 +240,15 @@ For reference, the index built on the original collection:
     ./sshash build -i ../data/unitigs_stitched/with_weights/ecoli_sakai.ust.k31.fa.gz -k 31 -m 13 --weighted --verbose
 
 already achieves a 12.4X better space than the empirical entropy.
+
+### Minimizer positions
+
+The C++ API `dictionary::call_minimizer_positions(minimizer, callback)` takes a
+canonical encoded m-mer and calls the callback with each indexed absolute
+character offset, including all positions in heavy buckets. This supports
+candidate generation from the existing index. It does not enumerate occurrences
+that were not selected as minimizers. Empty dictionaries and absent minimizers
+produce no callbacks.
 
 Input Files
 -----------
@@ -290,6 +299,13 @@ Benchmarks
 ----------
 
 The directory [`benchmarks`](/benchmarks) includes some performance benchmarks.
+
+
+### Preserving input orientation (C++ API)
+
+Applications that assign distinct IDs to a DNA k-mer and its reverse complement can set `build_configuration::preserve_orientation = true` before building a dictionary. Exact duplicate k-mers remain unsupported. `lookup(kmer, false)` then returns the ID of the stored forward k-mer, or a miss if only its reverse complement is present. With reverse-complement matching enabled, lookup prefers the forward occurrence when both are present.
+
+This option indexes heavy buckets with oriented keys and verifies each candidate against the stored sequence. It avoids scanning a heavy bucket to recover the other orientation. The default mode retains reverse-complement equivalence. Dictionaries built without this option keep the v6 format, so older readers still load them. Dictionaries built with it are saved as v7, which adds a one-byte orientation flag. Older readers reject v7 files with a version error.
 
 References
 ----------

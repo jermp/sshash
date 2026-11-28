@@ -14,12 +14,23 @@ template <typename Kmer, typename Offsets>
 lookup_result dictionary<Kmer, Offsets>::lookup(Kmer uint_kmer,
                                                 bool check_reverse_complement) const  //
 {
+    return m_ssi.strand_specific
+        ? lookup_mode_impl<true>(uint_kmer.bits, check_reverse_complement)
+        : lookup_mode_impl<false>(uint_kmer.bits, check_reverse_complement);
+}
+
+template <typename Kmer, typename Offsets>
+template <bool Oriented>
+[[gnu::flatten]] lookup_result dictionary<Kmer, Offsets>::lookup_mode_impl(
+    decltype(Kmer::bits) bits, bool check_reverse_complement) const {
+    Kmer uint_kmer;
+    uint_kmer.bits = bits;
     Kmer uint_kmer_rc = uint_kmer;
     uint_kmer_rc.reverse_complement_inplace(m_k);
     /* the reverse complement is needed anyway to tell the two orientations
        apart, so computing the minimizer from it costs nothing extra */
     auto mini_info = util::compute_minimizer(uint_kmer, uint_kmer_rc, m_k, m_m, m_hasher);
-    auto res = lookup(uint_kmer, uint_kmer_rc, mini_info);
+    auto res = lookup_bucket_impl<Oriented>(uint_kmer, uint_kmer_rc, mini_info, nullptr, !check_reverse_complement);
     if (!check_reverse_complement and res.kmer_orientation == constants::backward_orientation) {  //
         return lookup_result();
     }
@@ -29,11 +40,31 @@ template <typename Kmer, typename Offsets>
 lookup_result dictionary<Kmer, Offsets>::lookup(const Kmer uint_kmer,                           //
                                                 const Kmer uint_kmer_rc,                        //
                                                 const minimizer_info mini_info,                 //
-                                                typename spss_type::bucket_cache* cache) const  //
+                                                typename spss_type::bucket_cache* cache, bool forward_only) const  //
 {
+    return m_ssi.strand_specific
+        ? lookup_bucket_impl<true>(uint_kmer, uint_kmer_rc, mini_info, cache, forward_only)
+        : lookup_bucket_impl<false>(uint_kmer, uint_kmer_rc, mini_info, cache, forward_only);
+}
+
+template <typename Kmer, typename Offsets>
+template <bool Oriented>
+lookup_result dictionary<Kmer, Offsets>::lookup_bucket_impl(
+    Kmer uint_kmer, Kmer uint_kmer_rc, minimizer_info mini_info,
+    typename spss_type::bucket_cache* cache, bool forward_only) const {
     assert(minimizer_info(mini_info.minimizer, mini_info.pos_in_kmer) ==
            util::compute_minimizer(uint_kmer, uint_kmer_rc, m_k, m_m, m_hasher));
-    auto it = m_ssi.lookup(uint_kmer, uint_kmer_rc, mini_info);
+    auto it = m_ssi.template lookup_impl<Oriented>(uint_kmer, uint_kmer_rc, mini_info);
+    if constexpr (Oriented) {
+        auto res = m_spss.lookup(it, uint_kmer, uint_kmer, mini_info, cache);
+        if (res.kmer_id != constants::invalid_uint64) {
+            res.kmer_orientation = constants::forward_orientation;
+            return res;
+        }
+        if (forward_only) return res;
+        auto reverse_it = m_ssi.template lookup_impl<Oriented>(uint_kmer_rc, uint_kmer, mini_info);
+        return m_spss.lookup(reverse_it, uint_kmer, uint_kmer_rc, mini_info, cache);
+    }
     return m_spss.lookup(it, uint_kmer, uint_kmer_rc, mini_info, cache);
 }
 
@@ -163,7 +194,9 @@ neighbourhood<Kmer> dictionary<Kmer, Offsets>::string_neighbours(
 template <typename Kmer, typename Offsets>
 uint64_t dictionary<Kmer, Offsets>::num_bits() const {
     return 8 * (sizeof(m_vnum) + sizeof(m_num_kmers) + sizeof(m_num_strings) + sizeof(m_k) +
-                sizeof(m_m) + sizeof(m_hasher)) +
+                sizeof(m_m) + sizeof(m_hasher) +
+                (m_vnum.x == constants::oriented_version_major ? sizeof(m_ssi.strand_specific)
+                                                               : 0)) +
            m_spss.num_bits() + m_ssi.num_bits() + m_weights.num_bits();
 }
 
